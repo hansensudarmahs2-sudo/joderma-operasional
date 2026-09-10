@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Antrean #{{ entry.queue_no }}{% endblock %}
+{% block content %}
+<h1>Antrean #{{ entry.queue_no }} · {{ entry.display_name }}</h1>
+<p class="sub">{{ entry.get_visit_type_display }} · {{ entry.get_queue_status_display }} · {{ entry.get_payment_status_display }}</p>
+{% if entry.priority_flag %}<div class="msg warning">Prioritas disetujui: {{ entry.priority_reason }}</div>{% endif %}
+
+<div class="card">
+  <h3>Riwayat pembayaran</h3>
+  <ul class="timeline">
+    {% for e in payment_events %}
+      <li>{{ e.get_from_status_display|default:"—" }} → <strong>{{ e.get_to_status_display }}</strong>
+        <div class="meta">{{ e.actor }} · {{ e.occurred_at|date:"d/m H:i" }}{% if e.reason %} · {{ e.reason }}{% endif %}</div></li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="card">
+  <h3>Riwayat status antrean</h3>
+  <ul class="timeline">
+    {% for e in status_events %}
+      <li>{{ e.from_status|default:"—" }} → <strong>{{ e.to_status }}</strong>
+        <div class="meta">{{ e.actor }} · {{ e.occurred_at|date:"d/m H:i" }}{% if e.reason %} · {{ e.reason }}{% endif %}</div></li>
+    {% endfor %}
+  </ul>
+</div>
+<p><a class="btn secondary" href="{% url 'queueing:board' %}">Kembali ke papan</a></p>
+{% endblock %}

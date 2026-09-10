@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Kas{% endblock %}
+{% block content %}
+<h1>Kas</h1>
+<p class="sub">{{ day.date }} · Dual-control {% if dual_control %}<span class="tag ok">aktif</span>{% else %}<span class="tag warn">nonaktif</span>{% endif %}</p>
+<div class="grid">
+  <div class="card">
+    <h3>Kas awal</h3>
+    <p><span class="tag info">{{ summary.opening_status }}</span></p>
+    {% if summary.opening %}
+      <p class="meta">Diharapkan Rp {{ summary.opening.expected_total|intcomma }} ·
+        Aktual Rp {{ summary.opening.actual_total|intcomma }} ·
+        Selisih Rp {{ summary.opening.variance|intcomma }}</p>
+      <a class="btn small secondary" href="{% url 'cash:review' summary.opening.pk %}">Review/verifikasi</a>
+    {% endif %}
+    {% if can_edit %}<a class="btn small" href="{% url 'cash:form' 'OPENING' %}">Hitung kas awal</a>{% endif %}
+  </div>
+  <div class="card">
+    <h3>Kas akhir</h3>
+    <p><span class="tag info">{{ summary.closing_status }}</span></p>
+    {% if summary.closing %}
+      <p class="meta">Diharapkan Rp {{ summary.closing.expected_total|intcomma }} ·
+        Aktual Rp {{ summary.closing.actual_total|intcomma }} ·
+        Selisih Rp {{ summary.closing.variance|intcomma }}</p>
+      <a class="btn small secondary" href="{% url 'cash:review' summary.closing.pk %}">Review/verifikasi</a>
+    {% endif %}
+    {% if can_edit %}<a class="btn small" href="{% url 'cash:form' 'CLOSING' %}">Hitung kas akhir</a>{% endif %}
+  </div>
+</div>
+{% endblock %}

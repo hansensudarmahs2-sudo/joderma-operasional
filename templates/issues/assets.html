@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Aset{% endblock %}
+{% block content %}
+<h1>Aset dan peralatan</h1>
+<table class="responsive">
+  <thead><tr><th>Kode</th><th>Nama</th><th>Kategori</th><th>Lokasi</th><th>Status</th>{% if can_manage %}<th>Aksi</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for a in assets %}
+  <tr>
+    <td data-label="Kode">{{ a.code }}</td>
+    <td data-label="Nama">{{ a.name }}</td>
+    <td data-label="Kategori">{{ a.get_category_display|default:"—" }}</td>
+    <td data-label="Lokasi">{{ a.location }}</td>
+    <td data-label="Status">{% if a.do_not_use %}<span class="tag err">Jangan digunakan</span><div class="meta">{{ a.do_not_use_reason }}</div>{% else %}<span class="tag ok">Normal</span>{% endif %}</td>
+    {% if can_manage %}
+    <td data-label="Aksi">
+      <form method="post" action="{% url 'issues:asset_block' a.pk %}">
+        {% csrf_token %}
+        <input name="alasan" placeholder="Alasan (wajib)">
+        <button class="btn small danger" type="submit">Tandai jangan digunakan</button>
+      </form>
+    </td>
+    {% endif %}
+  </tr>
+  {% empty %}<tr><td colspan="6" class="meta">Belum ada aset terdaftar.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

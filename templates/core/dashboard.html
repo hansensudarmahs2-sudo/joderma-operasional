@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Hari Ini{% endblock %}
+{% block content %}
+<h1>Hari Ini</h1>
+{% if day %}
+  <p class="sub">{{ day.date }} · {{ clinic.name }} ·
+    <span class="tag {% if day.status == 'CLOSED' %}muted{% elif day.status == 'READY_WITH_ISSUES' %}warn{% elif day.status == 'OPEN' or day.status == 'READY' %}ok{% else %}info{% endif %}">{{ day.get_status_display }}</span>
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="stat-label">Progres pembukaan</div>
+      <div class="stat">{{ progress.done }}/{{ progress.total }}</div>
+      <div class="progress"><span style="width: {{ progress.percent }}%"></span></div>
+      <p class="meta">{{ progress.failed }} item bermasalah · {{ progress.required_pending }} item wajib tertunda</p>
+      <a class="btn small secondary" href="{% url 'checklists:index' %}">Buka checklist</a>
+    </div>
+
+    {% if can_view_cash and cash %}
+    <div class="card">
+      <div class="stat-label">Status kas</div>
+      <div class="stat" style="font-size:1.1rem">{{ cash.opening_status }}</div>
+      <p class="meta">Kas akhir: {{ cash.closing_status }}</p>
+      {% if cash.pending_verification %}<span class="tag warn">Menunggu verifikasi</span>{% endif %}
+      {% if cash.has_variance %}<span class="tag err">Ada selisih</span>{% endif %}
+      <p><a class="btn small secondary" href="{% url 'cash:index' %}">Buka kas</a></p>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="stat-label">Antrean</div>
+      <div class="stat">{{ queue.total }}</div>
+      <p class="meta">{{ queue.sudah_bayar }} keep nomor · {{ queue.menunggu }} menunggu ·
+        {{ queue.dilayani }} dilayani · {{ queue.selesai }} selesai · {{ queue.batal }} batal/no-show</p>
+      <a class="btn small secondary" href="{% url 'queueing:board' %}">Buka antrean</a>
+    </div>
+
+    <div class="card">
+      <div class="stat-label">Perawat berikutnya</div>
+      <div class="stat" style="font-size:1.2rem">{% if next_nurse %}{{ next_nurse.nurse }}{% else %}—{% endif %}</div>
+      <p class="meta">{% if next_nurse %}Posisi {{ next_nurse.position }} · {{ next_nurse.turns_taken }} giliran hari ini{% else %}Roster belum disusun{% endif %}</p>
+      <a class="btn small secondary" href="{% url 'nurses:board' %}">Buka giliran</a>
+    </div>
+
+    <div class="card">
+      <div class="stat-label">Istirahat 60 menit ke depan</div>
+      <ul class="timeline">
+        {% for b in breaks_soon %}
+          <li>{{ b.user }} · {{ b.get_break_type_display }}<div class="meta">{{ b.start_at|time:"H:i" }}–{{ b.end_at|time:"H:i" }}</div></li>
+        {% empty %}<li class="meta">Tidak ada jadwal.</li>{% endfor %}
+      </ul>
+      <a class="btn small secondary" href="{% url 'breaks:list' %}">Buka jadwal</a>
+    </div>
+
+    <div class="card">
+      <div class="stat-label">Komplain / saran / kerusakan terbuka</div>
+      <div class="stat">{{ issues.komplain_open }} / {{ issues.masukan_open }} / {{ issues.kerusakan_open }}</div>
+      <p class="meta">
+        {% if issues.kritis_open %}<span class="tag err">{{ issues.kritis_open }} kritis</span>{% endif %}
+        {% if issues.overdue %}<span class="tag warn">{{ issues.overdue }} lewat target</span>{% endif %}
+        {% if issues.unassigned %}<span class="tag muted">{{ issues.unassigned }} belum ditugaskan</span>{% endif %}
+      </p>
+      <a class="btn small secondary" href="{% url 'issues:list' %}?terbuka=1">Lihat catatan</a>
+    </div>
+  </div>
+
+  <h2>Perlu tindakan saya</h2>
+  <div class="card">
+    <ul class="timeline">
+      {% for a in my_actions %}
+        <li><strong>{{ a.title }}</strong>
+          {% if a.is_overdue %}<span class="tag err">Lewat target</span>{% endif %}
+          <div class="meta">{{ a.get_priority_display }} · target {{ a.due_at|default:"—" }} · sumber {{ a.source_label|default:a.source_type }}</div>
+        </li>
+      {% endfor %}
+      {% for asg in my_issues %}
+        <li><a href="{% url 'issues:detail' asg.issue.pk %}">{{ asg.issue.number }} · {{ asg.issue.title }}</a>
+          {% if asg.issue.is_overdue %}<span class="tag err">Lewat target</span>{% endif %}
+          <div class="meta">{{ asg.issue.get_status_display }} · target {{ asg.due_at|default:asg.issue.due_at|default:"—" }}</div>
+        </li>
+      {% endfor %}
+      {% if not my_actions and not my_issues %}<li class="meta">Tidak ada pekerjaan tertunda untuk Anda.</li>{% endif %}
+    </ul>
+    <a class="btn small secondary" href="{% url 'core:action_items' %}">Semua action item</a>
+  </div>
+
+  <h2>Status hari operasional</h2>
+  <div class="card">
+    {% if closing_blockers %}
+      <div class="msg warning">Belum dapat ditutup: {% for b in closing_blockers %}{{ b }} {% endfor %}</div>
+    {% endif %}
+    <form method="post" action="{% url 'core:day_action' day.pk %}">
+      {% csrf_token %}
+      <label for="aksi">Aksi</label>
+      <select id="aksi" name="aksi">
+        <option value="ready">Tandai siap</option>
+        {% if is_supervisor %}<option value="ready_issues">Siap dengan catatan (perlu alasan)</option>{% endif %}
+        <option value="open">Buka klinik</option>
+        {% if can_close %}
+          <option value="closing">Mulai penutupan</option>
+          <option value="close">Tutup hari</option>
+          <option value="reopen">Buka kembali (perlu alasan)</option>
+        {% endif %}
+      </select>
+      <label for="alasan">Alasan (wajib untuk pengecualian, override, dan buka kembali)</label>
+      <textarea id="alasan" name="alasan" rows="2"></textarea>
+      <p></p>
+      <button class="btn" type="submit">Jalankan</button>
+    </form>
+    {% if day.ready_exception_reason %}<p class="meta">Catatan siap: {{ day.ready_exception_reason }}</p>{% endif %}
+    {% if day.close_override_reason %}<p class="meta">Override penutupan: {{ day.close_override_reason }}</p>{% endif %}
+    {% if day.reopen_reason %}<p class="meta">Alasan buka kembali: {{ day.reopen_reason }}</p>{% endif %}
+  </div>
+{% else %}
+  <div class="card">
+    <p>Belum ada sesi hari operasional untuk {{ today }}.</p>
+    <a class="btn" href="?buat=1">Buat sesi hari ini</a>
+  </div>
+{% endif %}
+{% endblock %}

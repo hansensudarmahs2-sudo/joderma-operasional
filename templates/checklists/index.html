@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Checklist pembukaan{% endblock %}
+{% block content %}
+<h1>Checklist pembukaan</h1>
+<p class="sub">{{ day.date }} · {{ progress.done }}/{{ progress.total }} item diperiksa</p>
+<div class="progress"><span style="width: {{ progress.percent }}%"></span></div>
+<div class="grid" style="margin-top:1rem">
+  {% for card in cards %}
+    <div class="card">
+      <h3>{{ card.run.get_area_display }}</h3>
+      <div class="progress"><span style="width: {{ card.progress.percent }}%"></span></div>
+      <p class="meta">{{ card.progress.done }}/{{ card.progress.total }} diperiksa ·
+        {{ card.progress.problems|length }} bermasalah ·
+        {{ card.progress.required_pending|length }} wajib tertunda</p>
+      <span class="tag {% if card.run.status == 'SELESAI' %}ok{% elif card.run.status == 'DITERIMA_DENGAN_CATATAN' %}warn{% else %}info{% endif %}">{{ card.run.get_status_display }}</span>
+      <p><a class="btn small" href="{% url 'checklists:run' card.run.pk %}">Isi checklist</a></p>
+    </div>
+  {% empty %}
+    <div class="card"><p class="meta">Belum ada template checklist aktif. Admin dapat membuatnya di Admin ▸ Template.</p></div>
+  {% endfor %}
+</div>
+<p><a class="btn secondary" href="{% url 'checklists:review' %}">Review pembukaan</a></p>
+{% endblock %}

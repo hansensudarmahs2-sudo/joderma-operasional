@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Laporan{% endblock %}
+{% block content %}
+<h1>Laporan</h1>
+<form method="get" class="inline card">
+  <div><label for="dari">Dari</label><input id="dari" name="dari" type="date" value="{{ start|date:'Y-m-d' }}"></div>
+  <div><label for="sampai">Sampai</label><input id="sampai" name="sampai" type="date" value="{{ end|date:'Y-m-d' }}"></div>
+  <button class="btn" type="submit">Tampilkan</button>
+</form>
+
+{% if can_export %}
+<p>Ekspor CSV:
+  <a class="btn small secondary" href="{% url 'reports:export' 'antrean' %}?dari={{ start|date:'Y-m-d' }}&sampai={{ end|date:'Y-m-d' }}">Antrean</a>
+  {% if can_view_cash %}<a class="btn small secondary" href="{% url 'reports:export' 'kas' %}?dari={{ start|date:'Y-m-d' }}&sampai={{ end|date:'Y-m-d' }}">Kas</a>{% endif %}
+  <a class="btn small secondary" href="{% url 'reports:export' 'checklist' %}?dari={{ start|date:'Y-m-d' }}&sampai={{ end|date:'Y-m-d' }}">Checklist</a>
+  <a class="btn small secondary" href="{% url 'reports:export' 'issue' %}?dari={{ start|date:'Y-m-d' }}&sampai={{ end|date:'Y-m-d' }}">Catatan</a>
+  <a class="btn small secondary" href="{% url 'reports:export' 'giliran' %}?dari={{ start|date:'Y-m-d' }}&sampai={{ end|date:'Y-m-d' }}">Giliran</a>
+</p>
+{% endif %}
+
+<h2>Kepatuhan checklist pembukaan</h2>
+<table class="responsive">
+  <thead><tr><th>Area</th><th>Total item</th><th>OK</th><th>Bermasalah</th></tr></thead>
+  <tbody>{% for r in checklist_rows %}<tr>
+    <td data-label="Area">{{ r.run__area }}</td><td data-label="Total">{{ r.total }}</td>
+    <td data-label="OK">{{ r.ok }}</td><td data-label="Bermasalah">{{ r.masalah }}</td></tr>
+  {% empty %}<tr><td colspan="4" class="meta">Tidak ada data.</td></tr>{% endfor %}</tbody>
+</table>
+
+{% if can_view_cash %}
+<h2>Kas dan selisih</h2>
+<table class="responsive">
+  <thead><tr><th>Tanggal</th><th>Jenis</th><th>Diharapkan</th><th>Aktual</th><th>Selisih</th><th>Status</th></tr></thead>
+  <tbody>{% for s in cash_rows %}<tr>
+    <td data-label="Tanggal">{{ s.operational_day.date }}</td>
+    <td data-label="Jenis">{{ s.get_session_type_display }}</td>
+    <td data-label="Diharapkan">Rp {{ s.expected_total|intcomma }}</td>
+    <td data-label="Aktual">Rp {{ s.actual_total|intcomma }}</td>
+    <td data-label="Selisih">Rp {{ s.variance|intcomma }}</td>
+    <td data-label="Status">{{ s.get_status_display }}</td></tr>
+  {% empty %}<tr><td colspan="6" class="meta">Tidak ada data.</td></tr>{% endfor %}</tbody>
+</table>
+{% endif %}
+
+<h2>Volume antrean</h2>
+<table class="responsive">
+  <thead><tr><th>Tanggal</th><th>Total</th><th>Selesai</th><th>Batal/No-show</th></tr></thead>
+  <tbody>{% for r in queue_rows %}<tr>
+    <td data-label="Tanggal">{{ r.operational_day__date }}</td><td data-label="Total">{{ r.total }}</td>
+    <td data-label="Selesai">{{ r.selesai }}</td><td data-label="Batal">{{ r.batal }}</td></tr>
+  {% empty %}<tr><td colspan="4" class="meta">Tidak ada data.</td></tr>{% endfor %}</tbody>
+</table>
+
+<h2>Distribusi giliran perawat</h2>
+<p class="meta">Total override pada periode: {{ override_count }}</p>
+<table class="responsive">
+  <thead><tr><th>Perawat</th><th>Giliran selesai</th></tr></thead>
+  <tbody>{% for r in nurse_rows %}<tr>
+    <td data-label="Perawat">{{ r.nurse__display_name|default:r.nurse__username }}</td>
+    <td data-label="Giliran">{{ r.giliran }}</td></tr>
+  {% empty %}<tr><td colspan="2" class="meta">Tidak ada data.</td></tr>{% endfor %}</tbody>
+</table>
+
+<h2>Catatan berdasarkan tipe dan status</h2>
+<table class="responsive">
+  <thead><tr><th>Tipe</th><th>Status</th><th>Jumlah</th></tr></thead>
+  <tbody>{% for r in issue_rows %}<tr>
+    <td data-label="Tipe">{{ r.issue_type }}</td><td data-label="Status">{{ r.status }}</td>
+    <td data-label="Jumlah">{{ r.jumlah }}</td></tr>
+  {% empty %}<tr><td colspan="3" class="meta">Tidak ada data.</td></tr>{% endfor %}</tbody>
+</table>
+
+<h2>Item lewat target waktu</h2>
+<ul class="timeline">
+  {% for i in overdue %}<li><a href="{% url 'issues:detail' i.pk %}">{{ i.number }}</a> · {{ i.title }}
+    <div class="meta">Target {{ i.due_at|date:"d/m H:i" }} · {{ i.get_status_display }}</div></li>
+  {% empty %}<li class="meta">Tidak ada item lewat target.</li>{% endfor %}
+</ul>
+
+<h2>Kepatuhan jadwal istirahat</h2>
+<p class="meta">{{ breaks }} jadwal dibuat · {{ breaks_cancelled }} dibatalkan pada periode ini.</p>
+{% endblock %}

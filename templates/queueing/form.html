@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Tambah pasien antrean{% endblock %}
+{% block content %}
+<h1>Tambah pasien antrean</h1>
+<p class="sub">Simpan data seminimal mungkin. Jangan mencatat diagnosis atau catatan medis.</p>
+<div class="card" style="max-width:560px">
+  <form method="post">
+    {% csrf_token %}
+    <label for="nama">Nama tampilan</label>
+    <input id="nama" name="nama" required>
+    <label for="alias">Inisial/alias untuk layar bersama</label>
+    <input id="alias" name="alias" placeholder="mis. A.S.">
+    <label for="patient_ref">ID pasien internal (opsional)</label>
+    <input id="patient_ref" name="patient_ref">
+    <label for="jenis">Jenis kunjungan</label>
+    <select id="jenis" name="jenis">{% for v, l in visit_types %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+    <label for="pembayaran">Status pembayaran konsultasi</label>
+    <select id="pembayaran" name="pembayaran">
+      {% for v, l in payment_statuses %}
+        <option value="{{ v }}" {% if v == default_payment %}selected{% endif %}>{{ l }}</option>
+      {% endfor %}
+    </select>
+    <p class="help">Nomor antrean dipertahankan bila status <strong>Sudah bayar</strong> atau <strong>Dibebaskan</strong>.</p>
+    <label for="catatan">Catatan operasional singkat</label>
+    <input id="catatan" name="catatan">
+    <p></p>
+    <button class="btn" type="submit">Simpan</button>
+    <a class="btn secondary" href="{% url 'queueing:board' %}">Batal</a>
+  </form>
+</div>
+{% endblock %}

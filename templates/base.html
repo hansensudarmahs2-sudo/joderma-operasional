@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+{% if user.is_authenticated %}
+<header class="topbar">
+  <a class="brand" href="{% url 'core:dashboard' %}">JoDerma Staff Ops</a>
+  <span class="spacer"></span>
+  <a href="{% url 'notifications:list' %}">Notifikasi
+    {% if unread_notifications %}<span class="badge-count">{{ unread_notifications }}</span>{% endif %}
+  </a>
+  <a href="{% url 'accounts:change_password' %}">{{ user }}</a>
+  <form method="post" action="{% url 'accounts:logout' %}" style="display:inline">
+    {% csrf_token %}
+    <button class="btn small secondary" type="submit">Keluar</button>
+  </form>
+</header>
+<nav class="main">
+  <a href="{% url 'core:dashboard' %}">Hari Ini</a>
+  <a href="{% url 'checklists:index' %}">Pembukaan</a>
+  {% if nav_can_cash %}<a href="{% url 'cash:index' %}">Kas</a>{% endif %}
+  <a href="{% url 'queueing:board' %}">Antrean</a>
+  <a href="{% url 'nurses:board' %}">Giliran Perawat</a>
+  <a href="{% url 'breaks:list' %}">Jadwal Istirahat</a>
+  <a href="{% url 'issues:list' %}?tipe=KOMPLAIN">Komplain</a>
+  <a href="{% url 'issues:list' %}?tipe=MASUKAN">Masukan</a>
+  <a href="{% url 'issues:list' %}?tipe=KERUSAKAN">Kerusakan</a>
+  <a href="{% url 'reports:index' %}">Laporan</a>
+  {% if nav_can_audit %}<a href="{% url 'audit:log' %}">Audit</a>{% endif %}
+  {% if nav_can_admin %}<a href="{% url 'accounts:user_list' %}">Admin</a>{% endif %}
+</nav>
+{% endif %}
+<main>
+  {% if messages %}
+    {% for message in messages %}
+      <div class="msg {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+  {% block content %}{% endblock %}
+</main>
+<script>
+document.addEventListener('submit', function (e) {
+  var form = e.target;
+  if (form.dataset.noGuard) return;
+  var btn = form.querySelector('button[type=submit]');
+  if (btn) { setTimeout(function () { btn.disabled = true; btn.textContent = 'Menyimpan...'; }, 0); }
+});
+</script>
+</body>
+</html>

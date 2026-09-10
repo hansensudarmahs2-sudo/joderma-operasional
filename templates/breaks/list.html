@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Jadwal istirahat{% endblock %}
+{% block content %}
+<h1>Jadwal istirahat</h1>
+<p class="sub">{{ date }} · minimum aktif: {% for role, n in minimums.items %}{{ n }} {{ role }} {% endfor %}</p>
+<form method="get" class="inline card">
+  <div><label for="tanggal">Tanggal</label><input id="tanggal" name="tanggal" type="date" value="{{ date|date:'Y-m-d' }}"></div>
+  <button class="btn" type="submit">Tampilkan</button>
+</form>
+{% if can_manage %}<p><a class="btn" href="{% url 'breaks:create' %}">Tambah jadwal</a></p>{% endif %}
+
+<h2>Jadwal saya</h2>
+<ul class="timeline">
+  {% for s in mine %}<li>{{ s.get_break_type_display }} {{ s.start_at|time:"H:i" }}–{{ s.end_at|time:"H:i" }}
+    <div class="meta">{{ s.get_status_display }}{% if s.location_note %} · {{ s.location_note }}{% endif %}</div></li>
+  {% empty %}<li class="meta">Tidak ada jadwal untuk Anda hari ini.</li>{% endfor %}
+</ul>
+
+<h2>Tim</h2>
+<table class="responsive">
+  <thead><tr><th>Waktu</th><th>Staf</th><th>Jenis</th><th>Status</th>{% if can_manage %}<th>Aksi</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for s in schedules %}
+  <tr>
+    <td data-label="Waktu" class="nowrap">{{ s.start_at|time:"H:i" }}–{{ s.end_at|time:"H:i" }}</td>
+    <td data-label="Staf">{{ s.user }}</td>
+    <td data-label="Jenis">{{ s.get_break_type_display }}</td>
+    <td data-label="Status"><span class="tag {% if s.status == 'BATAL' %}muted{% else %}info{% endif %}">{{ s.get_status_display }}</span>
+      {% if s.staffing_override_reason %}<span class="tag warn">Override</span>{% endif %}</td>
+    {% if can_manage %}
+    <td data-label="Aksi">
+      <form method="post" action="{% url 'breaks:update' s.pk %}">
+        {% csrf_token %}
+        <input name="mulai" type="time" value="{{ s.start_at|time:'H:i' }}">
+        <input name="selesai" type="time" value="{{ s.end_at|time:'H:i' }}">
+        <input name="alasan_override" placeholder="Alasan override">
+        <button class="btn small" type="submit">Simpan</button>
+      </form>
+      <form method="post" action="{% url 'breaks:cancel' s.pk %}">
+        {% csrf_token %}
+        <input name="alasan" placeholder="Alasan batal (wajib)">
+        <button class="btn small danger" type="submit">Batalkan</button>
+      </form>
+    </td>
+    {% endif %}
+  </tr>
+  {% empty %}<tr><td colspan="5" class="meta">Belum ada jadwal.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

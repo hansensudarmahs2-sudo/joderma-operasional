@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Review kas{% endblock %}
+{% block content %}
+<h1>Review {{ session.get_session_type_display }}</h1>
+<p class="sub">{{ session.operational_day.date }} · <span class="tag info">{{ session.get_status_display }}</span></p>
+
+<div class="grid">
+  <div class="card">
+    <div class="stat-label">Diharapkan</div>
+    <div class="stat">Rp {{ session.expected_total|intcomma }}</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Aktual (dari pecahan)</div>
+    <div class="stat">Rp {{ session.actual_total|intcomma }}</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Selisih</div>
+    <div class="stat">Rp {{ session.variance|intcomma }}</div>
+    {% if session.variance != 0 %}<span class="tag err">Selisih</span>{% else %}<span class="tag ok">Sesuai</span>{% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h3>Rincian pecahan</h3>
+  <table class="responsive">
+    <thead><tr><th>Pecahan</th><th>Jumlah</th><th class="right">Subtotal</th></tr></thead>
+    <tbody>{% for r in rows %}<tr>
+      <td data-label="Pecahan">Rp {{ r.denomination|intcomma }}</td>
+      <td data-label="Jumlah">{{ r.quantity }}</td>
+      <td data-label="Subtotal" class="right">Rp {{ r.subtotal|intcomma }}</td></tr>{% endfor %}</tbody>
+  </table>
+  <p class="meta">Penghitung pertama: {{ session.counted_by|default:"—" }} · {{ session.counted_at|date:"d/m H:i" }}</p>
+  {% if session.note %}<p class="meta">Catatan: {{ session.note }}</p>{% endif %}
+  {% if session.correction_reason %}<p class="meta">Koreksi terakhir: {{ session.correction_reason }} (oleh {{ session.corrected_by }})</p>{% endif %}
+</div>
+
+{% if can_verify %}
+<div class="card">
+  <h3>Verifikasi kedua</h3>
+  <form method="post" action="{% url 'cash:verify' session.pk %}">
+    {% csrf_token %}
+    <div class="inline">
+      <div><label for="hitung_ulang">Total hitung ulang (Rp)</label>
+        <input id="hitung_ulang" name="hitung_ulang" type="number" min="0" placeholder="Opsional"></div>
+      <div><label for="hasil">Hasil</label>
+        <select id="hasil" name="hasil"><option value="">Otomatis dari selisih</option>
+          {% for v, l in results %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+    </div>
+    <label for="catatan">Catatan</label>
+    <textarea id="catatan" name="catatan" rows="2"></textarea>
+    <p></p>
+    <button class="btn" type="submit">Simpan verifikasi</button>
+  </form>
+</div>
+
+{% if can_correct %}
+<div class="card">
+  <h3>Koreksi setelah verifikasi</h3>
+  <p class="meta">Memerlukan alasan; nilai lama tetap terlihat di audit log.</p>
+  <form method="post" action="{% url 'cash:correct' session.pk %}">
+    {% csrf_token %}
+    {% for r in rows %}
+      <label for="k{{ r.denomination }}">Rp {{ r.denomination|intcomma }}</label>
+      <input id="k{{ r.denomination }}" name="denom_{{ r.denomination }}" type="number" min="0" value="{{ r.quantity }}">
+    {% endfor %}
+    <label for="diharapkan">Diharapkan (Rp)</label>
+    <input id="diharapkan" name="diharapkan" type="number" min="0" value="{{ session.expected_total }}">
+    <label for="alasan">Alasan koreksi (wajib)</label>
+    <textarea id="alasan" name="alasan" rows="2" required></textarea>
+    <p></p>
+    <button class="btn danger" type="submit">Simpan koreksi</button>
+  </form>
+</div>
+{% endif %}
+{% endif %}
+
+<div class="card">
+  <h3>Riwayat verifikasi</h3>
+  <ul class="timeline">
+    {% for v in verifications %}
+      <li>{{ v.get_result_display }} oleh {{ v.verifier }}<div class="meta">{{ v.verified_at|date:"d/m H:i" }} · {{ v.note }}</div></li>
+    {% empty %}<li class="meta">Belum ada verifikasi.</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

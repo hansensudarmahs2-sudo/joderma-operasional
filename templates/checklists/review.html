@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Review pembukaan{% endblock %}
+{% block content %}
+<h1>Review pembukaan</h1>
+<p class="sub">{{ day.date }}</p>
+{% for card in cards %}
+<div class="card">
+  <h3>{{ card.run.get_area_display }} — <span class="tag {% if card.run.status == 'SELESAI' %}ok{% elif card.run.status == 'DITERIMA_DENGAN_CATATAN' %}warn{% else %}info{% endif %}">{{ card.run.get_status_display }}</span></h3>
+  <p class="meta">{{ card.progress.done }}/{{ card.progress.total }} diperiksa ·
+     {{ card.progress.problems|length }} bermasalah · {{ card.progress.required_pending|length }} wajib tertunda</p>
+  {% if card.progress.problems %}
+    <ul class="timeline">
+      {% for p in card.progress.problems %}
+      <li><strong>{{ p.label }}</strong> <span class="tag err">{{ p.get_result_display }}</span>
+        <div class="meta">{{ p.note }}</div></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if card.run.exception_reason %}<p class="meta">Pengecualian: {{ card.run.exception_reason }}</p>{% endif %}
+  {% if card.run.reviewed_by %}<p class="meta">Dikonfirmasi oleh {{ card.run.reviewed_by }} · {{ card.run.reviewed_at|date:"d/m H:i" }}</p>{% endif %}
+
+  {% if can_review %}
+  <form method="post" action="{% url 'checklists:review_action' card.run.pk %}">
+    {% csrf_token %}
+    <label for="alasan{{ card.run.pk }}">Alasan (wajib bila menerima dengan pengecualian)</label>
+    <textarea id="alasan{{ card.run.pk }}" name="alasan" rows="2"></textarea>
+    <p></p>
+    <button class="btn small" type="submit" name="aksi" value="setuju">Konfirmasi selesai</button>
+    <button class="btn small secondary" type="submit" name="aksi" value="pengecualian">Terima dengan pengecualian</button>
+  </form>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

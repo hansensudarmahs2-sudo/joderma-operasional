@@ -1,0 +1,8 @@
+{
+  "typeCheckingMode": "off",
+  "reportMissingImports": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportArgumentType": "none",
+  "reportReturnType": "none",
+  "exclude": ["**/migrations", ".venv"]
+}

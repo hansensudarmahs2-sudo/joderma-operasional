@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Template checklist{% endblock %}
+{% block content %}
+<h1>Template checklist</h1>
+<p class="sub">Perubahan template hanya berlaku untuk sesi baru; checklist historis tidak berubah.</p>
+{% for t in templates %}
+<div class="card">
+  <h3>{{ t.get_area_display }} · v{{ t.version }} {% if t.active %}<span class="tag ok">Aktif</span>{% else %}<span class="tag muted">Nonaktif</span>{% endif %}</h3>
+  <table class="responsive">
+    <thead><tr><th>Item</th><th>Kategori</th><th>Tipe</th><th>Wajib</th><th>Minimum</th></tr></thead>
+    <tbody>
+      {% for i in t.items.all %}
+      <tr><td data-label="Item">{{ i.label }}</td><td data-label="Kategori">{{ i.category }}</td>
+        <td data-label="Tipe">{{ i.get_input_type_display }}</td>
+        <td data-label="Wajib">{% if i.required %}Ya{% else %}Tidak{% endif %}</td>
+        <td data-label="Minimum">{{ i.min_quantity|default:"—" }} {{ i.unit }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+<p class="meta">Pengelolaan item template dilakukan lewat Django admin pada MVP: <a href="/django-admin/checklists/checklisttemplate/">buka admin template</a>.</p>
+{% endblock %}

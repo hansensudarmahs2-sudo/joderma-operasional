@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Konfigurasi{% endblock %}
+{% block content %}
+<h1>Konfigurasi klinik</h1>
+<p class="sub">Kebijakan operasional terlihat di halaman ini, bukan tersembunyi di kode (PRD 8.5).</p>
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    <div class="inline">
+      <div><label for="kunci">Kunci</label><input id="kunci" name="kunci" placeholder="cash.dual_control_enabled"></div>
+      <div><label for="nilai">Nilai (JSON)</label><input id="nilai" name="nilai" placeholder="true"></div>
+      <button class="btn" type="submit">Simpan</button>
+    </div>
+  </form>
+</div>
+<table class="responsive">
+  <thead><tr><th>Kunci</th><th>Nilai aktif</th><th>Default</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for row in rows %}
+    <tr>
+      <td data-label="Kunci"><code>{{ row.key }}</code></td>
+      <td data-label="Nilai aktif">{{ row.value }}</td>
+      <td data-label="Default">{{ row.default }}</td>
+      <td data-label="Status">{% if row.overridden %}<span class="tag warn">Diubah</span>{% else %}<span class="tag muted">Default</span>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

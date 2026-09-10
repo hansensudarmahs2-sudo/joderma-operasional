@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Antrean{% endblock %}
+{% block content %}
+<h1>Papan antrean</h1>
+<p class="sub">{{ day.date }} · total {{ summary.total }} · {{ summary.menunggu }} menunggu · {{ summary.dilayani }} dilayani</p>
+<p>
+  {% if can_manage %}<a class="btn" href="{% url 'queueing:create' %}">Tambah pasien</a>{% endif %}
+  <a class="btn secondary" href="{% url 'queueing:public_board' %}">Layar bersama</a>
+</p>
+
+<form method="get" class="inline card">
+  <div><label for="status">Status</label>
+    <select id="status" name="status"><option value="">Semua</option>
+      {% for v, l in queue_statuses %}<option value="{{ v }}" {% if status_filter == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select></div>
+  <button class="btn" type="submit">Terapkan</button>
+</form>
+
+<table class="responsive">
+  <thead><tr><th>No</th><th>Pasien</th><th>Jenis</th>{% if show_detail %}<th>Pembayaran</th>{% endif %}<th>Status</th><th>Aksi</th></tr></thead>
+  <tbody>
+  {% for e in entries %}
+    <tr>
+      <td data-label="No"><strong>#{{ e.queue_no }}</strong>{% if e.priority_flag %} <span class="tag warn">Prioritas</span>{% endif %}</td>
+      <td data-label="Pasien">
+        {% if show_detail %}<a href="{% url 'queueing:detail' e.pk %}">{{ e.display_name }}</a>{% else %}{{ e.masked_name }}{% endif %}
+      </td>
+      <td data-label="Jenis">{{ e.get_visit_type_display }}</td>
+      {% if show_detail %}
+      <td data-label="Pembayaran">
+        {% if e.payment_status in keep_statuses %}<span class="tag ok">{{ e.get_payment_status_display }} · keep nomor</span>
+        {% elif e.payment_status == 'REFUND' %}<span class="tag err">{{ e.get_payment_status_display }}</span>
+        {% else %}<span class="tag warn">{{ e.get_payment_status_display }}</span>{% endif %}
+      </td>
+      {% endif %}
+      <td data-label="Status">
+        {% if e.queue_status == 'NO_SHOW' %}<span class="tag err">No-show</span>
+        {% elif e.queue_status == 'SELESAI' %}<span class="tag ok">Selesai</span>
+        {% elif e.queue_status == 'BATAL' %}<span class="tag muted">Batal</span>
+        {% else %}<span class="tag info">{{ e.get_queue_status_display }}</span>{% endif %}
+      </td>
+      <td data-label="Aksi">
+        {% if can_manage %}
+        <form method="post" action="{% url 'queueing:set_status' e.pk %}">
+          {% csrf_token %}
+          <select name="status">{% for v, l in queue_statuses %}<option value="{{ v }}" {% if e.queue_status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+          <input name="alasan" placeholder="Alasan (batal/no-show)">
+          <button class="btn small" type="submit">Ubah status</button>
+        </form>
+        <form method="post" action="{% url 'queueing:set_payment' e.pk %}">
+          {% csrf_token %}
+          <select name="pembayaran">{% for v, l in payment_statuses %}<option value="{{ v }}" {% if e.payment_status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+          <input name="alasan" placeholder="Alasan (refund/dibebaskan)">
+          <button class="btn small secondary" type="submit">Ubah pembayaran</button>
+        </form>
+        {% endif %}
+        {% if is_supervisor %}
+        <form method="post" action="{% url 'queueing:move' e.pk %}">
+          {% csrf_token %}
+          <input name="posisi" type="number" min="1" value="{{ e.position }}" style="max-width:90px">
+          <input name="alasan" placeholder="Alasan reorder (wajib)">
+          <button class="btn small secondary" type="submit">Pindah urutan</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+  {% empty %}<tr><td colspan="6" class="meta">Belum ada pasien pada antrean hari ini.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

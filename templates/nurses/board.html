@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Giliran perawat{% endblock %}
+{% block content %}
+<h1>Giliran perawat</h1>
+<p class="sub">{{ day.date }} · Kebijakan: {{ policy.policy }} ·
+  skip {% if policy.skip_keeps_position %}mempertahankan posisi{% else %}memindahkan ke belakang{% endif %} ·
+  batal sebelum mulai {% if policy.cancel_before_start_restores_position %}mengembalikan posisi{% else %}dihitung terpakai{% endif %}</p>
+
+<div class="card">
+  <div class="stat-label">Giliran berikutnya</div>
+  <div class="stat">{% if next_entry %}{{ next_entry.nurse }}{% else %}—{% endif %}</div>
+  {% if can_manage %}<a class="btn small secondary" href="{% url 'nurses:roster' %}">Atur roster</a>{% endif %}
+  <a class="btn small secondary" href="{% url 'nurses:ledger' %}">Ledger lengkap</a>
+</div>
+
+<h2>Urutan hari ini</h2>
+<table class="responsive">
+  <thead><tr><th>#</th><th>Perawat</th><th>Ketersediaan</th><th>Giliran</th><th>Aksi</th></tr></thead>
+  <tbody>
+  {% for r in roster %}
+  <tr>
+    <td data-label="#"><strong>{{ r.position }}</strong></td>
+    <td data-label="Perawat">{{ r.nurse }}</td>
+    <td data-label="Ketersediaan">
+      {% if r.availability == 'TERSEDIA' %}<span class="tag ok">Tersedia</span>
+      {% elif r.availability == 'ISTIRAHAT' %}<span class="tag warn">Istirahat</span>
+      {% else %}<span class="tag muted">Off</span>{% endif %}
+    </td>
+    <td data-label="Giliran">{{ r.turns_taken }}</td>
+    <td data-label="Aksi">
+      <form method="post" action="{% url 'nurses:availability' r.pk %}">
+        {% csrf_token %}
+        <select name="ketersediaan">
+          <option value="TERSEDIA" {% if r.availability == 'TERSEDIA' %}selected{% endif %}>Tersedia</option>
+          <option value="ISTIRAHAT" {% if r.availability == 'ISTIRAHAT' %}selected{% endif %}>Istirahat</option>
+          <option value="OFF_DUTY" {% if r.availability == 'OFF_DUTY' %}selected{% endif %}>Pulang/off</option>
+        </select>
+        <input name="alasan" placeholder="Alasan (opsional)">
+        <button class="btn small" type="submit">Simpan</button>
+      </form>
+      {% if can_manage %}
+      <form method="post" action="{% url 'nurses:skip' r.pk %}">
+        {% csrf_token %}
+        <input name="alasan" placeholder="Alasan skip (wajib)">
+        <button class="btn small secondary" type="submit">Skip</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% empty %}<tr><td colspan="5" class="meta">Roster belum disusun untuk hari ini.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>Tugaskan tindakan berkomisi</h2>
+<div class="card">
+  <form method="post" action="{% url 'nurses:assign' %}">
+    {% csrf_token %}
+    <div class="inline">
+      <div><label for="kategori">Kategori tindakan</label>
+        <select id="kategori" name="kategori" required>
+          {% for c in categories %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+        </select></div>
+      <div><label for="antrean">Pasien (antrean)</label>
+        <select id="antrean" name="antrean"><option value="">—</option>
+          {% for q in queue_entries %}<option value="{{ q.pk }}">#{{ q.queue_no }} {{ q.display_name }}</option>{% endfor %}
+        </select></div>
+      <div><label for="perawat">Perawat (kosong = ikuti giliran)</label>
+        <select id="perawat" name="perawat"><option value="">Ikuti giliran</option>
+          {% for r in roster %}<option value="{{ r.nurse_id }}">{{ r.nurse }}</option>{% endfor %}
+        </select></div>
+    </div>
+    <label for="alasan_override">Alasan override (wajib bila memilih di luar giliran / tanpa eligibility)</label>
+    <input id="alasan_override" name="alasan_override">
+    <label for="catatan">Catatan</label>
+    <input id="catatan" name="catatan">
+    <p></p>
+    <button class="btn" type="submit">Tugaskan</button>
+  </form>
+</div>
+
+<h2>Tindakan hari ini</h2>
+<table class="responsive">
+  <thead><tr><th>Waktu</th><th>Perawat</th><th>Kategori</th><th>Pasien</th><th>Status</th><th>Aksi</th></tr></thead>
+  <tbody>
+  {% for p in procedures %}
+  <tr>
+    <td data-label="Waktu">{{ p.assigned_at|date:"H:i" }}</td>
+    <td data-label="Perawat">{{ p.nurse }}</td>
+    <td data-label="Kategori">{{ p.category }}</td>
+    <td data-label="Pasien">{% if p.queue_entry %}#{{ p.queue_entry.queue_no }}{% else %}—{% endif %}</td>
+    <td data-label="Status"><span class="tag {% if p.status == 'SELESAI' %}ok{% elif p.status == 'BATAL' %}muted{% else %}info{% endif %}">{{ p.get_status_display }}</span>
+      {% if p.override_reason %}<span class="tag warn">Override</span>{% endif %}</td>
+    <td data-label="Aksi">
+      {% if p.status == 'DITUGASKAN' %}
+        <form method="post" action="{% url 'nurses:start' p.pk %}">{% csrf_token %}<button class="btn small" type="submit">Mulai</button></form>
+      {% endif %}
+      {% if p.status == 'DITUGASKAN' or p.status == 'DIMULAI' %}
+        <form method="post" action="{% url 'nurses:complete' p.pk %}">{% csrf_token %}<button class="btn small" type="submit">Selesai</button></form>
+        <form method="post" action="{% url 'nurses:cancel' p.pk %}">{% csrf_token %}
+          <input name="alasan" placeholder="Alasan batal (wajib)">
+          <button class="btn small danger" type="submit">Batal</button></form>
+      {% endif %}
+    </td>
+  </tr>
+  {% empty %}<tr><td colspan="6" class="meta">Belum ada tindakan hari ini.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>Ledger terbaru</h2>
+<ul class="timeline">
+  {% for e in events %}
+    <li>{{ e.get_action_display }} · {{ e.nurse|default:"—" }}
+      <div class="meta">{{ e.occurred_at|date:"H:i" }} · posisi {{ e.position_before|default:"—" }} → {{ e.position_after|default:"—" }}{% if e.reason %} · {{ e.reason }}{% endif %}</div></li>
+  {% empty %}<li class="meta">Belum ada event.</li>{% endfor %}
+</ul>
+{% endblock %}

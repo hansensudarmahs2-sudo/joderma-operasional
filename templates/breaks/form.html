@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Tambah jadwal istirahat{% endblock %}
+{% block content %}
+<h1>Tambah jadwal istirahat</h1>
+<div class="card" style="max-width:560px">
+  <form method="post">
+    {% csrf_token %}
+    <label for="pengguna">Staf</label>
+    <select id="pengguna" name="pengguna" required>{% for u in users %}<option value="{{ u.pk }}">{{ u }}</option>{% endfor %}</select>
+    <label for="tanggal">Tanggal</label>
+    <input id="tanggal" name="tanggal" type="date" value="{{ today|date:'Y-m-d' }}" required>
+    <label for="jenis">Jenis</label>
+    <select id="jenis" name="jenis">{% for v, l in types %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+    <div class="inline">
+      <div><label for="mulai">Mulai</label><input id="mulai" name="mulai" type="time" value="12:00" required></div>
+      <div><label for="selesai">Selesai</label><input id="selesai" name="selesai" type="time" value="13:00" required></div>
+    </div>
+    <label for="lokasi">Lokasi/catatan</label>
+    <input id="lokasi" name="lokasi">
+    <label for="alasan_override">Alasan override minimum staf (bila diperlukan)</label>
+    <input id="alasan_override" name="alasan_override">
+    <p></p>
+    <button class="btn" type="submit">Simpan</button>
+    <a class="btn secondary" href="{% url 'breaks:list' %}">Batal</a>
+  </form>
+</div>
+{% endblock %}

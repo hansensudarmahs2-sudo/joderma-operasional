@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Layar antrean{% endblock %}
+{% block content %}
+<h1>Antrean</h1>
+<p class="sub">{{ day.date }} — tampilan bersama, identitas disamarkan</p>
+<table class="responsive">
+  <thead><tr><th>No</th><th>Pasien</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for e in entries %}
+    <tr>
+      <td data-label="No"><strong>#{{ e.queue_no }}</strong></td>
+      <td data-label="Pasien">{{ e.masked_name }}</td>
+      <td data-label="Status"><span class="tag info">{{ e.get_queue_status_display }}</span></td>
+    </tr>
+  {% empty %}<tr><td colspan="3" class="meta">Belum ada antrean.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

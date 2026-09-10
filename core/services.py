@@ -1,0 +1,203 @@
+"""State machine hari operasional dan helper klinik (PRD 7)."""
+from __future__ import annotations
+
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.utils import timezone
+
+from audit.models import AuditAction
+from audit.services import log_event, log_update, snapshot
+
+from .models import Clinic, DayStatus, OperationalDay, local_today
+
+ALLOWED_TRANSITIONS: dict[str, set[str]] = {
+    DayStatus.DRAFT: {DayStatus.OPENING_IN_PROGRESS},
+    DayStatus.OPENING_IN_PROGRESS: {DayStatus.READY, DayStatus.READY_WITH_ISSUES},
+    DayStatus.READY: {DayStatus.OPEN, DayStatus.OPENING_IN_PROGRESS},
+    DayStatus.READY_WITH_ISSUES: {DayStatus.OPEN, DayStatus.OPENING_IN_PROGRESS},
+    DayStatus.OPEN: {DayStatus.CLOSING},
+    DayStatus.CLOSING: {DayStatus.CLOSED, DayStatus.OPEN},
+    DayStatus.CLOSED: {DayStatus.OPEN},  # hanya lewat reopen_day()
+}
+
+
+def active_clinic() -> Clinic:
+    clinic = Clinic.objects.filter(active=True).order_by("id").first()
+    if clinic is None:
+        raise ValidationError("Belum ada klinik aktif. Jalankan `manage.py seed_demo` atau buat lewat Admin.")
+    return clinic
+
+
+def _transition(day: OperationalDay, new_status: str):
+    if new_status not in ALLOWED_TRANSITIONS.get(day.status, set()):
+        raise ValidationError(
+            f"Perubahan status dari {day.get_status_display()} ke {new_status} tidak diizinkan."
+        )
+    day.status = new_status
+
+
+@transaction.atomic
+def get_or_create_day(clinic: Clinic, date=None, user=None) -> tuple[OperationalDay, bool]:
+    """Satu sesi aktif per cabang dan tanggal (PRD 7)."""
+    date = date or local_today()
+    day, created = OperationalDay.objects.get_or_create(
+        clinic=clinic, date=date, defaults={"created_by": user}
+    )
+    if created:
+        from checklists.services import instantiate_runs_for_day
+
+        instantiate_runs_for_day(day, user=user)
+        day.status = DayStatus.OPENING_IN_PROGRESS
+        day.save(update_fields=["status"])
+        log_event(
+            action=AuditAction.CREATE,
+            entity_type="operationalday",
+            entity_id=day.pk,
+            entity_label=str(day),
+            actor=user,
+            after=snapshot(day),
+        )
+    return day, created
+
+
+def opening_progress(day: OperationalDay) -> dict:
+    from checklists.models import ChecklistResponse, ResponseResult
+
+    responses = ChecklistResponse.objects.filter(run__operational_day=day)
+    total = responses.count()
+    done = responses.exclude(result=ResponseResult.BELUM).count()
+    failed = responses.filter(
+        result__in=[ResponseResult.TIDAK_LENGKAP, ResponseResult.RUSAK]
+    ).count()
+    required_pending = responses.filter(required=True).exclude(
+        result__in=[ResponseResult.OK, ResponseResult.TIDAK_BERLAKU]
+    ).count()
+    return {
+        "total": total,
+        "done": done,
+        "failed": failed,
+        "required_pending": required_pending,
+        "percent": round(done * 100 / total) if total else 0,
+    }
+
+
+def cash_opening_recorded(day: OperationalDay) -> bool:
+    from cash.models import CashSession, CashSessionType, CashStatus
+
+    return CashSession.objects.filter(
+        operational_day=day, session_type=CashSessionType.OPENING
+    ).exclude(status=CashStatus.DRAFT).exists()
+
+
+@transaction.atomic
+def mark_ready(day: OperationalDay, user, *, with_issues: bool = False, reason: str = ""):
+    """READY hanya jika semua item wajib lulus DAN kas awal sudah dicatat (PRD 7)."""
+    before = snapshot(day)
+    progress = opening_progress(day)
+
+    if with_issues:
+        if not reason.strip():
+            raise ValidationError("Alasan wajib diisi untuk status Siap dengan catatan.")
+        _transition(day, DayStatus.READY_WITH_ISSUES)
+        day.ready_exception_reason = reason.strip()
+    else:
+        if progress["required_pending"]:
+            raise ValidationError(
+                f"{progress['required_pending']} item wajib belum berstatus OK. "
+                "Gunakan 'Siap dengan catatan' bila kondisi diterima dengan pengecualian."
+            )
+        if not cash_opening_recorded(day):
+            raise ValidationError("Kas awal belum dicatat. Catat kas awal sebelum menandai Siap.")
+        _transition(day, DayStatus.READY)
+
+    day.save()
+    log_update(
+        day,
+        before,
+        actor=user,
+        reason=reason,
+        action=AuditAction.OVERRIDE if with_issues else AuditAction.UPDATE,
+    )
+    return day
+
+
+@transaction.atomic
+def open_day(day: OperationalDay, user):
+    before = snapshot(day)
+    _transition(day, DayStatus.OPEN)
+    day.opened_at = timezone.now()
+    day.opened_by = user
+    day.save()
+    log_update(day, before, actor=user, action=AuditAction.UPDATE)
+    return day
+
+
+@transaction.atomic
+def start_closing(day: OperationalDay, user):
+    before = snapshot(day)
+    _transition(day, DayStatus.CLOSING)
+    day.save()
+    log_update(day, before, actor=user)
+    return day
+
+
+def closing_blockers(day: OperationalDay) -> list[str]:
+    """Tidak boleh tutup bila kas akhir belum selesai atau ada item kritis (PRD 18)."""
+    from cash.models import CashSession, CashSessionType, CashStatus
+    from issues.models import Issue, IssueStatus, IssueType
+    from core.models import Priority
+
+    blockers: list[str] = []
+    closing_cash = CashSession.objects.filter(
+        operational_day=day, session_type=CashSessionType.CLOSING
+    ).exclude(status__in=[CashStatus.DRAFT]).exists()
+    if not closing_cash:
+        blockers.append("Kas akhir belum dicatat dan diverifikasi.")
+
+    open_critical = Issue.objects.filter(
+        clinic=day.clinic,
+        severity=Priority.KRITIS,
+        status__in=[IssueStatus.BARU, IssueStatus.DITINJAU],
+    ).count()
+    if open_critical:
+        blockers.append(f"{open_critical} catatan kritis belum ditriase/ditugaskan.")
+    return blockers
+
+
+@transaction.atomic
+def close_day(day: OperationalDay, user, *, override_reason: str = ""):
+    before = snapshot(day)
+    blockers = closing_blockers(day)
+    if blockers and not override_reason.strip():
+        raise ValidationError(
+            "Hari belum dapat ditutup: " + " ".join(blockers) + " Supervisor dapat override dengan alasan."
+        )
+    _transition(day, DayStatus.CLOSED)
+    day.closed_at = timezone.now()
+    day.closed_by = user
+    day.close_override_reason = override_reason.strip()
+    day.save()
+    log_update(
+        day,
+        before,
+        actor=user,
+        reason=override_reason,
+        action=AuditAction.OVERRIDE if override_reason else AuditAction.CLOSE,
+    )
+    return day
+
+
+@transaction.atomic
+def reopen_day(day: OperationalDay, user, *, reason: str):
+    if not reason.strip():
+        raise ValidationError("Alasan wajib diisi untuk membuka kembali hari operasional.")
+    before = snapshot(day)
+    if day.status != DayStatus.CLOSED:
+        raise ValidationError("Hanya hari yang sudah ditutup dapat dibuka kembali.")
+    day.status = DayStatus.OPEN
+    day.reopen_reason = reason.strip()
+    day.closed_at = None
+    day.closed_by = None
+    day.save()
+    log_update(day, before, actor=user, reason=reason, action=AuditAction.REOPEN)
+    return day

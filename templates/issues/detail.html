@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}{{ issue.number }}{% endblock %}
+{% block content %}
+<h1>{{ issue.number }}</h1>
+<p class="sub">{{ issue.get_issue_type_display }} · dibuat {{ issue.created_at|date:"d/m/Y H:i" }}
+  {% if issue.is_anonymous %}<span class="tag muted">Anonim</span>{% endif %}
+  {% if issue.is_restricted %}<span class="tag muted">Terbatas</span>{% endif %}</p>
+
+{% if issue.severity == 'KRITIS' %}<div class="msg error">Catatan kritis — perlu penanganan segera.</div>{% endif %}
+{% if issue.is_overdue %}<div class="msg warning">Target waktu terlewati.</div>{% endif %}
+
+<div class="card">
+  <h3>{{ issue.title }}</h3>
+  <p>{{ issue.description|linebreaksbr }}</p>
+  <p class="meta">
+    Status <span class="tag info">{{ issue.get_status_display }}</span> ·
+    Tingkat {{ issue.get_severity_display }} ·
+    PJ {{ issue.current_assignee|default:"belum ditugaskan" }} ·
+    Target {{ issue.due_at|date:"d/m H:i"|default:"—" }}
+  </p>
+  {% if issue.location %}<p class="meta">Lokasi: {{ issue.location }}</p>{% endif %}
+  {% if issue.asset %}<p class="meta">Aset: {{ issue.asset }}{% if issue.asset.do_not_use %} <span class="tag err">Jangan digunakan</span>{% endif %}</p>{% endif %}
+  {% if issue.impact %}<p class="meta">Dampak: {{ issue.get_impact_display }}</p>{% endif %}
+  {% if issue.benefit %}<p class="meta">Manfaat: {{ issue.benefit }}</p>{% endif %}
+  {% if issue.reporter_source %}<p class="meta">Sumber: {{ issue.get_reporter_source_display }}{% if issue.channel %} · {{ issue.get_channel_display }}{% endif %}</p>{% endif %}
+  {% if issue.resolution_summary %}<p class="meta">Penyelesaian: {{ issue.resolution_summary }}</p>{% endif %}
+  {% if issue.closed_reason %}<p class="meta">Alasan penutupan/penolakan: {{ issue.closed_reason }}</p>{% endif %}
+</div>
+
+<div class="card">
+  <h3>Ubah status</h3>
+  {% if next_statuses %}
+  <form method="post" action="{% url 'issues:status' issue.pk %}">
+    {% csrf_token %}
+    <input type="hidden" name="versi" value="{{ issue.version }}">
+    <label for="status">Status berikutnya</label>
+    <select id="status" name="status">
+      {% for value, label in next_statuses %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+    <label for="ringkasan">Ringkasan penyelesaian (wajib untuk komplain/kerusakan saat Selesai)</label>
+    <textarea id="ringkasan" name="ringkasan" rows="2">{{ issue.resolution_summary }}</textarea>
+    <label for="catatan">Catatan timeline</label>
+    <textarea id="catatan" name="catatan" rows="2"></textarea>
+    <label for="alasan">Alasan (wajib untuk Ditolak/Ditutup)</label>
+    <input id="alasan" name="alasan">
+    <p></p>
+    <button class="btn" type="submit">Simpan status</button>
+  </form>
+  {% else %}<p class="meta">Catatan sudah final; tidak ada transisi status berikutnya.</p>{% endif %}
+</div>
+
+{% if can_assign %}
+<div class="card">
+  <h3>Penugasan</h3>
+  <form method="post" action="{% url 'issues:assign' issue.pk %}">
+    {% csrf_token %}
+    <div class="inline">
+      <div><label for="pj">Penanggung jawab</label>
+        <select id="pj" name="penanggung_jawab">{% for u in users %}<option value="{{ u.pk }}">{{ u }}</option>{% endfor %}</select></div>
+      <div><label for="target">Target selesai</label><input id="target" name="target" type="datetime-local"></div>
+      <button class="btn" type="submit">Tugaskan</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+{% if issue.issue_type == 'KERUSAKAN' %}
+<div class="card">
+  <h3>Data perbaikan</h3>
+  <form method="post" action="{% url 'issues:repair' issue.pk %}">
+    {% csrf_token %}
+    <label for="tindakan">Tindakan perbaikan</label>
+    <textarea id="tindakan" name="tindakan" rows="2">{{ issue.repair_action }}</textarea>
+    <div class="inline">
+      <div><label for="vendor">Pelaksana/vendor</label><input id="vendor" name="vendor" value="{{ issue.repair_vendor }}"></div>
+      <div><label for="biaya">Biaya (Rp, opsional)</label><input id="biaya" name="biaya" type="number" min="0" value="{{ issue.repair_cost|default_if_none:'' }}"></div>
+      <button class="btn" type="submit">Simpan</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<div class="card">
+  <h3>Lampiran</h3>
+  <ul class="timeline">
+    {% for a in attachments %}
+      <li><a href="{% url 'core:attachment' a.pk %}">{{ a.original_name }}</a>
+        <div class="meta">{{ a.size_display }} · {{ a.uploaded_by }} · {{ a.uploaded_at|date:"d/m H:i" }}</div></li>
+    {% empty %}<li class="meta">Belum ada lampiran.</li>{% endfor %}
+  </ul>
+  <form method="post" action="{% url 'issues:upload' issue.pk %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label for="file">Unggah (JPG, PNG, PDF · maks 5 MB)</label>
+    <input id="file" type="file" name="file" accept=".jpg,.jpeg,.png,.pdf" required>
+    <p></p>
+    <button class="btn secondary" type="submit">Unggah</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Timeline</h3>
+  <ul class="timeline">
+    {% for u in updates %}
+      <li>{% if u.from_status %}{{ u.from_status }} → {% endif %}<strong>{{ u.status }}</strong>
+        <div>{{ u.note }}</div>
+        <div class="meta">{{ u.author|default:"sistem" }} · {{ u.created_at|date:"d/m H:i" }}</div></li>
+    {% endfor %}
+  </ul>
+  <form method="post" action="{% url 'issues:note' issue.pk %}">
+    {% csrf_token %}
+    <label for="catatan2">Tambah catatan</label>
+    <textarea id="catatan2" name="catatan" rows="2"></textarea>
+    <p></p>
+    <button class="btn secondary" type="submit">Simpan catatan</button>
+  </form>
+</div>
+{% endblock %}

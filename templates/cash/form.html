@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}{{ session.get_session_type_display }}{% endblock %}
+{% block content %}
+<h1>{{ session.get_session_type_display }}</h1>
+<p class="sub">{{ day.date }} · Status <span class="tag info">{{ session.get_status_display }}</span></p>
+{% if session.is_verified %}
+  <div class="msg warning">Sesi sudah diverifikasi. Koreksi hanya lewat supervisor dengan alasan di halaman review.</div>
+{% endif %}
+
+<form method="post" action="{% url 'cash:save' session.pk %}">
+  {% csrf_token %}
+  <input type="hidden" name="versi" value="{{ session.version }}">
+  <div class="card">
+    <h3>Rincian pecahan</h3>
+    <table class="responsive">
+      <thead><tr><th>Pecahan</th><th>Jumlah</th><th class="right">Subtotal</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td data-label="Pecahan">Rp {{ row.denomination|intcomma }}</td>
+          <td data-label="Jumlah"><input name="denom_{{ row.denomination }}" type="number" min="0" step="1"
+              value="{{ row.quantity }}" data-denom="{{ row.denomination }}" class="qty"></td>
+          <td data-label="Subtotal" class="right"><span class="sub-{{ row.denomination }}">{{ row.subtotal|intcomma }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="right"><strong>Total aktual: Rp <span id="total">{{ session.actual_total|intcomma }}</span></strong></p>
+  </div>
+
+  <div class="card">
+    <div class="inline">
+      <div><label for="diharapkan">Uang modal diharapkan (Rp)</label>
+        <input id="diharapkan" name="diharapkan" type="number" min="0" value="{{ session.expected_total }}"></div>
+      <div><label for="kembalian">Uang kembalian tersedia (Rp)</label>
+        <input id="kembalian" name="kembalian" type="number" min="0" value="{{ session.change_fund_total }}"></div>
+      <div><label for="dana_lain">Dana kas lain (Rp)</label>
+        <input id="dana_lain" name="dana_lain" type="number" min="0" value="{{ session.other_funds_total }}"></div>
+    </div>
+    <label for="catatan">Catatan (wajib bila ada selisih)</label>
+    <textarea id="catatan" name="catatan" rows="2">{{ session.note }}</textarea>
+    <p class="meta">Selisih tersimpan: Rp {{ session.variance|intcomma }}</p>
+    <button class="btn" type="submit">Simpan hitungan</button>
+  </div>
+</form>
+
+{% if not session.is_verified %}
+<form method="post" action="{% url 'cash:submit' session.pk %}">
+  {% csrf_token %}
+  <button class="btn secondary" type="submit">Ajukan verifikasi</button>
+</form>
+{% endif %}
+
+<script>
+function recalc() {
+  var total = 0;
+  document.querySelectorAll('.qty').forEach(function (input) {
+    var d = parseInt(input.dataset.denom, 10);
+    var q = parseInt(input.value || '0', 10);
+    if (isNaN(q) || q < 0) q = 0;
+    var sub = d * q;
+    total += sub;
+    var cell = document.querySelector('.sub-' + d);
+    if (cell) cell.textContent = sub.toLocaleString('id-ID');
+  });
+  document.getElementById('total').textContent = total.toLocaleString('id-ID');
+}
+document.querySelectorAll('.qty').forEach(function (i) { i.addEventListener('input', recalc); });
+recalc();
+</script>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Catatan{% endblock %}
+{% block content %}
+<h1>Komplain, masukan, dan kerusakan</h1>
+<p class="sub">
+  Terbuka: {{ counters.komplain_open }} komplain · {{ counters.masukan_open }} masukan · {{ counters.kerusakan_open }} kerusakan
+  {% if counters.kritis_open %}<span class="tag err">{{ counters.kritis_open }} kritis</span>{% endif %}
+  {% if counters.overdue %}<span class="tag warn">{{ counters.overdue }} lewat target</span>{% endif %}
+</p>
+<p><a class="btn" href="{% url 'issues:create' %}">Buat catatan baru</a>
+   <a class="btn secondary" href="{% url 'issues:assets' %}">Daftar aset</a></p>
+
+<form method="get" class="inline card">
+  <div><label for="tipe">Tipe</label>
+    <select id="tipe" name="tipe"><option value="">Semua</option>
+      {% for v, l in types %}<option value="{{ v }}" {% if filters.tipe == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div><label for="status">Status</label>
+    <select id="status" name="status"><option value="">Semua</option>
+      {% for v, l in statuses %}<option value="{{ v }}" {% if filters.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div><label for="q">Cari</label><input id="q" name="q" value="{{ filters.q }}" placeholder="Nomor, judul, lokasi"></div>
+  <div><label for="terbuka">Hanya terbuka</label>
+    <select id="terbuka" name="terbuka"><option value="">Tidak</option><option value="1" {% if filters.terbuka %}selected{% endif %}>Ya</option></select></div>
+  <button class="btn" type="submit">Terapkan</button>
+</form>
+
+<table class="responsive">
+  <thead><tr><th>Nomor</th><th>Judul</th><th>Tingkat</th><th>Status</th><th>Target</th><th>PJ</th></tr></thead>
+  <tbody>
+  {% for i in issues %}
+  <tr>
+    <td data-label="Nomor"><a href="{% url 'issues:detail' i.pk %}">{{ i.number }}</a>
+      {% if i.is_restricted %}<span class="tag muted">Terbatas</span>{% endif %}</td>
+    <td data-label="Judul">{{ i.title }}<div class="meta">{{ i.get_issue_type_display }}{% if i.location %} · {{ i.location }}{% endif %}</div></td>
+    <td data-label="Tingkat">
+      {% if i.severity == 'KRITIS' %}<span class="tag err">Kritis</span>
+      {% elif i.severity == 'TINGGI' %}<span class="tag warn">Tinggi</span>
+      {% else %}<span class="tag muted">{{ i.get_severity_display }}</span>{% endif %}</td>
+    <td data-label="Status"><span class="tag info">{{ i.get_status_display }}</span></td>
+    <td data-label="Target">{{ i.due_at|date:"d/m H:i"|default:"—" }}{% if i.is_overdue %} <span class="tag err">Lewat</span>{% endif %}</td>
+    <td data-label="PJ">{{ i.current_assignee|default:"—" }}</td>
+  </tr>
+  {% empty %}<tr><td colspan="6" class="meta">Tidak ada catatan sesuai filter.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

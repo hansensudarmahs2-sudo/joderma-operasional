@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<h1>Audit log</h1>
+<p class="sub">Append-only. Tidak dapat diedit atau dihapus melalui aplikasi.</p>
+<form method="get" class="inline card">
+  <div><label for="aktor">Aktor</label><input id="aktor" name="aktor" value="{{ filters.aktor }}"></div>
+  <div><label for="aksi">Aksi</label>
+    <select id="aksi" name="aksi"><option value="">Semua</option>
+      {% for v, l in actions %}<option value="{{ v }}" {% if filters.aksi == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div><label for="entitas">Entitas</label><input id="entitas" name="entitas" value="{{ filters.entitas }}"></div>
+  <div><label for="dari">Dari</label><input id="dari" name="dari" type="date" value="{{ filters.dari }}"></div>
+  <div><label for="sampai">Sampai</label><input id="sampai" name="sampai" type="date" value="{{ filters.sampai }}"></div>
+  <button class="btn" type="submit">Terapkan</button>
+</form>
+
+<table class="responsive">
+  <thead><tr><th>Waktu</th><th>Aktor</th><th>Aksi</th><th>Entitas</th><th>Perubahan</th><th>Alasan</th></tr></thead>
+  <tbody>
+  {% for e in page %}
+  <tr>
+    <td data-label="Waktu" class="nowrap">{{ e.occurred_at|date:"d/m/Y H:i:s" }}</td>
+    <td data-label="Aktor">{{ e.actor_label|default:"—" }}<div class="meta">{{ e.ip_address|default:"" }}</div></td>
+    <td data-label="Aksi">{{ e.get_action_display }}</td>
+    <td data-label="Entitas">{{ e.entity_type }}#{{ e.entity_id }}<div class="meta">{{ e.entity_label }}</div></td>
+    <td data-label="Perubahan">
+      {% for field, before, after in e.diff_fields %}
+        <div class="meta"><strong>{{ field }}</strong>: {{ before|default:"—" }} → {{ after|default:"—" }}</div>
+      {% empty %}<span class="meta">—</span>{% endfor %}
+    </td>
+    <td data-label="Alasan">{{ e.reason|default:"—" }}</td>
+  </tr>
+  {% empty %}<tr><td colspan="6" class="meta">Tidak ada event.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<p>
+  {% if page.has_previous %}<a class="btn small secondary" href="?hal={{ page.previous_page_number }}">Sebelumnya</a>{% endif %}
+  <span class="meta">Halaman {{ page.number }} dari {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a class="btn small secondary" href="?hal={{ page.next_page_number }}">Berikutnya</a>{% endif %}
+</p>
+{% endblock %}

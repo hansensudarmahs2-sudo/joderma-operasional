@@ -1,0 +1,60 @@
+// Contoh kebijakan Tailscale (ACL/Grants) untuk JoDerma Staff Ops.
+// Prinsip: deny-by-default dan least privilege (PRD 16.4).
+// Sesuaikan alamat email dan nama grup dengan tailnet JoDerma sebelum dipakai.
+{
+  "groups": {
+    // Staf yang boleh MEMAKAI aplikasi
+    "group:joderma-staff": [
+      "supervisor@joderma.id",
+      "frontdesk1@joderma.id",
+      "perawat1@joderma.id"
+    ],
+    // Admin teknis: boleh SSH ke server, TIDAK otomatis punya hak bisnis di aplikasi
+    "group:joderma-tech": ["admin-it@joderma.id"]
+  },
+
+  "tagOwners": {
+    "tag:joderma-ops": ["group:joderma-tech"]
+  },
+
+  // Deny-by-default: hanya aturan di bawah yang mengizinkan trafik.
+  "acls": [],
+
+  "grants": [
+    // Staf -> aplikasi HTTPS privat saja (port 443). Tidak ada akses port lain.
+    {
+      "src": ["group:joderma-staff"],
+      "dst": ["tag:joderma-ops"],
+      "ip": ["tcp:443"]
+    },
+    // Admin teknis -> HTTPS + SSH untuk pemeliharaan server.
+    {
+      "src": ["group:joderma-tech"],
+      "dst": ["tag:joderma-ops"],
+      "ip": ["tcp:443", "tcp:22"]
+    }
+  ],
+
+  "ssh": [
+    {
+      "action": "check",
+      "src": ["group:joderma-tech"],
+      "dst": ["tag:joderma-ops"],
+      "users": ["joderma", "root"]
+    }
+  ],
+
+  // Uji kebijakan: dijalankan otomatis saat menyimpan policy file.
+  "tests": [
+    {
+      "src": "supervisor@joderma.id",
+      "accept": ["tag:joderma-ops:443"],
+      "deny": ["tag:joderma-ops:22", "tag:joderma-ops:8000"]
+    },
+    {
+      "src": "admin-it@joderma.id",
+      "accept": ["tag:joderma-ops:443", "tag:joderma-ops:22"],
+      "deny": ["tag:joderma-ops:8000"]
+    }
+  ]
+}

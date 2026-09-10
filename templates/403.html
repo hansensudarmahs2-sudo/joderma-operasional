@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Akses ditolak{% endblock %}
+{% block content %}
+<h1>Akses ditolak</h1>
+<p class="sub">{{ message }}</p>
+<p><a class="btn" href="{% url 'core:dashboard' %}">Kembali ke Hari Ini</a></p>
+{% endblock %}

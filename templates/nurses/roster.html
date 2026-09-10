@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Roster perawat{% endblock %}
+{% block content %}
+<h1>Roster perawat</h1>
+<p class="sub">Urutan sesuai urutan pilihan; menghasilkan antrean giliran deterministik.</p>
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    <fieldset>
+      <legend>Perawat aktif hari ini</legend>
+      {% for n in nurses %}
+      <label style="font-weight:400">
+        <input type="checkbox" name="perawat" value="{{ n.pk }}" style="width:auto;min-height:auto"
+          {% if n.pk in current %}checked{% endif %}> {{ n }}
+      </label>
+      {% empty %}<p class="meta">Belum ada pengguna dengan peran Perawat.</p>{% endfor %}
+    </fieldset>
+    <label for="alasan">Alasan perubahan (opsional, tercatat di ledger)</label>
+    <input id="alasan" name="alasan">
+    <p></p>
+    <button class="btn" type="submit">Simpan roster</button>
+    <a class="btn secondary" href="{% url 'nurses:board' %}">Batal</a>
+  </form>
+</div>
+{% endblock %}

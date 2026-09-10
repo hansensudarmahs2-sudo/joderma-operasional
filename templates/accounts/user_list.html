@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Admin pengguna{% endblock %}
+{% block content %}
+<h1>Pengguna</h1>
+<p class="sub">Akun bersama tidak diperbolehkan. Setiap staf memiliki akun sendiri.</p>
+<p><a class="btn" href="{% url 'accounts:user_create' %}">Tambah pengguna</a>
+   <a class="btn secondary" href="{% url 'core:config' %}">Konfigurasi</a>
+   <a class="btn secondary" href="{% url 'checklists:templates' %}">Template checklist</a></p>
+<table class="responsive">
+  <thead><tr><th>Pengguna</th><th>Peran</th><th>Kapabilitas</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for u in users %}
+    <tr>
+      <td data-label="Pengguna"><strong>{{ u }}</strong><div class="meta">{{ u.username }} · {{ u.job_title }}</div></td>
+      <td data-label="Peran">{% for r in u.user_roles.all %}<span class="tag info">{{ r.get_role_display }}</span> {% empty %}<span class="meta">—</span>{% endfor %}</td>
+      <td data-label="Kapabilitas">{% for c in u.extra_capabilities.all %}<span class="tag muted">{{ c.get_capability_display }}</span> {% empty %}<span class="meta">—</span>{% endfor %}</td>
+      <td data-label="Status">{% if u.is_active %}<span class="tag ok">Aktif</span>{% else %}<span class="tag err">Nonaktif</span>{% endif %}</td>
+      <td data-label=""><a class="btn small secondary" href="{% url 'accounts:user_detail' u.pk %}">Ubah</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

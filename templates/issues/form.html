@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Catatan baru{% endblock %}
+{% block content %}
+<h1>Catatan baru</h1>
+<p class="sub">Field berubah sesuai tipe catatan. Jangan menuliskan diagnosis atau catatan medis.</p>
+<div class="card" style="max-width:680px">
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+      {% for err in field.errors %}<p class="msg error">{{ err }}</p>{% endfor %}
+    {% endfor %}
+    <p></p>
+    <button class="btn" type="submit">Simpan</button>
+    <a class="btn secondary" href="{% url 'issues:list' %}">Batal</a>
+  </form>
+</div>
+{% endblock %}
