@@ -164,6 +164,50 @@ def test_timeline_note_cannot_be_empty(clinic, kasir):
     assert issue.updates.count() == 2
 
 
+def test_create_form_preselects_type_from_menu(client, clinic, kasir):
+    """Dari menu Masukan, tipe harus terpilih otomatis — bukan kosong."""
+    from django.urls import reverse
+
+    client.login(username="kasir", password="TestPassword123!")
+    body = client.get(reverse("issues:create") + "?tipe=MASUKAN").content.decode()
+    assert 'value="MASUKAN" selected' in body
+    assert "Masukan/saran" in body
+
+
+def test_create_form_shows_contextual_heading(client, clinic, kasir):
+    from django.urls import reverse
+
+    client.login(username="kasir", password="TestPassword123!")
+    for tipe, judul in [
+        ("KOMPLAIN", "Komplain"),
+        ("MASUKAN", "Masukan/saran"),
+        ("KERUSAKAN", "Laporan kerusakan"),
+    ]:
+        body = client.get(reverse("issues:create") + f"?tipe={tipe}").content.decode()
+        assert f"<h1>{judul}</h1>" in body
+
+
+def test_list_page_has_contextual_create_button(client, clinic, kasir):
+    """Tombol input harus jelas menyebut aksinya, bukan tersembunyi di antara filter."""
+    from django.urls import reverse
+
+    client.login(username="kasir", password="TestPassword123!")
+    body = client.get(reverse("issues:list") + "?tipe=KERUSAKAN").content.decode()
+    assert "Laporkan kerusakan" in body
+    assert "tipe=KERUSAKAN" in body
+
+
+def test_form_exposes_field_map_for_progressive_disclosure(client, clinic, kasir):
+    """Field spesifik per tipe harus dikirim ke browser agar bisa disembunyikan."""
+    from django.urls import reverse
+
+    client.login(username="kasir", password="TestPassword123!")
+    body = client.get(reverse("issues:create") + "?tipe=MASUKAN").content.decode()
+    assert "benefit" in body
+    assert "reporter_source" in body  # ada di DOM, disembunyikan oleh script
+    assert 'data-field="location"' in body
+
+
 def test_issue_counters(clinic, kasir):
     _complaint(clinic, kasir)
     create_issue(clinic=clinic, issue_type=IssueType.KERUSAKAN, title="AC rusak", user=kasir)

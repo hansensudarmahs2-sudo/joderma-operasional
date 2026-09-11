@@ -54,13 +54,37 @@ class IssueForm(forms.ModelForm):
             "occurred_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
         }
 
-    def __init__(self, *args, clinic=None, **kwargs):
+    # Field yang hanya relevan untuk tipe tertentu (PRD 13.2: field berubah
+    # sesuai tipe). Dipakai template untuk menyembunyikan yang tidak perlu.
+    FIELDS_BY_TYPE = {
+        IssueType.KOMPLAIN: [
+            "reporter_source", "reporter_contact", "channel",
+            "occurred_at", "followup_preference", "is_restricted",
+        ],
+        IssueType.MASUKAN: ["benefit", "is_anonymous"],
+        IssueType.KERUSAKAN: ["location", "asset", "impact"],
+    }
+    COMMON_FIELDS = ["issue_type", "title", "description", "category", "severity"]
+
+    def __init__(self, *args, clinic=None, initial_type=None, **kwargs):
         super().__init__(*args, **kwargs)
         if clinic is not None:
             self.fields["asset"].queryset = Asset.objects.filter(clinic=clinic, active=True)
         self.fields["asset"].required = False
         for name in ("reporter_source", "channel", "impact", "category"):
             self.fields[name].required = False
+
+        # Pilih tipe otomatis bila pengguna datang dari menu Komplain/Masukan/Kerusakan,
+        # sehingga tidak perlu memilih ulang apa yang sudah jelas dari navigasi.
+        if initial_type in dict(IssueType.choices) and not self.data:
+            self.fields["issue_type"].initial = initial_type
+
+        # Label tingkat menyesuaikan konteks agar tidak rancu
+        self.fields["severity"].label = "Tingkat dampak"
+
+    def type_field_map(self) -> dict[str, list[str]]:
+        """Nama field HTML per tipe, untuk dipakai script progressive disclosure."""
+        return {k: list(v) for k, v in self.FIELDS_BY_TYPE.items()}
 
     def clean(self):
         data = super().clean()

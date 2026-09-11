@@ -1,6 +1,8 @@
 """View issue: komplain, masukan, kerusakan (PRD 8.7-8.9)."""
 from __future__ import annotations
 
+import json
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -35,6 +37,16 @@ from .services import (
 )
 
 
+TYPE_LABELS = {
+    IssueType.KOMPLAIN: ("Komplain", "Catat keluhan dari pasien, keluarga, atau staf."),
+    IssueType.MASUKAN: ("Masukan/saran", "Usulan perbaikan cara kerja atau fasilitas."),
+    IssueType.KERUSAKAN: (
+        "Laporan kerusakan",
+        "Fasilitas, alat medis, IT, listrik, air, furnitur, atau keselamatan.",
+    ),
+}
+
+
 def _visible_issues(user, clinic):
     """Catatan terbatas hanya terlihat pembuat, assignee, supervisor, owner."""
     qs = Issue.objects.filter(clinic=clinic).select_related("created_by", "asset")
@@ -66,6 +78,9 @@ def list_view(request):
     if q:
         qs = qs.filter(Q(number__icontains=q) | Q(title__icontains=q) | Q(location__icontains=q))
 
+    heading, subtitle = TYPE_LABELS.get(
+        issue_type, ("Komplain, masukan, dan kerusakan", "Semua catatan operasional klinik.")
+    )
     return render(
         request,
         "issues/list.html",
@@ -75,6 +90,9 @@ def list_view(request):
             "types": IssueType.choices,
             "statuses": IssueStatus.choices,
             "filters": {"tipe": issue_type, "status": status, "q": q, "terbuka": only_open},
+            "heading": heading,
+            "subtitle": subtitle,
+            "active_type": issue_type,
         },
     )
 
@@ -82,7 +100,8 @@ def list_view(request):
 @login_required
 def create(request):
     clinic = active_clinic()
-    form = IssueForm(request.POST or None, clinic=clinic)
+    initial_type = request.GET.get("tipe") or ""
+    form = IssueForm(request.POST or None, clinic=clinic, initial_type=initial_type)
     if request.method == "POST" and form.is_valid():
         data = form.cleaned_data
         try:
@@ -110,7 +129,19 @@ def create(request):
             return redirect("issues:detail", pk=issue.pk)
         except ValidationError as exc:
             messages.error(request, " ".join(exc.messages))
-    return render(request, "issues/form.html", {"form": form})
+
+    heading, subtitle = TYPE_LABELS.get(initial_type, ("Catatan baru", ""))
+    return render(
+        request,
+        "issues/form.html",
+        {
+            "form": form,
+            "heading": heading,
+            "subtitle": subtitle,
+            "initial_type": initial_type,
+            "type_field_map": json.dumps(form.type_field_map()),
+        },
+    )
 
 
 @login_required

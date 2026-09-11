@@ -1,20 +1,65 @@
 {% extends "base.html" %}
-{% block title %}Catatan baru{% endblock %}
+{% block title %}{{ heading }}{% endblock %}
 {% block content %}
-<h1>Catatan baru</h1>
-<p class="sub">Field berubah sesuai tipe catatan. Jangan menuliskan diagnosis atau catatan medis.</p>
+<h1>{{ heading }}</h1>
+<p class="sub">{{ subtitle }} Jangan menuliskan diagnosis atau catatan medis.</p>
+
 <div class="card" style="max-width:680px">
-  <form method="post">
+  <form method="post" id="issue-form">
     {% csrf_token %}
+
     {% for field in form %}
-      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-      {{ field }}
-      {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
-      {% for err in field.errors %}<p class="msg error">{{ err }}</p>{% endfor %}
+      <div class="field-row" data-field="{{ field.name }}">
+        {% if field.field.widget.input_type == "checkbox" %}
+          <label for="{{ field.id_for_label }}" style="font-weight:400">
+            {{ field }} {{ field.label }}
+          </label>
+        {% else %}
+          <label for="{{ field.id_for_label }}">
+            {{ field.label }}{% if field.field.required %} <span aria-hidden="true">*</span>{% endif %}
+          </label>
+          {{ field }}
+        {% endif %}
+        {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+        {% for err in field.errors %}<p class="msg error">{{ err }}</p>{% endfor %}
+      </div>
     {% endfor %}
-    <p></p>
-    <button class="btn" type="submit">Simpan</button>
-    <a class="btn secondary" href="{% url 'issues:list' %}">Batal</a>
+
+    <p class="help">Tanda * berarti wajib diisi.</p>
+    <button class="btn" type="submit">Simpan catatan</button>
+    <a class="btn secondary" href="{% url 'issues:list' %}{% if initial_type %}?tipe={{ initial_type }}{% endif %}">Batal</a>
   </form>
 </div>
+
+<script>
+// Tampilkan hanya field yang relevan dengan tipe catatan (PRD 13.2).
+// Tanpa ini, staf yang ingin mencatat saran ikut melihat field kerusakan dan
+// kontak pelapor, sehingga form terasa jauh lebih panjang dari yang diperlukan.
+(function () {
+  var MAP = {{ type_field_map|safe }};
+  var select = document.getElementById('id_issue_type');
+  if (!select) return;
+
+  var allSpecific = [];
+  Object.keys(MAP).forEach(function (k) {
+    MAP[k].forEach(function (f) { if (allSpecific.indexOf(f) === -1) allSpecific.push(f); });
+  });
+
+  function apply() {
+    var chosen = select.value;
+    var show = MAP[chosen] || [];
+    allSpecific.forEach(function (name) {
+      var row = document.querySelector('.field-row[data-field="' + name + '"]');
+      if (!row) return;
+      var visible = show.indexOf(name) !== -1;
+      // Baris dengan error validasi selalu ditampilkan agar pesan tidak tersembunyi.
+      if (row.querySelector('.msg.error')) visible = true;
+      row.style.display = visible ? '' : 'none';
+    });
+  }
+
+  select.addEventListener('change', apply);
+  apply();
+})();
+</script>
 {% endblock %}

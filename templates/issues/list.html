@@ -1,14 +1,29 @@
 {% extends "base.html" %}
 {% block title %}Catatan{% endblock %}
 {% block content %}
-<h1>Komplain, masukan, dan kerusakan</h1>
+<h1>{{ heading }}</h1>
+<p class="sub">{{ subtitle }}</p>
+
+<p>
+  <a class="btn" href="{% url 'issues:create' %}{% if active_type %}?tipe={{ active_type }}{% endif %}">
+    {% if active_type == 'KOMPLAIN' %}+ Catat komplain baru
+    {% elif active_type == 'MASUKAN' %}+ Tulis masukan/saran
+    {% elif active_type == 'KERUSAKAN' %}+ Laporkan kerusakan
+    {% else %}+ Buat catatan baru{% endif %}
+  </a>
+  {% if active_type == 'KERUSAKAN' or not active_type %}
+    <a class="btn secondary" href="{% url 'issues:assets' %}">Daftar aset</a>
+  {% endif %}
+</p>
+
 <p class="sub">
   Terbuka: {{ counters.komplain_open }} komplain · {{ counters.masukan_open }} masukan · {{ counters.kerusakan_open }} kerusakan
   {% if counters.kritis_open %}<span class="tag err">{{ counters.kritis_open }} kritis</span>{% endif %}
   {% if counters.overdue %}<span class="tag warn">{{ counters.overdue }} lewat target</span>{% endif %}
 </p>
-<p><a class="btn" href="{% url 'issues:create' %}">Buat catatan baru</a>
-   <a class="btn secondary" href="{% url 'issues:assets' %}">Daftar aset</a></p>
+
+<details>
+  <summary>Filter dan pencarian</summary>
 
 <form method="get" class="inline card">
   <div><label for="tipe">Tipe</label>
@@ -22,6 +37,7 @@
     <select id="terbuka" name="terbuka"><option value="">Tidak</option><option value="1" {% if filters.terbuka %}selected{% endif %}>Ya</option></select></div>
   <button class="btn" type="submit">Terapkan</button>
 </form>
+</details>
 
 <table class="responsive">
   <thead><tr><th>Nomor</th><th>Judul</th><th>Tingkat</th><th>Status</th><th>Target</th><th>PJ</th></tr></thead>
