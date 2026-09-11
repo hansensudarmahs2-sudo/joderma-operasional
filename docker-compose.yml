@@ -50,3 +50,28 @@ services:
       - ./logs:/app/logs
     depends_on:
       - app
+    # Container ini mewarisi healthcheck dari image aplikasi, yang memeriksa
+    # endpoint HTTP. Backup tidak menjalankan server HTTP, sehingga pemeriksaan
+    # itu selalu gagal dan container tampak unhealthy padahal backup berjalan
+    # normal. Alarm palsu berbahaya: status unhealthy jadi terbiasa diabaikan.
+    #
+    # Sehat di sini berarti backup terbaru masih segar (< 48 jam), bukan sekadar
+    # prosesnya hidup. Proses yang hidup tetapi gagal menulis arsip justru
+    # kegagalan paling berbahaya karena tidak terlihat dari luar.
+    # Memakai Python karena image slim tidak menyertakan pgrep maupun find.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+          import pathlib, sys, time
+          arsip = sorted(pathlib.Path("/app/backups/daily").glob("joderma-ops-*"))
+          if not arsip:
+              sys.exit(0)  # belum pernah backup: bukan kegagalan
+          umur = time.time() - max(a.stat().st_mtime for a in arsip)
+          sys.exit(0 if umur < 48 * 3600 else 1)
+      interval: 300s
+      timeout: 10s
+      start_period: 30s
+      retries: 2
