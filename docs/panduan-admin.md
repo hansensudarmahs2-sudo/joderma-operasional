@@ -80,6 +80,34 @@ supervisor, agar staf tidak menemukan daftar yang berbeda tanpa penjelasan.
 Apakah Django admin cukup nyaman untuk ini, atau perlu halaman khusus, tercatat
 sebagai OPEN DECISION OD-D di [`../OWNER_DECISION_REVIEW.md`](../OWNER_DECISION_REVIEW.md).
 
+## Kategori tindakan dan eligibility perawat
+
+Klinik memakai tiga kategori: **Tindakan estetik**, **Asistensi dokter**, dan
+**Tindakan infus**. Ketiganya dikelola lewat Django admin di `/django-admin/`
+pada bagian *Kategori tindakan*.
+
+Dua pengaturan yang perlu dipahami:
+
+**Berkomisi.** Kategori yang ditandai berkomisi menghabiskan giliran: perawat
+yang menyelesaikannya pindah ke belakang antrean rotasi. Saat ini ketiganya
+ditandai berkomisi. Bila asistensi dokter tidak seharusnya menghabiskan giliran
+perawat, hilangkan centangnya — lihat OPEN DECISION OD-E.
+
+**Eligibility.** Perawat hanya mendapat giliran pada kategori yang dia berhak
+kerjakan. Bila sebuah kategori tidak punya perawat eligible, setiap penugasan
+memerlukan override supervisor dan rotasi otomatis tidak berjalan. Jalankan
+`pilot_check` untuk memastikan tidak ada kategori yang kosong.
+
+Untuk menerapkan ulang ketiga kategori beserta eligibility-nya:
+
+```bash
+cd ~/joderma-ops
+docker compose exec -T app python manage.py shell < scripts/set_kategori_tindakan.py
+```
+
+Script aman dijalankan berulang. Kategori lama yang sudah punya riwayat
+dinonaktifkan, bukan dihapus, agar penugasan dan ledger komisi lama tetap utuh.
+
 ## Konfigurasi klinik
 
 **Hari Ini ▸ Konfigurasi** memuat jam operasional, minimum staf aktif, dan

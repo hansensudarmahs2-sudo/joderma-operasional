@@ -531,6 +531,8 @@ Hal yang ditemukan tim teknis dan memerlukan keputusan owner, di luar 12 pertany
 | OD-B | Apakah SLA dihitung jam berjalan atau jam operasional? | Klinik buka 9 jam/hari; SLA jam berjalan membuat item malam otomatis terlewat | |
 | OD-C | Apakah data antrean yang kedaluwarsa dihapus atau dianonimkan? | Berisi nama pasien; anonimisasi mempertahankan statistik tanpa data pribadi | |
 | OD-D | Apakah pengelolaan item template checklist lewat Django admin cukup? | Halaman admin khusus sengaja ditunda; dievaluasi lewat skenario ADM-04 | |
+| OD-E | Apakah **asistensi dokter** dan **tindakan infus** ikut dihitung sebagai giliran berkomisi? | Kategori tindakan diubah menjadi tiga: tindakan estetik, asistensi dokter, tindakan infus. Ketiganya saat ini ditandai berkomisi, sehingga perawat yang mengasisteni dokter juga maju dalam antrean giliran dan lebih jarang mendapat tindakan estetik. Bila asistensi tidak seharusnya menghabiskan giliran, ubah `commissioned` menjadi salah lewat Django admin. **Menyangkut pendapatan perawat — bahas bersama mereka, jangan putuskan sepihak.** | |
+| OD-F | Apakah semua perawat boleh mengerjakan semua kategori? | Saat ini ketiga perawat diberi eligibility untuk ketiga kategori sebagai default awal. Bila ada kategori yang menuntut sertifikasi tertentu, supervisor dapat mencabut eligibility lewat UI tanpa perubahan kode. | |
 
 ---
 
