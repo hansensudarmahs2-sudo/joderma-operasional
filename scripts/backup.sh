@@ -26,19 +26,44 @@ echo "[backup] mulai $STAMP"
 # 2. Lampiran
 tar -czf "$WORK/private_media.tar.gz" -C "$(dirname "$MEDIA_DIR")" "$(basename "$MEDIA_DIR")"
 
-# 3. Manifest (tanpa secret)
+# 3. Kode dan dokumentasi.
+#
+# Data operasional tanpa aplikasinya tidak cukup untuk memulihkan layanan:
+# basis data SQLite tidak berguna bila kode yang membacanya ikut hilang.
+# Yang disalin hanya berkas yang dilacak Git, sehingga .env, database,
+# lampiran, dan log tidak pernah ikut -- rahasia tetap di luar arsip.
+CODE_INCLUDED=no
+if command -v git >/dev/null 2>&1 && git -C "$APP_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+  git -C "$APP_DIR" ls-files -z \
+    | tar -czf "$WORK/source.tar.gz" -C "$APP_DIR" --null -T - 2>/dev/null \
+    && CODE_INCLUDED=git
+fi
+if [ "$CODE_INCLUDED" = "no" ]; then
+  # Salinan hasil rsync tidak membawa riwayat Git. Dokumentasi dan script
+  # tetap diselamatkan agar prosedur pemulihan tidak ikut hilang.
+  tar -czf "$WORK/source.tar.gz" -C "$APP_DIR" \
+    --exclude='.git' --exclude='.venv' --exclude='data' --exclude='private_media' \
+    --exclude='backups' --exclude='logs' --exclude='staticfiles' \
+    --exclude='__pycache__' --exclude='.env' \
+    . 2>/dev/null && CODE_INCLUDED=files
+fi
+
+# 4. Manifest (tanpa secret)
 cat > "$WORK/MANIFEST.txt" <<EOF
 backup_stamp=$STAMP
 db_size_bytes=$(stat -c%s "$WORK/db.sqlite3")
 media_size_bytes=$(stat -c%s "$WORK/private_media.tar.gz")
+source_included=$CODE_INCLUDED
+source_size_bytes=$(stat -c%s "$WORK/source.tar.gz" 2>/dev/null || echo 0)
+git_commit=$(git -C "$APP_DIR" rev-parse --short HEAD 2>/dev/null || echo "-")
 host=$(hostname)
 EOF
 
 ARCHIVE="$BACKUP_DIR/daily/joderma-ops-$STAMP.tar.gz"
-tar -czf "$ARCHIVE" -C "$WORK" db.sqlite3 private_media.tar.gz MANIFEST.txt
+tar -czf "$ARCHIVE" -C "$WORK" db.sqlite3 private_media.tar.gz source.tar.gz MANIFEST.txt
 rm -rf "$WORK"
 
-# 4. Enkripsi bila passphrase tersedia (minimal satu salinan terenkripsi wajib)
+# 5. Enkripsi bila passphrase tersedia (minimal satu salinan terenkripsi wajib)
 if [ -n "${BACKUP_PASSPHRASE:-}" ]; then
   openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
     -in "$ARCHIVE" -out "$ARCHIVE.enc" -pass env:BACKUP_PASSPHRASE
@@ -49,11 +74,11 @@ else
   echo "[backup] PERINGATAN: BACKUP_PASSPHRASE kosong, arsip TIDAK terenkripsi."
 fi
 
-# 5. Salin ke mingguan/bulanan
+# 6. Salin ke mingguan/bulanan
 [ "$DOW" = "7" ] && cp "$ARCHIVE" "$BACKUP_DIR/weekly/"
 [ "$DOM" = "01" ] && cp "$ARCHIVE" "$BACKUP_DIR/monthly/"
 
-# 6. Rotasi
+# 7. Rotasi
 prune() {
   local dir="$1" keep="$2"
   ls -1t "$dir" 2>/dev/null | tail -n "+$((keep + 1))" | while read -r old; do
@@ -65,7 +90,7 @@ prune "$BACKUP_DIR/daily" 7
 prune "$BACKUP_DIR/weekly" 4
 prune "$BACKUP_DIR/monthly" 12
 
-# 7. Salinan ke perangkat kedua bila di-mount
+# 8. Salinan ke perangkat kedua bila di-mount
 if [ -n "${BACKUP_SECOND_COPY_DIR:-}" ] && [ -d "$BACKUP_SECOND_COPY_DIR" ]; then
   cp "$ARCHIVE" "$BACKUP_SECOND_COPY_DIR/" && echo "[backup] salinan kedua tersimpan."
 else

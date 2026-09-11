@@ -3,6 +3,12 @@
 Web app internal klinik untuk mencatat, memantau, dan meninjau aktivitas operasional
 harian. Local-first: berjalan di server klinik, diakses privat lewat Tailscale.
 
+> **Repositori ini wajib berstatus private.** Isinya adalah seluruh logika
+> operasional klinik termasuk aturan kas dan kewenangan akses. Tidak ada data
+> pasien, kredensial, maupun rahasia di dalamnya — `.env`, basis data, lampiran,
+> dan arsip backup dikecualikan dari kontrol versi — tetapi kodenya sendiri
+> bukan untuk konsumsi publik. Lihat [`LICENSE`](LICENSE).
+
 Implementasi dari PRD v1.0 (11 September 2026). Keputusan bisnis sementara ada di
 [`DECISIONS.md`](DECISIONS.md) dan **harus dikonfirmasi product owner pada Milestone 0**.
 
@@ -72,6 +78,16 @@ Instalasi klinik yang sedang berjalan dijelaskan di
 
 **Aturan jaringan yang tidak boleh dilanggar:** aplikasi hanya listen di `127.0.0.1`.
 Gunakan Tailscale **Serve** (privat dalam tailnet), **bukan Funnel** (internet publik).
+
+## Cadangan dan pemulihan
+
+Repositori Git adalah cadangan **kode dan dokumentasi**; arsip backup harian
+adalah cadangan **data operasional**. Keduanya diperlukan: basis data tanpa
+aplikasinya tidak dapat dipulihkan menjadi layanan yang berjalan.
+
+Sejak versi ini, arsip backup harian turut menyertakan kode dan dokumentasi
+(diambil dari daftar berkas Git sehingga rahasia tidak ikut), dan manifestnya
+mencatat commit yang sedang berjalan.
 
 ## Privasi
 

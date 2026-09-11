@@ -28,5 +28,16 @@ mkdir -p "$TARGET/data"
 cp "$WORK/db.sqlite3" "$TARGET/data/db.sqlite3"
 tar -xzf "$WORK/private_media.tar.gz" -C "$TARGET"
 
+# Kode dan dokumentasi bila arsip membawanya. Arsip lama hanya berisi data,
+# jadi ketiadaannya bukan kegagalan -- cukup diberitahukan.
+if [ -f "$WORK/source.tar.gz" ]; then
+  mkdir -p "$TARGET/source"
+  tar -xzf "$WORK/source.tar.gz" -C "$TARGET/source"
+  echo "[restore] kode dan dokumentasi dipulihkan ke $TARGET/source"
+else
+  echo "[restore] CATATAN: arsip ini hanya berisi data, tanpa kode."
+  echo "[restore] Ambil kode dari repositori Git sebelum menjalankan aplikasi."
+fi
+
 echo "[restore] selesai ke $TARGET"
 echo "[restore] verifikasi manual: jalankan aplikasi dengan DJANGO_DB_PATH=$TARGET/data/db.sqlite3"

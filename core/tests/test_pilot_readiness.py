@@ -99,6 +99,41 @@ def test_command_is_read_only(
     assert AuditEvent.objects.count() == before_audit
 
 
+def test_backup_script_includes_source_code():
+    """Data tanpa aplikasinya tidak cukup untuk memulihkan layanan.
+
+    Basis data SQLite tidak berguna bila kode yang membacanya ikut hilang,
+    dan prosedur pemulihan ada di dalam dokumentasi yang sama.
+    """
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parent.parent.parent
+    backup = (repo / "scripts" / "backup.sh").read_text(encoding="utf-8")
+
+    assert "source.tar.gz" in backup, "backup tidak menyertakan kode dan dokumentasi"
+    assert "ls-files" in backup, (
+        "backup sebaiknya memakai daftar berkas Git agar rahasia tidak ikut"
+    )
+    assert "source_included=" in backup, "manifest tidak mencatat status penyertaan kode"
+
+    restore = (repo / "scripts" / "restore.sh").read_text(encoding="utf-8")
+    assert "source.tar.gz" in restore, "restore tidak memulihkan kode"
+
+
+def test_backup_never_includes_secrets():
+    """Berkas rahasia tidak boleh masuk arsip, bahkan pada jalur cadangan."""
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parent.parent.parent
+    backup = (repo / "scripts" / "backup.sh").read_text(encoding="utf-8")
+
+    fallback = backup.split('if [ "$CODE_INCLUDED" = "no" ]')[1].split("\nfi")[0]
+    for rahasia in (".env", "data", "private_media", "backups", "logs"):
+        assert f"--exclude='{rahasia}'" in fallback, (
+            f"jalur cadangan backup tidak mengecualikan {rahasia}"
+        )
+
+
 def test_gunicorn_bind_follows_app_port_env(monkeypatch):
     """Port pilot harus dapat diubah lewat environment, bukan hardcode."""
     import importlib

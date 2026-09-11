@@ -1,0 +1,14 @@
+Hak Cipta (c) 2026 Klinik JoDerma
+
+SELURUH HAK DILINDUNGI.
+
+Perangkat lunak ini bersifat internal dan hanya untuk penggunaan operasional
+Klinik JoDerma. Kode ini tidak dilisensikan untuk umum.
+
+Dilarang menyalin, memodifikasi, mendistribusikan, atau menggunakan perangkat
+lunak ini, baik sebagian maupun seluruhnya, tanpa izin tertulis dari manajemen
+Klinik JoDerma.
+
+Repositori ini tidak memuat data pasien, kredensial, maupun rahasia operasional.
+Berkas konfigurasi rahasia (.env), basis data, lampiran, dan arsip backup
+sengaja dikecualikan dari kontrol versi.
