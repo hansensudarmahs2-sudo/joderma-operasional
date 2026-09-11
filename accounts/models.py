@@ -98,6 +98,10 @@ class Capability(models.TextChoices):
     ISSUE_VIEW_RESTRICTED = "issue.view_restricted", "Melihat komplain terbatas"
     AUDIT_VIEW = "audit.view", "Membaca audit log"
     REPORT_EXPORT = "report.export", "Mengekspor laporan"
+    ADMIN_FULL_ACCESS = (
+        "admin.full_access",
+        "Admin akses penuh (kas, pasien, komplain terbatas, audit)",
+    )
 
 
 class UserCapability(models.Model):

@@ -18,7 +18,7 @@ from core.services import active_clinic
 from django.conf import settings
 
 from .forms import ChangePasswordForm, LoginForm, UserForm
-from .models import LoginAttempt, User, UserCapability, UserRole
+from .models import LoginAttempt, Role, User, UserCapability, UserRole
 
 
 def _is_locked_out(username: str) -> bool:
@@ -139,6 +139,43 @@ def user_create(request):
     return render(request, "accounts/user_form.html", {"form": form, "creating": True})
 
 
+def _assert_no_admin_lockout(target: User, *, new_roles: set, new_active: bool, actor: User):
+    """Cegah klinik terkunci tanpa admin (PRD 18: penonaktifan tidak menghapus riwayat).
+
+    Dua pengaman:
+    1. Admin tidak boleh menonaktifkan akunnya sendiri — bila salah klik, tidak ada
+       yang dapat memulihkan selain akses shell ke server.
+    2. Admin aktif terakhir tidak boleh dicabut perannya atau dinonaktifkan.
+    """
+    from django.core.exceptions import ValidationError
+
+    losing_admin = Role.ADMIN not in new_roles
+    being_deactivated = not new_active
+
+    if target.pk == actor.pk and being_deactivated:
+        raise ValidationError(
+            "Anda tidak dapat menonaktifkan akun Anda sendiri. "
+            "Minta admin lain melakukannya agar klinik tidak kehilangan akses pengelolaan."
+        )
+
+    if not (losing_admin or being_deactivated):
+        return
+
+    remaining = (
+        User.objects.filter(is_active=True, user_roles__role=Role.ADMIN)
+        .exclude(pk=target.pk)
+        .distinct()
+        .count()
+    )
+    superusers = User.objects.filter(is_active=True, is_superuser=True).exclude(pk=target.pk).count()
+
+    if remaining == 0 and superusers == 0:
+        raise ValidationError(
+            "Tindakan ini akan menyisakan klinik tanpa admin aktif. "
+            "Tetapkan admin pengganti terlebih dahulu."
+        )
+
+
 @login_required
 @require(can_manage_users)
 def user_detail(request, pk: int):
@@ -149,6 +186,19 @@ def user_detail(request, pk: int):
     }
     form = UserForm(request.POST or None, instance=user, initial=initial)
     if request.method == "POST" and form.is_valid():
+        from django.core.exceptions import ValidationError
+
+        try:
+            _assert_no_admin_lockout(
+                user,
+                new_roles=set(form.cleaned_data.get("roles") or []),
+                new_active=bool(form.cleaned_data.get("is_active")),
+                actor=request.user,
+            )
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+            return render(request, "accounts/user_form.html", {"form": form, "target": user})
+
         obj = form.save(commit=False)
         if form.cleaned_data.get("password"):
             obj.set_password(form.cleaned_data["password"])

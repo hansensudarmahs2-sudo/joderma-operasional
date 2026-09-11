@@ -40,6 +40,38 @@ def is_admin(user) -> bool:
     return has_role(user, Role.ADMIN)
 
 
+def has_admin_full_access(user) -> bool:
+    """Admin dengan akses penuh ke data bisnis.
+
+    PRD 6.3 menetapkan admin teknis TIDAK otomatis berwenang atas data bisnis
+    sensitif — itu default-nya. Namun bila klinik memutuskan peran admin dipegang
+    manajemen (bukan vendor IT), kapabilitas ini memberi akses penuh.
+
+    Sengaja dibuat opt-in per pengguna, bukan melekat pada peran ADMIN, agar:
+      - pemberiannya tercatat di audit log sebagai keputusan sadar;
+      - admin teknis pihak ketiga tetap dapat dibatasi;
+      - dapat dicabut tanpa mengubah kode.
+
+    Lihat OWNER_DECISION_REVIEW.md D8.
+    """
+    return Capability.ADMIN_FULL_ACCESS in caps(user)
+
+
+def is_bootstrap_superuser(user) -> bool:
+    """Superuser Django hasil `createsuperuser`.
+
+    Diperlukan agar instalasi baru dapat di-bootstrap: tanpa ini, superuser
+    pertama tidak dapat membuat akun siapa pun lewat UI dan instalasi menjadi
+    buntu. Hak ini sengaja dibatasi pada tugas ADMINISTRATIF saja
+    (kelola pengguna, konfigurasi, template).
+
+    Superuser TIDAK otomatis memperoleh hak BISNIS sensitif — nominal kas,
+    detail pasien, komplain terbatas, dan audit log tetap memerlukan peran atau
+    kapabilitas eksplisit (PRD 6.3 least privilege).
+    """
+    return bool(user and user.is_authenticated and user.is_superuser)
+
+
 def is_front_desk(user) -> bool:
     return has_role(user, Role.FRONT_DESK)
 
@@ -56,11 +88,12 @@ def can_view_cash_amounts(user) -> bool:
         is_front_desk(user)
         or is_supervisor(user)
         or Capability.CASH_VIEW_AMOUNTS in caps(user)
+        or has_admin_full_access(user)
     )
 
 
 def can_edit_cash(user) -> bool:
-    return is_front_desk(user) or is_supervisor(user)
+    return is_front_desk(user) or is_supervisor(user) or has_admin_full_access(user)
 
 
 def can_verify_cash(user) -> bool:
@@ -70,12 +103,17 @@ def can_verify_cash(user) -> bool:
     yang berwenang dan supervisor itu sendiri yang menghitung, dual-control
     membuat kas tidak pernah dapat diverifikasi (buntu).
     """
-    return is_supervisor(user) or is_front_desk(user) or Capability.CASH_APPROVE in caps(user)
+    return (
+        is_supervisor(user)
+        or is_front_desk(user)
+        or Capability.CASH_APPROVE in caps(user)
+        or has_admin_full_access(user)
+    )
 
 
 def can_correct_cash(user) -> bool:
     """Koreksi setelah verifikasi tetap hanya supervisor (PRD 20.3)."""
-    return is_supervisor(user) or Capability.CASH_APPROVE in caps(user)
+    return is_supervisor(user) or Capability.CASH_APPROVE in caps(user) or has_admin_full_access(user)
 
 
 def can_view_patient_detail(user) -> bool:
@@ -84,11 +122,12 @@ def can_view_patient_detail(user) -> bool:
         or is_nurse(user)
         or is_supervisor(user)
         or Capability.PATIENT_VIEW_DETAIL in caps(user)
+        or has_admin_full_access(user)
     )
 
 
 def can_manage_queue(user) -> bool:
-    return is_front_desk(user) or is_supervisor(user)
+    return is_front_desk(user) or is_supervisor(user) or has_admin_full_access(user)
 
 
 def can_manage_roster(user) -> bool:
@@ -100,23 +139,33 @@ def can_manage_breaks(user) -> bool:
 
 
 def can_view_audit(user) -> bool:
-    return is_supervisor(user) or is_owner(user) or Capability.AUDIT_VIEW in caps(user)
+    return (
+        is_supervisor(user)
+        or is_owner(user)
+        or Capability.AUDIT_VIEW in caps(user)
+        or has_admin_full_access(user)
+    )
 
 
 def can_export(user) -> bool:
-    return is_supervisor(user) or is_owner(user) or Capability.REPORT_EXPORT in caps(user)
+    return (
+        is_supervisor(user)
+        or is_owner(user)
+        or Capability.REPORT_EXPORT in caps(user)
+        or has_admin_full_access(user)
+    )
 
 
 def can_manage_users(user) -> bool:
-    return is_admin(user)
+    return is_admin(user) or is_bootstrap_superuser(user)
 
 
 def can_manage_templates(user) -> bool:
-    return is_admin(user) or is_supervisor(user)
+    return is_admin(user) or is_supervisor(user) or is_bootstrap_superuser(user)
 
 
 def can_manage_config(user) -> bool:
-    return is_admin(user)
+    return is_admin(user) or is_bootstrap_superuser(user)
 
 
 def can_review_checklist(user) -> bool:
@@ -139,7 +188,12 @@ def can_view_restricted_issue(user, issue) -> bool:
     """Komplain terbatas: pembuat, assignee, supervisor, owner (PRD 6.3)."""
     if not getattr(issue, "is_restricted", False):
         return True
-    if is_supervisor(user) or is_owner(user) or Capability.ISSUE_VIEW_RESTRICTED in caps(user):
+    if (
+        is_supervisor(user)
+        or is_owner(user)
+        or Capability.ISSUE_VIEW_RESTRICTED in caps(user)
+        or has_admin_full_access(user)
+    ):
         return True
     if issue.created_by_id == user.pk:
         return True
