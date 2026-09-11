@@ -7,21 +7,36 @@ sehingga perubahan tidak memerlukan perubahan kode.
 
 Legenda status: `PROVISIONAL` = default dipakai untuk membangun; `CONFIRMED` = disetujui PO.
 
+> **Untuk owner:** pengelompokan 12 keputusan ini menjadi "harus diputuskan sebelum pilot",
+> "boleh tetap provisional selama pilot", dan "harus diputuskan sebelum produksi" ada di
+> [`OWNER_DECISION_REVIEW.md`](OWNER_DECISION_REVIEW.md), lengkap dengan kolom keputusan
+> untuk ditandatangani. Dokumen ini tetap menjadi catatan nilai yang sedang berlaku.
+
 ---
 
 ## Jawaban Bagian 27
 
 ### 1. Apakah "kas", "modal", dan "uang kembalian" tiga pos terpisah atau satu cash drawer?
 **PROVISIONAL.** Satu cash drawer dengan tiga pos nilai yang dicatat terpisah dalam satu
-`CashSession`: `expected_opening_float` (uang modal yang diharapkan), `change_fund_total`
+`CashSession`: `expected_total` (uang modal yang diharapkan), `change_fund_total`
 (uang kembalian tersedia), dan `other_funds_total` (dana kas lain). Total aktual dihitung
-dari rincian pecahan. Tidak ada buku besar akuntansi pada MVP.
+dari rincian pecahan; selisih = `actual_total - expected_total`. Tidak ada buku besar
+akuntansi pada MVP.
 Config key: `cash.track_change_fund_separately = true`.
+*Menunggu keputusan owner:* `OWNER_DECISION_REVIEW.md` D1 — apakah uang kembalian termasuk
+dalam uang modal, dan terhadap angka mana selisih seharusnya dihitung.
 
 ### 2. Apakah verifikasi kas selalu membutuhkan dua orang?
 **PROVISIONAL.** Ya — dual-control **aktif**. Verifikator tidak boleh sama dengan penghitung
 pertama. Dapat dimatikan lewat config bila klinik hanya punya satu petugas pada shift tertentu.
 Config key: `cash.dual_control_enabled = true`.
+
+Sesuai PRD 8.3 ("penghitung kedua **atau** supervisor"), verifikator kedua boleh:
+front desk/kasir lain, supervisor, atau pemegang kapabilitas `cash.approve`.
+**Koreksi setelah verifikasi tetap hanya supervisor.** Bila hanya supervisor yang boleh
+memverifikasi, kas tidak akan pernah dapat diverifikasi saat supervisor sendiri yang
+menghitung.
+*Menunggu konfirmasi owner:* `OWNER_DECISION_REVIEW.md` OD-A.
 
 ### 3. Status pembayaran apa yang menyebabkan nomor antrean dipertahankan?
 **PROVISIONAL.** `SUDAH_BAYAR` dan `DIBEBASKAN` (dibebaskan hanya oleh pengguna berwenang —
@@ -110,3 +125,8 @@ kembali, ditandai sebagai entri susulan dengan alasan. Runbook: `docs/runbook.md
 
 ## Catatan perubahan
 - 2026-09-11 — Dokumen dibuat dari PRD v1.0 Bagian 29. Seluruh entri `PROVISIONAL`.
+- 2026-09-11 — Persiapan UAT pilot: ditambahkan rujukan ke `OWNER_DECISION_REVIEW.md`;
+  koreksi penamaan field kas pada D1 agar sesuai implementasi (`expected_total`);
+  D2 diperjelas mengenai siapa yang boleh menjadi verifikator kedua.
+  **Tidak ada keputusan bisnis yang diubah** — seluruh entri tetap `PROVISIONAL`
+  dan menunggu keputusan owner.
