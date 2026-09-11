@@ -22,6 +22,8 @@ Implementasi dari PRD v1.0 (11 September 2026). Keputusan bisnis sementara ada d
 Lintas modul: dashboard harian, action item, notifikasi in-app, laporan + ekspor CSV,
 audit log append-only, admin pengguna/peran/konfigurasi.
 
+Peran dan kewenangan dijelaskan di [`docs/peran-dan-akses.md`](docs/peran-dan-akses.md).
+
 ## Stack
 
 Django 5.1 monolit, template server-rendered, SQLite (WAL), Gunicorn di belakang
@@ -45,13 +47,14 @@ Akun demo (password `JoDermaDemo2026!`): `admin`, `supervisor`, `kasir1`, `kasir
 ## Test
 
 ```bash
-.venv/bin/python -m pytest          # 114 test
+.venv/bin/python -m pytest          # 198 test dijalankan
 ```
 
 Cakupan: state machine hari, validasi checklist, kas & dual-control, penomoran dan
 event antrean, rotasi perawat, overlap jadwal, workflow issue, matriks izin,
-konkurensi (optimistic locking), dan security smoke (CSRF, throttling, session,
-akses lampiran, otorisasi ekspor).
+konkurensi (optimistic locking), security smoke (CSRF, throttling, session, akses
+lampiran, otorisasi ekspor), kesiapan pilot, bootstrap superuser dan pengaman
+lockout, serta progressive disclosure form catatan.
 
 ## Produksi
 
@@ -60,9 +63,12 @@ restore, dan checklist go-live. Ringkas:
 
 ```bash
 docker compose up -d --build
-sudo ./scripts/tailscale_serve.sh
+sudo ./scripts/serve_clinic.sh      # Tailscale Serve pada port 8443
 ./scripts/verify_deployment.sh
 ```
+
+Instalasi klinik yang sedang berjalan dijelaskan di
+[`docs/deployment-klinik.md`](docs/deployment-klinik.md).
 
 **Aturan jaringan yang tidak boleh dilanggar:** aplikasi hanya listen di `127.0.0.1`.
 Gunakan Tailscale **Serve** (privat dalam tailnet), **bukan Funnel** (internet publik).

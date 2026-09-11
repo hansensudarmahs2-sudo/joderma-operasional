@@ -1,5 +1,8 @@
 # Panduan Singkat Staf — JoDerma Staff Ops
 
+Supervisor: lihat juga [`panduan-supervisor.md`](panduan-supervisor.md).
+Admin: lihat [`panduan-admin.md`](panduan-admin.md).
+
 Aplikasi diakses dari ponsel, tablet, atau komputer klinik melalui alamat yang
 diberikan admin. Anda harus terhubung Tailscale dan memakai akun pribadi.
 **Akun tidak boleh dipakai bersama** — semua tindakan tercatat atas nama Anda.
@@ -33,9 +36,19 @@ diberikan admin. Anda harus terhubung Tailscale dan memakai akun pribadi.
   Memilih perawat di luar giliran hanya boleh supervisor dan wajib alasan.
 - **Jadwal istirahat**: supervisor mengatur. Sistem menolak jadwal yang bertabrakan
   dan memperingatkan bila staf aktif turun di bawah minimum.
-- **Komplain / Masukan / Kerusakan**: siapa pun boleh membuat. Isi ringkasan dan
-  uraian. Komplain sensitif dapat ditandai **Terbatas** — hanya pembuat, penanggung
-  jawab, supervisor, dan owner yang bisa membukanya.
+- **Komplain / Masukan / Kerusakan**: siapa pun boleh membuat. Buka menu yang
+  sesuai, lalu tekan tombol hijau di bagian atas halaman:
+
+  | Menu | Tombol | Isi minimal |
+  |---|---|---|
+  | Komplain | **+ Catat komplain baru** | ringkasan, uraian, sumber pelapor |
+  | Masukan | **+ Tulis masukan/saran** | ringkasan, uraian |
+  | Kerusakan | **+ Laporkan kerusakan** | ringkasan, lokasi/aset, dampak |
+
+  Form hanya menampilkan field yang relevan dengan tipe yang dipilih, jadi
+  daftarnya pendek. Field bertanda `*` wajib diisi. Komplain sensitif dapat
+  ditandai **Terbatas** — hanya pembuat, penanggung jawab, supervisor, dan owner
+  yang bisa membukanya.
 
 ## Sore: menutup hari
 

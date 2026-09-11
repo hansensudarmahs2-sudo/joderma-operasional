@@ -373,7 +373,7 @@ bersama), perangkat terhubung Tailscale, dan aplikasi dibuka lewat hostname Magi
 |---|---|
 | **Actor** | Front desk / staf yang menerima komplain |
 | **Precondition** | Ada komplain nyata (atau latihan bila tidak ada) |
-| **Steps** | 1. **Komplain ▸ Buat catatan baru**. 2. Pilih tipe Komplain, isi sumber pelapor, kanal, ringkasan, uraian, tingkat dampak. 3. Simpan. |
+| **Steps** | 1. **Komplain ▸ + Catat komplain baru**. 2. Isi sumber pelapor, kanal, ringkasan, uraian, tingkat dampak (tipe sudah terpilih otomatis). 3. Simpan. |
 | **Expected** | Nomor `CMP-YYYYMMDD-NNN` terbentuk; target penugasan dan target selesai terisi otomatis sesuai SLA; supervisor menerima notifikasi |
 | **Actual** | |
 | **Pass/Fail** | |
@@ -442,7 +442,7 @@ bersama), perangkat terhubung Tailscale, dan aplikasi dibuka lewat hostname Magi
 |---|---|
 | **Actor** | Staf operasional / perawat |
 | **Precondition** | — |
-| **Steps** | 1. **Masukan ▸ Buat catatan baru**, tipe Masukan/saran. 2. Isi judul, uraian, manfaat/dampak. 3. Simpan. |
+| **Steps** | 1. **Masukan ▸ + Tulis masukan/saran**. 2. Isi ringkasan, uraian, manfaat/dampak. 3. Simpan. |
 | **Expected** | Nomor `SUG-YYYYMMDD-NNN` terbentuk; input terasa lebih ringan daripada form komplain |
 | **Actual** | |
 | **Pass/Fail** | |
@@ -485,7 +485,7 @@ bersama), perangkat terhubung Tailscale, dan aplikasi dibuka lewat hostname Magi
 |---|---|
 | **Actor** | Siapa pun yang menemukan |
 | **Precondition** | Ada kerusakan nyata (atau latihan) |
-| **Steps** | 1. **Kerusakan ▸ Buat catatan baru**. 2. Isi lokasi/aset, kategori, urgensi, dampak penggunaan, uraian. 3. Lampirkan foto. 4. Simpan. |
+| **Steps** | 1. **Kerusakan ▸ + Laporkan kerusakan**. 2. Isi lokasi/aset, kategori, urgensi, dampak penggunaan, uraian. 3. Lampirkan foto. 4. Simpan. |
 | **Expected** | Nomor `DMG-YYYYMMDD-NNN`; target SLA terisi sesuai urgensi; supervisor mendapat notifikasi |
 | **Actual** | |
 | **Pass/Fail** | |
