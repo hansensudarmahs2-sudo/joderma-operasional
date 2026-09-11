@@ -29,6 +29,8 @@ Lintas modul: dashboard harian, action item, notifikasi in-app, laporan + ekspor
 audit log append-only, admin pengguna/peran/konfigurasi.
 
 Peran dan kewenangan dijelaskan di [`docs/peran-dan-akses.md`](docs/peran-dan-akses.md).
+Cara melanjutkan pekerjaan setelah jeda ada di
+[`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md).
 
 ## Stack
 

@@ -1,6 +1,9 @@
 # Dokumentasi JoDerma Staff Ops
 
-Mulai dari peran Anda.
+**Melanjutkan setelah jeda?** Mulai dari
+[`lanjutkan-pekerjaan.md`](lanjutkan-pekerjaan.md).
+
+Selain itu, mulai dari peran Anda.
 
 ## Saya staf klinik
 
