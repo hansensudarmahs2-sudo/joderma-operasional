@@ -49,12 +49,12 @@
     {
       "src": "supervisor@joderma.id",
       "accept": ["tag:joderma-ops:443"],
-      "deny": ["tag:joderma-ops:22", "tag:joderma-ops:8000"]
+      "deny": ["tag:joderma-ops:22", "tag:joderma-ops:8731"]
     },
     {
       "src": "admin-it@joderma.id",
       "accept": ["tag:joderma-ops:443", "tag:joderma-ops:22"],
-      "deny": ["tag:joderma-ops:8000"]
+      "deny": ["tag:joderma-ops:8731"]
     }
   ]
 }

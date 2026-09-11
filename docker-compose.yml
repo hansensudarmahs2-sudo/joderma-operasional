@@ -1,26 +1,44 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        APP_PORT: ${APP_PORT:-8731}
+        APP_UID: ${APP_UID:-1000}
+        APP_GID: ${APP_GID:-1000}
     container_name: joderma-ops
     restart: unless-stopped
     env_file: .env
+    environment:
+      APP_PORT: ${APP_PORT:-8731}
+      # Di DALAM container, Gunicorn harus bind 0.0.0.0 — 127.0.0.1 hanya loopback
+      # milik container itu sendiri sehingga docker-proxy tidak dapat meneruskan.
+      # Keamanan tetap terjaga oleh port publishing "127.0.0.1:PORT:PORT" di bawah:
+      # namespace jaringan container terisolasi, dan host hanya membuka loopback.
+      APP_HOST: 0.0.0.0
     # PENTING: port hanya di-bind ke loopback host. Tailscale Serve yang
-    # mengeksposnya sebagai HTTPS privat di dalam tailnet. Jangan ubah ke "8000:8000".
+    # mengeksposnya sebagai HTTPS privat di dalam tailnet.
+    # Jangan pernah menghapus prefiks "127.0.0.1:" — itu membuka aplikasi ke LAN.
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:${APP_PORT:-8731}:${APP_PORT:-8731}"
     volumes:
       - ./data:/app/data
       - ./private_media:/app/private_media
       - ./logs:/app/logs
       - ./backups:/app/backups
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health/"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:${APP_PORT:-8731}/health/ || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
 
   backup:
-    build: .
+    build:
+      context: .
+      args:
+        APP_PORT: ${APP_PORT:-8731}
+        APP_UID: ${APP_UID:-1000}
+        APP_GID: ${APP_GID:-1000}
     container_name: joderma-ops-backup
     restart: unless-stopped
     env_file: .env

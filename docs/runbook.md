@@ -12,6 +12,16 @@ Dokumen untuk admin teknis. Prosedur harian untuk staf ada di `docs/panduan-staf
 - Tailscale terpasang dan sudah login ke tailnet JoDerma.
 - Zona waktu host: `Asia/Jakarta`.
 
+### Catatan penting Docker
+
+- **Bind address**: di dalam container Gunicorn memakai `APP_HOST=0.0.0.0` (disetel oleh
+  `docker-compose.yml`). Yang membatasi akses ke localhost host adalah baris
+  `ports: "127.0.0.1:${APP_PORT}:${APP_PORT}"`. Jangan menghapus prefiks `127.0.0.1:` itu —
+  itulah satu-satunya yang mencegah aplikasi terbuka ke LAN.
+- **UID/GID**: `APP_UID`/`APP_GID` di `.env` harus sama dengan pemilik direktori
+  `data/`, `logs/`, `private_media/`, `backups/` di host (biasanya `1000`). Bila tidak
+  cocok, container gagal menulis log dan restart terus-menerus.
+
 ### Langkah (Docker)
 
 ```bash
@@ -60,7 +70,7 @@ console Tailscale. Prinsipnya:
 - Deny-by-default; hanya grup yang disebut yang memperoleh akses.
 - `group:joderma-staff` -> hanya tcp:443 ke `tag:joderma-ops`.
 - `group:joderma-tech` -> tcp:443 + tcp:22 (SSH admin), terpisah dari hak bisnis.
-- Port aplikasi (8000) tidak pernah diberikan ke siapa pun; hanya loopback.
+- Port aplikasi (`APP_PORT`, default 8731) tidak pernah diberikan ke siapa pun; hanya loopback.
 
 Simpan policy dengan blok `tests` agar Tailscale memverifikasi aturan saat disimpan.
 
@@ -81,7 +91,7 @@ Ditambah tiga uji manual yang tidak dapat diotomatiskan:
 
 | Kegiatan | Perintah/lokasi |
 |---|---|
-| Cek aplikasi hidup | `curl -fsS http://127.0.0.1:8000/health/` |
+| Cek aplikasi hidup | `curl -fsS http://127.0.0.1:${APP_PORT:-8731}/health/` |
 | Lihat log aplikasi | `docker compose logs -f app` atau `journalctl -u joderma-ops -f` |
 | Lihat log backup | `logs/backup.log` |
 | Cek kapasitas disk | `df -h /` — bertindak bila di atas 80% |

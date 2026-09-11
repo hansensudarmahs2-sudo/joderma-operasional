@@ -36,7 +36,7 @@ python3 -m venv .venv
 cp .env.example .env          # isi DJANGO_SECRET_KEY
 .venv/bin/python manage.py migrate
 .venv/bin/python manage.py seed_demo      # data sintetis, bukan data pasien nyata
-.venv/bin/python manage.py runserver 127.0.0.1:8000
+.venv/bin/python manage.py runserver 127.0.0.1:8731
 ```
 
 Akun demo (password `JoDermaDemo2026!`): `admin`, `supervisor`, `kasir1`, `kasir2`,
