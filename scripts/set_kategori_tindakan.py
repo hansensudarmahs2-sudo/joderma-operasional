@@ -17,10 +17,10 @@ from core.models import Clinic
 
 # (kode, nama, berkomisi)
 #
-# Ketiganya ditandai berkomisi sebagai default sementara: rotasi round-robin
-# memperlakukan semuanya sama, sehingga perawat yang mengasisteni dokter juga
-# maju dalam antrean giliran. Bila klinik memutuskan asistensi tidak berkomisi,
-# ubah nilainya di sini atau lewat Django admin -- lihat OPEN DECISION OD-E.
+# Ketiganya berkomisi. Diputuskan pemilik 11 September 2026 (OD-E): penugasan
+# dicatat manual, sehingga asistensi dokter yang memang berkomisi ikut tercatat
+# sebagaimana adanya. Rotasi tetap adil karena setiap pekerjaan berkomisi
+# menghabiskan giliran, tidak peduli jenisnya.
 KATEGORI_BARU = [
     ("tindakan-estetik", "Tindakan estetik", True),
     ("asistensi-dokter", "Asistensi dokter", True),
@@ -73,7 +73,7 @@ with transaction.atomic():
             print(f"dihapus : {nama} (tidak pernah dipakai)")
 
     # 3. Eligibility: semua perawat boleh semua kategori.
-    #    Default sementara -- lihat OPEN DECISION OD-E. Supervisor dapat
+    #    Default sementara -- lihat OPEN DECISION OD-F. Supervisor dapat
     #    mengoreksinya lewat UI tanpa mengubah kode.
     perawat = [u for u in User.objects.filter(is_active=True) if Role.PERAWAT in u.role_codes()]
     dibuat = 0

@@ -89,9 +89,11 @@ pada bagian *Kategori tindakan*.
 Dua pengaturan yang perlu dipahami:
 
 **Berkomisi.** Kategori yang ditandai berkomisi menghabiskan giliran: perawat
-yang menyelesaikannya pindah ke belakang antrean rotasi. Saat ini ketiganya
-ditandai berkomisi. Bila asistensi dokter tidak seharusnya menghabiskan giliran
-perawat, hilangkan centangnya — lihat OPEN DECISION OD-E.
+yang menyelesaikannya pindah ke belakang antrean rotasi. Ketiganya ditandai
+berkomisi berdasarkan keputusan pemilik tanggal 11 September 2026 (OD-E):
+penugasan dicatat manual, sehingga asistensi dokter yang memang berkomisi ikut
+tercatat sebagaimana adanya, dan rotasi tetap adil karena setiap pekerjaan
+berkomisi menghabiskan giliran tanpa memandang jenisnya.
 
 **Eligibility.** Perawat hanya mendapat giliran pada kategori yang dia berhak
 kerjakan. Bila sebuah kategori tidak punya perawat eligible, setiap penugasan

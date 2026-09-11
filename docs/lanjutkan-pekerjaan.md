@@ -103,10 +103,11 @@ Semuanya ada di `OWNER_DECISION_REVIEW.md`. Yang paling mendesak:
   selisih akan salah setiap hari.
 - **Aturan skip dan pembatalan giliran perawat.** Menyangkut pendapatan;
   bahas bersama perawat, jangan diputuskan sepihak.
-- **OD-E: apakah asistensi dokter menghabiskan giliran komisi?** Saat ini ya.
-- **OD-F: apakah semua perawat boleh semua kategori?** Saat ini ya.
+- **OD-F: apakah semua perawat boleh semua kategori?** Saat ini ya; dapat diubah
+  lewat `/django-admin/` tanpa menyentuh kode.
 
-Dua hal terakhir dapat diubah lewat `/django-admin/` tanpa menyentuh kode.
+Sudah diputuskan: **OD-E** — ketiga kategori tindakan berkomisi, termasuk
+asistensi dokter (11 September 2026).
 
 ## Sisa pekerjaan kecil
 
