@@ -11,4 +11,5 @@ urlpatterns = [
     path("pengguna/", views.user_list, name="user_list"),
     path("pengguna/baru/", views.user_create, name="user_create"),
     path("pengguna/<int:pk>/", views.user_detail, name="user_detail"),
+    path("pengguna/<int:pk>/toggle-aktif/", views.user_toggle_active, name="user_toggle_active"),
 ]

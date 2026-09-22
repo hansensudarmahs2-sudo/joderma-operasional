@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{{ masukan.title }}{% endblock %}
+{% block content %}
+<h1>{{ masukan.title }}</h1>
+<p class="sub">
+  {% if masukan.archived_at %}<span class="tag muted">Diarsipkan</span>
+  {% elif masukan.is_published %}<span class="tag ok">Dipublikasikan</span>
+  {% else %}<span class="tag info">Privat — pengirim dan AOM saja</span>{% endif %}
+</p>
+<div class="card">
+  <p>{{ masukan.description|default:"—" }}</p>
+  <p class="meta">Dibuat oleh {{ masukan.created_by|default:"—" }} · {{ masukan.created_at|date:"d/m/Y H:i" }}</p>
+  {% if masukan.archived_at %}<p class="meta">Diarsipkan {{ masukan.archived_at|date:"d/m/Y H:i" }} oleh {{ masukan.archived_by }} · alasan: {{ masukan.archive_reason }}</p>{% endif %}
+</div>
+
+{% if masukan.publications.all %}
+<div class="card">
+  <h3>Riwayat publikasi</h3>
+  <ul class="timeline">
+    {% for p in masukan.publications.all %}
+      <li>{{ p.published_at|date:"d/m/Y H:i" }} oleh {{ p.published_by }} ke
+        {% for c in p.clinics.all %}{{ c.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if can_publish and not masukan.archived_at %}
+<div class="card">
+  <h3>Publikasikan ke cabang</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="aksi" value="publikasi">
+    <label for="clinics">Cabang tujuan</label>
+    <select id="clinics" name="clinics" multiple required>
+      {% for c in clinics %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+    </select>
+    <label for="catatan_pub">Catatan publikasi</label>
+    <textarea id="catatan_pub" name="catatan" rows="2"></textarea>
+    <p></p>
+    <button class="btn small" type="submit">Publikasikan</button>
+  </form>
+</div>
+{% endif %}
+
+{% if can_archive and not masukan.archived_at %}
+<div class="card">
+  <h3>Arsipkan masukan</h3>
+  <p class="meta">Arsip tidak menghapus data; masukan tetap dapat ditemukan lewat filter status.</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="aksi" value="arsip">
+    <label for="alasan_arsip">Alasan arsip (wajib)</label>
+    <textarea id="alasan_arsip" name="alasan" rows="2" required></textarea>
+    <p></p>
+    <button class="btn small secondary" type="submit">Arsipkan</button>
+  </form>
+</div>
+{% endif %}
+
+<p><a class="btn secondary" href="{% url 'reports:masukan_page' %}">Kembali ke daftar masukan</a></p>
+{% endblock %}

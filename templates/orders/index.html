@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Order produk online{% endblock %}
+{% block content %}
+<h1>Order produk online</h1>
+<p class="sub">Koordinator online mencatat order; apoteker/asisten apoteker memprosesnya.</p>
+{% if can_create %}<p><a class="btn" href="{% url 'orders:create' %}">Buat order produk</a></p>{% endif %}
+<table class="responsive">
+  <thead><tr><th>No. order</th><th>Pelanggan</th><th>Produk</th><th>Jumlah</th><th>Status</th><th>Tindak lanjut</th></tr></thead>
+  <tbody>{% for order in orders %}<tr>
+    <td data-label="No. order">{{ order.order_no }}</td>
+    <td data-label="Pelanggan">{{ order.customer_name }}<div class="meta">{{ order.rm_number }} · {{ order.customer_contact }}<br>{{ order.customer_address }}</div></td>
+    <td data-label="Produk">{{ order.product_name }}{% if order.unit_price %}<div class="meta">Rp {{ order.unit_price }} × {{ order.quantity }} = Rp {{ order.total_price }}</div>{% endif %}</td><td data-label="Jumlah">{{ order.quantity }}</td>
+    <td data-label="Status">{{ order.get_status_display }}</td>
+    <td data-label="Tindak lanjut">{% if can_process %}<form method="post" action="{% url 'orders:update_status' order.pk %}">{% csrf_token %}<select name="status">{% for value,label in status_choices %}<option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><input name="note" value="{{ order.note }}" placeholder="Catatan farmasi"><button class="btn small" type="submit">Simpan</button></form>{% else %}Menunggu farmasi{% endif %}</td>
+  </tr>{% empty %}<tr><td colspan="6" class="meta">Belum ada order produk online.</td></tr>{% endfor %}</tbody>
+</table>
+{% endblock %}

@@ -2,26 +2,54 @@
 from __future__ import annotations
 
 import csv
+import json
 from datetime import timedelta
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Count, Q
-from django.http import HttpResponse
-from django.shortcuts import render
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+from django.views.decorators.http import require_POST
 
 from audit.models import AuditAction
 from audit.services import log_event
 from breaks.models import BreakSchedule, BreakStatus
 from cash.models import CashSession
 from checklists.models import ChecklistResponse, ResponseResult
-from core.models import OperationalDay, local_today
-from core.permissions import can_export, can_view_cash_amounts, require
+from core.models import Clinic, OperationalDay, local_today
+from core.permissions import (
+    can_archive_laporan,
+    can_archive_masukan,
+    can_create_laporan,
+    can_export,
+    can_publish_masukan,
+    can_view_cash_amounts,
+    can_view_laporan,
+    can_view_masukan,
+    is_aom,
+    require,
+)
 from core.services import active_clinic
 from issues.models import Issue, IssueType, OPEN_STATUSES
 from nurses.models import CommissionTurnEvent, NurseRosterEntry, TurnAction
 from queueing.models import QueueEntry, QueueStatus
+
+from .models import Laporan, Masukan, ReportStatus
+from .services import (
+    archive_laporan,
+    archive_masukan,
+    change_laporan_status,
+    create_laporan,
+    create_masukan,
+    log_confidential_access,
+    publish_masukan,
+    visible_laporan_queryset,
+    visible_masukan_queryset,
+)
 
 
 def _range(request):
@@ -32,7 +60,7 @@ def _range(request):
 
 @login_required
 def index(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     start, end = _range(request)
     days = OperationalDay.objects.filter(clinic=clinic, date__range=(start, end))
 
@@ -120,7 +148,7 @@ def export_csv(request, dataset: str):
     if dataset == "kas" and not can_view_cash_amounts(request.user):
         return HttpResponse("Anda tidak memiliki izin data kas.", status=403)
 
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     start, end = _range(request)
     days = OperationalDay.objects.filter(clinic=clinic, date__range=(start, end))
 
@@ -217,3 +245,310 @@ def export_csv(request, dataset: str):
         request=request,
     )
     return response
+
+
+# --- Laporan (plan bagian 9) -------------------------------------------
+
+
+def _laporan_json(l: Laporan) -> dict:
+    return {
+        "id": l.pk,
+        "clinic": l.clinic.code,
+        "visibility": l.visibility,
+        "status": l.status,
+        "title": l.title,
+        "description": l.description,
+        "created_by": l.created_by.username if l.created_by_id else None,
+        "created_at": l.created_at.isoformat(),
+    }
+
+
+@login_required
+def laporan_list(request):
+    """Daftar laporan sudah dibatasi scope di service layer — jangan filter di view."""
+    clinic = active_clinic(request.user)
+    qs = visible_laporan_queryset(request.user, clinic)
+    return JsonResponse({"results": [_laporan_json(l) for l in qs]})
+
+
+@login_required
+@require_POST
+def laporan_create(request):
+    clinic = active_clinic(request.user)
+    try:
+        laporan = create_laporan(
+            clinic=clinic,
+            user=request.user,
+            title=request.POST.get("title", ""),
+            description=request.POST.get("description", ""),
+            visibility=request.POST.get("visibility", "CABANG"),
+        )
+    except (ValidationError, PermissionDenied) as exc:
+        status = 403 if isinstance(exc, PermissionDenied) else 400
+        return JsonResponse({"error": str(exc)}, status=status)
+    return JsonResponse(_laporan_json(laporan), status=201)
+
+
+@login_required
+def laporan_detail(request, pk: int):
+    """Akses langsung by-id juga wajib diperiksa server-side (plan 9.1/16)."""
+    laporan = get_object_or_404(Laporan, pk=pk)
+    if not can_view_laporan(request.user, laporan):
+        raise PermissionDenied("Laporan ini rahasia dan tidak dapat Anda akses.")
+    log_confidential_access(laporan, user=request.user, request=request)
+    return JsonResponse(_laporan_json(laporan))
+
+
+@login_required
+@require_POST
+def laporan_status(request, pk: int):
+    laporan = get_object_or_404(Laporan, pk=pk)
+    try:
+        change_laporan_status(
+            laporan,
+            user=request.user,
+            to_status=request.POST.get("status", ""),
+            note=request.POST.get("note", ""),
+            reason=request.POST.get("reason", ""),
+        )
+    except (ValidationError, PermissionDenied) as exc:
+        status = 403 if isinstance(exc, PermissionDenied) else 400
+        return JsonResponse({"error": str(exc)}, status=status)
+    return JsonResponse(_laporan_json(laporan))
+
+
+@login_required
+@require_POST
+def laporan_archive(request, pk: int):
+    laporan = get_object_or_404(Laporan, pk=pk)
+    try:
+        archive_laporan(laporan, user=request.user, reason=request.POST.get("reason", ""))
+    except (ValidationError, PermissionDenied) as exc:
+        status = 403 if isinstance(exc, PermissionDenied) else 400
+        return JsonResponse({"error": str(exc)}, status=status)
+    return JsonResponse(_laporan_json(laporan))
+
+
+# --- Masukan (plan bagian 10) --------------------------------------------
+
+
+def _masukan_json(m: Masukan) -> dict:
+    return {
+        "id": m.pk,
+        "clinic": m.clinic.code,
+        "title": m.title,
+        "description": m.description,
+        "created_by": m.created_by.username if m.created_by_id else None,
+        "created_at": m.created_at.isoformat(),
+        "is_published": m.is_published,
+        "archived_at": m.archived_at.isoformat() if m.archived_at else None,
+    }
+
+
+@login_required
+def masukan_list(request):
+    clinic = active_clinic(request.user)
+    qs = visible_masukan_queryset(request.user, clinic)
+    return JsonResponse({"results": [_masukan_json(m) for m in qs]})
+
+
+@login_required
+@require_POST
+def masukan_create(request):
+    clinic = active_clinic(request.user)
+    try:
+        masukan = create_masukan(
+            clinic=clinic,
+            user=request.user,
+            title=request.POST.get("title", ""),
+            description=request.POST.get("description", ""),
+        )
+    except (ValidationError, PermissionDenied) as exc:
+        status = 403 if isinstance(exc, PermissionDenied) else 400
+        return JsonResponse({"error": str(exc)}, status=status)
+    return JsonResponse(_masukan_json(masukan), status=201)
+
+
+@login_required
+def masukan_detail(request, pk: int):
+    masukan = get_object_or_404(Masukan, pk=pk)
+    if not can_view_masukan(request.user, masukan):
+        raise PermissionDenied("Masukan ini rahasia dan tidak dapat Anda akses.")
+    return JsonResponse(_masukan_json(masukan))
+
+
+@login_required
+@require_POST
+def masukan_publish(request, pk: int):
+    masukan = get_object_or_404(Masukan, pk=pk)
+    clinic_ids = request.POST.getlist("clinics")
+    if not clinic_ids:
+        raw = request.POST.get("clinics", "")
+        clinic_ids = [c for c in raw.split(",") if c]
+    clinics = list(Clinic.objects.filter(pk__in=clinic_ids))
+    try:
+        publication = publish_masukan(
+            masukan, user=request.user, clinics=clinics, note=request.POST.get("note", "")
+        )
+    except (ValidationError, PermissionDenied) as exc:
+        status = 403 if isinstance(exc, PermissionDenied) else 400
+        return JsonResponse({"error": str(exc)}, status=status)
+    return JsonResponse(
+        {
+            "id": publication.pk,
+            "masukan_id": masukan.pk,
+            "clinics": [c.code for c in publication.clinics.all()],
+            "published_at": publication.published_at.isoformat(),
+            "source_version": publication.source_version,
+        }
+    )
+
+
+@login_required
+@require_POST
+def masukan_archive(request, pk: int):
+    masukan = get_object_or_404(Masukan, pk=pk)
+    try:
+        archive_masukan(masukan, user=request.user, reason=request.POST.get("reason", ""))
+    except (ValidationError, PermissionDenied) as exc:
+        status = 403 if isinstance(exc, PermissionDenied) else 400
+        return JsonResponse({"error": str(exc)}, status=status)
+    return JsonResponse(_masukan_json(masukan))
+
+
+# --- Halaman HTML laporan/masukan (Fase 5: UI di atas service layer JSON) ---
+
+
+@login_required
+def laporan_page(request):
+    """Daftar laporan dengan filter status eksplisit (data selesai/arsip tidak disembunyikan)."""
+    clinic = active_clinic(request.user)
+    qs = visible_laporan_queryset(request.user, clinic)
+    status = request.GET.get("status", "")
+    if status:
+        qs = qs.filter(status=status)
+    if request.method == "POST":
+        try:
+            create_laporan(
+                clinic=clinic,
+                user=request.user,
+                title=request.POST.get("title", ""),
+                description=request.POST.get("description", ""),
+                visibility=request.POST.get("visibility", "CABANG"),
+            )
+            messages.success(request, "Laporan dikirim.")
+        except (ValidationError, PermissionDenied) as exc:
+            messages.error(request, str(exc) if isinstance(exc, PermissionDenied) else " ".join(exc.messages))
+        return redirect("reports:laporan_page")
+    return render(
+        request,
+        "reports/laporan_list.html",
+        {
+            "laporan_list": qs.order_by("-created_at")[:200],
+            "status": status,
+            "statuses": ReportStatus.choices,
+            "can_create": can_create_laporan(request.user),
+        },
+    )
+
+
+@login_required
+def laporan_page_detail(request, pk: int):
+    """Direct URL access selalu diperiksa server-side, bukan hanya disembunyikan di UI."""
+    laporan = get_object_or_404(Laporan, pk=pk)
+    if not can_view_laporan(request.user, laporan):
+        raise PermissionDenied("Laporan ini rahasia dan tidak dapat Anda akses.")
+    log_confidential_access(laporan, user=request.user, request=request)
+    if request.method == "POST":
+        action = request.POST.get("aksi")
+        try:
+            if action == "arsip":
+                archive_laporan(laporan, user=request.user, reason=request.POST.get("alasan", ""))
+                messages.success(request, "Laporan diarsipkan.")
+            else:
+                change_laporan_status(
+                    laporan,
+                    user=request.user,
+                    to_status=request.POST.get("status", ""),
+                    note=request.POST.get("catatan", ""),
+                    reason=request.POST.get("alasan", ""),
+                )
+                messages.success(request, "Status laporan diperbarui.")
+        except (ValidationError, PermissionDenied) as exc:
+            messages.error(request, str(exc) if isinstance(exc, PermissionDenied) else " ".join(exc.messages))
+        return redirect("reports:laporan_page_detail", pk=pk)
+    return render(
+        request,
+        "reports/laporan_detail.html",
+        {
+            "laporan": laporan,
+            "can_archive": can_archive_laporan(request.user),
+            "allowed_next": laporan.allowed_next_statuses(),
+        },
+    )
+
+
+@login_required
+def masukan_page(request):
+    """Daftar masukan (privat pengirim+AOM) dengan filter status eksplisit."""
+    clinic = active_clinic(request.user)
+    qs = visible_masukan_queryset(request.user, clinic)
+    status = request.GET.get("status", "")
+    if status == "archived":
+        qs = qs.exclude(archived_at=None)
+    elif status == "active":
+        qs = qs.filter(archived_at=None)
+    if request.method == "POST":
+        try:
+            create_masukan(
+                clinic=clinic,
+                user=request.user,
+                title=request.POST.get("title", ""),
+                description=request.POST.get("description", ""),
+            )
+            messages.success(request, "Masukan dikirim.")
+        except (ValidationError, PermissionDenied) as exc:
+            messages.error(request, str(exc) if isinstance(exc, PermissionDenied) else " ".join(exc.messages))
+        return redirect("reports:masukan_page")
+    return render(
+        request,
+        "reports/masukan_list.html",
+        {
+            "masukan_list": qs.order_by("-created_at")[:200],
+            "status": status,
+            "can_publish": can_publish_masukan(request.user),
+        },
+    )
+
+
+@login_required
+def masukan_page_detail(request, pk: int):
+    masukan = get_object_or_404(Masukan, pk=pk)
+    if not can_view_masukan(request.user, masukan):
+        raise PermissionDenied("Masukan ini rahasia dan tidak dapat Anda akses.")
+    if request.method == "POST":
+        action = request.POST.get("aksi")
+        try:
+            if action == "publikasi":
+                clinic_ids = request.POST.getlist("clinics")
+                clinics = list(Clinic.objects.filter(pk__in=clinic_ids))
+                publish_masukan(
+                    masukan, user=request.user, clinics=clinics, note=request.POST.get("catatan", "")
+                )
+                messages.success(request, "Masukan dipublikasikan ke cabang terpilih.")
+            elif action == "arsip":
+                archive_masukan(masukan, user=request.user, reason=request.POST.get("alasan", ""))
+                messages.success(request, "Masukan diarsipkan.")
+        except (ValidationError, PermissionDenied) as exc:
+            messages.error(request, str(exc) if isinstance(exc, PermissionDenied) else " ".join(exc.messages))
+        return redirect("reports:masukan_page_detail", pk=pk)
+    return render(
+        request,
+        "reports/masukan_detail.html",
+        {
+            "masukan": masukan,
+            "can_publish": can_publish_masukan(request.user),
+            "can_archive": can_archive_masukan(request.user),
+            "clinics": Clinic.objects.filter(active=True),
+        },
+    )

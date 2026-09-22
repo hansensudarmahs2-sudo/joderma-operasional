@@ -11,7 +11,6 @@
 
 {% if can_export %}
 <p>Ekspor CSV:
-  <a class="btn small secondary" href="{% url 'reports:export' 'antrean' %}?dari={{ start|date:'Y-m-d' }}&sampai={{ end|date:'Y-m-d' }}">Antrean</a>
   {% if can_view_cash %}<a class="btn small secondary" href="{% url 'reports:export' 'kas' %}?dari={{ start|date:'Y-m-d' }}&sampai={{ end|date:'Y-m-d' }}">Kas</a>{% endif %}
   <a class="btn small secondary" href="{% url 'reports:export' 'checklist' %}?dari={{ start|date:'Y-m-d' }}&sampai={{ end|date:'Y-m-d' }}">Checklist</a>
   <a class="btn small secondary" href="{% url 'reports:export' 'issue' %}?dari={{ start|date:'Y-m-d' }}&sampai={{ end|date:'Y-m-d' }}">Catatan</a>
@@ -42,15 +41,6 @@
   {% empty %}<tr><td colspan="6" class="meta">Tidak ada data.</td></tr>{% endfor %}</tbody>
 </table>
 {% endif %}
-
-<h2>Volume antrean</h2>
-<table class="responsive">
-  <thead><tr><th>Tanggal</th><th>Total</th><th>Selesai</th><th>Batal/No-show</th></tr></thead>
-  <tbody>{% for r in queue_rows %}<tr>
-    <td data-label="Tanggal">{{ r.operational_day__date }}</td><td data-label="Total">{{ r.total }}</td>
-    <td data-label="Selesai">{{ r.selesai }}</td><td data-label="Batal">{{ r.batal }}</td></tr>
-  {% empty %}<tr><td colspan="4" class="meta">Tidak ada data.</td></tr>{% endfor %}</tbody>
-</table>
 
 <h2>Distribusi giliran perawat</h2>
 <p class="meta">Total override pada periode: {{ override_count }}</p>

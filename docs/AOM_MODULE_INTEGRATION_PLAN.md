@@ -4,7 +4,7 @@ Status: **DRAFT UNTUK PERSETUJUAN — BELUM MENJADI OTORISASI IMPLEMENTASI**
 
 Tanggal: 20 September 2026
 
-Target pengembangan: desktop `E:\Claude\Projects\joderma-operasional`
+Target pengembangan: desktop development workspace Linux/Ubuntu
 
 Target produksi: mini PC Ubuntu, hanya setelah seluruh gate desktop lulus
 
@@ -241,6 +241,27 @@ Field `ActionItem.owner` lama dipertahankan selama masa kompatibilitas dan dimig
 Kalimat, urutan, waktu, bukti foto, input kuantitas, dan kriteria masalah untuk setiap item
 harus direview owner dalam preview template sebelum seed produksi.
 
+### 8.3 Sumber checklist operasional yang disetujui
+
+Enam PDF operasional yang diberikan owner menjadi sumber isi checklist role-specific:
+
+- `Pembagian Tugas.pdf`: matriks `P` (pelaksana) dan `V` (verifikator), termasuk handoff
+  Koordinator Shift, Kasir, Apoteker, Online, dan Perawat/Terapis.
+- `Checklist Koordinator Shift.pdf`: buka shift, verifikasi bersama, tutup shift, dan rekap
+  temuan ke Operation Manager.
+- `Checklist Kasir.pdf`: modal awal, pecahan kembalian, EDC/QRIS/printer, kas akhir,
+  rekonsiliasi, settlement, dan catatan nominal.
+- `Checklist Apoteker.pdf`: stok farmasi, FEFO, cold chain, sterile pouch, emergency kit,
+  hyaluronidase, verifikasi stok ruangan, dan lemari obat.
+- `Checklist Online dan Reservasi.pdf`: kebersihan awal, jadwal dokter, booking, dan serah-terima
+  daftar tindakan ke Perawat.
+- `Checklist Perawat dan Terapis.pdf`: alat/bahan, emergensi, kesiapan tindakan, kebersihan,
+  limbah, penutupan device, serta pengumpulan angka stok ruangan.
+
+Implementasi menyimpan target role jamak pada template, pelaksana/verifikator pada item, dan
+snapshot keduanya pada run/respons. Isi PDF tidak membuat akun produksi otomatis; `seed_demo`
+hanya menghasilkan data sintetis untuk preview dan UAT.
+
 ## 9. Laporan
 
 ### 9.1 Jenis visibilitas
@@ -324,6 +345,9 @@ capability khusus, dan audit event.
 ### Fase 0 — baseline dan perlindungan
 
 - Pastikan repository desktop bersih dan catat commit baseline.
+- Jalankan setup baseline di desktop Linux/Ubuntu:
+  `python3.11 -m venv .venv`, install `requirements-dev.txt`, `collectstatic --noinput`,
+  lalu `pytest`.
 - Jalankan test suite lama dan simpan hasil.
 - Buat database fixture anonim untuk test per role/cabang.
 - Buat backup dan verifikasi restore sebelum migrasi skema.

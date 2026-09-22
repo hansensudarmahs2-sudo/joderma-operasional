@@ -1,0 +1,287 @@
+# Current Progress
+
+Status per 20 September 2026 (Asia/Jakarta). Sumber rencana: `docs/AOM_MODULE_INTEGRATION_PLAN.md`.
+
+## Ringkasan
+
+Integrasi AOM telah melewati baseline/proteksi (Fase 0), organisasi dan akses (Fase 1),
+task dan delegasi (Fase 2), checklist harian (Fase 3), laporan dan masukan (Fase 4), serta
+UI dan usability (Fase 5, implementasi selesai — gate menunggu review/approval manusia).
+Semua pekerjaan dilakukan di desktop Ubuntu/Linux dengan data dummy. Belum ada perubahan ke
+mini PC produksi, commit, push, atau deployment.
+
+## Matriks fase
+
+| Fase | Status | Catatan |
+|---|---|---|
+| 0 — baseline dan perlindungan | Selesai | Baseline dicatat, fixture role/cabang ditambahkan, backup/restore dummy diverifikasi. |
+| 1 — organisasi dan akses | Selesai | Role AOM/PIC, organisasi, fungsi PIC, capability, scope cabang, dan negative tests tersedia. |
+| 2 — task dan delegasi | Selesai | Snapshot penerima, assignment individual/bersama, lifecycle submit/revision/confirm/cancel, histori, dan tests tersedia. |
+| 3 — checklist harian | Implementasi selesai, gate belum disetujui | Sesi opening/closing/anytime, template berversi (histori tidak berubah), target fungsi PIC/role, tindak lanjut idempoten, koreksi wajib beralasan dengan audit `CORRECTION`. |
+| 4 — laporan dan masukan | Implementasi selesai, gate belum disetujui | Model `Laporan`/`Masukan` ditambahkan di app `reports` yang sudah ada. Visibilitas `CABANG`/`RAHASIA_AOM`, status lifecycle, arsip beralasan+capability+audit, publikasi masukan AOM dengan snapshot immutable, dan negative tests kebocoran lintas cabang/rahasia. |
+| 5 — UI dan usability | Implementasi selesai, gate belum disetujui | Dashboard AOM/PIC/Admin ditambahkan (staf tetap seperti semula), aksi task 'Ajukan selesai'/'Konfirmasi selesai'/'Minta revisi'/'Ambil task bersama' sebagai view terpisah dengan proteksi server-side, halaman HTML laporan/masukan dengan filter status eksplisit di atas endpoint JSON Fase 4, PIC kosong menampilkan pesan ramah di view checklist (bukan crash). Menunggu review dan approval product owner sebelum Fase 6. |
+| 6–8 | Belum dimulai | Rehearsal migrasi data AOM, release, observasi, dan cutover belum dikerjakan. |
+
+## Implementasi yang sudah ada
+
+- `Role.PIC` dan `Role.AOM`, `OrganizationAssignment`, `PicFunction`, `PicAssignment`.
+- Capability sensitif untuk laporan rahasia, publikasi masukan, dan pengelolaan user.
+- Pemeriksaan scope cabang pada layanan/views penting serta pembatasan assignee lintas cabang.
+- `TaskAudienceSnapshot`, `TaskAssignment`, `TaskEvent`, mode `INDIVIDUAL`/`BERSAMA`,
+  dan layanan task idempoten.
+- Perintah `preview_aom_seed` yang hanya membaca dan menampilkan rencana seed.
+- Migration `accounts 0004` dan `core 0002`.
+- `checklists.ChecklistSession` (OPENING/CLOSING/ANYTIME), `ChecklistTemplate.session` +
+  versi baru per sesi, `ChecklistTemplate.target_pic_function`/`target_role`/`assignment_mode`.
+- Desain checklist PDF: role `APOTEKER` dan `ONLINE`, `audience_key` per template,
+  `target_roles` jamak, run terpisah per template pada hari yang sama, serta item dengan
+  `performer_roles` dan `verifier_roles` untuk penanda P/V dan handoff antarperan.
+- `seed_demo` kini mengaktifkan 8 template role-specific dari PDF: Koordinator Shift (buka/tutup),
+  Kasir (buka/tutup), Apoteker (buka/tutup), Online & Reservasi, dan Perawat/Terapis.
+- `checklists.services.create_template_version()`: membuat versi baru tanpa memutasi versi
+  lama; `ChecklistRun.template_snapshot` historis tidak berubah setelah edit template.
+- `checklists.ChecklistFollowup`: penanda idempotensi tindak lanjut checklist bermasalah;
+  `create_action_item_from_response()` sekarang memakai `core.task_services.create_task`
+  (ActionItem + TaskAssignment + audience snapshot) dan aman dipanggil ulang (termasuk
+  konkuren) tanpa menggandakan task.
+- `audit.AuditAction.CORRECTION` ditambahkan; `checklists.services.record_response()`
+  mewajibkan `reason` saat mengoreksi hasil yang sudah pernah dicek (result != BELUM) dan
+  mencatat event `CORRECTION` terpisah dari `UPDATE` biasa.
+- Migration `audit 0002` dan `checklists 0002`.
+- `audit.AuditAction.PUBLISH` dan `audit.AuditAction.ARCHIVE` ditambahkan (Fase 4, mengikuti
+  precedent `CORRECTION` — additive only). Migration `audit 0003`.
+- `reports.Laporan`/`reports.LaporanUpdate`: laporan `CABANG` (satu cabang) dan `RAHASIA_AOM`
+  (pelapor + AOM), status `OPEN`/`UNDER_REVIEW`/`RESOLVED`/`CLOSED`/`ARCHIVED`, arsip soft-delete
+  wajib alasan + capability + audit `ARCHIVE`.
+- `reports.Masukan`/`reports.MasukanPublication`: masukan privat (pengirim + AOM), publikasi AOM
+  ke cabang dengan snapshot isi immutable (`title_snapshot`/`description_snapshot`/`source_version`)
+  agar edit setelah publikasi tidak mengubah histori yang sudah terbit — pola sama dengan
+  `checklists.services.create_template_version()`/`TaskAudienceSnapshot`.
+- `core/permissions.py`: `can_view_laporan`, `can_create_laporan`, `can_archive_laporan`,
+  `can_view_masukan`, `can_publish_masukan`, `can_view_published_masukan`, `can_archive_masukan`
+  ditambahkan mengikuti pola `can_view_restricted_issue` yang sudah ada untuk app `issues`.
+- `reports/services.py` (baru): `create_laporan`, `visible_laporan_queryset`,
+  `change_laporan_status`, `archive_laporan`, `log_confidential_access`, `create_masukan`,
+  `visible_masukan_queryset`, `publish_masukan`, `archive_masukan` — semua otorisasi
+  server-side, tidak ada queryset tak terbatas yang dikirim ke view.
+- `reports/views.py`, `reports/urls.py`, `reports/admin.py`: endpoint JSON (Fase 4) untuk
+  create/list/detail/status/archive laporan dan create/list/detail/publish/archive masukan;
+  direct-URL access diperiksa server-side. Fase 5 menambah halaman HTML di atas layanan yang
+  sama (lihat bagian Fase 5 di bawah).
+- Migration `reports/migrations/0001_initial.py` (app `reports` sudah ada sebelumnya untuk
+  laporan operasional/ekspor CSV — Fase 4 menambah model baru di app yang sama).
+- `reports/tests/` (paket): `test_laporan.py` (19 test: create/status/archive/queryset),
+  `test_masukan.py` (13 test: create/publish/snapshot immutability/archive/negative HTTP),
+  `test_confidentiality.py` (7 test: gate kebocoran RAHASIA_AOM lewat direct URL/list, lintas
+  cabang, lintas visibility CABANG), `test_report_pages.py` (Fase 5, 9 test: halaman HTML
+  laporan/masukan, filter status, direct-URL access negatif).
+- Dokumentasi peran, arsitektur, README, dan rencana integrasi telah diperbarui.
+
+### Fase 5 — UI dan usability (baru)
+
+- `core/task_services.py`: `_can_review_task` diganti nama publik `can_review_assignment`
+  (alias lama dipertahankan) agar dapat dipakai view layer untuk menentukan siapa yang boleh
+  melihat tombol konfirmasi/revisi tanpa mengulang logika otorisasi.
+- `core/views.py`: `action_items` sekarang menyusun `rows` per action item berisi
+  `my_assignment`, `can_claim`, `can_submit`, `review_assignments` (assignment berstatus
+  SUBMITTED yang boleh direview user ini). View baru `assignment_claim`, `assignment_submit`,
+  `assignment_confirm`, `assignment_revision`, `assignment_cancel` — masing-masing memanggil
+  fungsi `core.task_services` yang sudah ada (claim_shared_task/submit_assignment/
+  confirm_assignment/request_revision/cancel_assignment); `PermissionDenied` dari service
+  TIDAK ditangkap di view sehingga tetap menjadi 403 asli (bukan pesan flash yang
+  menyembunyikan penolakan). `dashboard` view menambah context per role: `is_aom`/`is_pic`/
+  `is_admin` plus data role-spesifik (lihat di bawah).
+- `core/urls.py`: lima route baru `assignment/<pk>/ambil|ajukan|konfirmasi|revisi|batal/`.
+- `templates/core/action_items.html`: tombol `Ajukan selesai` (penerima) dan
+  `Konfirmasi selesai`/`Minta revisi` (reviewer) adalah form terpisah dengan label berbeda,
+  tidak pernah tombol yang sama dipakai ulang untuk aksi berbeda.
+- `templates/core/dashboard.html`: tiga section baru — "Ringkasan AOM" (assignment SUBMITTED
+  lintas cabang menunggu konfirmasi AOM + shortcut ke laporan rahasia/masukan menunggu),
+  "Ringkasan PIC" (assignment SUBMITTED dari task yang dibuat PIC ybs. + fungsi PIC aktif +
+  jumlah template checklist yang menargetkan fungsi tsb.), "Ringkasan Admin" (shortcut kelola
+  user/template). Section hanya tampil sesuai predikat role; staf biasa tidak melihat section
+  tambahan apa pun (dashboard tetap seperti Fase 0-4).
+- `reports/views.py`, `reports/urls.py`: empat view HTML baru — `laporan_page` (list + filter
+  status via `<select>`, form buat laporan), `laporan_page_detail` (detail + ubah status/arsip,
+  akses diperiksa lewat `can_view_laporan` yang sama dengan endpoint JSON), `masukan_page`
+  (list + filter aktif/diarsipkan, form buat masukan), `masukan_page_detail` (detail +
+  publikasi AOM + arsip). Semua dibangun di atas `visible_laporan_queryset`/
+  `visible_masukan_queryset`/`create_laporan`/`archive_laporan`/dst. yang sudah ada dari
+  Fase 4 — tidak ada query baru yang melewati service layer.
+- `templates/reports/laporan_list.html`, `laporan_detail.html`, `masukan_list.html`,
+  `masukan_detail.html` (baru): filter status eksplisit (`<select>` mengikuti pola
+  `templates/issues/list.html`/`templates/core/action_items.html`), status ARCHIVED/CLOSED
+  tetap terlihat lewat filter bukan disembunyikan permanen.
+- `templates/checklists/templates.html`: menampilkan sesi, mode assignment, dan target
+  (fungsi PIC/role) template secara eksplisit — sebelumnya field-field ini (Fase 3) tidak
+  punya representasi UI sama sekali.
+- `templates/base.html`: dua link nav baru "Laporan Saya" dan "Masukan Saya" menuju halaman
+  HTML Fase 5 (endpoint JSON Fase 4 tetap ada, tidak dihapus/diubah).
+- PIC/fungsi kosong: `checklists.services.resolve_followup_audience` dan
+  `core.task_services.resolve_task_recipients` SUDAH melempar `ValidationError` pesan jelas
+  sejak Fase 1–3; Fase 5 membuktikan lewat test bahwa VIEW (`checklists:make_action`) yang
+  memicu jalur tersebut menampilkan pesan itu lewat Django messages (redirect + flash),
+  bukan HTTP 500 — lihat `checklists/tests/test_empty_pic_ui.py`.
+- Test baru: `core/tests/test_task_actions_ui.py` (7 test — submit/confirm/revision via view,
+  direct URL negatif, label tombol tidak tertukar), `core/tests/test_dashboard_roles.py`
+  (5 test — dashboard per role + negative unauthenticated), `reports/tests/test_report_pages.py`
+  (9 test — halaman HTML laporan/masukan, filter, direct-URL negatif),
+  `checklists/tests/test_empty_pic_ui.py` (1 test — pesan ramah PIC kosong di view).
+- Tidak ada model/migration baru untuk Fase 5 (`makemigrations --check --dry-run` tetap
+  "No changes detected" sebelum dan sesudah).
+
+## Bukti verifikasi
+
+Lingkungan test aktif menggunakan `.venv` dengan Python 3.11.16. Python 3.14 tersedia di
+mesin, tetapi lingkungan proyek yang terbukti stabil untuk suite saat ini adalah `.venv`.
+
+Perintah terakhir yang lulus (setelah Fase 5):
+
+```text
+.venv/bin/python manage.py check                              # System check: 0 issues
+.venv/bin/python -m pytest -q --tb=short                      # 333 passed
+.venv/bin/python manage.py makemigrations --check --dry-run   # No changes detected
+git diff --check                                              # tidak ada whitespace error
+```
+
+Diverifikasi ulang pada 20 September 2026 setelah desain checklist PDF diterapkan. Rincian jumlah
+test per file (`pytest --collect-only -q`,
+hanya berkas AOM Fase 3–5 dan modul terdekat; sisanya adalah suite Fase 0–2 dan modul klinik lama):
+
+| Berkas test | Jumlah |
+|---|---:|
+| `checklists/tests/test_correction_audit.py` | 5 |
+| `checklists/tests/test_cross_clinic_access.py` | 4 |
+| `checklists/tests/test_pdf_seed.py` | 3 |
+| `checklists/tests/test_empty_pic_ui.py` | 1 |
+| `checklists/tests/test_followup_idempotency.py` | 6 |
+| `checklists/tests/test_opening.py` | 9 |
+| `checklists/tests/test_template_sessions.py` | 7 |
+| `core/tests/test_concurrency_and_privacy.py` | 11 |
+| `core/tests/test_dashboard_roles.py` | 5 |
+| `core/tests/test_day_state.py` | 9 |
+| `core/tests/test_documentation.py` | 73 |
+| `core/tests/test_pilot_readiness.py` | 15 |
+| `core/tests/test_task_actions_ui.py` | 7 |
+| `core/tests/test_task_delegation.py` | 10 |
+| `issues/tests.py` | 16 |
+| `nurses/tests.py` | 12 |
+| `queueing/tests.py` | 13 |
+| `reports/tests/test_confidentiality.py` | 7 |
+| `reports/tests/test_laporan.py` | 19 |
+| `reports/tests/test_masukan.py` | 15 |
+| `reports/tests/test_report_pages.py` | 9 |
+
+Fase 5 sebelumnya tidak menyertakan migration rehearsal karena hanya UI-layer. Desain checklist
+PDF menambah migration accounts/checklists; migration rehearsal SQLite baru di `/tmp` sudah
+berhasil sampai migration terbaru.
+
+**Batasan pengujian Fase 5 yang jujur dilaporkan:** repository ini tidak memiliki
+infrastruktur browser/Selenium/Playwright. "UI test" berarti Django test Client (`self.client`)
+terhadap view dan rendering template — bukan browser sungguhan. Karena itu viewport mobile,
+navigasi keyboard, dan kondisi koneksi lambat (disebut di plan section 14) TIDAK dapat
+dibuktikan dengan test otomatis di suite ini dan tetap menjadi item QA manual. Yang otomatis
+dibuktikan: dashboard per role, label tombol yang tidak tertukar, filter status data
+selesai/arsip, dan direct-URL access 403 untuk pihak tak berwenang.
+
+## Working tree
+
+Perubahan Fase 0–5 masih berada di working tree dan belum di-commit. Berkas baru/berubah
+utama untuk Fase 3:
+
+- `checklists/models.py`: `ChecklistSession`, field sesi pada `ChecklistTemplate`/`ChecklistRun`,
+  field target fungsi PIC/role/assignment_mode pada template, model `ChecklistFollowup`.
+- `checklists/services.py`: `create_template_version()`, `resolve_followup_audience()`,
+  `record_response()` dengan parameter `reason` untuk koreksi, `create_action_item_from_response()`
+  idempoten via `core.task_services.create_task`.
+- `checklists/views.py`: `save_response` meneruskan `alasan` dari POST ke `record_response`.
+- `checklists/admin.py`: menampilkan kolom sesi, registrasi `ChecklistFollowup`.
+- `audit/models.py`: tambahan `AuditAction.CORRECTION`.
+- `checklists/migrations/0002_aom_fase3_checklist.py`, `audit/migrations/0002_aom_fase3_checklist.py`.
+- `accounts/migrations/0005_alter_userrole_role.py` dan
+  `checklists/migrations/0003_remove_checklistrun_uniq_run_day_area_session_and_more.py`.
+- `checklists/tests/` (paket baru, `checklists/tests.py` lama dipindah menjadi
+  `checklists/tests/test_opening.py` tanpa perubahan isi):
+  - `test_template_sessions.py`
+  - `test_followup_idempotency.py`
+  - `test_correction_audit.py`
+
+Berkas sisa Fase 0–2 (lihat riwayat sebelumnya) tidak diubah lebih lanjut.
+
+Berkas baru/berubah utama untuk Fase 4 (laporan dan masukan):
+
+- `reports/models.py`: `Laporan`, `LaporanUpdate`, `Masukan`, `MasukanPublication` ditambahkan
+  ke app `reports` yang sudah ada (sebelumnya hanya laporan operasional/ekspor CSV).
+- `reports/services.py` (baru): logika visibilitas, status, publikasi, dan arsip — semua
+  otorisasi server-side.
+- `reports/views.py`, `reports/urls.py`, `reports/admin.py`: endpoint JSON untuk laporan dan
+  masukan ditambahkan di akhir file (fungsi `index`/`export_csv` yang sudah ada sebelumnya
+  tidak diubah oleh Fase 4; `active_clinic(request.user)` sudah menjadi perbaikan pra-existing
+  di working tree sebelum Fase 4 dimulai).
+- `core/permissions.py`: tujuh fungsi predikat baru untuk laporan/masukan (lihat di atas).
+- `audit/models.py`: `AuditAction.PUBLISH`, `AuditAction.ARCHIVE` (additive, precedent `CORRECTION`).
+- `reports/migrations/0001_initial.py`, `audit/migrations/0003_alter_auditevent_action.py`.
+- `reports/tests/` (paket baru): `test_laporan.py`, `test_masukan.py`, `test_confidentiality.py`.
+
+Berkas baru/berubah utama untuk Fase 5 (UI dan usability) — daftar lengkap dengan deskripsi
+satu baris ada di bagian "Implementasi yang sudah ada → Fase 5" di atas; ringkasan file:
+
+- Diubah: `core/task_services.py`, `core/views.py`, `core/urls.py`,
+  `templates/core/action_items.html`, `templates/core/dashboard.html`,
+  `templates/checklists/templates.html`, `templates/base.html`, `reports/views.py`,
+  `reports/urls.py`, `README.md` (angka jumlah test).
+- Baru: `core/tests/test_task_actions_ui.py`, `core/tests/test_dashboard_roles.py`,
+  `reports/tests/test_report_pages.py`, `checklists/tests/test_empty_pic_ui.py`,
+  `templates/reports/laporan_list.html`, `templates/reports/laporan_detail.html`,
+  `templates/reports/masukan_list.html`, `templates/reports/masukan_detail.html`.
+- Baru: `checklists/tests/test_pdf_seed.py` untuk memastikan template dan snapshot role dari
+  sumber PDF dibuat idempoten.
+- Tidak ada file model/migration yang ditambah atau diubah.
+
+Sebelum commit, tinjau seluruh `git diff`, cek migration, ulangi test, dan pastikan tidak ada
+secret, database, backup, media privat, atau data pasien yang ikut ter-stage.
+
+## Remediation audit keamanan
+
+- `checklists/views.py` sekarang memvalidasi scope cabang untuk detail run, simpan respons,
+  pembuatan kerusakan, pembuatan task, dan review checklist melalui direct URL.
+- `checklists/services.py` mengulang pemeriksaan role dan scope cabang agar service tidak dapat
+  dipanggil lintas cabang dari jalur non-HTTP.
+- `reports/services.py` membatasi publisher berbasis capability ke cabang aktif dalam scope-nya
+  dan menolak target cabang tidak aktif.
+- Test baru: `checklists/tests/test_cross_clinic_access.py` dan dua test validasi target di
+  `reports/tests/test_masukan.py`.
+
+## Langkah berikutnya yang disetujui rencana
+
+Fase 5 (UI dan usability) sudah diimplementasikan dan lulus test desktop. Belum lanjut ke
+Fase 6. Yang masih perlu sebelum lanjut:
+
+1. Review manusia atas diff dan bukti pengujian Fase 5 (dan Fase 4 bila belum ditinjau).
+2. Approval product owner untuk melanjutkan ke Fase 6 (migration rehearsal data AOM).
+3. Deferral eksplisit dari scope Fase 4 (masih berlaku, belum dikerjakan di Fase 5):
+   - Attachment/lampiran untuk laporan dan masukan belum diimplementasikan (plan 9/11
+     menyebut lampiran aman sebagai bagian Fase 4, tetapi deferred agar tidak memperluas
+     scope melebihi apa yang bisa dibuktikan dengan test dalam waktu yang tersedia).
+   - Pencarian teks bebas dan counter/dashboard laporan-masukan belum dibuat secara khusus
+     (dashboard Fase 5 menampilkan counter sederhana untuk AOM saja, berbasis
+     `visible_laporan_queryset`/`visible_masukan_queryset`; pencarian teks bebas belum ada).
+   - Notifikasi publikasi masukan mengirim ke semua staf aktif cabang tujuan tanpa dedupe
+     lintas-publikasi berulang di luar jendela 10 menit `notify_user`; cukup untuk MVP,
+     belum diuji untuk volume besar.
+4. Deferral eksplisit dari scope Fase 5:
+   - Mobile viewport, navigasi keyboard, dan simulasi koneksi lambat (plan section 14)
+     TIDAK dapat dibuktikan dengan Django test Client — tetap manual QA, belum dilakukan.
+   - Checklist template session/target belum punya form buat/edit lewat UI (tetap lewat
+     Django admin seperti sebelumnya) — Fase 5 hanya menambah tampilan baca yang menjelaskan
+     field tsb., bukan form create/update; ini konsisten dengan batas eksplisit Fase 3.
+   - Action item "Batal" (`assignment_cancel`) sudah punya view+URL tapi belum punya tombol
+     di `templates/core/action_items.html` (cakupan test hanya di level view langsung);
+     dapat ditambahkan di iterasi UI berikutnya bila product owner memintanya.
+
+## Approval yang masih diperlukan
+
+- Review bukti dan persetujuan untuk melanjutkan dari Fase 5 ke Fase 6.
+- Persetujuan owner atas identitas/penugasan PIC sebelum seed atau import akun nyata.
+- Persetujuan terpisah sebelum commit/push rilis, migration rehearsal data AOM, deployment,
+  atau penghentian AOM standalone.

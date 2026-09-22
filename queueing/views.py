@@ -24,7 +24,7 @@ from .services import (
 
 @login_required
 def board(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     day, _ = get_or_create_day(clinic, user=request.user)
     entries = QueueEntry.objects.filter(operational_day=day)
 
@@ -55,7 +55,7 @@ def board(request):
 @login_required
 def public_board(request):
     """Layar bersama: inisial/alias, tanpa detail pembayaran (PRD 8.4, 15.2)."""
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     day, _ = get_or_create_day(clinic, user=request.user)
     entries = QueueEntry.objects.filter(operational_day=day).exclude(
         queue_status__in=[QueueStatus.BATAL, QueueStatus.SELESAI]
@@ -66,7 +66,7 @@ def public_board(request):
 @login_required
 @require(can_manage_queue)
 def create(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     day, _ = get_or_create_day(clinic, user=request.user)
     if request.method == "POST":
         try:

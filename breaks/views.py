@@ -27,7 +27,7 @@ def _parse_dt(date_value, time_str: str):
 
 @login_required
 def list_view(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     date_value = parse_date(request.GET.get("tanggal") or "") or local_today()
     schedules = (
         BreakSchedule.objects.filter(clinic=clinic, date=date_value)
@@ -52,7 +52,7 @@ def list_view(request):
 @login_required
 @require(can_manage_breaks)
 def create(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     users = User.objects.filter(is_active=True).order_by("username")
     if request.method == "POST":
         try:

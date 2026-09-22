@@ -107,7 +107,7 @@ basis data, keputusan ini perlu ditinjau ulang.
 
 ## Test
 
-198 test dijalankan dengan `pytest`. Yang paling penting bukan jumlahnya,
+333 test dijalankan dengan `pytest`. Yang paling penting bukan jumlahnya,
 melainkan bahwa setiap bug yang pernah ditemukan meninggalkan satu test yang
 akan gagal bila bug itu kembali. Bila memperbaiki bug, tambahkan test yang gagal
 sebelum perbaikan.

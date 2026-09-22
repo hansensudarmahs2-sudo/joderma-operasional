@@ -18,14 +18,19 @@ kapabilitas.
 **Dua sumbu yang terpisah.** Peran menentukan pekerjaan; kapabilitas menentukan
 akses ke data sensitif. Seseorang dapat memegang beberapa peran sekaligus.
 
-## Enam peran
+## Sebelas peran
 
 | Peran | Untuk siapa | Kewenangan utama |
 |---|---|---|
 | `STAF` | staf operasional umum | mengisi checklist, membuat komplain/masukan/kerusakan |
-| `FRONT_DESK` | front desk dan kasir | kas, antrean, status pembayaran |
-| `PERAWAT` | perawat | checklist ruang, tindakan yang ditugaskan |
-| `SUPERVISOR` | supervisor operasional | review, verifikasi, override beralasan, roster, jadwal istirahat, triase, penutupan hari, audit |
+| `FRONT_DESK` | koordinator kasir | kas dan rekonsiliasi transaksi |
+| `PERAWAT` | perawat | checklist ruang dan tally jumlah tindakan |
+| `APOTEKER` | apoteker | stok farmasi, cold chain, obat emergensi, verifikasi stok ruangan |
+| `ASISTEN_APOTEKER` | asisten apoteker | menerima dan memproses order produk online bersama apoteker |
+| `ONLINE` | koordinator online dan reservasi | kebersihan awal, jadwal dokter, booking, order produk, serah-terima tindakan |
+| `SUPERVISOR` | koordinator shift | review, verifikasi, override beralasan, roster, jadwal istirahat, triase, penutupan hari, audit |
+| `PIC` | PIC fungsi di cabang | delegasi dan tindak lanjut operasional dalam cabangnya |
+| `AOM` | Area Operational Manager | koordinasi lintas cabang, laporan rahasia sesuai scope, dan publikasi masukan |
 | `ADMIN` | pengelola sistem | pengguna, peran, konfigurasi, template |
 | `OWNER` | pemilik dan manajemen | laporan dan audit, hanya baca |
 
@@ -34,7 +39,12 @@ berbeda: admin mengurus sistem, supervisor mengurus operasional. Admin tanpa
 kapabilitas tambahan tidak dapat membuka halaman kas, dan supervisor tidak dapat
 membuka halaman pengguna.
 
-## Tujuh kapabilitas
+`AOM` dan `PIC` adalah role akses yang dapat diberikan atau dicabut. Keduanya
+tidak boleh diikat ke nama orang tertentu di kode. Jabatan organisasi formal
+disimpan terpisah dari role akses; fungsi PIC juga selalu bercabang dan memiliki
+periode aktif.
+
+## Sepuluh kapabilitas
 
 Kapabilitas diberikan per orang lewat **Admin ▸ Pengguna ▸ pilih akun**, terlepas
 dari perannya. Setiap pemberian tercatat di audit log sebagai `PERMISSION_CHANGED`.
@@ -45,6 +55,9 @@ dari perannya. Setiap pemberian tercatat di audit log sebagai `PERMISSION_CHANGE
 | `cash.approve` | memverifikasi dan mengoreksi kas |
 | `patient.view_detail` | melihat nama lengkap pasien, bukan inisial |
 | `issue.view_restricted` | membuka komplain bertanda terbatas |
+| `report.view_confidential` | membuka laporan rahasia dalam scope cabang yang diizinkan |
+| `suggestion.publish` | memublikasikan masukan ke cabang setelah review |
+| `user.manage` | mengelola pengguna tanpa menjadikan akun tersebut admin teknis |
 | `audit.view` | membaca audit log |
 | `report.export` | mengunduh laporan CSV |
 | `admin.full_access` | seluruh data bisnis sekaligus (lihat bagian berikut) |
@@ -89,14 +102,35 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Menyusun roster perawat | supervisor | `admin.full_access` |
 | Mengatur jadwal istirahat | supervisor | `admin.full_access` |
 | Review checklist pembukaan | supervisor | — |
-| Menugaskan penanggung jawab catatan | supervisor | — |
-| Membuka komplain terbatas | supervisor, owner | `issue.view_restricted`, `admin.full_access` |
+| Menugaskan penanggung jawab catatan | supervisor, PIC, AOM | — |
+| Membuka komplain terbatas | supervisor, AOM, owner | `issue.view_restricted`, `report.view_confidential`, `admin.full_access` |
 | Menutup hari operasional | supervisor | — |
-| Membaca audit log | supervisor, owner | `audit.view`, `admin.full_access` |
-| Mengekspor laporan | supervisor, owner | `report.export`, `admin.full_access` |
-| Mengelola pengguna | admin, superuser bootstrap | — |
+| Membaca audit log | supervisor, AOM, owner | `audit.view`, `admin.full_access` |
+| Mengekspor laporan | supervisor, AOM, owner | `report.export`, `admin.full_access` |
+| Mengelola pengguna | admin, superuser bootstrap | `user.manage`, `admin.full_access` |
 | Mengubah konfigurasi | admin, superuser bootstrap | — |
 | Mengelola template checklist | admin, supervisor, superuser bootstrap | — |
+
+## Scope cabang
+
+Pengguna biasa hanya melihat cabang tempat ia punya `UserRole`. `AOM` dan
+`OWNER` dapat membaca lintas cabang sesuai kebutuhan koordinasi dan pengawasan.
+URL langsung tetap diperiksa server-side: objek issue, action item, lampiran,
+dan aset dari cabang lain harus menghasilkan 403 untuk pengguna tanpa scope.
+
+## Task dan delegasi
+
+Task memakai `ActionItem` sebagai inti lama, lalu penerima barunya disimpan di
+`TaskAssignment`. `ActionItem.owner` tetap ada untuk kompatibilitas task lama.
+
+Pemberi tugas dapat mengirim task ke satu user, beberapa user, fungsi PIC, role
+dalam cabang, atau seluruh staf cabang. Daftar penerima disimpan sebagai
+snapshot saat dikirim, sehingga perubahan role/PIC setelahnya tidak mengubah
+histori task tersebut.
+
+Penerima hanya dapat mengajukan selesai. Konfirmasi final dilakukan pemberi
+tugas, AOM berwenang, atau PIC pemberi tugas sesuai scope; penerima task tidak
+dapat mengonfirmasi pekerjaannya sendiri.
 
 ## Dual-control kas
 

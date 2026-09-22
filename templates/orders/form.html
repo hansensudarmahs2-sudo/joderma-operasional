@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Buat order produk{% endblock %}
+{% block content %}
+<h1>Buat order produk online</h1>
+<p class="sub">Isi data pelanggan dan produk. Order otomatis masuk ke daftar Apoteker/Asisten Apoteker.</p>
+<form method="post" class="card">{% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form.visible_fields %}
+    {% if field.name != 'product' and field.name != 'product_name' and field.name != 'quantity' %}
+      <p>{{ field.label_tag }}{{ field }}{% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}{% for error in field.errors %}<span class="msg error">{{ error }}</span>{% endfor %}</p>
+    {% endif %}
+  {% endfor %}
+  <fieldset class="card">
+    <legend>Produk</legend>
+    <label for="id_product_search">Cari produk katalog</label>
+    <input id="id_product_search" type="search" placeholder="Ketik nama, golongan, atau kandungan…" autocomplete="off">
+    <p class="help">Ketik untuk menyaring daftar, lalu pilih produk pada dropdown.</p>
+    <p>{{ form.product.label_tag }}{{ form.product }}{% for error in form.product.errors %}<span class="msg error">{{ error }}</span>{% endfor %}</p>
+    <p>{{ form.product_name.label_tag }}{{ form.product_name }}{% if form.product_name.help_text %}<span class="help">{{ form.product_name.help_text }}</span>{% endif %}{% for error in form.product_name.errors %}<span class="msg error">{{ error }}</span>{% endfor %}</p>
+    <p>{{ form.quantity.label_tag }}{{ form.quantity }}{% for error in form.quantity.errors %}<span class="msg error">{{ error }}</span>{% endfor %}</p>
+    <button class="btn" type="submit">Tambah ke draft</button>
+  </fieldset>
+  <a class="btn secondary" href="{% url 'orders:index' %}">Batal</a>
+</form>
+<script>
+(function () {
+  const search = document.getElementById('id_product_search');
+  const select = document.getElementById('id_product');
+  if (!search || !select) return;
+  const options = Array.from(select.options);
+  search.addEventListener('input', function () {
+    const query = search.value.trim().toLowerCase();
+    options.forEach(function (option) {
+      if (!option.value) { option.hidden = false; return; }
+      option.hidden = query && !option.text.toLowerCase().includes(query);
+    });
+    const visible = options.filter(function (option) { return option.value && !option.hidden; });
+    if (visible.length === 1) select.value = visible[0].value;
+  });
+})();
+</script>
+{% endblock %}

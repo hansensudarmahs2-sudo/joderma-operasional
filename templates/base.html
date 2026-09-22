@@ -24,15 +24,21 @@
 </header>
 <nav class="main">
   <a href="{% url 'core:dashboard' %}">Hari Ini</a>
-  <a href="{% url 'checklists:index' %}">Pembukaan</a>
+  <a href="{% url 'checklists:index' %}">Checklist Saya</a>
   {% if nav_can_cash %}<a href="{% url 'cash:index' %}">Kas</a>{% endif %}
-  <a href="{% url 'queueing:board' %}">Antrean</a>
-  <a href="{% url 'nurses:board' %}">Giliran Perawat</a>
-  <a href="{% url 'breaks:list' %}">Jadwal Istirahat</a>
-  <a href="{% url 'issues:list' %}?tipe=KOMPLAIN">Komplain</a>
-  <a href="{% url 'issues:list' %}?tipe=MASUKAN">Masukan</a>
-  <a href="{% url 'issues:list' %}?tipe=KERUSAKAN">Kerusakan</a>
-  <a href="{% url 'reports:index' %}">Laporan</a>
+  {% if nav_can_orders %}<a href="{% url 'orders:index' %}">Order Produk Online</a>{% endif %}
+  {% if nav_can_roster %}<a href="{% url 'nurses:board' %}">Giliran Perawat</a>{% endif %}
+  {% if nav_can_breaks %}<a href="{% url 'breaks:list' %}">Jadwal Istirahat</a>{% endif %}
+  {% if nav_can_issues %}
+    <a href="{% url 'issues:list' %}?tipe=KOMPLAIN">Komplain</a>
+    <a href="{% url 'issues:list' %}?tipe=MASUKAN">Masukan</a>
+    <a href="{% url 'issues:list' %}?tipe=KERUSAKAN">Kerusakan</a>
+  {% endif %}
+  {% if nav_can_reports %}
+    <a href="{% url 'reports:index' %}">Laporan Operasional</a>
+    <a href="{% url 'reports:laporan_page' %}">Laporan Saya</a>
+    <a href="{% url 'reports:masukan_page' %}">Masukan Saya</a>
+  {% endif %}
   {% if nav_can_audit %}<a href="{% url 'audit:log' %}">Audit</a>{% endif %}
   {% if nav_can_admin %}<a href="{% url 'accounts:user_list' %}">Admin</a>{% endif %}
 </nav>
@@ -46,6 +52,26 @@
   {% block content %}{% endblock %}
 </main>
 <script>
+document.querySelectorAll('input[type="password"]').forEach(function (input) {
+  if (input.dataset.passwordToggleReady) return;
+  input.dataset.passwordToggleReady = '1';
+  var wrapper = document.createElement('span');
+  wrapper.className = 'password-field';
+  input.parentNode.insertBefore(wrapper, input);
+  wrapper.appendChild(input);
+  var button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'password-toggle';
+  button.setAttribute('aria-label', 'Tampilkan kata sandi');
+  button.textContent = 'Lihat';
+  button.addEventListener('click', function () {
+    var visible = input.type === 'text';
+    input.type = visible ? 'password' : 'text';
+    button.textContent = visible ? 'Lihat' : 'Sembunyikan';
+    button.setAttribute('aria-label', visible ? 'Tampilkan kata sandi' : 'Sembunyikan kata sandi');
+  });
+  wrapper.appendChild(button);
+});
 document.addEventListener('submit', function (e) {
   var form = e.target;
   if (form.dataset.noGuard) return;

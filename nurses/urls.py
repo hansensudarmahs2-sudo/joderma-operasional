@@ -6,6 +6,7 @@ app_name = "nurses"
 
 urlpatterns = [
     path("", views.board, name="board"),
+    path("tally/", views.create_tally, name="tally_create"),
     path("roster/", views.roster_form, name="roster"),
     path("tindakan/", views.assign, name="assign"),
     path("tindakan/<int:pk>/mulai/", views.start, name="start"),

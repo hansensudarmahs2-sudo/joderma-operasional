@@ -12,10 +12,17 @@
   {% for u in users %}
     <tr>
       <td data-label="Pengguna"><strong>{{ u }}</strong><div class="meta">{{ u.username }} · {{ u.job_title }}</div></td>
-      <td data-label="Peran">{% for r in u.user_roles.all %}<span class="tag info">{{ r.get_role_display }}</span> {% empty %}<span class="meta">—</span>{% endfor %}</td>
+      <td data-label="Peran">{% for r in u.user_roles.all %}<span class="tag info">{{ r.get_role_display }} · {{ r.clinic.code }}</span> {% empty %}<span class="meta">—</span>{% endfor %}</td>
       <td data-label="Kapabilitas">{% for c in u.extra_capabilities.all %}<span class="tag muted">{{ c.get_capability_display }}</span> {% empty %}<span class="meta">—</span>{% endfor %}</td>
       <td data-label="Status">{% if u.is_active %}<span class="tag ok">Aktif</span>{% else %}<span class="tag err">Nonaktif</span>{% endif %}</td>
-      <td data-label=""><a class="btn small secondary" href="{% url 'accounts:user_detail' u.pk %}">Ubah</a></td>
+      <td data-label="">
+        <a class="btn small secondary" href="{% url 'accounts:user_detail' u.pk %}">Role / ubah</a>
+        <form method="post" action="{% url 'accounts:user_toggle_active' u.pk %}" style="display:inline" data-no-guard>
+          {% csrf_token %}
+          {% if u.is_active %}<button class="btn small danger" type="submit" onclick="return confirm('Nonaktifkan user {{ u.username }}?')">Nonaktifkan</button>
+          {% else %}<button class="btn small" type="submit">Aktifkan</button>{% endif %}
+        </form>
+      </td>
     </tr>
   {% endfor %}
   </tbody>

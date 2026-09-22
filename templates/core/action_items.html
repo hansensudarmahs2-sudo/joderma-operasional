@@ -10,24 +10,57 @@
   <button class="btn" type="submit">Terapkan</button>
 </form>
 <table class="responsive">
-  <thead><tr><th>Judul</th><th>Owner</th><th>Prioritas</th><th>Target</th><th>Status</th><th></th></tr></thead>
+  <thead><tr><th>Judul</th><th>Owner</th><th>Prioritas</th><th>Target</th><th>Status</th><th>Tindakan</th></tr></thead>
   <tbody>
-  {% for item in items %}
+  {% for row in rows %}
+    {% with item=row.item %}
     <tr>
       <td data-label="Judul"><strong>{{ item.title }}</strong><div class="meta">{{ item.source_label|default:item.source_type }}</div></td>
       <td data-label="Owner">{{ item.owner|default:"—" }}</td>
       <td data-label="Prioritas">{{ item.get_priority_display }}</td>
       <td data-label="Target">{{ item.due_at|default:"—" }}{% if item.is_overdue %} <span class="tag err">Lewat</span>{% endif %}</td>
-      <td data-label="Status">{{ item.get_status_display }}</td>
-      <td data-label="">
-        <form method="post" action="{% url 'core:action_item_update' item.pk %}">
+      <td data-label="Status">{{ item.get_status_display }}
+        {% if row.my_assignment %}<div class="meta">Assignment Anda: {{ row.my_assignment.get_status_display }}</div>{% endif %}</td>
+      <td data-label="Tindakan">
+        <form method="post" action="{% url 'core:action_item_update' item.pk %}" class="inline">
           {% csrf_token %}
           <select name="status">{% for value, label in statuses %}<option value="{{ value }}" {% if item.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
           <input name="catatan" placeholder="Catatan progres" value="{{ item.progress_note }}">
           <button class="btn small" type="submit">Simpan</button>
         </form>
+
+        {% if row.can_claim %}
+        <form method="post" action="{% url 'core:assignment_claim' row.my_assignment.pk %}" style="margin-top:.3rem">
+          {% csrf_token %}
+          <button class="btn small secondary" type="submit">Ambil task bersama</button>
+        </form>
+        {% endif %}
+
+        {% if row.can_submit %}
+        <form method="post" action="{% url 'core:assignment_submit' row.my_assignment.pk %}" style="margin-top:.3rem">
+          {% csrf_token %}
+          <input name="catatan" placeholder="Catatan (opsional)">
+          <button class="btn small" type="submit">Ajukan selesai</button>
+        </form>
+        {% endif %}
+
+        {% for assignment in row.review_assignments %}
+        <div class="card" style="margin-top:.4rem">
+          <p class="meta">Diajukan selesai oleh {{ assignment.assignee }}</p>
+          <form method="post" action="{% url 'core:assignment_confirm' assignment.pk %}" class="inline">
+            {% csrf_token %}
+            <button class="btn small" type="submit">Konfirmasi selesai</button>
+          </form>
+          <form method="post" action="{% url 'core:assignment_revision' assignment.pk %}" class="inline">
+            {% csrf_token %}
+            <input name="catatan" placeholder="Catatan revisi (wajib)" required>
+            <button class="btn small secondary" type="submit">Minta revisi</button>
+          </form>
+        </div>
+        {% endfor %}
       </td>
     </tr>
+    {% endwith %}
   {% empty %}<tr><td colspan="6" class="meta">Tidak ada action item.</td></tr>{% endfor %}
   </tbody>
 </table>

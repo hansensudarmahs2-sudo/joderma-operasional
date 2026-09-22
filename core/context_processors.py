@@ -9,8 +9,14 @@ from .permissions import (
     can_manage_users,
     can_view_audit,
     can_view_cash_amounts,
+    has_role,
+    is_front_desk,
+    is_nurse,
+    is_owner,
+    is_aom,
     is_supervisor,
 )
+from accounts.models import Role
 
 
 def app_context(request):
@@ -25,4 +31,18 @@ def app_context(request):
         "nav_can_admin": can_manage_users(user) or can_manage_config(user),
         "nav_can_export": can_export(user),
         "nav_is_supervisor": is_supervisor(user),
+        # Navigasi mengikuti fungsi kerja pada checklist/PDF. Ini bukan
+        # pengganti permission server-side di masing-masing view.
+        "nav_can_queue": False,
+        "nav_can_orders": has_role(user, Role.ONLINE, Role.APOTEKER, Role.ASISTEN_APOTEKER, Role.SUPERVISOR, Role.PIC),
+        "nav_can_roster": is_nurse(user) or is_supervisor(user),
+        "nav_can_breaks": not (is_aom(user) or is_owner(user)),
+        "nav_can_issues": not (is_aom(user) or is_owner(user)),
+        "nav_can_reports": (
+            is_front_desk(user)
+            or is_nurse(user)
+            or has_role(user, Role.APOTEKER, Role.ASISTEN_APOTEKER, Role.ONLINE, Role.PIC, Role.SUPERVISOR)
+            or is_aom(user)
+            or is_owner(user)
+        ),
     }

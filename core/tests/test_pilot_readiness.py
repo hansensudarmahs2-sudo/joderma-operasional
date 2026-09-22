@@ -45,7 +45,7 @@ def test_reports_no_blocker_when_data_ready(
 
 def test_detects_missing_supervisor(clinic, template, kasir, perawat, kategori, eligible_nurses):
     output = _run()
-    assert "Supervisor" in output
+    assert "Koordinator shift" in output
     assert "BLOCKER" in output
 
 

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ laporan.title }}{% endblock %}
+{% block content %}
+<h1>{{ laporan.title }}</h1>
+<p class="sub">
+  {% if laporan.visibility == 'RAHASIA_AOM' %}<span class="tag muted">Rahasia — hanya pelapor dan AOM</span>{% else %}<span class="tag info">Terlihat satu cabang</span>{% endif %}
+  <span class="tag {% if laporan.status == 'ARCHIVED' %}muted{% elif laporan.status == 'RESOLVED' or laporan.status == 'CLOSED' %}ok{% else %}warn{% endif %}">{{ laporan.get_status_display }}</span>
+</p>
+<div class="card">
+  <p>{{ laporan.description|default:"—" }}</p>
+  <p class="meta">Dibuat oleh {{ laporan.created_by|default:"—" }} · {{ laporan.created_at|date:"d/m/Y H:i" }}</p>
+  {% if laporan.archived_at %}<p class="meta">Diarsipkan {{ laporan.archived_at|date:"d/m/Y H:i" }} oleh {{ laporan.archived_by }} · alasan: {{ laporan.archive_reason }}</p>{% endif %}
+</div>
+
+{% if allowed_next %}
+<div class="card">
+  <h3>Ubah status</h3>
+  <form method="post">
+    {% csrf_token %}
+    <label for="status">Status berikutnya</label>
+    <select id="status" name="status">
+      {% for s in allowed_next %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+    </select>
+    <label for="catatan">Catatan</label>
+    <textarea id="catatan" name="catatan" rows="2"></textarea>
+    <label for="alasan">Alasan (wajib untuk menutup)</label>
+    <textarea id="alasan" name="alasan" rows="2"></textarea>
+    <p></p>
+    <button class="btn small" type="submit">Simpan status</button>
+  </form>
+</div>
+{% endif %}
+
+{% if can_archive and laporan.status != 'ARCHIVED' %}
+<div class="card">
+  <h3>Arsipkan laporan</h3>
+  <p class="meta">Arsip tidak menghapus data; laporan tetap dapat ditemukan lewat filter status.</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="aksi" value="arsip">
+    <label for="alasan_arsip">Alasan arsip (wajib)</label>
+    <textarea id="alasan_arsip" name="alasan" rows="2" required></textarea>
+    <p></p>
+    <button class="btn small secondary" type="submit">Arsipkan</button>
+  </form>
+</div>
+{% endif %}
+
+<p><a class="btn secondary" href="{% url 'reports:laporan_page' %}">Kembali ke daftar laporan</a></p>
+{% endblock %}

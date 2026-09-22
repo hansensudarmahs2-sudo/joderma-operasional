@@ -20,6 +20,13 @@ def clinic(db):
     )
 
 
+@pytest.fixture
+def clinic_b(db):
+    return Clinic.objects.create(
+        code="test-cabang-b", name="JoDerma Test B", open_time="12:00", close_time="21:00"
+    )
+
+
 def _make_user(clinic, username, roles, caps=()):
     user = User.objects.create_user(
         username=username, password="TestPassword123!", display_name=username.title()
@@ -59,6 +66,29 @@ def perawat_b(clinic):
 @pytest.fixture
 def staf(clinic):
     return _make_user(clinic, "staf", [Role.STAF])
+
+
+@pytest.fixture
+def role_branch_matrix(clinic, clinic_b):
+    """Data anonim lintas role/cabang untuk negative permission tests."""
+    return {
+        "cabang_a": {
+            "clinic": clinic,
+            "supervisor": _make_user(clinic, "a_supervisor", [Role.SUPERVISOR]),
+            "front_desk": _make_user(clinic, "a_front_desk", [Role.FRONT_DESK, Role.STAF]),
+            "perawat": _make_user(clinic, "a_perawat", [Role.PERAWAT, Role.STAF]),
+            "staf": _make_user(clinic, "a_staf", [Role.STAF]),
+            "owner": _make_user(clinic, "a_owner", [Role.OWNER]),
+        },
+        "cabang_b": {
+            "clinic": clinic_b,
+            "supervisor": _make_user(clinic_b, "b_supervisor", [Role.SUPERVISOR]),
+            "front_desk": _make_user(clinic_b, "b_front_desk", [Role.FRONT_DESK, Role.STAF]),
+            "perawat": _make_user(clinic_b, "b_perawat", [Role.PERAWAT, Role.STAF]),
+            "staf": _make_user(clinic_b, "b_staf", [Role.STAF]),
+            "owner": _make_user(clinic_b, "b_owner", [Role.OWNER]),
+        },
+    }
 
 
 @pytest.fixture

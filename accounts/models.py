@@ -9,7 +9,12 @@ class Role(models.TextChoices):
     STAF = "STAF", "Staf operasional"
     FRONT_DESK = "FRONT_DESK", "Front desk/kasir"
     PERAWAT = "PERAWAT", "Perawat"
-    SUPERVISOR = "SUPERVISOR", "Supervisor"
+    APOTEKER = "APOTEKER", "Apoteker"
+    ASISTEN_APOTEKER = "ASISTEN_APOTEKER", "Asisten apoteker"
+    ONLINE = "ONLINE", "Koordinator online"
+    SUPERVISOR = "SUPERVISOR", "Koordinator shift"
+    PIC = "PIC", "PIC cabang"
+    AOM = "AOM", "AOM lintas cabang"
     ADMIN = "ADMIN", "Admin"
     OWNER = "OWNER", "Owner/Manajemen"
 
@@ -89,6 +94,75 @@ class UserRole(models.Model):
         return f"{self.user} · {self.get_role_display()}"
 
 
+class OrganizationAssignment(models.Model):
+    """Jabatan organisasi formal, terpisah dari hak akses aplikasi."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="organization_assignments")
+    clinic = models.ForeignKey(
+        "core.Clinic",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="organization_assignments",
+        help_text="Kosongkan untuk jabatan lintas cabang.",
+    )
+    title = models.CharField("jabatan", max_length=120)
+    starts_on = models.DateField("mulai")
+    ends_on = models.DateField("selesai", null=True, blank=True)
+    active = models.BooleanField("aktif", default=True)
+    note = models.CharField("catatan", max_length=200, blank=True)
+
+    class Meta:
+        verbose_name = "jabatan organisasi"
+        verbose_name_plural = "jabatan organisasi"
+        ordering = ("user__username", "clinic__code", "title")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "clinic", "title", "starts_on"],
+                name="uniq_user_clinic_org_assignment",
+            )
+        ]
+
+    def __str__(self) -> str:
+        clinic = self.clinic.code if self.clinic_id else "lintas-cabang"
+        return f"{self.user} · {self.title} · {clinic}"
+
+
+class PicFunction(models.TextChoices):
+    SHIFT_COORDINATOR = "SHIFT_COORDINATOR", "Koordinator shift"
+    CASHIER = "CASHIER", "Koordinator kasir"
+    ONLINE = "ONLINE", "Koordinator online"
+    CLEANLINESS = "CLEANLINESS", "Kebersihan"
+
+
+class PicAssignment(models.Model):
+    """Fungsi PIC bercabang dan berbatas periode."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="pic_assignments")
+    clinic = models.ForeignKey("core.Clinic", on_delete=models.CASCADE, related_name="pic_assignments")
+    function = models.CharField(max_length=32, choices=PicFunction.choices)
+    starts_on = models.DateField("mulai")
+    ends_on = models.DateField("selesai", null=True, blank=True)
+    active = models.BooleanField("aktif", default=True)
+    granted_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="pic_assignments_granted"
+    )
+
+    class Meta:
+        verbose_name = "penugasan PIC"
+        verbose_name_plural = "penugasan PIC"
+        ordering = ("clinic__code", "function", "user__username")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "clinic", "function", "starts_on"],
+                name="uniq_user_clinic_pic_assignment",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} · {self.get_function_display()} · {self.clinic.code}"
+
+
 class Capability(models.TextChoices):
     """Hak bisnis sensitif yang harus diberikan eksplisit (PRD 6.3)."""
 
@@ -96,6 +170,9 @@ class Capability(models.TextChoices):
     CASH_APPROVE = "cash.approve", "Menyetujui/verifikasi kas"
     PATIENT_VIEW_DETAIL = "patient.view_detail", "Melihat detail pasien"
     ISSUE_VIEW_RESTRICTED = "issue.view_restricted", "Melihat komplain terbatas"
+    REPORT_VIEW_CONFIDENTIAL = "report.view_confidential", "Melihat laporan rahasia"
+    SUGGESTION_PUBLISH = "suggestion.publish", "Memublikasikan masukan ke cabang"
+    USER_MANAGE = "user.manage", "Mengelola pengguna"
     AUDIT_VIEW = "audit.view", "Membaca audit log"
     REPORT_EXPORT = "report.export", "Mengekspor laporan"
     ADMIN_FULL_ACCESS = (

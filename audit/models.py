@@ -12,6 +12,7 @@ class AuditAction(models.TextChoices):
     PASSWORD_CHANGED = "PASSWORD_CHANGED", "Password diubah"
     CREATE = "CREATE", "Membuat"
     UPDATE = "UPDATE", "Mengubah"
+    CORRECTION = "CORRECTION", "Koreksi setelah dicek"
     VERIFY = "VERIFY", "Memverifikasi"
     APPROVE = "APPROVE", "Menyetujui"
     CANCEL = "CANCEL", "Membatalkan"
@@ -23,6 +24,8 @@ class AuditAction(models.TextChoices):
     DOWNLOAD_ATTACHMENT = "DOWNLOAD_ATTACHMENT", "Unduh lampiran"
     PERMISSION_CHANGED = "PERMISSION_CHANGED", "Perubahan peran/izin"
     CONFIG_CHANGED = "CONFIG_CHANGED", "Perubahan konfigurasi"
+    PUBLISH = "PUBLISH", "Memublikasikan"
+    ARCHIVE = "ARCHIVE", "Mengarsipkan"
 
 
 class AuditEvent(models.Model):

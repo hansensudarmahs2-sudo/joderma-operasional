@@ -16,6 +16,7 @@ from audit.models import AuditAction
 from audit.services import log_event
 from core.models import Attachment, Priority
 from core.permissions import (
+    can_access_clinic,
     can_assign_issue,
     can_view_restricted_issue,
     is_owner,
@@ -61,7 +62,7 @@ def _visible_issues(user, clinic):
 
 @login_required
 def list_view(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     qs = _visible_issues(request.user, clinic)
 
     issue_type = request.GET.get("tipe") or ""
@@ -99,7 +100,7 @@ def list_view(request):
 
 @login_required
 def create(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     initial_type = request.GET.get("tipe") or ""
     form = IssueForm(request.POST or None, clinic=clinic, initial_type=initial_type)
     if request.method == "POST" and form.is_valid():
@@ -170,7 +171,9 @@ def detail(request, pk: int):
                 (s, dict(IssueStatus.choices).get(s, s)) for s in issue.allowed_next_statuses()
             ),
             "can_assign": can_assign_issue(request.user),
-            "users": User.objects.filter(is_active=True).order_by("username"),
+            "users": User.objects.filter(is_active=True, user_roles__clinic=issue.clinic)
+            .distinct()
+            .order_by("username"),
             "attachment_form": AttachmentForm(),
         },
     )
@@ -205,6 +208,8 @@ def change_status_view(request, pk: int):
 @require_POST
 def assign_view(request, pk: int):
     issue = get_object_or_404(Issue, pk=pk)
+    if not can_view_restricted_issue(request.user, issue):
+        raise PermissionDenied("Akses ditolak.")
     assignee = get_object_or_404(User, pk=request.POST.get("penanggung_jawab"))
     from django.utils.dateparse import parse_datetime
     from django.utils import timezone as tz
@@ -239,6 +244,8 @@ def add_note(request, pk: int):
 @require_POST
 def repair(request, pk: int):
     issue = get_object_or_404(Issue, pk=pk)
+    if not can_view_restricted_issue(request.user, issue):
+        raise PermissionDenied("Akses ditolak.")
     try:
         cost = request.POST.get("biaya")
         record_repair(
@@ -295,7 +302,7 @@ def upload_attachment(request, pk: int):
 
 @login_required
 def asset_list(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     return render(
         request,
         "issues/assets.html",
@@ -311,6 +318,8 @@ def asset_list(request):
 @require_POST
 def asset_block(request, pk: int):
     asset = get_object_or_404(Asset, pk=pk)
+    if not can_access_clinic(request.user, asset.clinic):
+        raise PermissionDenied("Anda tidak memiliki akses ke aset cabang ini.")
     try:
         mark_asset_do_not_use(asset, supervisor=request.user, reason=request.POST.get("alasan", ""))
         messages.warning(request, f"{asset.name} ditandai 'Jangan digunakan'.")

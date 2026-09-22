@@ -215,6 +215,11 @@ class ActionItemStatus(models.TextChoices):
     BATAL = "BATAL", "Batal"
 
 
+class TaskAssignmentMode(models.TextChoices):
+    INDIVIDUAL = "INDIVIDUAL", "Individual"
+    BERSAMA = "BERSAMA", "Bersama"
+
+
 class ActionItem(models.Model):
     """Tindak lanjut lintas modul (PRD 9.1)."""
 
@@ -234,6 +239,9 @@ class ActionItem(models.Model):
     priority = models.CharField(max_length=10, choices=Priority.choices, default=Priority.SEDANG)
     status = models.CharField(
         max_length=12, choices=ActionItemStatus.choices, default=ActionItemStatus.BARU
+    )
+    assignment_mode = models.CharField(
+        max_length=12, choices=TaskAssignmentMode.choices, default=TaskAssignmentMode.INDIVIDUAL
     )
     due_at = models.DateTimeField("target waktu", null=True, blank=True)
     progress_note = models.TextField("catatan progres", blank=True)
@@ -262,6 +270,129 @@ class ActionItem(models.Model):
             and self.due_at < timezone.now()
         )
 
+
+class TaskAudienceType(models.TextChoices):
+    USER = "USER", "Satu user"
+    USERS = "USERS", "Beberapa user"
+    PIC_FUNCTION = "PIC_FUNCTION", "Fungsi PIC"
+    ROLE = "ROLE", "Tier/role cabang"
+    CLINIC = "CLINIC", "Seluruh staf cabang"
+
+
+class TaskAudienceSnapshot(models.Model):
+    """Snapshot target penerima saat task dikirim."""
+
+    action_item = models.OneToOneField(
+        ActionItem, on_delete=models.CASCADE, related_name="audience_snapshot"
+    )
+    audience_type = models.CharField(max_length=24, choices=TaskAudienceType.choices)
+    criteria = models.JSONField(default=dict, blank=True)
+    recipients = models.JSONField(default=list, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="task_audience_snapshots",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "snapshot penerima task"
+        verbose_name_plural = "snapshot penerima task"
+
+    def __str__(self) -> str:
+        return f"{self.action_item} · {self.audience_type}"
+
+
+class TaskAssignmentStatus(models.TextChoices):
+    OPEN = "OPEN", "Terbuka"
+    IN_PROGRESS = "IN_PROGRESS", "Dikerjakan"
+    SUBMITTED = "SUBMITTED", "Diajukan selesai"
+    REVISION_REQUIRED = "REVISION_REQUIRED", "Perlu revisi"
+    CONFIRMED = "CONFIRMED", "Dikonfirmasi"
+    CANCELLED = "CANCELLED", "Dibatalkan"
+
+
+class TaskAssignment(models.Model):
+    action_item = models.ForeignKey(
+        ActionItem, on_delete=models.CASCADE, related_name="task_assignments"
+    )
+    assignee = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="task_assignments"
+    )
+    status = models.CharField(
+        max_length=24, choices=TaskAssignmentStatus.choices, default=TaskAssignmentStatus.OPEN
+    )
+    claimed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="claimed_task_assignments",
+    )
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    reviewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_task_assignments",
+    )
+    revision_note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "assignment task"
+        verbose_name_plural = "assignment task"
+        ordering = ("action_item", "assignee__username")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["action_item", "assignee"], name="uniq_task_assignment_recipient"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.action_item} · {self.assignee}"
+
+
+class TaskEventType(models.TextChoices):
+    SENT = "SENT", "Dikirim"
+    CLAIMED = "CLAIMED", "Diambil"
+    SUBMITTED = "SUBMITTED", "Diajukan selesai"
+    CONFIRMED = "CONFIRMED", "Dikonfirmasi"
+    REVISION_REQUESTED = "REVISION_REQUESTED", "Diminta revisi"
+    CANCELLED = "CANCELLED", "Dibatalkan"
+    COMMENT = "COMMENT", "Komentar"
+
+
+class TaskEvent(models.Model):
+    action_item = models.ForeignKey(ActionItem, on_delete=models.CASCADE, related_name="task_events")
+    assignment = models.ForeignKey(
+        TaskAssignment,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="events",
+    )
+    event_type = models.CharField(max_length=24, choices=TaskEventType.choices)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="task_events",
+    )
+    note = models.TextField(blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "event task"
+        verbose_name_plural = "event task"
+        ordering = ("created_at", "id")
 
 def attachment_upload_to(instance: "Attachment", filename: str) -> str:
     """Nama file diacak; nama asli disimpan sebagai metadata (PRD 9.3)."""

@@ -45,7 +45,11 @@ class UserForm(forms.ModelForm):
         help_text="Minimal 12 karakter. Kosongkan bila tidak ingin mengubah.",
     )
     roles = forms.MultipleChoiceField(
-        label="Peran", choices=Role.choices, widget=forms.CheckboxSelectMultiple, required=True
+        label="Role / tier akses di klinik aktif",
+        choices=Role.choices,
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        help_text="Boleh pilih lebih dari satu. Contoh: Perawat + Koordinator Shift atau Apoteker + Koordinator Kasir.",
     )
     capabilities = forms.MultipleChoiceField(
         label="Kapabilitas tambahan",

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Masukan saya{% endblock %}
+{% block content %}
+<h1>Masukan</h1>
+<p class="sub">Masukan privat terlihat oleh pengirim dan AOM; AOM dapat memublikasikan ke cabang.</p>
+
+<form method="get" class="inline card">
+  <div><label for="status">Status</label>
+    <select id="status" name="status">
+      <option value="">Semua (termasuk diarsipkan)</option>
+      <option value="active" {% if status == "active" %}selected{% endif %}>Aktif saja</option>
+      <option value="archived" {% if status == "archived" %}selected{% endif %}>Diarsipkan saja</option>
+    </select></div>
+  <button class="btn" type="submit">Terapkan filter</button>
+</form>
+
+<details class="card">
+  <summary>+ Tulis masukan baru</summary>
+  <form method="post">
+    {% csrf_token %}
+    <label for="title">Ringkasan</label>
+    <input id="title" name="title" required>
+    <label for="description">Uraian</label>
+    <textarea id="description" name="description" rows="3"></textarea>
+    <p></p>
+    <button class="btn" type="submit">Kirim masukan</button>
+  </form>
+</details>
+
+<table class="responsive">
+  <thead><tr><th>Ringkasan</th><th>Status</th><th>Dibuat</th></tr></thead>
+  <tbody>
+  {% for m in masukan_list %}
+    <tr>
+      <td data-label="Ringkasan"><a href="{% url 'reports:masukan_page_detail' m.pk %}">{{ m.title }}</a></td>
+      <td data-label="Status">
+        {% if m.archived_at %}<span class="tag muted">Diarsipkan</span>
+        {% elif m.is_published %}<span class="tag ok">Dipublikasikan</span>
+        {% else %}<span class="tag info">Privat</span>{% endif %}
+      </td>
+      <td data-label="Dibuat">{{ m.created_at|date:"d/m H:i" }}</td>
+    </tr>
+  {% empty %}<tr><td colspan="3" class="meta">Tidak ada masukan sesuai filter.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

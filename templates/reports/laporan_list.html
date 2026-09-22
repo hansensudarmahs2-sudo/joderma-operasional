@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Laporan saya{% endblock %}
+{% block content %}
+<h1>Laporan</h1>
+<p class="sub">Laporan CABANG terlihat satu cabang; laporan RAHASIA_AOM hanya terlihat pelapor dan AOM.</p>
+
+<form method="get" class="inline card">
+  <div><label for="status">Status</label>
+    <select id="status" name="status"><option value="">Semua (termasuk selesai/diarsipkan)</option>
+      {% for value, label in statuses %}<option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+  <button class="btn" type="submit">Terapkan filter</button>
+</form>
+
+{% if can_create %}
+<details class="card">
+  <summary>+ Kirim laporan baru</summary>
+  <form method="post">
+    {% csrf_token %}
+    <label for="title">Ringkasan</label>
+    <input id="title" name="title" required>
+    <label for="description">Uraian</label>
+    <textarea id="description" name="description" rows="3"></textarea>
+    <label for="visibility">Visibilitas</label>
+    <select id="visibility" name="visibility">
+      <option value="CABANG">Terlihat satu cabang</option>
+      <option value="RAHASIA_AOM">Rahasia — hanya saya dan AOM</option>
+    </select>
+    <p></p>
+    <button class="btn" type="submit">Kirim laporan</button>
+  </form>
+</details>
+{% endif %}
+
+<table class="responsive">
+  <thead><tr><th>Ringkasan</th><th>Visibilitas</th><th>Status</th><th>Dibuat</th></tr></thead>
+  <tbody>
+  {% for l in laporan_list %}
+    <tr>
+      <td data-label="Ringkasan"><a href="{% url 'reports:laporan_page_detail' l.pk %}">{{ l.title }}</a></td>
+      <td data-label="Visibilitas">{% if l.visibility == 'RAHASIA_AOM' %}<span class="tag muted">Rahasia AOM</span>{% else %}<span class="tag info">Cabang</span>{% endif %}</td>
+      <td data-label="Status"><span class="tag {% if l.status == 'ARCHIVED' %}muted{% elif l.status == 'RESOLVED' or l.status == 'CLOSED' %}ok{% else %}warn{% endif %}">{{ l.get_status_display }}</span></td>
+      <td data-label="Dibuat">{{ l.created_at|date:"d/m H:i" }}</td>
+    </tr>
+  {% empty %}<tr><td colspan="4" class="meta">Tidak ada laporan sesuai filter.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

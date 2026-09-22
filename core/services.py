@@ -21,10 +21,20 @@ ALLOWED_TRANSITIONS: dict[str, set[str]] = {
 }
 
 
-def active_clinic() -> Clinic:
-    clinic = Clinic.objects.filter(active=True).order_by("id").first()
+def active_clinic(user=None) -> Clinic:
+    if user is not None:
+        from .permissions import user_clinic_queryset
+
+        clinic = user_clinic_queryset(user).order_by("id").first()
+        if clinic is None and getattr(user, "is_superuser", False):
+            clinic = Clinic.objects.filter(active=True).order_by("id").first()
+    else:
+        clinic = Clinic.objects.filter(active=True).order_by("id").first()
     if clinic is None:
-        raise ValidationError("Belum ada klinik aktif. Jalankan `manage.py seed_demo` atau buat lewat Admin.")
+        raise ValidationError(
+            "Belum ada klinik aktif untuk pengguna ini. Jalankan `manage.py seed_demo` "
+            "atau atur peran cabang lewat Admin."
+        )
     return clinic
 
 

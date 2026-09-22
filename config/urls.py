@@ -16,6 +16,7 @@ urlpatterns = [
     path("catatan/", include(("issues.urls", "issues"), namespace="issues")),
     path("notifikasi/", include(("notifications.urls", "notifications"), namespace="notifications")),
     path("laporan/", include(("reports.urls", "reports"), namespace="reports")),
+    path("order-online/", include(("orders.urls", "orders"), namespace="orders")),
     path("audit/", include(("audit.urls", "audit"), namespace="audit")),
     path("health/", core_views.health, name="health"),
     path("django-admin/", admin.site.urls),

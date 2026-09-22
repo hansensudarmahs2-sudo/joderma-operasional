@@ -194,3 +194,22 @@ class ProcedureAssignment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.category} · {self.nurse} ({self.get_status_display()})"
+
+
+class NurseActionTally(models.Model):
+    """Catatan tally tindakan untuk rekonsiliasi dengan Omnicare."""
+
+    operational_day = models.ForeignKey("core.OperationalDay", on_delete=models.CASCADE, related_name="nurse_tallies")
+    nurse = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="nurse_tallies")
+    rm_number = models.CharField("nomor RM", max_length=32)
+    patient_name = models.CharField("nama pasien", max_length=120)
+    action_name = models.CharField("tindakan", max_length=160)
+    tally = models.PositiveIntegerField("jumlah", default=1)
+    entered_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="nurse_tallies_entered")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+
+    def __str__(self) -> str:
+        return f"{self.rm_number} · {self.patient_name} · {self.action_name}"

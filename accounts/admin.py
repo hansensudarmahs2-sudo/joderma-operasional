@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 
-from .models import LoginAttempt, User, UserCapability, UserRole
+from .models import LoginAttempt, OrganizationAssignment, PicAssignment, User, UserCapability, UserRole
 
 
 @admin.register(User)
@@ -12,4 +12,4 @@ class UserAdmin(DjangoUserAdmin):
     )
 
 
-admin.site.register([UserRole, UserCapability, LoginAttempt])
+admin.site.register([UserRole, UserCapability, OrganizationAssignment, PicAssignment, LoginAttempt])

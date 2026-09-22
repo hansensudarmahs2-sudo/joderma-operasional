@@ -40,6 +40,33 @@ def is_admin(user) -> bool:
     return has_role(user, Role.ADMIN)
 
 
+def is_aom(user) -> bool:
+    return has_role(user, Role.AOM)
+
+
+def is_pic(user) -> bool:
+    return has_role(user, Role.PIC)
+
+
+def can_access_clinic(user, clinic) -> bool:
+    if not user or not user.is_authenticated or clinic is None:
+        return False
+    if is_aom(user) or is_owner(user):
+        return True
+    return user.user_roles.filter(clinic=clinic).exists()
+
+
+def user_clinic_queryset(user):
+    from core.models import Clinic
+
+    if not user or not user.is_authenticated:
+        return Clinic.objects.none()
+    qs = Clinic.objects.filter(active=True)
+    if is_aom(user) or is_owner(user):
+        return qs
+    return qs.filter(user_roles__user=user).distinct()
+
+
 def has_admin_full_access(user) -> bool:
     """Admin dengan akses penuh ke data bisnis.
 
@@ -141,6 +168,7 @@ def can_manage_breaks(user) -> bool:
 def can_view_audit(user) -> bool:
     return (
         is_supervisor(user)
+        or is_aom(user)
         or is_owner(user)
         or Capability.AUDIT_VIEW in caps(user)
         or has_admin_full_access(user)
@@ -150,6 +178,7 @@ def can_view_audit(user) -> bool:
 def can_export(user) -> bool:
     return (
         is_supervisor(user)
+        or is_aom(user)
         or is_owner(user)
         or Capability.REPORT_EXPORT in caps(user)
         or has_admin_full_access(user)
@@ -157,7 +186,12 @@ def can_export(user) -> bool:
 
 
 def can_manage_users(user) -> bool:
-    return is_admin(user) or is_bootstrap_superuser(user)
+    return (
+        is_admin(user)
+        or Capability.USER_MANAGE in caps(user)
+        or has_admin_full_access(user)
+        or is_bootstrap_superuser(user)
+    )
 
 
 def can_manage_templates(user) -> bool:
@@ -176,28 +210,125 @@ def can_fill_checklist(user) -> bool:
     return bool(roles(user))  # semua staf aktif
 
 
+def can_access_checklist_run(user, run) -> bool:
+    """Scope cabang dan target role checklist; AOM/owner lintas cabang."""
+    if not can_access_clinic(user, run.operational_day.clinic):
+        return False
+    if is_aom(user) or is_owner(user) or is_supervisor(user):
+        return True
+    target_roles = set(
+        run.template_snapshot.get("target_roles", run.template.target_roles) or []
+    )
+    if not target_roles:
+        return True
+    return bool(target_roles & roles(user))
+
+
+def can_edit_checklist_response(user, response) -> bool:
+    if not can_access_checklist_run(user, response.run) or not can_fill_checklist(user):
+        return False
+    item_roles = set(response.performer_roles or []) | set(response.verifier_roles or [])
+    return not item_roles or bool(item_roles & roles(user)) or is_aom(user) or is_owner(user)
+
+
 def can_close_day(user) -> bool:
     return is_supervisor(user)
 
 
 def can_assign_issue(user) -> bool:
-    return is_supervisor(user)
+    return is_supervisor(user) or is_pic(user) or is_aom(user)
 
 
 def can_view_restricted_issue(user, issue) -> bool:
     """Komplain terbatas: pembuat, assignee, supervisor, owner (PRD 6.3)."""
+    if not can_access_clinic(user, issue.clinic):
+        return False
     if not getattr(issue, "is_restricted", False):
         return True
     if (
         is_supervisor(user)
+        or is_aom(user)
         or is_owner(user)
         or Capability.ISSUE_VIEW_RESTRICTED in caps(user)
+        or Capability.REPORT_VIEW_CONFIDENTIAL in caps(user)
         or has_admin_full_access(user)
     ):
         return True
     if issue.created_by_id == user.pk:
         return True
     return issue.assignments.filter(assignee_id=user.pk, active=True).exists()
+
+
+def can_view_laporan(user, laporan) -> bool:
+    """Laporan CABANG: staf aktif cabang sama. RAHASIA_AOM: pelapor + AOM (plan 9.1).
+
+    Tidak ada publikasi otomatis lintas cabang; laporan RAHASIA_AOM tidak
+    pernah terlihat oleh user lain di cabang yang sama kecuali diberi
+    kapabilitas eksplisit.
+    """
+    from reports.models import ReportVisibility
+
+    if not can_access_clinic(user, laporan.clinic):
+        return False
+    if laporan.visibility != ReportVisibility.RAHASIA_AOM:
+        return True
+    if laporan.created_by_id == user.pk:
+        return True
+    return (
+        is_aom(user)
+        or is_owner(user)
+        or Capability.REPORT_VIEW_CONFIDENTIAL in caps(user)
+        or has_admin_full_access(user)
+    )
+
+
+def can_create_laporan(user) -> bool:
+    return bool(roles(user))  # semua staf aktif
+
+
+def can_archive_laporan(user) -> bool:
+    return (
+        is_aom(user)
+        or is_owner(user)
+        or Capability.REPORT_VIEW_CONFIDENTIAL in caps(user)
+        or has_admin_full_access(user)
+    )
+
+
+def can_view_masukan(user, masukan) -> bool:
+    """Masukan: pengirim dan AOM sebelum publikasi (plan 10)."""
+    if not can_access_clinic(user, masukan.clinic):
+        return False
+    if masukan.created_by_id == user.pk:
+        return True
+    return (
+        is_aom(user)
+        or is_owner(user)
+        or Capability.REPORT_VIEW_CONFIDENTIAL in caps(user)
+        or has_admin_full_access(user)
+    )
+
+
+def can_publish_masukan(user) -> bool:
+    return (
+        is_aom(user)
+        or Capability.SUGGESTION_PUBLISH in caps(user)
+        or has_admin_full_access(user)
+    )
+
+
+def can_view_published_masukan(user, publication) -> bool:
+    """Masukan yang sudah dipublikasikan terlihat oleh staf aktif cabang tujuan."""
+    return any(can_access_clinic(user, c) for c in publication.clinics.all())
+
+
+def can_archive_masukan(user) -> bool:
+    return (
+        is_aom(user)
+        or is_owner(user)
+        or Capability.REPORT_VIEW_CONFIDENTIAL in caps(user)
+        or has_admin_full_access(user)
+    )
 
 
 def read_only_for(user) -> bool:

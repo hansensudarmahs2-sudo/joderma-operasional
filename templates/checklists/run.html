@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}{{ run.get_area_display }}{% endblock %}
+{% block title %}{{ run.template.name }}{% endblock %}
 {% block content %}
-<h1>{{ run.get_area_display }}</h1>
-<p class="sub">{{ run.operational_day.date }} · {{ progress.done }}/{{ progress.total }} diperiksa</p>
+<h1>{{ run.template.name }}</h1>
+<p class="sub">{{ run.operational_day.date }} · {{ run.get_session_display }} · {{ progress.done }}/{{ progress.total }} diperiksa</p>
 <div class="progress"><span style="width: {{ progress.percent }}%"></span></div>
 <p>
   <a class="btn small secondary" href="?{% if only_problems %}{% else %}masalah=1{% endif %}">
@@ -10,52 +10,29 @@
   <a class="btn small secondary" href="{% url 'checklists:index' %}">Kembali</a>
 </p>
 
-{% for category, items in categories.items %}
-<details open>
-  <summary>{{ category }} ({{ items|length }})</summary>
-  {% for r in items %}
-  <div class="card">
-    <strong>{{ r.label }}</strong>
-    {% if r.required %}<span class="tag muted">Wajib</span>{% endif %}
-    {% if r.is_problem %}<span class="tag err">{{ r.get_result_display }}</span>
-    {% elif r.result == 'OK' %}<span class="tag ok">OK</span>
-    {% elif r.result == 'TIDAK_BERLAKU' %}<span class="tag muted">Tidak berlaku</span>
-    {% else %}<span class="tag info">Belum dicek</span>{% endif %}
-    {% if r.below_minimum %}<span class="tag warn">Di bawah minimum {{ r.min_quantity }}</span>{% endif %}
-    {% if r.checked_by %}<div class="meta">Terakhir: {{ r.checked_by }} · {{ r.checked_at|date:"d/m H:i" }}</div>{% endif %}
-
-    <form method="post" action="{% url 'checklists:save_response' r.pk %}">
-      {% csrf_token %}
-      <input type="hidden" name="versi" value="{{ r.version }}">
-      <div class="inline">
-        <div><label for="hasil{{ r.pk }}">Hasil</label>
-          <select id="hasil{{ r.pk }}" name="hasil">
-            {% for value, label in results %}<option value="{{ value }}" {% if r.result == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
-          </select></div>
-        {% if r.input_type == 'KUANTITAS' %}
-        <div><label for="jml{{ r.pk }}">Jumlah {% if r.unit %}({{ r.unit }}){% endif %}</label>
-          <input id="jml{{ r.pk }}" name="jumlah" type="number" min="0" value="{{ r.quantity|default_if_none:'' }}"></div>
-        {% endif %}
-        <div><label for="cat{{ r.pk }}">Catatan {% if r.result != 'OK' %}(wajib bila bukan OK){% endif %}</label>
-          <input id="cat{{ r.pk }}" name="catatan" value="{{ r.note }}"></div>
-        <button class="btn small" type="submit">Simpan</button>
-      </div>
+{% for group in category_groups %}
+<details class="checklist-group" {% if group.pending or group.problems %}open{% endif %}>
+  <summary><span>{{ group.name }}</span><span class="meta">{{ group.pending }} terbuka{% if group.problems %} · {{ group.problems }} masalah{% endif %}</span></summary>
+  <div class="checklist-rows">
+  {% for r in group.items %}
+  <div class="checklist-item-row {% if r.result == 'OK' %}is-done{% endif %} {% if r.is_problem %}is-problem{% endif %}">
+    <div class="checklist-item-status">{% if r.result == 'OK' %}✓{% elif r.is_problem %}!{% else %}·{% endif %}</div>
+    <div class="checklist-item-main"><strong>{{ r.label }}</strong>{% if r.checked_by %}<small>{{ r.checked_by }} · {{ r.checked_at|date:"H:i" }}</small>{% endif %}</div>
+    <div class="checklist-item-state">{% if r.result == 'OK' %}<span class="tag ok">OK</span>{% elif r.is_problem %}<span class="tag err">Perlu tindak lanjut</span>{% else %}<span class="tag info">Belum</span>{% endif %}</div>
+    <form class="checklist-quick-form" method="post" action="{% url 'checklists:save_response' r.pk %}">
+      {% csrf_token %}<input type="hidden" name="versi" value="{{ r.version }}"><input type="hidden" name="hasil" value="OK">
+      {% if r.input_type == 'KUANTITAS' %}<input class="checklist-qty" name="jumlah" type="number" min="0" value="{{ r.quantity|default_if_none:'' }}" placeholder="Jumlah">{% endif %}
+      {% if r.input_type == 'PILIHAN' %}<select class="checklist-choice" name="pilihan"><option value="">Pilih</option>{% for option in r.options %}<option value="{{ option }}" {% if r.selection == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select>{% endif %}
+      <input class="checklist-note" name="catatan" value="{{ r.note }}" placeholder="Catatan jika perlu">
+      {% if r.result != 'BELUM' %}<input class="checklist-note" name="alasan" placeholder="Alasan koreksi wajib">{% endif %}
+      <button class="btn small" type="submit">{% if r.result == 'OK' %}✓ Tetap OK{% else %}Check{% endif %}</button>
+      {% if r.result == 'OK' %}<button class="btn small secondary" type="submit" name="hasil" value="BELUM">Uncheck</button>{% endif %}
     </form>
-
-    {% if r.result == 'RUSAK' %}
-    <form method="post" action="{% url 'checklists:make_damage' r.pk %}" style="margin-top:.4rem">
-      {% csrf_token %}
-      <button class="btn small secondary" type="submit">Buat laporan kerusakan</button>
-    </form>
-    {% endif %}
-    {% if r.result == 'TIDAK_LENGKAP' %}
-    <form method="post" action="{% url 'checklists:make_action' r.pk %}" style="margin-top:.4rem">
-      {% csrf_token %}
-      <button class="btn small secondary" type="submit">Buat tindak lanjut kekurangan</button>
-    </form>
-    {% endif %}
+    {% if r.result == 'RUSAK' %}<form method="post" action="{% url 'checklists:make_damage' r.pk %}">{% csrf_token %}<button class="btn small secondary" type="submit">Laporan</button></form>{% endif %}
+    {% if r.result == 'TIDAK_LENGKAP' %}<form method="post" action="{% url 'checklists:make_action' r.pk %}">{% csrf_token %}<button class="btn small secondary" type="submit">Tindak lanjut</button></form>{% endif %}
   </div>
   {% endfor %}
+  </div>
 </details>
 {% endfor %}
 {% endblock %}

@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db.models import Q
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -18,7 +19,6 @@ from breaks.services import upcoming_breaks
 from cash.services import cash_summary
 from issues.services import issue_counters
 from nurses.models import Availability, NurseRosterEntry
-from queueing.services import queue_summary
 
 from .models import (
     ActionItem,
@@ -27,13 +27,21 @@ from .models import (
     ClinicConfig,
     DEFAULT_CONFIG,
     OperationalDay,
+    TaskAssignment,
+    TaskAssignmentStatus,
     local_today,
 )
 from .permissions import (
+    can_access_clinic,
     can_close_day,
     can_manage_config,
+    can_manage_templates,
+    can_manage_users,
     can_view_cash_amounts,
+    is_admin,
+    is_aom,
     is_owner,
+    is_pic,
     is_supervisor,
     require,
 )
@@ -48,6 +56,14 @@ from .services import (
     reopen_day,
     start_closing,
 )
+from .task_services import (
+    can_review_assignment,
+    cancel_assignment,
+    claim_shared_task,
+    confirm_assignment,
+    request_revision,
+    submit_assignment,
+)
 
 
 def health(request):
@@ -61,7 +77,7 @@ def permission_denied(request, exception=None):
 
 @login_required
 def dashboard(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     user = request.user
 
     date_str = request.GET.get("tanggal")
@@ -83,14 +99,59 @@ def dashboard(request):
         "can_view_cash": can_view_cash_amounts(user),
         "can_close": can_close_day(user),
         "is_supervisor": is_supervisor(user),
+        "is_aom": is_aom(user),
+        "is_pic": is_pic(user),
+        "is_admin": is_admin(user),
+        "can_manage_users": can_manage_users(user),
+        "can_manage_templates": can_manage_templates(user),
     }
+
+    if is_aom(user):
+        from .models import TaskAssignmentStatus as _TAS
+
+        context["aom_pending_confirmations"] = (
+            TaskAssignment.objects.filter(status=_TAS.SUBMITTED)
+            .select_related("action_item", "action_item__clinic", "assignee")
+            .order_by("submitted_at")[:10]
+        )
+        from reports.models import Laporan, ReportStatus, ReportVisibility
+        from reports.models import Masukan
+
+        context["aom_confidential_laporan_count"] = Laporan.objects.filter(
+            visibility=ReportVisibility.RAHASIA_AOM
+        ).exclude(status=ReportStatus.ARCHIVED).count()
+        context["aom_masukan_pending_count"] = Masukan.objects.filter(
+            archived_at__isnull=True
+        ).count()
+
+    if is_pic(user):
+        from .models import TaskAssignmentStatus as _TAS
+
+        context["pic_pending_confirmations"] = (
+            TaskAssignment.objects.filter(
+                status=_TAS.SUBMITTED, action_item__created_by=user
+            )
+            .select_related("action_item", "assignee")
+            .order_by("submitted_at")[:10]
+        )
+        from accounts.models import PicAssignment
+        from checklists.models import ChecklistTemplate
+
+        pic_functions = list(
+            PicAssignment.objects.filter(user=user, clinic=clinic, active=True).values_list(
+                "function", flat=True
+            )
+        )
+        context["pic_functions"] = pic_functions
+        context["pic_checklist_templates"] = ChecklistTemplate.objects.filter(
+            clinic=clinic, active=True, target_pic_function__in=pic_functions
+        ) if pic_functions else ChecklistTemplate.objects.none()
 
     if day:
         context.update(
             {
                 "progress": opening_progress(day),
                 "cash": cash_summary(day) if can_view_cash_amounts(user) else None,
-                "queue": queue_summary(day),
                 "next_nurse": NurseRosterEntry.objects.filter(
                     operational_day=day, availability=Availability.TERSEDIA
                 )
@@ -115,6 +176,8 @@ def dashboard(request):
 @require_POST
 def day_action(request, pk: int):
     day = get_object_or_404(OperationalDay, pk=pk)
+    if not can_access_clinic(request.user, day.clinic):
+        raise PermissionDenied("Anda tidak memiliki akses ke cabang ini.")
     action = request.POST.get("aksi")
     reason = request.POST.get("alasan", "")
     user = request.user
@@ -155,17 +218,58 @@ def day_action(request, pk: int):
 
 @login_required
 def action_items(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     status = request.GET.get("status", "")
-    qs = ActionItem.objects.filter(clinic=clinic).select_related("owner")
+    qs = ActionItem.objects.filter(clinic=clinic).select_related("owner").prefetch_related(
+        "task_assignments", "task_assignments__assignee"
+    )
     if status:
         qs = qs.filter(status=status)
     if not (is_supervisor(request.user) or is_owner(request.user)):
-        qs = qs.filter(owner=request.user)
+        qs = qs.filter(Q(owner=request.user) | Q(task_assignments__assignee=request.user)).distinct()
+
+    user = request.user
+    rows = []
+    for item in qs[:200]:
+        assignments = list(item.task_assignments.all())
+        my_assignment = next(
+            (a for a in assignments if a.assignee_id == user.pk or a.claimed_by_id == user.pk),
+            None,
+        )
+        can_claim = bool(
+            my_assignment
+            and item.assignment_mode == "BERSAMA"
+            and my_assignment.claimed_by_id is None
+            and my_assignment.status == TaskAssignmentStatus.OPEN
+        )
+        can_submit = bool(
+            my_assignment
+            and my_assignment.status
+            in {
+                TaskAssignmentStatus.OPEN,
+                TaskAssignmentStatus.IN_PROGRESS,
+                TaskAssignmentStatus.REVISION_REQUIRED,
+            }
+            and (item.assignment_mode != "BERSAMA" or my_assignment.claimed_by_id == user.pk)
+        )
+        review_assignments = [
+            a
+            for a in assignments
+            if a.status == TaskAssignmentStatus.SUBMITTED and can_review_assignment(a, user)
+        ]
+        rows.append(
+            {
+                "item": item,
+                "my_assignment": my_assignment,
+                "can_claim": can_claim,
+                "can_submit": can_submit,
+                "review_assignments": review_assignments,
+            }
+        )
     return render(
         request,
         "core/action_items.html",
-        {"items": qs[:200], "status": status, "statuses": ActionItemStatus.choices},
+        {"rows": rows, "status": status, "statuses": ActionItemStatus.choices},
     )
 
 
@@ -173,6 +277,8 @@ def action_items(request):
 @require_POST
 def action_item_update(request, pk: int):
     item = get_object_or_404(ActionItem, pk=pk)
+    if not can_access_clinic(request.user, item.clinic):
+        raise PermissionDenied("Anda tidak memiliki akses ke action item cabang ini.")
     if not (is_supervisor(request.user) or item.owner_id == request.user.pk):
         raise PermissionDenied("Anda bukan penanggung jawab action item ini.")
     from audit.services import log_update, snapshot
@@ -183,6 +289,87 @@ def action_item_update(request, pk: int):
     item.save()
     log_update(item, before, actor=request.user)
     messages.success(request, "Action item diperbarui.")
+    return redirect("core:action_items")
+
+
+def _assignment_or_404(pk: int) -> TaskAssignment:
+    return get_object_or_404(
+        TaskAssignment.objects.select_related("action_item", "action_item__clinic"), pk=pk
+    )
+
+
+@login_required
+@require_POST
+def assignment_claim(request, pk: int):
+    """Ambil task bersama (mode BERSAMA) — penerima lain tetap melihat siapa pelaksana."""
+    assignment = _assignment_or_404(pk)
+    if not can_access_clinic(request.user, assignment.action_item.clinic):
+        raise PermissionDenied("Anda tidak memiliki akses ke task cabang ini.")
+    try:
+        claim_shared_task(assignment, user=request.user)
+        messages.success(request, "Task diambil.")
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    return redirect("core:action_items")
+
+
+@login_required
+@require_POST
+def assignment_submit(request, pk: int):
+    """Penerima mengajukan task selesai ('Ajukan selesai') — belum final, menunggu konfirmasi."""
+    assignment = _assignment_or_404(pk)
+    if not can_access_clinic(request.user, assignment.action_item.clinic):
+        raise PermissionDenied("Anda tidak memiliki akses ke task cabang ini.")
+    try:
+        submit_assignment(assignment, user=request.user, note=request.POST.get("catatan", ""))
+        messages.success(request, "Task diajukan selesai, menunggu konfirmasi.")
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    return redirect("core:action_items")
+
+
+@login_required
+@require_POST
+def assignment_confirm(request, pk: int):
+    """Reviewer mengonfirmasi task selesai ('Konfirmasi selesai') — final, bukan tombol yang sama dengan ajukan."""
+    assignment = _assignment_or_404(pk)
+    if not can_access_clinic(request.user, assignment.action_item.clinic):
+        raise PermissionDenied("Anda tidak memiliki akses ke task cabang ini.")
+    try:
+        confirm_assignment(assignment, reviewer=request.user, note=request.POST.get("catatan", ""))
+        messages.success(request, "Task dikonfirmasi selesai.")
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    return redirect("core:action_items")
+
+
+@login_required
+@require_POST
+def assignment_revision(request, pk: int):
+    """Reviewer meminta revisi ('Minta revisi') — task kembali ke penerima dengan catatan wajib."""
+    assignment = _assignment_or_404(pk)
+    if not can_access_clinic(request.user, assignment.action_item.clinic):
+        raise PermissionDenied("Anda tidak memiliki akses ke task cabang ini.")
+    try:
+        request_revision(assignment, reviewer=request.user, note=request.POST.get("catatan", ""))
+        messages.warning(request, "Revisi diminta.")
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    return redirect("core:action_items")
+
+
+@login_required
+@require_POST
+def assignment_cancel(request, pk: int):
+    """Pemberi tugas atau AOM membatalkan assignment — wajib alasan."""
+    assignment = _assignment_or_404(pk)
+    if not can_access_clinic(request.user, assignment.action_item.clinic):
+        raise PermissionDenied("Anda tidak memiliki akses ke task cabang ini.")
+    try:
+        cancel_assignment(assignment, actor=request.user, reason=request.POST.get("alasan", ""))
+        messages.warning(request, "Task dibatalkan.")
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
     return redirect("core:action_items")
 
 
@@ -222,7 +409,7 @@ def attachment_download(request, pk: int):
 @login_required
 @require(can_manage_config)
 def config_page(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     if request.method == "POST":
         key = request.POST.get("kunci", "").strip()
         raw = request.POST.get("nilai", "").strip()

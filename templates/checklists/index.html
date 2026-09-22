@@ -1,23 +1,37 @@
 {% extends "base.html" %}
-{% block title %}Checklist pembukaan{% endblock %}
+{% block title %}Checklist harian{% endblock %}
 {% block content %}
-<h1>Checklist pembukaan</h1>
-<p class="sub">{{ day.date }} · {{ progress.done }}/{{ progress.total }} item diperiksa</p>
-<div class="progress"><span style="width: {{ progress.percent }}%"></span></div>
-<div class="grid" style="margin-top:1rem">
-  {% for card in cards %}
-    <div class="card">
-      <h3>{{ card.run.get_area_display }}</h3>
-      <div class="progress"><span style="width: {{ card.progress.percent }}%"></span></div>
-      <p class="meta">{{ card.progress.done }}/{{ card.progress.total }} diperiksa ·
-        {{ card.progress.problems|length }} bermasalah ·
-        {{ card.progress.required_pending|length }} wajib tertunda</p>
-      <span class="tag {% if card.run.status == 'SELESAI' %}ok{% elif card.run.status == 'DITERIMA_DENGAN_CATATAN' %}warn{% else %}info{% endif %}">{{ card.run.get_status_display }}</span>
-      <p><a class="btn small" href="{% url 'checklists:run' card.run.pk %}">Isi checklist</a></p>
-    </div>
-  {% empty %}
-    <div class="card"><p class="meta">Belum ada template checklist aktif. Admin dapat membuatnya di Admin ▸ Template.</p></div>
-  {% endfor %}
+<div class="checklist-heading">
+  <div>
+    <h1>Checklist hari ini</h1>
+    <p class="sub">{{ day.date }} · {{ progress.done }}/{{ progress.total }} item diperiksa</p>
+  </div>
+  <a class="btn small secondary" href="{% url 'checklists:review' %}">Review supervisor</a>
 </div>
-<p><a class="btn secondary" href="{% url 'checklists:review' %}">Review pembukaan</a></p>
+
+<div class="checklist-summary">
+  <div class="checklist-stat"><span>Belum selesai</span><strong>{{ progress.pending }}</strong></div>
+  <div class="checklist-stat ok"><span>Selesai</span><strong>{{ progress.done }}</strong></div>
+  <div class="checklist-stat"><span>Total item</span><strong>{{ progress.total }}</strong></div>
+</div>
+
+{% for session in session_groups %}
+<section class="checklist-session">
+  <div class="checklist-session-heading">
+    <div><h2>{{ session.label }}</h2><span class="meta">{{ session.done }}/{{ session.total }} selesai</span></div>
+    <div class="progress compact"><span style="width: {{ session.percent }}%"></span></div>
+  </div>
+  <div class="checklist-run-list">
+    {% for card in session.cards %}
+    <a class="checklist-run-row {% if card.progress.pending %}has-pending{% endif %}" href="{% url 'checklists:run' card.run.pk %}">
+      <span class="checklist-run-icon">{% if card.progress.pending %}·{% else %}✓{% endif %}</span>
+      <span class="checklist-run-main"><strong>{{ card.run.template.name }}</strong><small>{{ card.run.get_area_display }} · {{ card.progress.done }}/{{ card.progress.total }} item</small></span>
+      <span class="checklist-run-status">{% if card.progress.pending %}Lanjutkan{% else %}Selesai{% endif %} ›</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% empty %}
+<div class="card"><p class="meta">Belum ada template checklist aktif. Admin dapat membuatnya di Admin ▸ Template.</p></div>
+{% endfor %}
 {% endblock %}

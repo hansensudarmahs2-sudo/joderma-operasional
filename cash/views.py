@@ -40,7 +40,7 @@ def _quantities_from_post(post, denominations) -> dict[int, int]:
 @login_required
 @require(can_view_cash_amounts)
 def index(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     day, _ = get_or_create_day(clinic, user=request.user)
     return render(
         request,
@@ -57,7 +57,7 @@ def index(request):
 @login_required
 @require(can_view_cash_amounts, can_edit_cash)
 def form(request, session_type: str):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     day, _ = get_or_create_day(clinic, user=request.user)
     session_type = session_type.upper()
     if session_type not in dict(CashSessionType.choices):

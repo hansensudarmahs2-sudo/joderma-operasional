@@ -2,6 +2,55 @@
 {% block title %}Hari Ini{% endblock %}
 {% block content %}
 <h1>Hari Ini</h1>
+
+{% if is_aom %}
+<h2>Ringkasan AOM</h2>
+<div class="card">
+  <p class="meta">Konfirmasi tertunda lintas cabang, laporan rahasia, dan masukan menunggu tinjauan.</p>
+  <ul class="timeline">
+    {% for a in aom_pending_confirmations %}
+      <li><strong>{{ a.action_item.title }}</strong> · {{ a.action_item.clinic.name }}
+        <div class="meta">Diajukan oleh {{ a.assignee }} · {{ a.submitted_at|date:"d/m H:i" }}</div></li>
+    {% empty %}<li class="meta">Tidak ada task menunggu konfirmasi AOM.</li>{% endfor %}
+  </ul>
+  <p>
+    <a class="btn small secondary" href="{% url 'core:action_items' %}">Semua action item</a>
+    <a class="btn small secondary" href="{% url 'reports:laporan_page' %}">Laporan rahasia ({{ aom_confidential_laporan_count }})</a>
+    <a class="btn small secondary" href="{% url 'reports:masukan_page' %}">Masukan menunggu ({{ aom_masukan_pending_count }})</a>
+  </p>
+</div>
+{% endif %}
+
+{% if is_pic %}
+<h2>Ringkasan PIC</h2>
+<div class="card">
+  <p class="meta">Task delegasi Anda yang diajukan staf dan menunggu konfirmasi Anda.</p>
+  <ul class="timeline">
+    {% for a in pic_pending_confirmations %}
+      <li><strong>{{ a.action_item.title }}</strong>
+        <div class="meta">Diajukan oleh {{ a.assignee }} · {{ a.submitted_at|date:"d/m H:i" }}</div></li>
+    {% empty %}<li class="meta">Tidak ada task delegasi Anda yang menunggu konfirmasi.</li>{% endfor %}
+  </ul>
+  <p class="meta">
+    {% if pic_functions %}Fungsi PIC aktif Anda: {% for f in pic_functions %}{{ f }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    {% else %}Anda belum memiliki penugasan fungsi PIC aktif di cabang ini.{% endif %}
+  </p>
+  <p class="meta">Template checklist yang menargetkan fungsi PIC Anda: {{ pic_checklist_templates|length }}</p>
+  <a class="btn small secondary" href="{% url 'core:action_items' %}">Semua action item</a>
+</div>
+{% endif %}
+
+{% if is_admin %}
+<h2>Ringkasan Admin</h2>
+<div class="card">
+  <p class="meta">Pengelolaan pengguna dan template checklist.</p>
+  <p>
+    {% if can_manage_users %}<a class="btn small secondary" href="{% url 'accounts:user_list' %}">Kelola pengguna</a>{% endif %}
+    {% if can_manage_templates %}<a class="btn small secondary" href="{% url 'checklists:templates' %}">Kelola template checklist</a>{% endif %}
+  </p>
+</div>
+{% endif %}
+
 {% if day %}
   <p class="sub">{{ day.date }} · {{ clinic.name }} ·
     <span class="tag {% if day.status == 'CLOSED' %}muted{% elif day.status == 'READY_WITH_ISSUES' %}warn{% elif day.status == 'OPEN' or day.status == 'READY' %}ok{% else %}info{% endif %}">{{ day.get_status_display }}</span>
@@ -26,14 +75,6 @@
       <p><a class="btn small secondary" href="{% url 'cash:index' %}">Buka kas</a></p>
     </div>
     {% endif %}
-
-    <div class="card">
-      <div class="stat-label">Antrean</div>
-      <div class="stat">{{ queue.total }}</div>
-      <p class="meta">{{ queue.sudah_bayar }} keep nomor · {{ queue.menunggu }} menunggu ·
-        {{ queue.dilayani }} dilayani · {{ queue.selesai }} selesai · {{ queue.batal }} batal/no-show</p>
-      <a class="btn small secondary" href="{% url 'queueing:board' %}">Buka antrean</a>
-    </div>
 
     <div class="card">
       <div class="stat-label">Perawat berikutnya</div>

@@ -179,9 +179,10 @@ def _assert_no_admin_lockout(target: User, *, new_roles: set, new_active: bool, 
 @login_required
 @require(can_manage_users)
 def user_detail(request, pk: int):
+    clinic = active_clinic(request.user)
     user = get_object_or_404(User, pk=pk)
     initial = {
-        "roles": list(user.user_roles.values_list("role", flat=True)),
+        "roles": list(user.user_roles.filter(clinic=clinic).values_list("role", flat=True)),
         "capabilities": list(user.extra_capabilities.values_list("capability", flat=True)),
     }
     form = UserForm(request.POST or None, instance=user, initial=initial)
@@ -203,7 +204,9 @@ def user_detail(request, pk: int):
         if form.cleaned_data.get("password"):
             obj.set_password(form.cleaned_data["password"])
             obj.must_change_password = True
-        if not obj.is_active and user.deactivated_at is None:
+        if obj.is_active:
+            obj.deactivated_at = None
+        elif user.deactivated_at is None:
             obj.deactivated_at = timezone.now()
         obj.save()
         _sync_roles(obj, form, request)
@@ -212,13 +215,50 @@ def user_detail(request, pk: int):
     return render(request, "accounts/user_form.html", {"form": form, "target": user})
 
 
+@login_required
+@require(can_manage_users)
+@require_POST
+def user_toggle_active(request, pk: int):
+    """Aktif/nonaktifkan akun tanpa menghapus riwayat atau role."""
+    from django.core.exceptions import ValidationError
+
+    user = get_object_or_404(User, pk=pk)
+    new_active = not user.is_active
+    roles = set(user.user_roles.filter(clinic=active_clinic(request.user)).values_list("role", flat=True))
+    try:
+        _assert_no_admin_lockout(
+            user,
+            new_roles=roles,
+            new_active=new_active,
+            actor=request.user,
+        )
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+        return redirect("accounts:user_list")
+
+    user.is_active = new_active
+    user.deactivated_at = None if new_active else timezone.now()
+    user.save(update_fields=["is_active", "deactivated_at"])
+    log_event(
+        action=AuditAction.PERMISSION_CHANGED,
+        entity_type="user",
+        entity_id=user.pk,
+        entity_label=str(user),
+        actor=request.user,
+        before={"is_active": not new_active},
+        after={"is_active": new_active},
+    )
+    messages.success(request, f"Pengguna {user.username} {'diaktifkan' if new_active else 'dinonaktifkan'}.")
+    return redirect("accounts:user_list")
+
+
 def _sync_roles(user: User, form: UserForm, request) -> None:
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     wanted_roles = set(form.cleaned_data.get("roles") or [])
-    current_roles = set(user.user_roles.values_list("role", flat=True))
+    current_roles = set(user.user_roles.filter(clinic=clinic).values_list("role", flat=True))
     for role in wanted_roles - current_roles:
         UserRole.objects.create(user=user, clinic=clinic, role=role, granted_by=request.user)
-    UserRole.objects.filter(user=user, role__in=current_roles - wanted_roles).delete()
+    UserRole.objects.filter(user=user, clinic=clinic, role__in=current_roles - wanted_roles).delete()
 
     wanted_caps = set(form.cleaned_data.get("capabilities") or [])
     current_caps = set(user.extra_capabilities.values_list("capability", flat=True))

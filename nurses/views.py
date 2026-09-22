@@ -10,8 +10,10 @@ from django.views.decorators.http import require_POST
 from accounts.models import Role, User
 from core.permissions import can_manage_roster, is_supervisor, require
 from core.services import active_clinic, get_or_create_day
-from queueing.models import QueueEntry, QueueStatus
+from queueing.models import QueueEntry
 
+from .forms import NurseActionTallyForm
+from orders.services import normalize_rm_number
 from .models import (
     Availability,
     CommissionTurnEvent,
@@ -19,6 +21,7 @@ from .models import (
     ProcedureAssignment,
     ProcedureCategory,
     ProcedureStatus,
+    NurseActionTally,
 )
 from .services import (
     assign_procedure,
@@ -35,10 +38,11 @@ from .services import (
 
 @login_required
 def board(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     day, _ = get_or_create_day(clinic, user=request.user)
     roster = NurseRosterEntry.objects.filter(operational_day=day).select_related("nurse")
     categories = ProcedureCategory.objects.filter(clinic=clinic, active=True)
+    nurse_users = User.objects.filter(is_active=True, user_roles__clinic=clinic, user_roles__role=Role.PERAWAT).distinct()
     return render(
         request,
         "nurses/board.html",
@@ -48,24 +52,40 @@ def board(request):
             "next_entry": next_nurse(day),
             "policy": rotation_policy(clinic),
             "categories": categories,
-            "procedures": ProcedureAssignment.objects.filter(operational_day=day).select_related(
-                "nurse", "category", "queue_entry"
-            )[:50],
-            "queue_entries": QueueEntry.objects.filter(operational_day=day).exclude(
-                queue_status__in=[QueueStatus.BATAL, QueueStatus.SELESAI]
-            ),
             "can_manage": can_manage_roster(request.user),
             "events": CommissionTurnEvent.objects.filter(operational_day=day).select_related(
                 "nurse", "actor"
             )[:20],
+            "tallies": NurseActionTally.objects.filter(operational_day=day).select_related("nurse", "entered_by"),
+            "tally_form": NurseActionTallyForm(nurse_queryset=nurse_users),
+            "rm_prefix": "JJ-" if clinic.code == "jemur-andayani" else "JC-" if clinic.code == "citraland" else "RM-",
         },
     )
 
 
 @login_required
+@require_POST
+def create_tally(request):
+    clinic = active_clinic(request.user)
+    day, _ = get_or_create_day(clinic, user=request.user)
+    nurse_users = User.objects.filter(is_active=True, user_roles__clinic=clinic, user_roles__role=Role.PERAWAT).distinct()
+    form = NurseActionTallyForm(request.POST, nurse_queryset=nurse_users)
+    if form.is_valid():
+        tally = form.save(commit=False)
+        tally.rm_number = normalize_rm_number(clinic, tally.rm_number)
+        tally.operational_day = day
+        tally.entered_by = request.user
+        tally.save()
+        messages.success(request, "Tally tindakan disimpan.")
+    else:
+        messages.error(request, "Data tally belum lengkap atau tidak valid.")
+    return redirect("nurses:board")
+
+
+@login_required
 @require(can_manage_roster)
 def roster_form(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     day, _ = get_or_create_day(clinic, user=request.user)
     nurses = User.objects.filter(is_active=True, user_roles__role=Role.PERAWAT).distinct()
     if request.method == "POST":
@@ -93,7 +113,7 @@ def roster_form(request):
 @login_required
 @require_POST
 def assign(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     day, _ = get_or_create_day(clinic, user=request.user)
     category = get_object_or_404(ProcedureCategory, pk=request.POST.get("kategori"))
     queue_entry = None
@@ -192,7 +212,7 @@ def availability(request, pk: int):
 
 @login_required
 def ledger(request):
-    clinic = active_clinic()
+    clinic = active_clinic(request.user)
     day, _ = get_or_create_day(clinic, user=request.user)
     events = CommissionTurnEvent.objects.filter(operational_day=day).select_related(
         "nurse", "actor", "procedure_category"

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Draft {{ order.order_no }}{% endblock %}
+{% block content %}
+<h1>Draft order {{ order.order_no }}</h1>
+<p class="sub">{{ order.customer_name }} · {{ order.rm_number }} · {{ order.customer_address }}</p>
+<h2>Produk dalam draft</h2>
+<table class="responsive"><thead><tr><th>Produk</th><th>Jumlah</th><th>Harga satuan</th><th>Subtotal</th></tr></thead>
+<tbody>{% for item in order.items.all %}<tr><td>{{ item.product_name }}</td><td>{{ item.quantity }}</td><td>Rp {{ item.unit_price|default:"-" }}</td><td>Rp {{ item.total_price|default:"-" }}</td></tr>{% empty %}<tr><td colspan="4" class="meta">Belum ada produk.</td></tr>{% endfor %}</tbody></table>
+<p><strong>Total: Rp {{ order.total_price|default:"0" }}</strong></p>
+<div class="card"><h2>Tambah produk</h2><form method="post" action="{% url 'orders:add_item' order.pk %}">{% csrf_token %}<label for="id_draft_product_search">Cari produk</label><input id="id_draft_product_search" type="search" placeholder="Ketik nama, golongan, atau kandungan…" autocomplete="off"><p class="help">Pilih dari dropdown, lalu isi jumlah.</p>{{ form.as_p }}<button class="btn" type="submit">Tambah ke draft</button></form></div>
+<form method="post" action="{% url 'orders:submit' order.pk %}">{% csrf_token %}<button class="btn" type="submit">Kirim semua ke farmasi</button> <a class="btn secondary" href="{% url 'orders:index' %}">Batal</a></form>
+<script>
+(function () {
+  const search = document.getElementById('id_draft_product_search');
+  const select = document.getElementById('id_product');
+  if (!search || !select) return;
+  const options = Array.from(select.options);
+  search.addEventListener('input', function () {
+    const query = search.value.trim().toLowerCase();
+    options.forEach(function (option) { option.hidden = !!(option.value && query && !option.text.toLowerCase().includes(query)); });
+    const visible = options.filter(function (option) { return option.value && !option.hidden; });
+    if (visible.length === 1) select.value = visible[0].value;
+  });
+})();
+</script>
+{% endblock %}

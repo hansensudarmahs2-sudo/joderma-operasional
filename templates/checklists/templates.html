@@ -5,7 +5,16 @@
 <p class="sub">Perubahan template hanya berlaku untuk sesi baru; checklist historis tidak berubah.</p>
 {% for t in templates %}
 <div class="card">
-  <h3>{{ t.get_area_display }} · v{{ t.version }} {% if t.active %}<span class="tag ok">Aktif</span>{% else %}<span class="tag muted">Nonaktif</span>{% endif %}</h3>
+  <h3>{{ t.name }} · {{ t.get_session_display }} · v{{ t.version }} {% if t.active %}<span class="tag ok">Aktif</span>{% else %}<span class="tag muted">Nonaktif</span>{% endif %}</h3>
+  <p class="meta">
+    Area: <strong>{{ t.get_area_display }}</strong> ·
+    Target role: <strong>{{ t.target_roles|join:", "|default:"Semua role" }}</strong> ·
+    Mode assignment: <strong>{{ t.get_assignment_mode_display }}</strong> ·
+    Target tindak lanjut:
+    {% if t.target_pic_function %}fungsi PIC <strong>{{ t.get_target_pic_function_display }}</strong>
+    {% elif t.target_role %}role/tier <strong>{{ t.get_target_role_display }}</strong>
+    {% else %}<em>belum ditargetkan — jatuh ke petugas yang mencatat hasil</em>{% endif %}
+  </p>
   <table class="responsive">
     <thead><tr><th>Item</th><th>Kategori</th><th>Tipe</th><th>Wajib</th><th>Minimum</th></tr></thead>
     <tbody>
@@ -18,6 +27,8 @@
     </tbody>
   </table>
 </div>
+{% empty %}
+<div class="card"><p class="meta">Belum ada template checklist untuk cabang ini.</p></div>
 {% endfor %}
-<p class="meta">Pengelolaan item template dilakukan lewat Django admin pada MVP: <a href="/django-admin/checklists/checklisttemplate/">buka admin template</a>.</p>
+<p class="meta">Pengelolaan item template (termasuk sesi dan target fungsi PIC/role) dilakukan lewat Django admin pada MVP: <a href="/django-admin/checklists/checklisttemplate/">buka admin template</a>.</p>
 {% endblock %}
