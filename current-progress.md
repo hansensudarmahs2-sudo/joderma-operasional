@@ -1,14 +1,17 @@
 # Current Progress
 
-Status per 20 September 2026 (Asia/Jakarta). Sumber rencana: `docs/AOM_MODULE_INTEGRATION_PLAN.md`.
+Status per 26 September 2026 (Asia/Jakarta). Sumber rencana: `docs/AOM_MODULE_INTEGRATION_PLAN.md`.
 
 ## Ringkasan
 
 Integrasi AOM telah melewati baseline/proteksi (Fase 0), organisasi dan akses (Fase 1),
 task dan delegasi (Fase 2), checklist harian (Fase 3), laporan dan masukan (Fase 4), serta
-UI dan usability (Fase 5, implementasi selesai — gate menunggu review/approval manusia).
-Semua pekerjaan dilakukan di desktop Ubuntu/Linux dengan data dummy. Belum ada perubahan ke
-mini PC produksi, commit, push, atau deployment.
+UI dan usability (Fase 5, implementasi selesai). Fase 0–5 (termasuk desain checklist PDF dan
+SDM multi-role) sudah DI-COMMIT dan DI-PUSH ke `origin/master` pada commit `0884b3f`
+("feat: compact checklist and SDM role management"); working tree bersih. Semua pekerjaan
+dilakukan di desktop Ubuntu/Linux dengan data dummy. Belum ada perubahan ke mini PC produksi
+atau deployment. Approval eksplisit product owner untuk lanjut ke Fase 6 BELUM dikonfirmasi
+di dokumen ini — verifikasi status approval sebelum memulai Fase 6.
 
 ## Matriks fase
 
@@ -17,9 +20,9 @@ mini PC produksi, commit, push, atau deployment.
 | 0 — baseline dan perlindungan | Selesai | Baseline dicatat, fixture role/cabang ditambahkan, backup/restore dummy diverifikasi. |
 | 1 — organisasi dan akses | Selesai | Role AOM/PIC, organisasi, fungsi PIC, capability, scope cabang, dan negative tests tersedia. |
 | 2 — task dan delegasi | Selesai | Snapshot penerima, assignment individual/bersama, lifecycle submit/revision/confirm/cancel, histori, dan tests tersedia. |
-| 3 — checklist harian | Implementasi selesai, gate belum disetujui | Sesi opening/closing/anytime, template berversi (histori tidak berubah), target fungsi PIC/role, tindak lanjut idempoten, koreksi wajib beralasan dengan audit `CORRECTION`. |
-| 4 — laporan dan masukan | Implementasi selesai, gate belum disetujui | Model `Laporan`/`Masukan` ditambahkan di app `reports` yang sudah ada. Visibilitas `CABANG`/`RAHASIA_AOM`, status lifecycle, arsip beralasan+capability+audit, publikasi masukan AOM dengan snapshot immutable, dan negative tests kebocoran lintas cabang/rahasia. |
-| 5 — UI dan usability | Implementasi selesai, gate belum disetujui | Dashboard AOM/PIC/Admin ditambahkan (staf tetap seperti semula), aksi task 'Ajukan selesai'/'Konfirmasi selesai'/'Minta revisi'/'Ambil task bersama' sebagai view terpisah dengan proteksi server-side, halaman HTML laporan/masukan dengan filter status eksplisit di atas endpoint JSON Fase 4, PIC kosong menampilkan pesan ramah di view checklist (bukan crash). Menunggu review dan approval product owner sebelum Fase 6. |
+| 3 — checklist harian | Implementasi selesai dan sudah di-commit (`0884b3f`) | Sesi opening/closing/anytime, template berversi (histori tidak berubah), target fungsi PIC/role, tindak lanjut idempoten, koreksi wajib beralasan dengan audit `CORRECTION`. |
+| 4 — laporan dan masukan | Implementasi selesai dan sudah di-commit (`0884b3f`) | Model `Laporan`/`Masukan` ditambahkan di app `reports` yang sudah ada. Visibilitas `CABANG`/`RAHASIA_AOM`, status lifecycle, arsip beralasan+capability+audit, publikasi masukan AOM dengan snapshot immutable, dan negative tests kebocoran lintas cabang/rahasia. |
+| 5 — UI dan usability | Implementasi selesai dan sudah di-commit (`0884b3f`) | Dashboard AOM/PIC/Admin ditambahkan (staf tetap seperti semula), aksi task 'Ajukan selesai'/'Konfirmasi selesai'/'Minta revisi'/'Ambil task bersama' sebagai view terpisah dengan proteksi server-side, halaman HTML laporan/masukan dengan filter status eksplisit di atas endpoint JSON Fase 4, PIC kosong menampilkan pesan ramah di view checklist (bukan crash). Approval eksplisit product owner untuk lanjut ke Fase 6 belum dikonfirmasi. |
 | 6–8 | Belum dimulai | Rehearsal migrasi data AOM, release, observasi, dan cutover belum dikerjakan. |
 
 ## Implementasi yang sudah ada
@@ -135,7 +138,7 @@ mini PC produksi, commit, push, atau deployment.
 Lingkungan test aktif menggunakan `.venv` dengan Python 3.11.16. Python 3.14 tersedia di
 mesin, tetapi lingkungan proyek yang terbukti stabil untuk suite saat ini adalah `.venv`.
 
-Perintah terakhir yang lulus (setelah Fase 5):
+Perintah terakhir yang lulus (setelah Fase 5, sebelum commit):
 
 ```text
 .venv/bin/python manage.py check                              # System check: 0 issues
@@ -143,6 +146,21 @@ Perintah terakhir yang lulus (setelah Fase 5):
 .venv/bin/python manage.py makemigrations --check --dry-run   # No changes detected
 git diff --check                                              # tidak ada whitespace error
 ```
+
+**Update 26 September 2026 — pasca-commit `0884b3f`:** diverifikasi ulang secara independen
+pada HEAD saat ini (working tree bersih, sinkron `origin/master`):
+
+```text
+.venv/bin/python manage.py check                              # System check: 0 issues
+.venv/bin/python -m pytest -q --tb=short                      # 336 passed (naik dari 333,
+                                                                # test SDM multi-role baru)
+.venv/bin/python manage.py makemigrations --check --dry-run   # No changes detected
+git status --short                                            # kosong
+```
+
+Migration rehearsal khusus untuk migration baru di commit `0884b3f`
+(`accounts/migrations/0005_*`, `checklists/migrations/0003_*`/`0004_*`) belum diulang
+secara independen pasca-commit pada sesi ini.
 
 Diverifikasi ulang pada 20 September 2026 setelah desain checklist PDF diterapkan. Rincian jumlah
 test per file (`pytest --collect-only -q`,
@@ -186,8 +204,10 @@ selesai/arsip, dan direct-URL access 403 untuk pihak tak berwenang.
 
 ## Working tree
 
-Perubahan Fase 0–5 masih berada di working tree dan belum di-commit. Berkas baru/berubah
-utama untuk Fase 3:
+Perubahan Fase 0–5 SUDAH DI-COMMIT (`0884b3f`) dan DI-PUSH ke `origin/master`; working tree
+per 26 September 2026 bersih (`git status --short` kosong). Bagian di bawah ini adalah
+riwayat berkas baru/berubah per fase seperti tercatat saat implementasi (sekarang bagian dari
+sejarah commit, bukan lagi perubahan pending). Berkas baru/berubah utama untuk Fase 3:
 
 - `checklists/models.py`: `ChecklistSession`, field sesi pada `ChecklistTemplate`/`ChecklistRun`,
   field target fungsi PIC/role/assignment_mode pada template, model `ChecklistFollowup`.
@@ -238,8 +258,10 @@ satu baris ada di bagian "Implementasi yang sudah ada → Fase 5" di atas; ringk
   sumber PDF dibuat idempoten.
 - Tidak ada file model/migration yang ditambah atau diubah.
 
-Sebelum commit, tinjau seluruh `git diff`, cek migration, ulangi test, dan pastikan tidak ada
-secret, database, backup, media privat, atau data pasien yang ikut ter-stage.
+Berkas-berkas di atas SUDAH ter-commit di `0884b3f` (per 26 September 2026). Sebelum melakukan
+commit baru berikutnya, tetap tinjau seluruh `git diff`, cek migration, ulangi test, dan
+pastikan tidak ada secret, database, backup, media privat, atau data pasien yang ikut
+ter-stage.
 
 ## Remediation audit keamanan
 
@@ -254,11 +276,12 @@ secret, database, backup, media privat, atau data pasien yang ikut ter-stage.
 
 ## Langkah berikutnya yang disetujui rencana
 
-Fase 5 (UI dan usability) sudah diimplementasikan dan lulus test desktop. Belum lanjut ke
-Fase 6. Yang masih perlu sebelum lanjut:
+Fase 5 (UI dan usability) sudah diimplementasikan, lulus test desktop, DAN SUDAH DI-COMMIT/
+DI-PUSH (`0884b3f`). Belum lanjut ke Fase 6. Yang masih perlu sebelum lanjut:
 
-1. Review manusia atas diff dan bukti pengujian Fase 5 (dan Fase 4 bila belum ditinjau).
-2. Approval product owner untuk melanjutkan ke Fase 6 (migration rehearsal data AOM).
+1. Review manusia atas diff dan bukti pengujian yang sudah di-commit (Fase 0–5).
+2. Approval product owner untuk melanjutkan ke Fase 6 (migration rehearsal data AOM) — belum
+   dikonfirmasi di dokumen ini.
 3. Deferral eksplisit dari scope Fase 4 (masih berlaku, belum dikerjakan di Fase 5):
    - Attachment/lampiran untuk laporan dan masukan belum diimplementasikan (plan 9/11
      menyebut lampiran aman sebagai bagian Fase 4, tetapi deferred agar tidak memperluas

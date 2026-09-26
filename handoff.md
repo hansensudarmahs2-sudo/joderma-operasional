@@ -13,14 +13,19 @@ Dokumen ini adalah titik masuk untuk melanjutkan integrasi AOM sesuai
 - Fase 3 (checklist harian) sudah diimplementasikan dan bukti pengujiannya lulus.
 - Fase 4 (laporan dan masukan) sudah diimplementasikan dan bukti pengujiannya lulus.
 - Fase 5 (UI dan usability) sudah diimplementasikan dan bukti pengujiannya lulus.
-  Gate Fase 5 BELUM disetujui — menunggu review manusia sebelum Fase 6.
-- Perubahan masih uncommitted. Jangan commit/push sebelum diff dan bukti pengujian
-  ditinjau serta ada persetujuan yang diperlukan.
+- Fase 0–5 (termasuk desain checklist PDF dan SDM multi-role) sudah DI-COMMIT dan DI-PUSH ke
+  `origin/master` pada commit `0884b3f` ("feat: compact checklist and SDM role management").
+  Working tree bersih (`git status --short` kosong) per 26 September 2026.
+- Gate Fase 5 BELUM secara eksplisit disetujui untuk lanjut ke Fase 6 — commit di atas
+  menyatukan Fase 0–5, tetapi belum ada catatan approval product owner untuk mulai Fase 6
+  (migration rehearsal data AOM standalone). Konfirmasikan status approval ini sebelum
+  memulai Fase 6.
 
 ## Cara melanjutkan
 
 1. Baca seluruh `AGENTS.md` dan `docs/AOM_MODULE_INTEGRATION_PLAN.md`.
-2. Periksa `git status --short` dan jangan menghapus perubahan yang sudah ada.
+2. Periksa `git status --short` (harus bersih — Fase 0–5 sudah di-commit di `0884b3f`) dan
+   `git log --oneline -5` untuk konfirmasi posisi HEAD sebelum mengubah apa pun.
 3. Jalankan baseline cepat sebelum mengubah kode:
 
    ```bash
@@ -32,9 +37,10 @@ Dokumen ini adalah titik masuk untuk melanjutkan integrasi AOM sesuai
    assignment fungsi/tier, task tindak lanjut idempoten, koreksi dengan audit trail),
    Fase 4 (laporan cabang/rahasia AOM, publikasi masukan, arsip beralasan), dan Fase 5
    (dashboard per role, bahasa tindakan jelas, filter data selesai, halaman HTML
-   laporan/masukan) sudah diimplementasikan — lihat `current-progress.md` untuk detail
-   berkas dan bukti. Fase berikutnya yang boleh dikerjakan setelah approval adalah Fase 6:
-   migration rehearsal data AOM standalone.
+   laporan/masukan) sudah diimplementasikan DAN SUDAH DI-COMMIT (`0884b3f`) — lihat
+   `current-progress.md` untuk detail berkas dan bukti. Fase berikutnya yang boleh
+   dikerjakan setelah approval eksplisit adalah Fase 6: migration rehearsal data AOM
+   standalone.
 5. Gunakan database dummy atau salinan database untuk semua migration rehearsal dan UAT.
 6. Setelah implementasi, jalankan test terkait, test penuh, `makemigrations --check`,
    `git diff --check`, dan migration rehearsal di database sementara.
@@ -58,7 +64,23 @@ Pada akhir Fase 5, bukti berikut berhasil (diverifikasi ulang secara independen)
 Diverifikasi ulang pada 20 September 2026 (bukan hanya klaim implementasi): `manage.py check`
 bersih, `pytest` penuh → 333 passed, `makemigrations
 --check --dry-run` → `No changes detected`, `git diff --check` → bersih (exit 0). Working
-tree: 58 baris `git status --short` (file berubah/baru Fase 0–5), tidak ada commit.
+tree saat itu: 58 baris `git status --short` (file berubah/baru Fase 0–5), belum ada commit.
+
+**Update 26 September 2026:** perubahan Fase 0–5 di atas sudah di-commit dan di-push
+(`0884b3f`, mencakup juga desain checklist PDF dan SDM multi-role yang menambah beberapa
+migration baru di `accounts`/`checklists`/`audit`). Diverifikasi ulang secara independen pada
+commit ini:
+
+- `manage.py check` → 0 issues.
+- `manage.py makemigrations --check --dry-run` → `No changes detected`.
+- `pytest -q --tb=short` → 336 test lulus (naik dari 333 karena test SDM multi-role baru).
+- `git status --short` → kosong (working tree bersih, sinkron dengan `origin/master`).
+
+Migration rehearsal khusus untuk migration baru commit `0884b3f`
+(`accounts/migrations/0005_*`, `checklists/migrations/0003_*`/`0004_*`,
+`audit/migrations/0002_*`/`0003_*`) BELUM diverifikasi ulang pada sesi ini — sebelumnya
+dilaporkan sudah rehearsal di SQLite sementara `/tmp` saat implementasi, tetapi belum
+diulang secara independen pasca-commit.
 
 **Batasan pengujian yang jujur dilaporkan (plan section 14):** repository ini TIDAK memiliki
 infrastruktur browser/Selenium/Playwright. Django test Client menguji view dan rendering
