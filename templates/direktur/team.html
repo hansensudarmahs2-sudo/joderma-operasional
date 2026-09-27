@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Tim{% endblock %}
+{% block content %}
+<h1>Tim — {{ today|date:"d/m/Y" }}</h1>
+<p class="sub">Apa yang sudah dan belum dikerjakan tim, per cabang. Halaman ini hanya untuk membaca; tidak ada skor atau peringkat.</p>
+<p>
+  <a class="btn small" href="{% url 'direktur:task_new' %}">Task baru</a>
+  <a class="btn small secondary" href="{% url 'direktur:notes' %}">Catatan</a>
+  <a class="btn small secondary" href="{% url 'direktur:checklist' %}">Checklist Direktur</a>
+</p>
+
+{% for c in clinics %}
+<h2>{{ c.clinic.name }}</h2>
+
+<div class="grid">
+  <div class="card">
+    <div class="stat">{% if c.day %}{{ c.runs_unfilled }}{% else %}—{% endif %}</div>
+    <div class="stat-label">Butir checklist staf belum diisi hari ini</div>
+  </div>
+  {% for key, s in c.audit.items %}
+  <div class="card">
+    <div class="stat">{{ s.pending|length }}/{{ s.total }}</div>
+    <div class="stat-label"><a href="{% url 'direktur:checklist' %}?siklus={{ key }}&cabang={{ c.clinic.pk }}">Checklist Direktur {{ s.label|lower }} belum dicek</a></div>
+  </div>
+  {% endfor %}
+  <div class="card">
+    <div class="stat">{{ c.findings|length }}</div>
+    <div class="stat-label">Temuan Direktur terbuka</div>
+  </div>
+</div>
+
+<h3>Checklist staf hari ini</h3>
+{% if not c.day %}
+  <p class="meta"><span class="tag warn">Belum ada sesi hari operasional</span> — checklist hari ini belum dimulai di cabang ini.</p>
+{% else %}
+<table class="responsive">
+  <thead><tr><th>Checklist</th><th>Untuk</th><th>Belum diisi</th><th>Bermasalah</th></tr></thead>
+  <tbody>
+  {% for r in c.runs %}
+    <tr>
+      <td data-label="Checklist">{{ r.name }} <span class="meta">{{ r.run.get_session_display }}</span></td>
+      <td data-label="Untuk">{{ r.roles|join:", "|default:"Semua" }}</td>
+      <td data-label="Belum diisi">{% if r.unfilled %}<span class="tag warn">{{ r.unfilled }} / {{ r.total }}</span>{% else %}<span class="tag ok">Lengkap</span>{% endif %}</td>
+      <td data-label="Bermasalah">{% if r.problems %}<span class="tag err">{{ r.problems }}</span>{% else %}—{% endif %}</td>
+    </tr>
+  {% empty %}<tr><td colspan="4" class="meta">Tidak ada checklist untuk hari ini.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<h3>PIC</h3>
+<table>
+  <tbody>
+  {% for p in c.pic_holders %}
+    <tr><td>{{ p.label }}</td>
+      <td>{% for u in p.users %}{{ u }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="tag warn">Belum ditetapkan</span>{% endfor %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h3>Task per orang</h3>
+<table class="responsive">
+  <thead><tr><th>Nama</th><th>Belum selesai</th><th>Menunggu konfirmasi</th><th>Selesai 7 hari</th></tr></thead>
+  <tbody>
+  {% for p in c.people %}
+    <tr>
+      <td data-label="Nama"><strong>{{ p.user }}</strong>{% if p.pic %}<div class="meta">PIC {{ p.pic|join:", " }}</div>{% endif %}</td>
+      <td data-label="Belum selesai">
+        {% for a in p.open %}<div>{{ a.action_item.title }}{% if a.action_item.due_at %} <span class="meta">· {{ a.action_item.due_at|date:"d/m" }}</span>{% endif %}{% if a.action_item.is_overdue %} <span class="tag err">Lewat</span>{% endif %}{% if a.status == 'REVISION_REQUIRED' %} <span class="tag warn">Revisi</span>{% endif %}</div>
+        {% empty %}<span class="meta">—</span>{% endfor %}</td>
+      <td data-label="Menunggu konfirmasi">{% for a in p.waiting %}<div>{{ a.action_item.title }}</div>{% empty %}<span class="meta">—</span>{% endfor %}</td>
+      <td data-label="Selesai 7 hari">{{ p.done|length|default:"—" }}</td>
+    </tr>
+  {% empty %}<tr><td colspan="4" class="meta">Belum ada task atau PIC di cabang ini.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h3>Temuan Direktur terbuka</h3>
+<ul class="timeline">
+  {% for f in c.findings %}
+  <li><strong>{{ f.title }}</strong> <span class="meta">· {{ f.created_at|date:"d/m" }}</span>{% if f.is_overdue %} <span class="tag err">Lewat</span>{% endif %}
+    <div class="meta">{{ f.description }}</div>
+    <div class="meta">Penerima: {% for a in f.task_assignments.all %}{{ a.assignee }} ({{ a.get_status_display }}){% if not forloop.last %}, {% endif %}{% empty %}<span class="tag warn">belum ada</span>{% endfor %}</div>
+    <form method="post" action="{% url 'direktur:finding_close' f.pk %}" class="inline">
+      {% csrf_token %}<input type="hidden" name="next" value="{% url 'direktur:team' %}">
+      <input name="catatan" placeholder="Catatan penutupan" required>
+      <button class="btn small secondary" type="submit">Tandai selesai</button>
+    </form>
+  </li>
+  {% empty %}<li class="meta">Tidak ada temuan terbuka.</li>{% endfor %}
+</ul>
+
+{% endfor %}
+{% endblock %}

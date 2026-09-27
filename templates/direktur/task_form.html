@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{% if note %}Jadikan task{% else %}Task baru{% endif %}{% endblock %}
+{% block content %}
+<h1>{% if note %}Jadikan catatan sebagai task{% else %}Task baru{% endif %}</h1>
+
+<form method="get" class="inline card">
+  <div><label for="cabang-pilih">Cabang</label>
+    <select id="cabang-pilih" name="cabang">
+      {% for c in clinics %}<option value="{{ c.pk }}" {% if clinic and c.pk == clinic.pk %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select></div>
+  <button class="btn secondary" type="submit">Ganti cabang</button>
+  <p class="help">Daftar penerima mengikuti cabang yang dipilih.</p>
+</form>
+
+<form method="post" class="card">
+  {% csrf_token %}
+  <input type="hidden" name="cabang" value="{{ clinic.pk }}">
+  <label for="judul">Judul</label>
+  <input id="judul" name="judul" value="{{ title }}" required maxlength="200">
+  {% if note %}
+    <label>Isi catatan (menjadi uraian task)</label>
+    <div class="card" style="white-space:pre-wrap">{{ description }}</div>
+  {% else %}
+    <label for="uraian">Uraian</label>
+    <textarea id="uraian" name="uraian" rows="4">{{ description }}</textarea>
+  {% endif %}
+  <div class="inline">
+    <div><label for="penerima">Penerima</label>
+      <select id="penerima" name="penerima" required>
+        <option value="">Pilih penerima…</option>
+        {% for value, label in targets %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+      </select></div>
+    <div><label for="batas">Batas waktu</label><input id="batas" type="date" name="batas"></div>
+    <div><label for="prioritas">Prioritas</label>
+      <select id="prioritas" name="prioritas">{% for value, label in priorities %}<option value="{{ value }}" {% if value == 'SEDANG' %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+  </div>
+  <p class="help">Pilih "PIC …" untuk mengirim ke pemegang fungsi PIC cabang ini, atau satu nama staf.</p>
+  <p><button class="btn" type="submit">Kirim task</button>
+     <a class="btn secondary" href="{% if note %}{% url 'direktur:notes' %}{% else %}{% url 'direktur:team' %}{% endif %}">Batal</a></p>
+</form>
+{% endblock %}

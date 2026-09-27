@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "reports",
     "orders",
     "aom_migration",
+    "direktur",
 ]
 
 MIDDLEWARE = [

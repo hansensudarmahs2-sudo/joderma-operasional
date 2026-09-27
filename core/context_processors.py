@@ -31,6 +31,7 @@ def app_context(request):
         "nav_can_admin": can_manage_users(user) or can_manage_config(user),
         "nav_can_export": can_export(user),
         "nav_is_supervisor": is_supervisor(user),
+        "nav_is_director": is_aom(user),
         # Navigasi mengikuti fungsi kerja pada checklist/PDF. Ini bukan
         # pengganti permission server-side di masing-masing view.
         "nav_can_queue": False,

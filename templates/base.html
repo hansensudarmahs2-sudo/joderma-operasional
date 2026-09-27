@@ -24,6 +24,11 @@
 </header>
 <nav class="main">
   <a href="{% url 'core:dashboard' %}">Hari Ini</a>
+  {% if nav_is_director %}
+    <a href="{% url 'direktur:team' %}">Tim</a>
+    <a href="{% url 'direktur:checklist' %}">Checklist Direktur</a>
+    <a href="{% url 'direktur:notes' %}">Catatan</a>
+  {% endif %}
   <a href="{% url 'checklists:index' %}">Checklist Saya</a>
   {% if nav_can_cash %}<a href="{% url 'cash:index' %}">Kas</a>{% endif %}
   {% if nav_can_orders %}<a href="{% url 'orders:index' %}">Order Produk Online</a>{% endif %}

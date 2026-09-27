@@ -155,6 +155,9 @@ def create_task(
     description: str = "",
     priority: str = Priority.SEDANG,
     due_at=None,
+    source_type: str = "manual",
+    source_id=None,
+    source_label: str = "",
 ) -> ActionItem:
     if not title.strip():
         raise ValidationError("Judul task wajib diisi.")
@@ -162,7 +165,9 @@ def create_task(
         clinic=clinic,
         title=title.strip(),
         description=description.strip(),
-        source_type="manual",
+        source_type=source_type or "manual",
+        source_id=source_id,
+        source_label=source_label,
         created_by=actor,
         priority=priority,
         due_at=due_at,

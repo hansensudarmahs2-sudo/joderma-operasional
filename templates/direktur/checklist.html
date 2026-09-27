@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Checklist Direktur{% endblock %}
+{% block content %}
+<h1>Checklist Direktur</h1>
+<p class="sub">{{ clinic.name }} · periode mulai {{ period_start|date:"d/m/Y" }}. Butir tanpa hasil ditampilkan sebagai <strong>belum dicek</strong>.</p>
+
+<form method="get" class="inline card">
+  <div><label for="cabang">Cabang</label>
+    <select id="cabang" name="cabang">
+      {% for c in clinics %}<option value="{{ c.pk }}" {% if c.pk == clinic.pk %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select></div>
+  <input type="hidden" name="siklus" value="{{ cadence }}">
+  <button class="btn" type="submit">Tampilkan</button>
+</form>
+
+<p>
+  {% for value, label in cadences %}
+    {% for key, s in summary.items %}{% if key == value %}
+    <a class="btn small {% if value != cadence %}secondary{% endif %}" href="?siklus={{ value }}&cabang={{ clinic.pk }}">
+      {{ label }} · belum {{ s.pending|length }}/{{ s.total }}</a>
+    {% endif %}{% endfor %}
+  {% endfor %}
+</p>
+
+{% if suggestions %}
+<div class="card">
+  <strong>Saran cek langsung hari ini</strong>
+  <p class="meta">Dipilih acak dan tetap sama sepanjang hari. Centang "Dicek langsung" saat mencatat butirnya.</p>
+  <ul class="timeline">
+    {% for s in suggestions %}<li><strong>{{ s.item.title }}</strong> — {{ s.point.text }}<div class="meta">Bukti: {{ s.point.evidence }}</div></li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% for row in rows %}
+{% with item=row.item check=row.check %}
+<div class="card" id="butir-{{ item.pk }}" style="margin-top:.7rem">
+  <div class="checklist-heading">
+    <div>
+      <strong>{{ item.number }}. {{ item.title }}</strong>
+      <div class="meta">{{ item.description }}</div>
+      {% if item.source_label %}<div class="meta">Bahan dari: {{ item.source_label }}</div>{% endif %}
+    </div>
+    <div class="nowrap">
+      {% if not check %}<span class="tag warn">Belum dicek</span>
+      {% elif check.result == 'TEMUAN' %}<span class="tag err">Ada temuan</span>
+      {% elif check.result == 'SESUAI' %}<span class="tag ok">Sesuai</span>
+      {% else %}<span class="tag muted">{{ check.get_result_display }}</span>{% endif %}
+    </div>
+  </div>
+
+  {% if check %}
+    <p class="meta">Dicek {{ check.updated_at|date:"d/m H:i" }} oleh {{ check.checked_by|default:"—" }}{% if check.direct %} · dicek langsung{% endif %}{% if check.note %} · {{ check.note }}{% endif %}
+    {% if check.finding %}· task temuan: {{ check.finding.title }} ({{ check.finding.get_status_display }}){% endif %}</p>
+  {% endif %}
+
+  <details>
+    <summary>Rincian pemeriksaan ({{ item.points.all|length }})</summary>
+    <table>
+      <thead><tr><th>Yang dicek</th><th>Bukti yang dilihat</th></tr></thead>
+      <tbody>{% for p in item.points.all %}<tr><td>{{ p.text }}</td><td>{{ p.evidence }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </details>
+
+  {% if check %}<details><summary>Ubah hasil</summary>{% endif %}
+  <form method="post" action="{% url 'direktur:record' item.pk %}">
+    {% csrf_token %}
+    <input type="hidden" name="cabang" value="{{ clinic.pk }}">
+    <div class="inline">
+      <div><label for="hasil-{{ item.pk }}">Hasil</label>
+        <select id="hasil-{{ item.pk }}" name="hasil" required>
+          {% for value, label in results %}<option value="{{ value }}" {% if check and check.result == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></div>
+      <div><label for="catatan-{{ item.pk }}">Catatan / temuan</label>
+        <input id="catatan-{{ item.pk }}" name="catatan" value="{{ check.note|default:'' }}" placeholder="Wajib bila ada temuan"></div>
+      <div><label><input type="checkbox" name="langsung" value="1" {% if check.direct %}checked{% endif %} style="width:auto"> Dicek langsung</label></div>
+    </div>
+    {% if check %}
+      <label for="alasan-{{ item.pk }}">Alasan koreksi (wajib bila hasil diubah)</label>
+      <input id="alasan-{{ item.pk }}" name="alasan">
+    {% endif %}
+    {% if not check.finding %}
+    <details>
+      <summary>Tindak lanjut bila ada temuan</summary>
+      <div class="inline">
+        <div><label for="penerima-{{ item.pk }}">Penerima task</label>
+          <select id="penerima-{{ item.pk }}" name="penerima">
+            <option value="">{% if item.pic_function %}Bawaan: PIC {{ item.get_pic_function_display }} (bila terisi){% else %}Belum ada penerima — catat saja{% endif %}</option>
+            {% for value, label in targets %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+          </select></div>
+        <div><label for="batas-{{ item.pk }}">Batas waktu</label><input id="batas-{{ item.pk }}" type="date" name="batas"></div>
+        <div><label for="prioritas-{{ item.pk }}">Prioritas</label>
+          <select id="prioritas-{{ item.pk }}" name="prioritas">{% for value, label in priorities %}<option value="{{ value }}" {% if value == 'SEDANG' %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      </div>
+    </details>
+    {% endif %}
+    <p><button class="btn small" type="submit">Simpan</button></p>
+  </form>
+  {% if check %}</details>{% endif %}
+</div>
+{% endwith %}
+{% empty %}
+<p class="meta">Belum ada butir aktif untuk siklus ini. Jalankan <code>manage.py seed_audit_direktur</code>.</p>
+{% endfor %}
+{% endblock %}

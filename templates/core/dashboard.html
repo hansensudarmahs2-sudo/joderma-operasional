@@ -14,6 +14,9 @@
     {% empty %}<li class="meta">Tidak ada task menunggu konfirmasi AOM.</li>{% endfor %}
   </ul>
   <p>
+    <a class="btn small" href="{% url 'direktur:team' %}">Team Viewer</a>
+    <a class="btn small secondary" href="{% url 'direktur:checklist' %}">Checklist Direktur</a>
+    <a class="btn small secondary" href="{% url 'direktur:notes' %}">Catatan</a>
     <a class="btn small secondary" href="{% url 'core:action_items' %}">Semua action item</a>
     <a class="btn small secondary" href="{% url 'reports:laporan_page' %}">Laporan rahasia ({{ aom_confidential_laporan_count }})</a>
     <a class="btn small secondary" href="{% url 'reports:masukan_page' %}">Masukan menunggu ({{ aom_masukan_pending_count }})</a>

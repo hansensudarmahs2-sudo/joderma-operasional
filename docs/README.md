@@ -12,6 +12,7 @@ Selain itu, mulai dari peran Anda.
 | Tahu cara mengisi pekerjaan harian | [`panduan-staf.md`](panduan-staf.md) |
 | Melakukan review, verifikasi, dan penutupan hari | [`panduan-supervisor.md`](panduan-supervisor.md) |
 | Membuat akun dan mengatur izin | [`panduan-admin.md`](panduan-admin.md) |
+| Memakai halaman Direktur Operasional (Tim, checklist Direktur, catatan) | [`panduan-direktur.md`](panduan-direktur.md) |
 
 ## Saya mengurus server
 

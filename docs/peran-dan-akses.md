@@ -107,6 +107,7 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Menutup hari operasional | supervisor | — |
 | Membaca audit log | supervisor, AOM, owner | `audit.view`, `admin.full_access` |
 | Mengekspor laporan | supervisor, AOM, owner | `report.export`, `admin.full_access` |
+| Halaman Direktur (Tim, checklist Direktur, catatan, task Direktur) | AOM | — |
 | Mengelola pengguna | admin, superuser bootstrap | `user.manage`, `admin.full_access` |
 | Mengubah konfigurasi | admin, superuser bootstrap | — |
 | Mengelola template checklist | admin, supervisor, superuser bootstrap | — |

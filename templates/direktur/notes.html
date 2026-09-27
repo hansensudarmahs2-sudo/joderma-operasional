@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Catatan Direktur{% endblock %}
+{% block content %}
+<h1>Catatan</h1>
+<p class="sub">Tulis langsung atau tempel dari WhatsApp. Catatan hanya terlihat oleh Anda; yang perlu ditindaklanjuti bisa dijadikan task.</p>
+
+{% if not archived %}
+<form method="post" class="card">
+  {% csrf_token %}
+  <label for="isi">Isi catatan</label>
+  <textarea id="isi" name="isi" rows="5" required placeholder="Contoh tempelan WA: [27/09/26 10.15] Heni: Freezer limbah hampir penuh"></textarea>
+  <div class="inline">
+    <div><label for="sumber">Sumber</label>
+      <select id="sumber" name="sumber">{% for value, label in sources %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+    <div><label for="cabang">Cabang</label>
+      <select id="cabang" name="cabang"><option value="">Lintas cabang</option>
+        {% for c in clinics %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
+    <button class="btn" type="submit">Simpan catatan</button>
+  </div>
+</form>
+{% endif %}
+
+<p>
+  <a class="btn small {% if archived %}secondary{% endif %}" href="{% url 'direktur:notes' %}">Aktif</a>
+  <a class="btn small {% if not archived %}secondary{% endif %}" href="{% url 'direktur:notes' %}?arsip=1">Diarsipkan</a>
+  <a class="btn small secondary" href="{% url 'direktur:task_new' %}">Task baru tanpa catatan</a>
+</p>
+
+{% for note in notes %}
+<div class="card" style="margin-top:.6rem">
+  <div class="meta">{{ note.created_at|date:"d/m/Y H:i" }} · {{ note.get_source_display }} · {{ note.clinic.name|default:"Lintas cabang" }}</div>
+  <div style="white-space:pre-wrap">{{ note.body }}</div>
+  <div class="inline" style="margin-top:.5rem">
+    {% if note.converted_task %}
+      <span class="tag ok">Sudah jadi task: {{ note.converted_task.title }} ({{ note.converted_task.get_status_display }})</span>
+    {% elif not archived %}
+      <a class="btn small" href="{% url 'direktur:note_convert' note.pk %}">Jadikan task</a>
+    {% endif %}
+    <form method="post" action="{% url 'direktur:note_archive' note.pk %}" style="display:inline">
+      {% csrf_token %}
+      {% if archived %}<input type="hidden" name="aksi" value="pulihkan"><button class="btn small secondary" type="submit">Pulihkan</button>
+      {% else %}<button class="btn small secondary" type="submit">Arsipkan</button>{% endif %}
+    </form>
+  </div>
+</div>
+{% empty %}
+<p class="meta">{% if archived %}Belum ada catatan yang diarsipkan.{% else %}Belum ada catatan aktif.{% endif %}</p>
+{% endfor %}
+{% endblock %}

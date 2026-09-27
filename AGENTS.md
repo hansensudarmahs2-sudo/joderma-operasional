@@ -5,7 +5,8 @@
 - Baca `docs/AOM_MODULE_INTEGRATION_PLAN.md` seluruhnya sebelum mengerjakan integrasi AOM.
 - Repository dan GitHub adalah sumber kebenaran. Jangan menganggap riwayat percakapan sebagai
   pengganti dokumen atau bukti dalam repository.
-- Codex adalah satu-satunya agen pengembangan untuk proyek ini.
+- Agen pengembangan apa pun (mis. Codex atau Claude) wajib mengikuti seluruh aturan di file ini.
+  Hanya satu agen yang bekerja pada working tree yang sama pada satu waktu.
 
 ## Cara bekerja
 

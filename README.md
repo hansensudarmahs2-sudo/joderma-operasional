@@ -55,7 +55,7 @@ Akun demo (password `JoDermaDemo2026!`): `admin`, `supervisor`, `kasir1`, `kasir
 ## Test
 
 ```bash
-.venv/bin/python -m pytest          # 333 test dijalankan
+.venv/bin/python -m pytest          # 388 test dijalankan
 ```
 
 Cakupan: state machine hari, validasi checklist, kas & dual-control, penomoran dan

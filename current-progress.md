@@ -25,6 +25,40 @@ di dokumen ini — verifikasi status approval sebelum memulai Fase 6.
 | 5 — UI dan usability | Implementasi selesai dan sudah di-commit (`0884b3f`) | Dashboard AOM/PIC/Admin ditambahkan (staf tetap seperti semula), aksi task 'Ajukan selesai'/'Konfirmasi selesai'/'Minta revisi'/'Ambil task bersama' sebagai view terpisah dengan proteksi server-side, halaman HTML laporan/masukan dengan filter status eksplisit di atas endpoint JSON Fase 4, PIC kosong menampilkan pesan ramah di view checklist (bukan crash). Approval eksplisit product owner untuk lanjut ke Fase 6 belum dikonfirmasi. |
 | 6–8 | Belum dimulai | Rehearsal migrasi data AOM, release, observasi, dan cutover belum dikerjakan. |
 
+## Peran Direktur Operasional (27 September 2026) — implementasi selesai, BELUM di-commit
+
+Dikerjakan atas permintaan langsung product owner (Direktur Operasional), di luar urutan fase
+integrasi AOM. Rencana dan keputusan: dokumen "Peran Direktur Operasional — Rencana Fitur"
+(Opsi B dieksplorasi dulu; Opsi A dicatat sebagai alternatif).
+
+- App baru `direktur` (migration `direktur 0001`): `AuditItem`/`AuditPoint` (butir checklist
+  Direktur harian/mingguan/bulanan), `AuditCheck` (satu hasil per butir x cabang x periode,
+  snapshot butir, task temuan), `DirectorNote` (catatan privat, arsip manual, dapat dijadikan task).
+- Butir tidak memakai `checklists.ChecklistTemplate` karena template di sana diinstansiasi
+  setiap hari operasional dan akan memunculkan butir mingguan/bulanan di checklist staf.
+  Temuan memakai `core.ActionItem` lewat `create_task` (source `audit_direktur`).
+- `core.task_services.create_task` menerima `source_type`/`source_id`/`source_label`
+  opsional (bawaan tetap `manual`; pemanggil lama tidak berubah).
+- Perintah `seed_audit_direktur` (idempoten, `--dry-run`, `--update`): 8 harian, 13 mingguan,
+  1 bulanan dari dokumen checklist Direktur Rev 00 + keputusan 27 Sep (Kas, Kebersihan ruang,
+  emergency kit bulanan). Teks butir Kas adalah usulan dari Pegangan PJ Area — perlu ditinjau.
+- Halaman (semua `Role.AOM` server-side): Tim (`/direktur/`), Checklist Direktur, Catatan,
+  Jadikan task, Task baru. Menu dan tombol di dashboard AOM ditambahkan.
+- `AGENTS.md`: aturan "Codex satu-satunya agen" diganti aturan netral (keputusan product owner).
+- Dokumentasi: `docs/panduan-direktur.md` (baru), `docs/README.md`, `docs/peran-dan-akses.md`.
+- Test: `direktur/tests/test_direktur.py` (32 definisi, 35 kasus dengan parametrize).
+
+Verifikasi (cloud workspace, Python 3.11.15, paket dari `.venv` desktop):
+
+```text
+python manage.py check                              # 0 issues
+python -m pytest -q                                 # 387 passed, 1 skipped (baseline 352 passed, 1 skipped)
+python manage.py makemigrations --check --dry-run   # No changes detected
+migrate dari nol ke SQLite /tmp + seed_demo + seed_audit_direktur (dua kali) # berhasil, idempoten
+```
+
+Belum: QA manual mobile viewport; review manusia atas diff; commit/push; deployment.
+
 ## Implementasi yang sudah ada
 
 - `Role.PIC` dan `Role.AOM`, `OrganizationAssignment`, `PicFunction`, `PicAssignment`.
