@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "notifications",
     "reports",
     "orders",
+    "aom_migration",
 ]
 
 MIDDLEWARE = [

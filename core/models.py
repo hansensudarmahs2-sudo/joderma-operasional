@@ -253,6 +253,15 @@ class ActionItem(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    # Fase 6 (migration rehearsal): penanda task hasil import dari AOM
+    # standalone legacy. Additive, nullable/default aman untuk baris lama.
+    imported_legacy = models.BooleanField("hasil import legacy", default=False)
+    legacy_source_id = models.CharField(
+        "ID sumber legacy", max_length=64, blank=True, default=""
+    )
+    legacy_completed_at = models.DateTimeField(
+        "waktu selesai asli (legacy)", null=True, blank=True
+    )
 
     class Meta:
         verbose_name = "action item"

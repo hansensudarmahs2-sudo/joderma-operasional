@@ -26,6 +26,7 @@ class AuditAction(models.TextChoices):
     CONFIG_CHANGED = "CONFIG_CHANGED", "Perubahan konfigurasi"
     PUBLISH = "PUBLISH", "Memublikasikan"
     ARCHIVE = "ARCHIVE", "Mengarsipkan"
+    MIGRATION_IMPORT = "MIGRATION_IMPORT", "Import migrasi legacy AOM"
 
 
 class AuditEvent(models.Model):
