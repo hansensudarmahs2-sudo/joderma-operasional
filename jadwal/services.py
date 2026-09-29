@@ -62,6 +62,28 @@ def can_view_duties(user, clinic) -> bool:
 # ---------------------------------------------------------------------------
 
 
+def resolve_clinic(key: str):
+    """Cabang dari kunci pendek (`jemur-andayani`, `citraland`).
+
+    Kode cabang di produksi tidak selalu sama dengan kunci di berkas data
+    (mis. Citraland dibuat manual dengan kode lain), jadi dicocokkan berurutan:
+    kode persis, lalu kode atau nama yang memuat kunci. Harus tepat satu cabang.
+    """
+    from core.models import Clinic
+
+    exact = Clinic.objects.filter(code=key).first()
+    if exact:
+        return exact
+    word = key.split("-")[0]
+    found = list(Clinic.objects.filter(Q(code__icontains=word) | Q(name__icontains=word)))
+    if len(found) == 1:
+        return found[0]
+    if not found:
+        raise ValidationError(f"Cabang belum ada: {key}")
+    raise ValidationError(f"Kunci cabang '{key}' cocok dengan lebih dari satu cabang: "
+                          + ", ".join(c.code for c in found))
+
+
 def duty_of(user, day: dt.date) -> DutyRoster | None:
     return DutyRoster.objects.filter(user=user, date=day).select_related("clinic").first()
 
@@ -158,20 +180,15 @@ def set_duty(*, user, day: dt.date, status: str, home_clinic, clinic=None, actor
 
 @transaction.atomic
 def import_month(data: dict, *, actor=None) -> dict:
-    """Impor jadwal satu bulan dari berkas `jadwal/data/jadwal-YYYY-MM.json`.
+    """Impor jadwal satu bulan dari berkas `jadwal/jadwal_bulanan/jadwal-YYYY-MM.json`.
 
     Tiap cabang berisi satu string per orang; satu karakter per tanggal:
     `.` bertugas di cabang tabel itu, `X` off, `P` perbantuan ke cabang lain,
     `C` cuti. Orang yang muncul di dua tabel memakai cabang asal dari `home`.
     """
-    from core.models import Clinic
-
     year, month = (int(p) for p in data["month"].split("-"))
     days = month_days(year, month)
-    clinics = {c.code: c for c in Clinic.objects.filter(code__in=list(data["clinics"]))}
-    missing_clinics = sorted(set(data["clinics"]) - set(clinics))
-    if missing_clinics:
-        raise ValidationError(f"Cabang belum ada: {', '.join(missing_clinics)}")
+    clinics = {key: resolve_clinic(key) for key in data["clinics"]}
     appearances: dict[str, list[str]] = defaultdict(list)
     for code, people in data["clinics"].items():
         for username in people:

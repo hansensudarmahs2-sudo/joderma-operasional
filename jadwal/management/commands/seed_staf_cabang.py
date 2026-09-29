@@ -17,7 +17,9 @@ from django.db import transaction
 from accounts.models import PicAssignment, User, UserRole
 from audit.models import AuditAction
 from audit.services import log_event
-from core.models import Clinic
+from django.core.exceptions import ValidationError
+
+from jadwal.services import resolve_clinic
 from jadwal.staff import RENAMES, STAFF
 
 
@@ -30,11 +32,13 @@ class Command(BaseCommand):
         parser.add_argument("--prune", action="store_true", help="Cabut peran di cabang yang bukan tempatnya lagi.")
 
     def handle(self, *args, password="", dry_run=False, prune=False, **opts):
-        clinics = {c.code: c for c in Clinic.objects.all()}
-        needed = {code for _, _, _, roles, _ in STAFF for code in roles}
-        missing = needed - set(clinics)
-        if missing:
-            raise CommandError(f"Cabang belum ada: {', '.join(sorted(missing))}")
+        needed = sorted({code for _, _, _, roles, _ in STAFF for code in roles})
+        try:
+            clinics = {key: resolve_clinic(key) for key in needed}
+        except ValidationError as exc:
+            raise CommandError(" ".join(exc.messages))
+        for key, clinic in clinics.items():
+            self.stdout.write(f"cabang {key} = {clinic.code} ({clinic.name})")
         with transaction.atomic():
             for old, new in RENAMES.items():
                 user = User.objects.filter(username=old).first()
@@ -73,7 +77,8 @@ class Command(BaseCommand):
                                       entity_id=user.pk, entity_label=f"{username} {role} {code}", actor=None,
                                       after={"role": role, "clinic": code})
                 if prune:
-                    for ur in UserRole.objects.filter(user=user).exclude(clinic__code__in=list(roles)):
+                    keep = [clinics[k].pk for k in roles]
+                    for ur in UserRole.objects.filter(user=user).exclude(clinic_id__in=keep):
                         self.stdout.write(f"  - {username} {ur.role} @ {ur.clinic.code}")
                         log_event(action=AuditAction.PERMISSION_CHANGED, entity_type="userrole",
                                   entity_id=user.pk, entity_label=f"{username} {ur.role} {ur.clinic.code}",

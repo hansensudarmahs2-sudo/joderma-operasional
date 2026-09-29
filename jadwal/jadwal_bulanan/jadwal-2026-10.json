@@ -1,0 +1,30 @@
+{
+ "_sumber": "JADWAL LIBUR OCTOBER 2026.pdf (Apotek JoDerma = Jemur; Klinik Utama JoDerma Citraland), dibaca dari warna sel: putih = bertugas di cabang tabel itu, merah = off, oranye = perbantuan ke cabang lain.",
+ "_catatan": "Kolom 'Jumlah Masuk' di PDF menulis Heni 25 dan Elvira 26; hitungan sel merah memberi 26 dan 27.",
+ "month": "2026-10",
+ "home": {
+  "yani": "jemur-andayani",
+  "luki": "jemur-andayani"
+ },
+ "clinics": {
+  "jemur-andayani": {
+   "alya": "..X......X.....X......X......X.",
+   "desy": "...X.......X......X......X.....",
+   "heni": "X......X.....X.......X......X..",
+   "lia": ".....X..........XX........X....",
+   "yani": "......X...P...X..P.....XP..X...",
+   "arsi": "......X.........X..X......X....",
+   "luki": "PP.P....PXP...XP.P...XP.....PPX",
+   "elvira": "..X..........X......X......X..."
+  },
+  "citraland": {
+   "regitta": ".X........X....X.......X.....X.",
+   "silvi": ".....X...X.......X........X....",
+   "yani": "PPPPPPXPPP.PPPXPP.PPPPPX.PPXPPP",
+   "naya": "......X......X........X.X......",
+   "luki": "..P.PPPP.X.PPPX.P.PPPX.PPPPP..X",
+   "ayu": ".X........X....X......X......X.",
+   "nanda": "X.......X........X..........X.."
+  }
+ }
+}

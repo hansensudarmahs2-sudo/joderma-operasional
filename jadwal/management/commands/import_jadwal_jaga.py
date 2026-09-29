@@ -1,7 +1,7 @@
-"""Impor jadwal jaga satu bulan dari berkas JSON (lihat jadwal/data/).
+"""Impor jadwal jaga satu bulan dari berkas JSON (lihat jadwal/jadwal_bulanan/).
 
-    manage.py import_jadwal_jaga jadwal/data/jadwal-2026-10.json --dry-run
-    manage.py import_jadwal_jaga jadwal/data/jadwal-2026-10.json
+    manage.py import_jadwal_jaga jadwal/jadwal_bulanan/jadwal-2026-10.json --dry-run
+    manage.py import_jadwal_jaga jadwal/jadwal_bulanan/jadwal-2026-10.json
 
 Menimpa baris jadwal orang-orang di berkas untuk bulan itu (idempoten).
 """

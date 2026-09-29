@@ -25,12 +25,12 @@ Menu **Jadwal Jaga**. Satu baris per orang, satu kolom per tanggal:
 Semua staf dapat membaca jadwal cabangnya. Yang mengubah hanya Direktur
 Operasional atau Admin, per tanggal, tercatat di audit.
 
-Jadwal satu bulan diimpor dari berkas JSON (bentuknya: `jadwal/data/jadwal-2026-10.json`,
+Jadwal satu bulan diimpor dari berkas JSON (bentuknya: `jadwal/jadwal_bulanan/jadwal-2026-10.json`,
 disalin dari "JADWAL LIBUR OCTOBER 2026.pdf"):
 
 ```bash
-.venv/bin/python manage.py import_jadwal_jaga jadwal/data/jadwal-2026-10.json --dry-run
-.venv/bin/python manage.py import_jadwal_jaga jadwal/data/jadwal-2026-10.json
+.venv/bin/python manage.py import_jadwal_jaga jadwal/jadwal_bulanan/jadwal-2026-10.json --dry-run
+.venv/bin/python manage.py import_jadwal_jaga jadwal/jadwal_bulanan/jadwal-2026-10.json
 ```
 
 Satu karakter per tanggal: `.` bertugas di cabang tabel itu, `X` off, `P`

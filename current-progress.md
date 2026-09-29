@@ -34,7 +34,7 @@ Menjawab arahan product owner 29 Sep (10 butir) dan jadwal jaga Oktober 2026. Ri
   `DutyAssignment`. Halaman Jadwal Jaga, Pembagian Tugas (bulan + per hari, ganti pelaksana).
   Perintah `import_jadwal_jaga`, `seed_tugas_harian` (template checklist versi baru + porsi,
   `--susun YYYY-MM`), `seed_staf_cabang` (akun, peran, PIC dua cabang; `heny` → `heni`).
-  Data Oktober: `jadwal/data/jadwal-2026-10.json` (dari warna sel PDF; kolom "Jumlah Masuk" PDF
+  Data Oktober: `jadwal/jadwal_bulanan/jadwal-2026-10.json` (dari warna sel PDF; kolom "Jumlah Masuk" PDF
   menulis Heni 25 dan Elvira 26, hitungan sel memberi 26 dan 27).
 - Checklist harian baru per cabang: Opening (Lembar A), Piket kebersihan, Limbah, Closing
   (JD-FOB-F04 + permintaan 29 Sep), Apotek (hanya peran apotek). Butir membawa kode porsi;

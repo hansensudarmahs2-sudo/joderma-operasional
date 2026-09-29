@@ -30,9 +30,9 @@ Dijalankan dari mesin pengembangan, dengan mini-PC dapat dijangkau lewat Tailsca
 # 1. Kirim kode (tanpa venv, database, lampiran, atau berkas rahasia)
 cd ~/joderma-staff-ops
 rsync -az --delete \
-  --exclude '.venv/' --exclude 'data/' --exclude 'private_media/' \
-  --exclude 'logs/' --exclude 'backups/' --exclude 'staticfiles/' \
-  --exclude '.git/' --exclude '__pycache__/' --exclude '.env' \
+  --exclude '/.venv/' --exclude '/data/' --exclude '/private_media/' \
+  --exclude '/logs/' --exclude '/backups/' --exclude '/staticfiles/' \
+  --exclude '/.git/' --exclude '__pycache__/' --exclude '/.env' \
   ./ joderma-jemur@joderma-jemur:~/joderma-ops/
 ```
 
@@ -95,9 +95,9 @@ docker compose exec app python manage.py pilot_check
 cd ~/joderma-staff-ops && .venv/bin/python -m pytest
 
 rsync -az --delete \
-  --exclude '.venv/' --exclude 'data/' --exclude 'private_media/' \
-  --exclude 'logs/' --exclude 'backups/' --exclude 'staticfiles/' \
-  --exclude '.git/' --exclude '__pycache__/' --exclude '.env' \
+  --exclude '/.venv/' --exclude '/data/' --exclude '/private_media/' \
+  --exclude '/logs/' --exclude '/backups/' --exclude '/staticfiles/' \
+  --exclude '/.git/' --exclude '__pycache__/' --exclude '/.env' \
   ./ joderma-jemur@joderma-jemur:~/joderma-ops/
 ```
 
@@ -112,6 +112,10 @@ docker compose up -d --force-recreate app
 sleep 15 && curl -sS http://127.0.0.1:8731/health/  # container menjalankan migrate sendiri saat start
 docker compose exec app python manage.py showmigrations | grep '\[ \]' || echo "semua migrasi sudah jalan"
 ```
+
+Pola `--exclude` diawali `/` supaya hanya folder di akar proyek yang dilewati.
+Tanpa `/`, `data/` ikut membuang folder lain bernama `data` (pernah terjadi pada
+data jadwal jaga, yang kini ada di `jadwal/jadwal_bulanan/`).
 
 Jangan menjalankan `migrate` manual tepat sesudah `up`: perintah `CMD` container
 sudah menjalankannya, dan dua proses migrate bersamaan menghasilkan galat "table
@@ -133,7 +137,7 @@ find backups/daily backups/weekly backups/monthly -type f ! -path "$LATEST" -pri
 docker compose exec app python manage.py rapikan_akun --dry-run
 docker compose exec app python manage.py rapikan_akun --password klinik123
 docker compose exec app python manage.py seed_staf_cabang --password klinik123 --prune
-docker compose exec app python manage.py import_jadwal_jaga jadwal/data/jadwal-2026-10.json
+docker compose exec app python manage.py import_jadwal_jaga jadwal/jadwal_bulanan/jadwal-2026-10.json
 docker compose exec app python manage.py seed_tugas_harian --susun 2026-10
 ```
 

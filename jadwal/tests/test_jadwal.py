@@ -26,7 +26,7 @@ from jadwal.services import (
 )
 
 pytestmark = pytest.mark.django_db
-DATA = Path(__file__).resolve().parents[1] / "data" / "jadwal-2026-10.json"
+DATA = Path(__file__).resolve().parents[1] / "jadwal_bulanan" / "jadwal-2026-10.json"
 PASSWORD = "TestPassword123!"
 
 
@@ -284,3 +284,15 @@ def test_seed_staff_command(cabang):
     assert PicAssignment.objects.filter(user__username="ayu", clinic=ctl, function=PicFunction.PHARMACY).exists()
     assert set(UserRole.objects.filter(user__username="yani").values_list("clinic__code", flat=True)) == {
         "jemur-andayani", "citraland"}
+
+
+def test_clinic_key_matches_production_code_by_name(db):
+    """Di produksi Citraland dibuat manual dengan kode lain; dicocokkan lewat nama."""
+    from jadwal.services import resolve_clinic
+
+    jmr = Clinic.objects.create(code="jemur-andayani", name="JoDerma Jemur Andayani")
+    ctl = Clinic.objects.create(code="ctl-01", name="Joderma Citraland")
+    assert resolve_clinic("jemur-andayani") == jmr and resolve_clinic("citraland") == ctl
+    Clinic.objects.create(code="citraland-2", name="Citraland Barat")
+    with pytest.raises(ValidationError):
+        resolve_clinic("citraland")
