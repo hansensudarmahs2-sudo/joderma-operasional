@@ -25,6 +25,55 @@ di dokumen ini — verifikasi status approval sebelum memulai Fase 6.
 | 5 — UI dan usability | Implementasi selesai dan sudah di-commit (`0884b3f`) | Dashboard AOM/PIC/Admin ditambahkan (staf tetap seperti semula), aksi task 'Ajukan selesai'/'Konfirmasi selesai'/'Minta revisi'/'Ambil task bersama' sebagai view terpisah dengan proteksi server-side, halaman HTML laporan/masukan dengan filter status eksplisit di atas endpoint JSON Fase 4, PIC kosong menampilkan pesan ramah di view checklist (bukan crash). Approval eksplisit product owner untuk lanjut ke Fase 6 belum dikonfirmasi. |
 | 6–8 | Belum dimulai | Rehearsal migrasi data AOM, release, observasi, dan cutover belum dikerjakan. |
 
+## Jadwal jaga, pembagian tugas, dan giliran tally bulanan (29 September 2026) — implementasi selesai, BELUM di-commit
+
+Menjawab arahan product owner 29 Sep (10 butir) dan jadwal jaga Oktober 2026. Rincian:
+`docs/jadwal-dan-giliran.md`.
+
+- App baru `jadwal`: `DutyRoster` (masuk/perbantuan/off/cuti per orang per hari), `DutyPortion`,
+  `DutyAssignment`. Halaman Jadwal Jaga, Pembagian Tugas (bulan + per hari, ganti pelaksana).
+  Perintah `import_jadwal_jaga`, `seed_tugas_harian` (template checklist versi baru + porsi,
+  `--susun YYYY-MM`), `seed_staf_cabang` (akun, peran, PIC dua cabang; `heny` → `heni`).
+  Data Oktober: `jadwal/data/jadwal-2026-10.json` (dari warna sel PDF; kolom "Jumlah Masuk" PDF
+  menulis Heni 25 dan Elvira 26, hitungan sel memberi 26 dan 27).
+- Checklist harian baru per cabang: Opening (Lembar A), Piket kebersihan, Limbah, Closing
+  (JD-FOB-F04 + permintaan 29 Sep), Apotek (hanya peran apotek). Butir membawa kode porsi;
+  input baru `JAM`. Template lama role-specific dinonaktifkan (riwayat tetap).
+- Giliran perawat: total tally bulanan gabung cabang, yang tertinggal ≥2 didahulukan sampai
+  total −1, selebihnya urutan papan (▲▼ Koordinator Shift), serahkan pasien → sedang menangani,
+  roster dari jadwal jaga. Konfigurasi `nurse.catch_up_gap`, `nurse.in_band_order`.
+- Pengaturan Klinik (nama, alamat, HP, jam, DPJ, APJ); migrasi data Jemur 14.00–22.00.
+- Label: AOM → Direktur Operasional; fungsi PIC sesuai memo, tambah PIC Apotek. Menu gantt
+  Direktur menjadi "Jadwal Task".
+- Migrasi: accounts 0007, checklists 0005, core 0004–0005, direktur 0003, jadwal 0001,
+  nurses 0003–0004, reports 0002.
+
+## Dashboard Owner dan Direktur (29 September 2026) — implementasi selesai, BELUM di-commit
+
+Menjawab `docs/KEBUTUHAN_CHECKLIST_DAN_DASHBOARD.md` dan arahan product owner 29 Sep: Owner melihat
+gambaran luas (ada masalah atau tidak, keputusan menggantung, kebijakan yang ditetapkan), tidak
+sedetail Direktur; dashboard = bird view + matriks Eisenhower + kanban, dengan halaman detail.
+
+- `direktur/dashboard.py` (baru): `bird_view` (merah/kuning/hijau per cabang beserta alasan),
+  `eisenhower` (tahap 1, tanpa migrasi; ambang `dashboard.urgent_hours` di `ClinicConfig`, bawaan
+  48), `kanban` (kolom dari status `TaskAssignment`, baca saja).
+- Model `direktur.Decision` (migration `direktur 0002`): register keputusan menggantung/ditetapkan/
+  dibatalkan, pemutus, tenggat, penanda kebijakan berlaku. Ditulis AOM, dibaca Owner.
+- Halaman baru (AOM + Owner): Ringkasan, Kanban, Prioritas, Keputusan (+detail). Halaman Tim kini
+  juga dibaca Owner; tombol aksi hanya untuk AOM dan ditolak server untuk Owner.
+- Label penghitung checklist Direktur: "sudah n/N · belum m" (A4).
+- `core.DEFAULT_CONFIG` menambah `dashboard.urgent_hours` (tanpa migrasi).
+- Test: `direktur/tests/test_dashboard.py`.
+- Revisi Ringkasan (arahan product owner 29 Sep: "halaman utama jangan dipadatkan"): halaman
+  utama kini hanya kotak ringkas — empat kuadran prioritas gabungan kedua cabang (angka + satu
+  cuplikan task, diketuk membuka kuadran itu saja di `/direktur/prioritas/?kuadran=I..IV`), empat
+  kotak (keputusan menggantung, kebijakan baru, menunggu konfirmasi, jadwal task), lalu
+  infografik per cabang (meter checklist staf dan cek Direktur, chip lewat target/temuan/
+  menunggu). Halaman baru **Jadwal** (`/direktur/jadwal/`): gantt task dari dibuat sampai target,
+  jendela 7 hari ke belakang s.d. 21 hari ke depan; task lewat target memanjang sampai hari ini.
+  `headline_counts()` dan `gantt()` di `direktur/dashboard.py`. Posisi bar ditulis tanpa format
+  lokal (`{% localize off %}`) karena `LANGUAGE_CODE=id` memakai koma desimal.
+
 ## Peran Direktur Operasional (27 September 2026) — implementasi selesai, BELUM di-commit
 
 Dikerjakan atas permintaan langsung product owner (Direktur Operasional), di luar urutan fase

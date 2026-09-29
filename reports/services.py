@@ -74,7 +74,7 @@ def create_laporan(
             Role.AOM,
             type_code="REPORT_CONFIDENTIAL_NEW",
             title="Laporan rahasia baru",
-            body="Laporan rahasia baru memerlukan tinjauan AOM.",
+            body="Laporan rahasia baru memerlukan tinjauan Direktur Operasional.",
             entity_ref=f"laporan#{laporan.pk}",
         )
     return laporan
@@ -187,7 +187,7 @@ def create_masukan(*, clinic, user, title: str, description: str = "") -> Masuka
         Role.AOM,
         type_code="MASUKAN_NEW",
         title="Masukan baru",
-        body="Masukan baru menunggu tinjauan AOM.",
+        body="Masukan baru menunggu tinjauan Direktur Operasional.",
         entity_ref=f"masukan#{masukan.pk}",
     )
     return masukan

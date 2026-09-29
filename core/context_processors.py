@@ -5,6 +5,7 @@ from notifications.services import unread_count
 
 from .permissions import (
     can_export,
+    can_view_clinic_profile,
     can_manage_config,
     can_manage_users,
     can_view_audit,
@@ -32,6 +33,8 @@ def app_context(request):
         "nav_can_export": can_export(user),
         "nav_is_supervisor": is_supervisor(user),
         "nav_is_director": is_aom(user),
+        "nav_can_overview": is_aom(user) or is_owner(user),
+        "nav_can_clinic": can_view_clinic_profile(user),
         # Navigasi mengikuti fungsi kerja pada checklist/PDF. Ini bukan
         # pengganti permission server-side di masing-masing view.
         "nav_can_queue": False,

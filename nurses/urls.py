@@ -15,4 +15,7 @@ urlpatterns = [
     path("roster/<int:pk>/skip/", views.skip, name="skip"),
     path("roster/<int:pk>/ketersediaan/", views.availability, name="availability"),
     path("ledger/", views.ledger, name="ledger"),
+    path("roster/<int:pk>/serahkan/", views.hand_over_view, name="hand_over"),
+    path("roster/<int:pk>/geser/", views.move_view, name="move"),
+    path("roster/sinkron/", views.sync_view, name="sync"),
 ]

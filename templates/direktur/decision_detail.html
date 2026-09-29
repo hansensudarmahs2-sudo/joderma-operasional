@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Keputusan{% endblock %}
+{% block content %}
+<p><a href="{% url 'direktur:decisions' %}">← Semua keputusan</a></p>
+<h1>{{ decision }}</h1>
+<p class="sub">{{ decision.clinic.name|default:"Lintas cabang" }} · diputuskan oleh {{ decision.get_decider_display }}
+  · {% if decision.status == 'MENUNGGU' %}<span class="tag {% if decision.needed_by and decision.needed_by < today %}err{% else %}warn{% endif %}">Menunggu keputusan</span>{% if decision.needed_by %} sebelum {{ decision.needed_by|date:"d/m/Y" }}{% endif %}
+  {% elif decision.status == 'DITETAPKAN' %}<span class="tag ok">Ditetapkan {{ decision.decided_on|date:"d/m/Y" }}</span>{% if decision.is_policy %} <span class="tag info">Kebijakan berlaku</span>{% endif %}
+  {% else %}<span class="tag muted">Dibatalkan</span>{% endif %}</p>
+
+{% if decision.background %}<div class="card"><strong>Latar / pertanyaan</strong><div style="white-space:pre-wrap">{{ decision.background }}</div></div>{% endif %}
+{% if decision.decision_text %}<div class="card" style="margin-top:.6rem"><strong>{% if decision.status == 'DIBATALKAN' %}Alasan pembatalan{% else %}Isi keputusan{% endif %}</strong><div style="white-space:pre-wrap">{{ decision.decision_text }}</div></div>{% endif %}
+<p class="meta">Dicatat {{ decision.created_at|date:"d/m/Y H:i" }} oleh {{ decision.created_by|default:"—" }}.</p>
+
+{% if is_director and decision.status != 'DIBATALKAN' %}
+<div class="card">
+  <strong>{% if decision.status == 'MENUNGGU' %}Catat keputusan{% else %}Perbarui isi keputusan{% endif %}</strong>
+  <form method="post">
+    {% csrf_token %}
+    <label for="isi">Isi keputusan</label>
+    <textarea id="isi" name="isi" rows="4" required>{{ decision.decision_text }}</textarea>
+    <div class="inline">
+      <div><label for="tanggal">Tanggal ditetapkan</label><input id="tanggal" type="date" name="tanggal" value="{{ decision.decided_on|date:'Y-m-d' }}"></div>
+      <div><label><input type="checkbox" name="kebijakan" value="1" style="width:auto" {% if decision.is_policy %}checked{% endif %}> Kebijakan berlaku bagi staf</label></div>
+    </div>
+    <p><button class="btn" type="submit">Tetapkan</button></p>
+  </form>
+  {% if decision.status == 'MENUNGGU' %}
+  <form method="post" class="inline">
+    {% csrf_token %}<input type="hidden" name="aksi" value="batalkan">
+    <input name="alasan" placeholder="Alasan pembatalan" required>
+    <button class="btn small secondary" type="submit">Batalkan perkara</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

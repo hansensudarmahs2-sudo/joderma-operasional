@@ -15,6 +15,20 @@
   <div class="checklist-stat"><span>Total item</span><strong>{{ progress.total }}</strong></div>
 </div>
 
+{% if my_duties %}
+<section class="card">
+  <h2>Tugas saya hari ini</h2>
+  <ul class="my-duties">
+  {% for d in my_duties %}
+    <li><strong>{{ d.assignment.portion.name }}</strong>
+      <span class="meta">— {{ d.assignment.portion.description }}</span>
+      {% if d.run_id %}<a class="btn small secondary" href="{% url 'checklists:run' d.run_id %}?saya=1">{{ d.done }}/{{ d.total }} butir ›</a>{% endif %}</li>
+  {% endfor %}
+  </ul>
+  <p class="meta"><a href="{% url 'jadwal:day' day.date.isoformat %}?cabang={{ day.clinic.pk }}">Pembagian tugas semua orang hari ini</a></p>
+</section>
+{% endif %}
+
 {% for session in session_groups %}
 <section class="checklist-session">
   <div class="checklist-session-heading">

@@ -239,8 +239,8 @@ class Command(BaseCommand):
             defaults={
                 "name": "JoDerma Jemur Andayani",
                 "address": "Jl. Jemur Andayani XVIII No.34A, Surabaya",
-                "open_time": "12:00",
-                "close_time": "21:00",
+                "open_time": "14:00",
+                "close_time": "22:00",
             },
         )
         self.stdout.write(f"Klinik: {clinic}")

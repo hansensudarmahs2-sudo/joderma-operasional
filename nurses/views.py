@@ -3,12 +3,12 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from accounts.models import Role, User
-from core.permissions import can_manage_roster, is_supervisor, require
+from core.permissions import can_manage_roster, is_aom, is_supervisor, require
 from core.services import active_clinic, get_or_create_day
 from queueing.models import QueueEntry
 
@@ -24,6 +24,11 @@ from .models import (
     NurseActionTally,
 )
 from .services import (
+    after_tally,
+    hand_over,
+    move_entry,
+    rotation_board,
+    sync_roster_with_duty,
     assign_procedure,
     cancel_procedure,
     complete_procedure,
@@ -36,28 +41,37 @@ from .services import (
 )
 
 
+def _tally_nurses(day):
+    """Pilihan perawat di form tally: yang ada di roster hari ini dan tidak off."""
+    ids = NurseRosterEntry.objects.filter(operational_day=day).exclude(
+        availability=Availability.OFF_DUTY
+    ).values_list("nurse_id", flat=True)
+    qs = User.objects.filter(is_active=True, pk__in=list(ids))
+    if not qs.exists():
+        qs = User.objects.filter(
+            is_active=True, user_roles__clinic=day.clinic, user_roles__role=Role.PERAWAT
+        ).distinct()
+    return qs.order_by("display_name", "username")
+
+
 @login_required
 def board(request):
     clinic = active_clinic(request.user)
     day, _ = get_or_create_day(clinic, user=request.user)
-    roster = NurseRosterEntry.objects.filter(operational_day=day).select_related("nurse")
-    categories = ProcedureCategory.objects.filter(clinic=clinic, active=True)
-    nurse_users = User.objects.filter(is_active=True, user_roles__clinic=clinic, user_roles__role=Role.PERAWAT).distinct()
+    if not NurseRosterEntry.objects.filter(operational_day=day).exists():
+        sync_roster_with_duty(day, actor=request.user)
+    rotation = rotation_board(day)
     return render(
         request,
         "nurses/board.html",
         {
             "day": day,
-            "roster": roster,
-            "next_entry": next_nurse(day),
+            "rotation": rotation,
+            "next_entry": rotation["next"],
             "policy": rotation_policy(clinic),
-            "categories": categories,
-            "can_manage": can_manage_roster(request.user),
-            "events": CommissionTurnEvent.objects.filter(operational_day=day).select_related(
-                "nurse", "actor"
-            )[:20],
+            "can_manage": can_manage_roster(request.user) or is_aom(request.user),
             "tallies": NurseActionTally.objects.filter(operational_day=day).select_related("nurse", "entered_by"),
-            "tally_form": NurseActionTallyForm(nurse_queryset=nurse_users),
+            "tally_form": NurseActionTallyForm(nurse_queryset=_tally_nurses(day)),
             "rm_prefix": "JJ-" if clinic.code == "jemur-andayani" else "JC-" if clinic.code == "citraland" else "RM-",
         },
     )
@@ -68,17 +82,55 @@ def board(request):
 def create_tally(request):
     clinic = active_clinic(request.user)
     day, _ = get_or_create_day(clinic, user=request.user)
-    nurse_users = User.objects.filter(is_active=True, user_roles__clinic=clinic, user_roles__role=Role.PERAWAT).distinct()
-    form = NurseActionTallyForm(request.POST, nurse_queryset=nurse_users)
+    form = NurseActionTallyForm(request.POST, nurse_queryset=_tally_nurses(day))
     if form.is_valid():
         tally = form.save(commit=False)
         tally.rm_number = normalize_rm_number(clinic, tally.rm_number)
         tally.operational_day = day
         tally.entered_by = request.user
         tally.save()
+        after_tally(day, tally.nurse_id, amount=tally.tally, user=request.user)
         messages.success(request, "Tally tindakan disimpan.")
     else:
         messages.error(request, "Data tally belum lengkap atau tidak valid.")
+    return redirect("nurses:board")
+
+
+@login_required
+@require_POST
+def hand_over_view(request, pk: int):
+    entry = get_object_or_404(NurseRosterEntry, pk=pk, operational_day__clinic=active_clinic(request.user))
+    try:
+        hand_over(entry, user=request.user)
+        messages.success(request, f"Pasien diserahkan ke {entry.nurse}.")
+    except (ValidationError, PermissionDenied) as exc:
+        messages.error(request, " ".join(getattr(exc, "messages", [str(exc)])))
+    return redirect("nurses:board")
+
+
+@login_required
+@require_POST
+def move_view(request, pk: int):
+    entry = get_object_or_404(NurseRosterEntry, pk=pk, operational_day__clinic=active_clinic(request.user))
+    try:
+        move_entry(entry, direction=request.POST.get("arah", ""), user=request.user)
+    except (ValidationError, PermissionDenied) as exc:
+        messages.error(request, " ".join(getattr(exc, "messages", [str(exc)])))
+    return redirect("nurses:board")
+
+
+@login_required
+@require_POST
+def sync_view(request):
+    if not (can_manage_roster(request.user) or is_aom(request.user)):
+        raise PermissionDenied("Hanya Koordinator Shift yang menyinkronkan roster.")
+    clinic = active_clinic(request.user)
+    day, _ = get_or_create_day(clinic, user=request.user)
+    result = sync_roster_with_duty(day, actor=request.user)
+    if result["synced"]:
+        messages.success(request, f"Roster mengikuti jadwal jaga: {result['added']} ditambah, {result['off']} ditandai off.")
+    else:
+        messages.error(request, "Jadwal jaga hari ini belum diisi.")
     return redirect("nurses:board")
 
 

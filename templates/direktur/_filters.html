@@ -1,0 +1,12 @@
+<form method="get" class="inline card">
+  <div><label for="f-cabang">Cabang</label>
+    <select id="f-cabang" name="cabang"><option value="">Semua cabang</option>
+      {% for c in clinics %}<option value="{{ c.pk }}" {% if c.pk == clinic_id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select></div>
+  <div><label for="f-sumber">Sumber</label>
+    <select id="f-sumber" name="sumber"><option value="">Semua sumber</option>
+      {% for value, label in sources %}<option value="{{ value }}" {% if value == source %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+  {% if focus %}<input type="hidden" name="kuadran" value="{{ focus }}">{% endif %}
+  <button class="btn" type="submit">Terapkan</button>
+</form>

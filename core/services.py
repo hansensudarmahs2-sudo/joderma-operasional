@@ -25,7 +25,22 @@ def active_clinic(user=None) -> Clinic:
     if user is not None:
         from .permissions import user_clinic_queryset
 
-        clinic = user_clinic_queryset(user).order_by("id").first()
+        clinics = user_clinic_queryset(user)
+        clinic = None
+        if getattr(user, "is_authenticated", False):
+            # Staf perbantuan (mis. Yani di Citraland hari Minggu) bekerja di cabang
+            # menurut jadwal jaga hari itu, bukan cabang pertama pada daftar perannya.
+            from jadwal.models import WORKING_STATUSES, DutyRoster
+
+            duty = (
+                DutyRoster.objects.filter(user=user, date=local_today(), status__in=WORKING_STATUSES)
+                .values_list("clinic_id", flat=True)
+                .first()
+            )
+            if duty:
+                clinic = clinics.filter(pk=duty).first()
+        if clinic is None:
+            clinic = clinics.order_by("id").first()
         if clinic is None and getattr(user, "is_superuser", False):
             clinic = Clinic.objects.filter(active=True).order_by("id").first()
     else:

@@ -1,7 +1,7 @@
-# Panduan Direktur Operasional
+# Panduan Direktur Operasional dan Owner
 
-Halaman ini untuk pemegang role `AOM` (Direktur Operasional). Semua halaman di bawah menolak
-pengguna lain di server (HTTP 403), bukan hanya disembunyikan dari menu.
+Halaman ini untuk pemegang role `AOM` (Direktur Operasional) dan `OWNER`. Semua halaman di bawah
+menolak pengguna lain di server (HTTP 403), bukan hanya disembunyikan dari menu.
 
 ## Menyiapkan sekali
 
@@ -53,3 +53,38 @@ antrian tidak masuk checklist ini karena pencatatannya sudah dipegang Finance.
    kemudian tidak mengubah riwayat.
 4. Temuan ditutup dari halaman Tim dengan **Tandai selesai** beserta catatan penutupan, atau
    lewat alur konfirmasi task biasa bila penerimanya mengajukan selesai.
+
+## Ringkasan untuk Owner dan Direktur
+
+Owner cukup tahu apakah ada masalah, keputusan apa yang menggantung, dan kebijakan apa yang
+ditetapkan — tanpa sedetail pemeriksaan Direktur. Owner hanya membaca; semua tombol aksi hanya
+muncul, dan hanya diterima server, untuk Direktur.
+
+| Menu | Isi | Owner | Direktur |
+|---|---|---|---|
+| **Ringkasan** | Halaman utama yang sengaja ringkas: empat kotak kuadran prioritas (gabungan kedua cabang), empat kotak angka (keputusan menggantung, kebijakan baru, menunggu konfirmasi, jadwal task), lalu infografik per cabang. Setiap kotak dapat diketuk untuk membuka detailnya | baca | baca |
+| **Prioritas** | Matriks Eisenhower seluruh task yang belum selesai, dengan penyaring cabang dan sumber; dari Ringkasan terbuka satu kuadran saja | baca | baca |
+| **Jadwal Task** | Gantt: setiap bar dari task dibuat sampai targetnya, 7 hari ke belakang s.d. 21 hari ke depan. Task lewat target berwarna merah dan memanjang sampai hari ini; task tanpa target bergaris | baca | baca |
+| **Kanban** | Baru · Dikerjakan · Menunggu konfirmasi · Selesai 7 hari | baca | baca |
+| **Keputusan** | Register perkara: menunggu, ditetapkan, kebijakan berlaku, dibatalkan | baca | catat, tetapkan, batalkan |
+| **Tim** | Detail per orang dan per checklist | baca | baca + tutup temuan |
+
+Warna kartu cabang (di bagian **Per cabang**, diketuk membuka halaman Tim pada cabang itu):
+
+- **Merah** — ada task lewat target, temuan tanpa penerima, atau keputusan lewat tenggat.
+- **Kuning** — ada temuan terbuka, task menunggu konfirmasi, keputusan menggantung, atau butir
+  checklist staf belum diisi setelah klinik buka.
+- **Hijau** — tidak ada di atas.
+
+Matriks prioritas: *penting* = prioritas Tinggi/Kritis; *mendesak* = target ≤ ambang jam atau
+prioritas Kritis. Ambang bawaan 48 jam, dapat diubah per cabang lewat Konfigurasi
+(`dashboard.urgent_hours`). Karena task baru bawaannya prioritas Sedang, isilah prioritas saat
+membuat task agar matriks bermakna.
+
+Kolom kanban dibaca dari status penerima task, bukan dari status task utama; perpindahan kolom
+tetap lewat alur ajukan selesai → konfirmasi supaya jejak audit utuh. Kanban hanya membaca.
+
+**Keputusan.** Direktur mencatat perkara yang perlu diputuskan (siapa pemutusnya, tenggatnya),
+lalu menetapkannya setelah diputuskan — oleh Owner, Direktur Utama, atau Direktur sendiri.
+Centang *Kebijakan berlaku* bila keputusan itu menjadi aturan bagi staf. Perkara tidak dihapus;
+yang tidak jadi diputuskan dibatalkan dengan alasan.

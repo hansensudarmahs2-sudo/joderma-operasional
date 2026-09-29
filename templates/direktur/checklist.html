@@ -17,7 +17,7 @@
   {% for value, label in cadences %}
     {% for key, s in summary.items %}{% if key == value %}
     <a class="btn small {% if value != cadence %}secondary{% endif %}" href="?siklus={{ value }}&cabang={{ clinic.pk }}">
-      {{ label }} · belum {{ s.pending|length }}/{{ s.total }}</a>
+      {{ label }} · sudah {{ s.done }}/{{ s.total }} · belum {{ s.pending|length }}</a>
     {% endif %}{% endfor %}
   {% endfor %}
 </p>

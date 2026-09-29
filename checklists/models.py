@@ -13,6 +13,10 @@ class ChecklistArea(models.TextChoices):
     KOMPUTER_SISTEM = "KOMPUTER_SISTEM", "Komputer dan sistem"
     RUANG_KONSULTASI = "RUANG_KONSULTASI", "Ruang konsultasi"
     RUANG_TINDAKAN = "RUANG_TINDAKAN", "Ruang tindakan estetik"
+    KEBERSIHAN = "KEBERSIHAN", "Kebersihan dan piket"
+    LIMBAH = "LIMBAH", "Limbah medis"
+    KAS = "KAS", "Kas"
+    APOTEK = "APOTEK", "Apotek"
 
 
 class ChecklistSession(models.TextChoices):
@@ -27,6 +31,7 @@ class InputType(models.TextChoices):
     CEKLIS = "CEKLIS", "Ceklis"
     KUANTITAS = "KUANTITAS", "Jumlah (kuantitas)"
     PILIHAN = "PILIHAN", "Pilihan"
+    JAM = "JAM", "Jam (JJ:MM)"
 
 
 class ChecklistTemplate(models.Model):
@@ -109,6 +114,10 @@ class ChecklistTemplateItem(models.Model):
     help_text = models.CharField("petunjuk", max_length=250, blank=True)
     performer_roles = models.JSONField("role pelaksana", default=list, blank=True)
     verifier_roles = models.JSONField("role verifikator", default=list, blank=True)
+    portion = models.CharField(
+        "porsi tugas", max_length=40, blank=True, default="",
+        help_text="Kode porsi pada pembagian tugas harian (jadwal.DutyPortion). Kosong bila tidak dibagi.",
+    )
 
     class Meta:
         verbose_name = "item template"
@@ -133,6 +142,7 @@ class ChecklistTemplateItem(models.Model):
             "help_text": self.help_text,
             "performer_roles": list(self.performer_roles or []),
             "verifier_roles": list(self.verifier_roles or []),
+            "portion": self.portion,
         }
 
 
@@ -204,6 +214,7 @@ class ChecklistResponse(models.Model):
     sort_order = models.PositiveIntegerField(default=0)
     performer_roles = models.JSONField(default=list, blank=True)
     verifier_roles = models.JSONField(default=list, blank=True)
+    portion = models.CharField(max_length=40, blank=True, default="")
 
     result = models.CharField(max_length=16, choices=ResponseResult.choices, default=ResponseResult.BELUM)
     quantity = models.PositiveIntegerField("jumlah aktual", null=True, blank=True)

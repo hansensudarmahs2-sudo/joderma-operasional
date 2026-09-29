@@ -11,10 +11,11 @@ class Role(models.TextChoices):
     PERAWAT = "PERAWAT", "Perawat"
     APOTEKER = "APOTEKER", "Apoteker"
     ASISTEN_APOTEKER = "ASISTEN_APOTEKER", "Asisten apoteker"
-    ONLINE = "ONLINE", "Koordinator online"
+    ONLINE = "ONLINE", "Koordinator layanan daring"
     SUPERVISOR = "SUPERVISOR", "Koordinator shift"
     PIC = "PIC", "PIC cabang"
-    AOM = "AOM", "AOM lintas cabang"
+    # Kode tetap "AOM" (dipakai di data dan kode); sebutannya kini Direktur Operasional.
+    AOM = "AOM", "Direktur Operasional"
     ADMIN = "ADMIN", "Admin"
     OWNER = "OWNER", "Owner/Manajemen"
 
@@ -129,10 +130,12 @@ class OrganizationAssignment(models.Model):
 
 
 class PicFunction(models.TextChoices):
-    SHIFT_COORDINATOR = "SHIFT_COORDINATOR", "Koordinator shift"
-    CASHIER = "CASHIER", "Koordinator kasir"
-    ONLINE = "ONLINE", "Koordinator online"
-    CLEANLINESS = "CLEANLINESS", "Kebersihan"
+    # Nama jabatan mengikuti Project-AOM 04-ISTILAH dan memo penunjukan 002–005.
+    SHIFT_COORDINATOR = "SHIFT_COORDINATOR", "Koordinator Shift"
+    CASHIER = "CASHIER", "PIC Kasir"
+    ONLINE = "ONLINE", "Koordinator Layanan Daring"
+    CLEANLINESS = "CLEANLINESS", "PJ Kebersihan dan Sterilitas"
+    PHARMACY = "PHARMACY", "PIC Apotek"
 
 
 class PicAssignment(models.Model):

@@ -2,7 +2,7 @@
 {% block title %}Laporan saya{% endblock %}
 {% block content %}
 <h1>Laporan</h1>
-<p class="sub">Laporan CABANG terlihat satu cabang; laporan RAHASIA_AOM hanya terlihat pelapor dan AOM.</p>
+<p class="sub">Laporan cabang terlihat satu cabang; laporan rahasia hanya terlihat pelapor dan Direktur Operasional.</p>
 
 <form method="get" class="inline card">
   <div><label for="status">Status</label>
@@ -24,7 +24,7 @@
     <label for="visibility">Visibilitas</label>
     <select id="visibility" name="visibility">
       <option value="CABANG">Terlihat satu cabang</option>
-      <option value="RAHASIA_AOM">Rahasia — hanya saya dan AOM</option>
+      <option value="RAHASIA_AOM">Rahasia — hanya saya dan Direktur Operasional</option>
     </select>
     <p></p>
     <button class="btn" type="submit">Kirim laporan</button>
@@ -38,7 +38,7 @@
   {% for l in laporan_list %}
     <tr>
       <td data-label="Ringkasan"><a href="{% url 'reports:laporan_page_detail' l.pk %}">{{ l.title }}</a></td>
-      <td data-label="Visibilitas">{% if l.visibility == 'RAHASIA_AOM' %}<span class="tag muted">Rahasia AOM</span>{% else %}<span class="tag info">Cabang</span>{% endif %}</td>
+      <td data-label="Visibilitas">{% if l.visibility == 'RAHASIA_AOM' %}<span class="tag muted">Rahasia</span>{% else %}<span class="tag info">Cabang</span>{% endif %}</td>
       <td data-label="Status"><span class="tag {% if l.status == 'ARCHIVED' %}muted{% elif l.status == 'RESOLVED' or l.status == 'CLOSED' %}ok{% else %}warn{% endif %}">{{ l.get_status_display }}</span></td>
       <td data-label="Dibuat">{{ l.created_at|date:"d/m H:i" }}</td>
     </tr>

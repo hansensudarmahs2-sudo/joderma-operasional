@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Pengaturan klinik{% endblock %}
+{% block content %}
+<h1>Pengaturan klinik</h1>
+<p class="sub">Identitas dan jam tiap cabang. Jam buka dipakai untuk pengingat opening (30 menit sebelumnya) dan untuk menandai checklist yang belum diisi setelah klinik buka.{% if not can_edit %} Anda hanya dapat membaca.{% endif %}</p>
+{% for c in clinics %}
+<div class="card">
+  <h2>{{ c.name }}</h2>
+  {% if can_edit %}
+  <form method="post" class="form-grid">{% csrf_token %}
+    <input type="hidden" name="klinik" value="{{ c.pk }}">
+    <div><label for="nama-{{ c.pk }}">Nama klinik</label><input id="nama-{{ c.pk }}" name="nama" value="{{ c.name }}" required></div>
+    <div><label for="hp-{{ c.pk }}">Nomor HP/WhatsApp</label><input id="hp-{{ c.pk }}" name="hp" value="{{ c.phone }}" inputmode="tel"></div>
+    <div class="span-2"><label for="alamat-{{ c.pk }}">Alamat</label><textarea id="alamat-{{ c.pk }}" name="alamat" rows="2">{{ c.address }}</textarea></div>
+    <div><label for="buka-{{ c.pk }}">Jam buka</label><input id="buka-{{ c.pk }}" name="buka" type="time" value="{{ c.open_time|time:'H:i' }}" required></div>
+    <div><label for="tutup-{{ c.pk }}">Jam tutup</label><input id="tutup-{{ c.pk }}" name="tutup" type="time" value="{{ c.close_time|time:'H:i' }}" required></div>
+    <div><label for="dpj-{{ c.pk }}">Dokter penanggung jawab (DPJ)</label><input id="dpj-{{ c.pk }}" name="dpj" value="{{ c.dpj_name }}"></div>
+    <div><label for="apj-{{ c.pk }}">Apoteker penanggung jawab (APJ)</label><input id="apj-{{ c.pk }}" name="apj" value="{{ c.apj_name }}"></div>
+    <div class="span-2"><button class="btn" type="submit">Simpan {{ c.name }}</button></div>
+  </form>
+  {% else %}
+  <dl class="kv">
+    <dt>Alamat</dt><dd>{{ c.address|default:"—" }}</dd>
+    <dt>Nomor HP</dt><dd>{{ c.phone|default:"—" }}</dd>
+    <dt>Jam</dt><dd>{{ c.open_time|time:"H.i" }}–{{ c.close_time|time:"H.i" }}</dd>
+    <dt>DPJ</dt><dd>{{ c.dpj_name|default:"—" }}</dd>
+    <dt>APJ</dt><dd>{{ c.apj_name|default:"—" }}</dd>
+  </dl>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

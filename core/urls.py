@@ -16,4 +16,5 @@ urlpatterns = [
     path("assignment/<int:pk>/batal/", views.assignment_cancel, name="assignment_cancel"),
     path("lampiran/<int:pk>/", views.attachment_download, name="attachment"),
     path("konfigurasi/", views.config_page, name="config"),
+    path("klinik/", views.clinic_profile, name="clinic_profile"),
 ]

@@ -120,7 +120,7 @@ prosedur di [`runbook.md`](runbook.md).
 
 Aplikasi berjalan **24 jam**. Ini disengaja:
 
-- Checklist pembukaan dikerjakan sebelum klinik buka pukul 12.00.
+- Checklist pembukaan dikerjakan sebelum klinik buka (Jemur 14.00, Citraland 12.00; lihat Pengaturan Klinik).
 - Backup terjadwal berjalan pukul 02.00; container yang dimatikan malam hari
   membuat backup tidak pernah berjalan dan melanggar target pemulihan 24 jam.
 - Mini-PC memiliki sumber daya berlimpah, sehingga tidak ada penghematan berarti.

@@ -90,6 +90,7 @@ def instantiate_runs_for_day(day, user=None) -> list[ChecklistRun]:
                     sort_order=i.sort_order,
                     performer_roles=list(i.performer_roles or []),
                     verifier_roles=list(i.verifier_roles or []),
+                    portion=i.portion,
                 )
                 for i in items
             ]
@@ -155,11 +156,13 @@ def create_template_version(
                 input_type=item.get("input_type", InputType.CEKLIS),
                 unit=item.get("unit", ""),
                 min_quantity=item.get("min_quantity"),
+                options=list(item.get("options", [])),
                 photo_required=item.get("photo_required", False),
                 sort_order=item.get("sort_order", index),
                 help_text=item.get("help_text", ""),
                 performer_roles=item.get("performer_roles", []),
                 verifier_roles=item.get("verifier_roles", []),
+                portion=item.get("portion", ""),
             )
             for index, item in enumerate(items, start=1)
         ]
@@ -209,6 +212,13 @@ def record_response(
         allowed = set(response.options or [])
         if result == ResponseResult.OK and selection not in allowed:
             raise ValidationError("Pilihan wajib dipilih.")
+    if response.input_type == InputType.JAM and result == ResponseResult.OK:
+        import datetime as dt
+
+        try:
+            selection = dt.time.fromisoformat(selection).strftime("%H:%M")
+        except ValueError:
+            raise ValidationError("Jam wajib diisi (JJ:MM).")
     if result != ResponseResult.OK and result != ResponseResult.BELUM and not note:
         raise ValidationError("Catatan wajib diisi bila hasil bukan OK.")
 

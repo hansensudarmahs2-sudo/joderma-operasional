@@ -82,8 +82,27 @@ def opening_index(request):
     return render(
         request,
         "checklists/index.html",
-        {"day": day, "cards": cards, "progress": progress, "session_groups": session_groups},
+        {
+            "day": day,
+            "cards": cards,
+            "progress": progress,
+            "session_groups": session_groups,
+            "my_duties": _my_duties(request.user, day, runs),
+        },
     )
+
+
+def _my_duties(user, day, runs) -> list[dict]:
+    """Porsi tugas pengguna hari ini beserta butir checklist yang menjadi bagiannya."""
+    from jadwal.services import my_assignments
+
+    duties = []
+    for a in my_assignments(user, day.date).filter(clinic=day.clinic):
+        items = [r for run in runs for r in run.responses.all() if r.portion == a.portion.code]
+        done = sum(1 for r in items if r.result != ResponseResult.BELUM)
+        run_ids = sorted({r.run_id for r in items})
+        duties.append({"assignment": a, "total": len(items), "done": done, "run_id": run_ids[0] if run_ids else None})
+    return duties
 
 
 @login_required
@@ -93,6 +112,18 @@ def run_detail(request, run_id: int):
     only_problems = request.GET.get("masalah") == "1"
     if only_problems:
         responses = [r for r in responses if r.is_problem or r.result == ResponseResult.BELUM]
+
+    from jadwal.services import assignments_by_portion
+
+    day = run.operational_day
+    by_portion = assignments_by_portion(day.clinic, day.date)
+    only_mine = request.GET.get("saya") == "1"
+    for r in responses:
+        people = by_portion.get(r.portion, [])
+        r.assignees = [a.user for a in people]
+        r.is_mine = any(a.user_id == request.user.pk for a in people)
+    if only_mine:
+        responses = [r for r in responses if r.is_mine]
 
     categories: dict[str, list] = {}
     for r in responses:
@@ -117,6 +148,7 @@ def run_detail(request, run_id: int):
             "progress": run_progress(run),
             "results": ResponseResult.choices,
             "only_problems": only_problems,
+            "only_mine": only_mine,
         },
     )
 

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load l10n %}
+{% block title %}Jadwal task{% endblock %}
+{% block content %}
+<h1>Jadwal task</h1>
+<p class="sub">Setiap bar: dari task dibuat sampai targetnya. {{ chart.start|date:"d/m" }} – {{ chart.end|date:"d/m/Y" }}. Garis tegak = sekarang.</p>
+{% include "direktur/_filters.html" %}
+
+<div class="gantt-legend">
+  <span><i class="lg lg-open"></i>Berjalan</span>
+  <span><i class="lg lg-late"></i>Lewat target</span>
+  <span><i class="lg lg-nodue"></i>Tanpa target</span>
+  <span><i class="lg lg-done"></i>Selesai</span>
+</div>
+
+{% localize off %}
+<div class="gantt-scroll">
+  <div class="gantt">
+    <div class="gantt-row gantt-axis">
+      <div class="gantt-label"></div>
+      <div class="gantt-track">
+        {% for t in chart.ticks %}<span class="gantt-tick" style="left:{{ t.left }}%">{{ t.label }}</span>{% endfor %}
+      </div>
+    </div>
+    {% for r in chart.rows %}
+      {% ifchanged r.item.clinic_id %}<div class="gantt-group">{{ r.item.clinic.name }}</div>{% endifchanged %}
+      <div class="gantt-row">
+        <div class="gantt-label">
+          <strong>{{ r.item.title }}</strong>
+          <span class="meta">{% if r.recipients %}{{ r.recipients|join:", " }}{% else %}belum ada penerima{% endif %}</span>
+        </div>
+        <div class="gantt-track">
+          {% for t in chart.ticks %}<span class="gantt-grid" style="left:{{ t.left }}%"></span>{% endfor %}
+          <span class="gantt-now" style="left:{{ chart.today_left }}%"></span>
+          <span class="gantt-bar bar-{{ r.state }}" style="left:{{ r.left }}%;width:{{ r.width }}%"
+                title="{{ r.item.title }} — {{ r.state_label }} · dibuat {{ r.item.created_at|date:'d/m' }}{% if r.item.due_at %} · target {{ r.item.due_at|date:'d/m H:i' }}{% endif %}"></span>
+        </div>
+      </div>
+    {% empty %}
+      <p class="meta">Tidak ada task dalam jendela waktu ini.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endlocalize %}
+{% endblock %}

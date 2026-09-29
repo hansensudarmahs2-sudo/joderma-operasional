@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Keputusan{% endblock %}
+{% block content %}
+<h1>Keputusan dan kebijakan</h1>
+<p class="sub">Perkara yang menunggu keputusan, dan keputusan yang sudah ditetapkan. Tidak ada yang dihapus; keputusan yang tidak jadi diambil dibatalkan beserta alasannya.</p>
+
+<p>
+  {% for value, label in statuses %}
+    <a class="btn small {% if value != status %}secondary{% endif %}" href="?status={{ value }}">{{ label }}</a>
+  {% endfor %}
+</p>
+
+{% if is_director %}
+<details class="card">
+  <summary>Catat perkara baru yang perlu diputuskan</summary>
+  <form method="post">
+    {% csrf_token %}
+    <label for="perkara">Perkara</label>
+    <input id="perkara" name="perkara" required maxlength="200" placeholder="Mis. Nasib uang keep antrian bila pasien tidak datang">
+    <label for="latar">Latar / pertanyaan</label>
+    <textarea id="latar" name="latar" rows="3"></textarea>
+    <div class="inline">
+      <div><label for="pemutus">Diputuskan oleh</label>
+        <select id="pemutus" name="pemutus" required>{% for value, label in deciders %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+      <div><label for="tenggat">Perlu diputuskan sebelum</label><input id="tenggat" type="date" name="tenggat"></div>
+      <div><label for="cabang">Cabang</label>
+        <select id="cabang" name="cabang"><option value="">Lintas cabang</option>{% for c in clinics %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
+      <div><label for="rujukan">Nomor rujukan</label><input id="rujukan" name="rujukan" maxlength="30" placeholder="KP-…"></div>
+    </div>
+    <p><button class="btn" type="submit">Simpan</button></p>
+  </form>
+</details>
+{% endif %}
+
+<table class="responsive">
+  <thead><tr><th>Perkara</th><th>Pemutus</th><th>Tenggat / ditetapkan</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for d in decisions %}
+    <tr>
+      <td data-label="Perkara"><a href="{% url 'direktur:decision_detail' d.pk %}"><strong>{{ d }}</strong></a><div class="meta">{{ d.clinic.name|default:"Lintas cabang" }}</div></td>
+      <td data-label="Pemutus">{{ d.get_decider_display }}</td>
+      <td data-label="Tanggal">{% if d.status == 'DITETAPKAN' %}{{ d.decided_on|date:"d/m/Y" }}{% elif d.needed_by %}sebelum {{ d.needed_by|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+      <td data-label="Status">
+        {% if d.status == 'MENUNGGU' %}<span class="tag {% if d.needed_by and d.needed_by < today %}err{% else %}warn{% endif %}">{{ d.get_status_display }}</span>
+        {% elif d.status == 'DITETAPKAN' %}<span class="tag ok">Ditetapkan</span>{% if d.is_policy %} <span class="tag info">Kebijakan</span>{% endif %}
+        {% else %}<span class="tag muted">Dibatalkan</span>{% endif %}
+      </td>
+    </tr>
+  {% empty %}<tr><td colspan="4" class="meta">Tidak ada data untuk filter ini.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -446,3 +446,59 @@ def config_page(request):
             }
         )
     return render(request, "core/config.html", {"rows": rows, "clinic": clinic})
+
+
+CLINIC_PROFILE_FIELDS = ("name", "address", "phone", "open_time", "close_time", "dpj_name", "apj_name")
+
+
+def _parse_clinic_form(post) -> dict:
+    import datetime as dt
+
+    data = {
+        "name": post.get("nama", "").strip(),
+        "address": post.get("alamat", "").strip(),
+        "phone": post.get("hp", "").strip(),
+        "dpj_name": post.get("dpj", "").strip(),
+        "apj_name": post.get("apj", "").strip(),
+    }
+    if not data["name"]:
+        raise ValidationError("Nama klinik wajib diisi.")
+    try:
+        data["open_time"] = dt.time.fromisoformat(post.get("buka", ""))
+        data["close_time"] = dt.time.fromisoformat(post.get("tutup", ""))
+    except ValueError:
+        raise ValidationError("Jam buka dan jam tutup wajib diisi (JJ:MM).")
+    if data["close_time"] <= data["open_time"]:
+        raise ValidationError("Jam tutup harus sesudah jam buka.")
+    return data
+
+
+@login_required
+def clinic_profile(request):
+    """Pengaturan klinik: nama, alamat, nomor HP, jam buka/tutup, DPJ, APJ."""
+    from audit.services import log_update, snapshot
+
+    from .models import Clinic
+    from .permissions import can_edit_clinic_profile, can_view_clinic_profile
+
+    if not can_view_clinic_profile(request.user):
+        raise PermissionDenied("Halaman ini untuk Admin, Direktur Operasional, dan Owner.")
+    can_edit = can_edit_clinic_profile(request.user)
+    clinics = Clinic.objects.order_by("id")
+    if request.method == "POST":
+        if not can_edit:
+            raise PermissionDenied("Owner hanya dapat membaca pengaturan klinik.")
+        clinic = get_object_or_404(Clinic, pk=request.POST.get("klinik"))
+        try:
+            data = _parse_clinic_form(request.POST)
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+            return redirect("core:clinic_profile")
+        before = snapshot(clinic, CLINIC_PROFILE_FIELDS)
+        for field, value in data.items():
+            setattr(clinic, field, value)
+        clinic.save(update_fields=list(data))
+        log_update(clinic, before, actor=request.user, action=AuditAction.CONFIG_CHANGED)
+        messages.success(request, f"Pengaturan {clinic.name} disimpan.")
+        return redirect("core:clinic_profile")
+    return render(request, "core/clinic_profile.html", {"clinics": clinics, "can_edit": can_edit})

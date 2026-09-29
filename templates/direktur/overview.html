@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Ringkasan{% endblock %}
+{% block content %}
+<div class="checklist-heading">
+  <div>
+    <h1>Ringkasan</h1>
+    <p class="sub">Semua cabang · {{ bird.generated_at|date:"d/m/Y H:i" }}</p>
+  </div>
+  {% if bird.any_problem %}<span class="tag warn">Perlu perhatian</span>{% else %}<span class="tag ok">Semua beres</span>{% endif %}
+</div>
+
+<h2>Yang belum selesai</h2>
+<p class="meta">{{ counts.open }} task terbuka{% if counts.overdue %} · <span class="tag err">{{ counts.overdue }} lewat target</span>{% endif %}. Ketuk kotak untuk melihat isinya.</p>
+<div class="matrix quad-tiles">
+{% for q in matrix %}
+  <a class="quad quad-{{ q.key }} tile-link" href="{% url 'direktur:matrix' %}?kuadran={{ q.key }}">
+    <div class="tile-top"><span class="tile-num">{{ q.count }}</span><span class="tile-key">{{ q.key }}</span></div>
+    <strong>{{ q.title }}</strong>
+    <div class="meta">{{ q.subtitle }}</div>
+    {% with first=q.cards.0 %}{% if first %}<div class="tile-preview">{{ first.item.title }}{% if q.count > 1 %} <span class="meta">+{{ q.count|add:"-1" }} lainnya</span>{% endif %}</div>{% endif %}{% endwith %}
+  </a>
+{% endfor %}
+</div>
+
+<div class="tile-row">
+  <a class="card tile-link" href="{% url 'direktur:decisions' %}">
+    <span class="tile-num">{{ counts.decisions }}</span>
+    <strong>Keputusan menggantung</strong>
+    <div class="meta">{% if counts.late_decisions %}<span class="tag err">{{ counts.late_decisions }} lewat tenggat</span>{% else %}tidak ada yang lewat tenggat{% endif %}</div>
+  </a>
+  <a class="card tile-link" href="{% url 'direktur:decisions' %}?status=KEBIJAKAN">
+    <span class="tile-num">{{ counts.policies }}</span>
+    <strong>Kebijakan baru</strong>
+    <div class="meta">ditetapkan 30 hari terakhir</div>
+  </a>
+  <a class="card tile-link" href="{% url 'direktur:kanban' %}">
+    <span class="tile-num">{{ counts.waiting }}</span>
+    <strong>Menunggu konfirmasi</strong>
+    <div class="meta">sudah dikerjakan staf, belum dikonfirmasi</div>
+  </a>
+  <a class="card tile-link" href="{% url 'direktur:gantt' %}">
+    <span class="tile-num">{{ counts.due_week }}</span>
+    <strong>Jadwal task</strong>
+    <div class="meta">jatuh tempo 7 hari ke depan</div>
+  </a>
+</div>
+
+<h2>Per cabang</h2>
+<div class="branch-grid">
+{% for c in bird.cards %}
+  <a class="card tile-link level-{{ c.level }}" href="{% url 'direktur:team' %}#cabang-{{ c.clinic.pk }}">
+    <div class="checklist-heading" style="margin:0 0 .4rem">
+      <strong>{{ c.clinic.name }}</strong>
+      <span class="tag {% if c.level == 'merah' %}err{% elif c.level == 'kuning' %}warn{% else %}ok{% endif %}">{% if c.level == 'merah' %}Lewat batas{% elif c.level == 'kuning' %}Perlu dilihat{% else %}Beres{% endif %}</span>
+    </div>
+    <div class="meta">{% if c.reasons %}{{ c.reasons.0 }}{% if c.reasons|length > 1 %} · +{{ c.reasons|length|add:"-1" }} lainnya{% endif %}{% else %}Tidak ada yang terbuka{% endif %}</div>
+
+    <div class="meter-row">
+      <span>Checklist staf hari ini</span>
+      {% if c.staff_total %}
+        <span class="meter" role="img" aria-label="{{ c.staff_done }} dari {{ c.staff_total }} butir terisi"><span style="width:{% widthratio c.staff_done c.staff_total 100 %}%"></span></span>
+        <span class="meter-val">{{ c.staff_done }}/{{ c.staff_total }}</span>
+      {% else %}<span class="meta">{% if c.day %}—{% else %}belum dimulai{% endif %}</span>{% endif %}
+    </div>
+    {% for key, s in c.audit.items %}
+    <div class="meter-row">
+      <span>Cek Direktur {{ s.label|lower }}</span>
+      <span class="meter" role="img" aria-label="{{ s.done }} dari {{ s.total }} butir dicek"><span style="width:{% if s.total %}{% widthratio s.done s.total 100 %}{% else %}0{% endif %}%"></span></span>
+      <span class="meter-val">{{ s.done }}/{{ s.total }}</span>
+    </div>
+    {% endfor %}
+
+    <div class="chip-row">
+      <span class="chip{% if c.overdue %} chip-err{% endif %}"><b>{{ c.overdue }}</b> lewat target</span>
+      <span class="chip{% if c.findings %} chip-warn{% endif %}"><b>{{ c.findings }}</b> temuan terbuka</span>
+      <span class="chip"><b>{{ c.waiting }}</b> menunggu konfirmasi</span>
+    </div>
+  </a>
+{% endfor %}
+</div>
+<p class="meta">Merah: ada yang lewat target, temuan tanpa penerima, atau keputusan lewat tenggat. Kuning: ada yang terbuka dan perlu dilihat. Hijau: tidak ada yang terbuka.</p>
+{% endblock %}

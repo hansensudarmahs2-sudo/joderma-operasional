@@ -27,12 +27,21 @@
 </div>
 <nav class="main" id="main-nav" aria-label="Menu utama">
   <a href="{% url 'core:dashboard' %}">Hari Ini</a>
-  {% if nav_is_director %}
+  {% if nav_can_overview %}
+    <a href="{% url 'direktur:overview' %}">Ringkasan</a>
+    <a href="{% url 'direktur:kanban' %}">Kanban</a>
+    <a href="{% url 'direktur:matrix' %}">Prioritas</a>
+    <a href="{% url 'direktur:gantt' %}">Jadwal Task</a>
+    <a href="{% url 'direktur:decisions' %}">Keputusan</a>
     <a href="{% url 'direktur:team' %}">Tim</a>
+  {% endif %}
+  {% if nav_is_director %}
     <a href="{% url 'direktur:checklist' %}">Checklist Direktur</a>
     <a href="{% url 'direktur:notes' %}">Catatan</a>
   {% endif %}
   <a href="{% url 'checklists:index' %}">Checklist Saya</a>
+  <a href="{% url 'jadwal:roster' %}">Jadwal Jaga</a>
+  <a href="{% url 'jadwal:plan' %}">Pembagian Tugas</a>
   {% if nav_can_cash %}<a href="{% url 'cash:index' %}">Kas</a>{% endif %}
   {% if nav_can_orders %}<a href="{% url 'orders:index' %}">Order Produk Online</a>{% endif %}
   {% if nav_can_roster %}<a href="{% url 'nurses:board' %}">Giliran Perawat</a>{% endif %}
@@ -48,6 +57,7 @@
     <a href="{% url 'reports:masukan_page' %}">Masukan Saya</a>
   {% endif %}
   {% if nav_can_audit %}<a href="{% url 'audit:log' %}">Audit</a>{% endif %}
+  {% if nav_can_clinic %}<a href="{% url 'core:clinic_profile' %}">Pengaturan Klinik</a>{% endif %}
   {% if nav_can_admin %}<a href="{% url 'accounts:user_list' %}">Admin</a>{% endif %}
   <a class="nav-account" href="{% url 'accounts:change_password' %}">{{ user }}<span class="meta">Ganti password</span></a>
 </nav>

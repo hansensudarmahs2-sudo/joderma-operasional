@@ -12,7 +12,8 @@ Selain itu, mulai dari peran Anda.
 | Tahu cara mengisi pekerjaan harian | [`panduan-staf.md`](panduan-staf.md) |
 | Melakukan review, verifikasi, dan penutupan hari | [`panduan-supervisor.md`](panduan-supervisor.md) |
 | Membuat akun dan mengatur izin | [`panduan-admin.md`](panduan-admin.md) |
-| Memakai halaman Direktur Operasional (Tim, checklist Direktur, catatan) | [`panduan-direktur.md`](panduan-direktur.md) |
+| Memakai halaman Direktur Operasional (Ringkasan, Tim, checklist Direktur, catatan, keputusan) | [`panduan-direktur.md`](panduan-direktur.md) |
+| Melihat jadwal jaga, tugas saya hari ini, dan aturan giliran tally | [`jadwal-dan-giliran.md`](jadwal-dan-giliran.md) |
 
 ## Saya mengurus server
 
@@ -37,6 +38,8 @@ Selain itu, mulai dari peran Anda.
 | Saya ingin | Baca |
 |---|---|
 | Memutuskan hal yang menunggu keputusan saya | [`../OWNER_DECISION_REVIEW.md`](../OWNER_DECISION_REVIEW.md) |
+| Melihat keadaan klinik sekilas (Ringkasan, prioritas, kanban, keputusan) | [`panduan-direktur.md`](panduan-direktur.md) |
+| Kebutuhan checklist Direktur dan dashboard Owner | [`KEBUTUHAN_CHECKLIST_DAN_DASHBOARD.md`](KEBUTUHAN_CHECKLIST_DAN_DASHBOARD.md) |
 | Menjalankan uji coba lima hari | [`../UAT_5_DAY_PILOT_PLAN.md`](../UAT_5_DAY_PILOT_PLAN.md) |
 | Memutuskan aman tidaknya dipakai penuh | [`../GO_LIVE_READINESS_CHECKLIST.md`](../GO_LIVE_READINESS_CHECKLIST.md) |
 

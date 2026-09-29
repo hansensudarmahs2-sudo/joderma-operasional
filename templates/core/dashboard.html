@@ -4,14 +4,14 @@
 <h1>Hari Ini</h1>
 
 {% if is_aom %}
-<h2>Ringkasan AOM</h2>
+<h2>Ringkasan Direktur Operasional</h2>
 <div class="card">
   <p class="meta">Konfirmasi tertunda lintas cabang, laporan rahasia, dan masukan menunggu tinjauan.</p>
   <ul class="timeline">
     {% for a in aom_pending_confirmations %}
       <li><strong>{{ a.action_item.title }}</strong> · {{ a.action_item.clinic.name }}
         <div class="meta">Diajukan oleh {{ a.assignee }} · {{ a.submitted_at|date:"d/m H:i" }}</div></li>
-    {% empty %}<li class="meta">Tidak ada task menunggu konfirmasi AOM.</li>{% endfor %}
+    {% empty %}<li class="meta">Tidak ada task menunggu konfirmasi Direktur Operasional.</li>{% endfor %}
   </ul>
   <p>
     <a class="btn small" href="{% url 'direktur:team' %}">Team Viewer</a>

@@ -304,7 +304,7 @@ def cancel_assignment(assignment: TaskAssignment, *, actor, reason: str) -> Task
     if not reason.strip():
         raise ValidationError("Alasan pembatalan wajib diisi.")
     if assignment.action_item.created_by_id != actor.pk and not is_aom(actor):
-        raise PermissionDenied("Hanya pemberi tugas atau AOM yang dapat membatalkan task.")
+        raise PermissionDenied("Hanya pemberi tugas atau Direktur Operasional yang dapat membatalkan task.")
     assignment.status = TaskAssignmentStatus.CANCELLED
     assignment.save(update_fields=["status", "updated_at"])
     TaskEvent.objects.create(

@@ -21,6 +21,9 @@ from .models import (
     AuditItem,
     Cadence,
     CheckResult,
+    Decider,
+    Decision,
+    DecisionStatus,
     DirectorNote,
     NoteSource,
     period_start,
@@ -32,7 +35,7 @@ NOTE_SOURCE = "catatan_direktur"
 
 def assert_director(user) -> None:
     if not is_aom(user):
-        raise PermissionDenied("Halaman ini khusus Direktur Operasional (role AOM).")
+        raise PermissionDenied("Halaman ini khusus Direktur Operasional.")
 
 
 def _assert_clinic(user, clinic) -> None:
@@ -176,6 +179,7 @@ def pending_summary(clinic, today: dt.date | None = None) -> dict[str, dict]:
             "label": label,
             "period_start": period_start(cadence, today),
             "total": len(rows),
+            "done": sum(1 for r in rows if r["check"] is not None),
             "pending": [r["item"] for r in rows if r["check"] is None],
         }
     return out
@@ -436,7 +440,9 @@ def team_overview(user, today: dt.date | None = None) -> list[dict]:
     from core.models import OperationalDay, TaskAssignment, TaskAssignmentStatus
     from core.permissions import user_clinic_queryset
 
-    assert_director(user)
+    from .dashboard import assert_overview
+
+    assert_overview(user)  # Direktur dan Owner (Owner hanya membaca)
     today = today or local_today()
     week_ago = timezone.now() - dt.timedelta(days=7)
     clinics = []
@@ -507,3 +513,76 @@ def team_overview(user, today: dt.date | None = None) -> list[dict]:
             }
         )
     return clinics
+
+
+# --- Keputusan dan kebijakan -------------------------------------------------------
+
+def parse_date(value: str, label: str = "Tanggal"):
+    value = (value or "").strip()
+    if not value:
+        return None
+    try:
+        return dt.date.fromisoformat(value)
+    except ValueError as exc:
+        raise ValidationError(f"{label} tidak valid.") from exc
+
+
+def create_decision(
+    *, actor, title: str, decider: str, clinic=None, reference: str = "", background: str = "",
+    needed_by=None,
+) -> Decision:
+    assert_director(actor)
+    if clinic is not None:
+        _assert_clinic(actor, clinic)
+    if not (title or "").strip():
+        raise ValidationError("Perkara wajib diisi.")
+    if decider not in dict(Decider.choices):
+        raise ValidationError("Pilih siapa yang memutuskan.")
+    decision = Decision.objects.create(
+        clinic=clinic,
+        reference=(reference or "").strip(),
+        title=title.strip(),
+        background=(background or "").strip(),
+        decider=decider,
+        needed_by=needed_by,
+        created_by=actor,
+    )
+    log_create(decision, actor=actor)
+    return decision
+
+
+@transaction.atomic
+def settle_decision(
+    decision: Decision, *, actor, decision_text: str, is_policy: bool = False, decided_on=None
+) -> Decision:
+    """Catat keputusan yang sudah diambil (oleh siapa pun pemutusnya)."""
+    assert_director(actor)
+    if decision.clinic_id:
+        _assert_clinic(actor, decision.clinic)
+    if decision.status == DecisionStatus.DIBATALKAN:
+        raise ValidationError("Keputusan yang dibatalkan tidak dapat ditetapkan.")
+    if not (decision_text or "").strip():
+        raise ValidationError("Tuliskan isi keputusannya.")
+    before = snapshot(decision)
+    decision.status = DecisionStatus.DITETAPKAN
+    decision.decision_text = decision_text.strip()
+    decision.is_policy = bool(is_policy)
+    decision.decided_on = decided_on or local_today()
+    decision.save()
+    log_update(decision, before, actor=actor, action=AuditAction.APPROVE)
+    return decision
+
+
+@transaction.atomic
+def cancel_decision(decision: Decision, *, actor, reason: str) -> Decision:
+    assert_director(actor)
+    if decision.clinic_id:
+        _assert_clinic(actor, decision.clinic)
+    if not (reason or "").strip():
+        raise ValidationError("Alasan pembatalan wajib diisi.")
+    before = snapshot(decision)
+    decision.status = DecisionStatus.DIBATALKAN
+    decision.decision_text = reason.strip()
+    decision.save()
+    log_update(decision, before, actor=actor, action=AuditAction.CANCEL, reason=reason.strip())
+    return decision

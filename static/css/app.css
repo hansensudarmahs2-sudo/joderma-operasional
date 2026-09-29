@@ -251,3 +251,142 @@ details > summary { cursor: pointer; padding: 0.5rem 0; font-weight: 600; min-he
   table.responsive td { display: flex; justify-content: space-between; gap: 0.6rem; border: none; padding: 0.3rem 0.2rem; }
   table.responsive td::before { content: attr(data-label); color: var(--muted); font-size: 0.78rem; font-weight: 600; }
 }
+
+/* --- Ringkasan / kanban / matriks prioritas (direktur) --- */
+.level-merah { border-left: 5px solid var(--err); }
+.level-kuning { border-left: 5px solid #d9a13b; }
+.level-hijau { border-left: 5px solid var(--ok); }
+.headline { font-size: 1rem; font-weight: 600; }
+.reasons { margin: 0.35rem 0 0.2rem; padding-left: 1.1rem; font-size: 0.9rem; }
+.board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
+.board-col { background: #eaf0f0; border-radius: var(--radius); padding: 0.5rem; min-width: 0; }
+.board-col h3 { margin: 0.1rem 0 0; font-size: 0.9rem; display: flex; justify-content: space-between; gap: 0.4rem; }
+.task-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+  padding: 0.5rem 0.6rem; margin-top: 0.45rem; font-size: 0.88rem; overflow-wrap: anywhere;
+}
+.task-card strong { display: block; font-size: 0.9rem; }
+.task-card.overdue { border-color: #efc0be; background: var(--err-bg); }
+.matrix { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.quad { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.6rem 0.7rem; min-width: 0; }
+.quad h3 { margin: 0; display: flex; justify-content: space-between; gap: 0.5rem; }
+.quad-I { border-top: 4px solid var(--err); }
+.quad-II { border-top: 4px solid var(--teal); }
+.quad-III { border-top: 4px solid #d9a13b; }
+.quad-IV { border-top: 4px solid #b8c4c6; }
+.more { display: inline-block; margin-top: 0.4rem; font-size: 0.85rem; }
+@media (max-width: 900px) { .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .board, .matrix { grid-template-columns: 1fr; } }
+
+/* --- Ringkasan ringkas: kotak yang bisa diketuk, meter, gantt --- */
+.tile-link { display: block; color: inherit; text-decoration: none; transition: box-shadow 0.15s, transform 0.15s; }
+.tile-link:hover, .tile-link:focus-visible { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08); transform: translateY(-1px); }
+.tile-top { display: flex; justify-content: space-between; align-items: baseline; }
+.tile-num { display: block; font-size: 2rem; font-weight: 700; line-height: 1.1; }
+.tile-key { color: var(--muted); font-weight: 700; }
+.tile-preview { margin-top: 0.45rem; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.quad-tiles .quad { min-height: 150px; }
+.tile-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; margin-top: 0.7rem; }
+.branch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0.7rem; }
+.meter-row { display: grid; grid-template-columns: 9.5rem 1fr 3rem; align-items: center; gap: 0.5rem; font-size: 0.85rem; margin-top: 0.45rem; }
+.meter { display: block; height: 8px; background: #e2eaea; border-radius: 999px; overflow: hidden; }
+.meter > span { display: block; height: 100%; background: var(--teal); border-radius: 999px; }
+.meter-val { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.7rem; }
+.chip { font-size: 0.8rem; background: #eef1f1; border-radius: 999px; padding: 0.15rem 0.6rem; color: var(--muted); }
+.chip b { color: var(--ink); }
+.chip-err { background: var(--err-bg); color: var(--err); }
+.chip-err b { color: var(--err); }
+.chip-warn { background: var(--warn-bg); color: var(--warn); }
+.chip-warn b { color: var(--warn); }
+@media (max-width: 900px) { .tile-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.gantt-legend { display: flex; flex-wrap: wrap; gap: 1rem; margin: 0.7rem 0 0.4rem; font-size: 0.85rem; color: var(--muted); }
+.lg { display: inline-block; width: 18px; height: 8px; border-radius: 4px; margin-right: 0.35rem; vertical-align: middle; }
+.gantt-scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.gantt { min-width: 720px; padding: 0.4rem 0.6rem 0.6rem; }
+.gantt-row { display: grid; grid-template-columns: 14rem 1fr; gap: 0.6rem; align-items: center; min-height: 40px; border-bottom: 1px solid #eef1f1; }
+.gantt-axis { min-height: 26px; border-bottom: 1px solid var(--line); }
+.gantt-group { font-weight: 700; font-size: 0.9rem; padding: 0.6rem 0 0.2rem; }
+.gantt-label { font-size: 0.84rem; min-width: 0; }
+.gantt-label strong { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gantt-label .meta { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gantt-track { position: relative; height: 26px; }
+.gantt-axis .gantt-track { height: 18px; }
+.gantt-tick { position: absolute; top: 0; transform: translateX(-50%); font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+.gantt-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: #eef1f1; }
+.gantt-now { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); opacity: 0.55; z-index: 2; }
+.gantt-bar { position: absolute; top: 9px; height: 8px; border-radius: 4px; z-index: 1; }
+.bar-open, .lg-open { background: var(--teal); }
+.bar-late, .lg-late { background: var(--err); }
+.bar-done, .lg-done { background: var(--ok); }
+.bar-nodue, .lg-nodue { background: repeating-linear-gradient(135deg, #9fb3b5 0 4px, #d5dfe0 4px 8px); }
+
+/* Label status di sebelah judul tidak dipatah ke dua baris. */
+.checklist-heading > .tag { white-space: nowrap; flex-shrink: 0; }
+
+/* Layar sempit: nama task di atas bar, supaya seluruh jendela waktu terlihat tanpa geser. */
+@media (max-width: 640px) {
+  .gantt { min-width: 0; }
+  .gantt-row { grid-template-columns: 1fr; gap: 0.2rem; padding: 0.35rem 0; }
+  .gantt-axis .gantt-label { display: none; }
+}
+
+/* --- Formulir dua kolom dan daftar kunci–nilai --- */
+.form-grid { display: grid; gap: 0 0.9rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.form-grid .span-2 { grid-column: 1 / -1; }
+.form-grid .btn { margin-top: 0.8rem; }
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1rem; margin: 0; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+
+/* --- Giliran perawat --- */
+.next-nurse { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.8rem; }
+table.rotation tr.is-next td { background: #eaf6f5; }
+table.rotation tr.is-off td { color: var(--muted); }
+.row-actions { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.row-actions form { margin: 0; }
+.button-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin: 0.6rem 0; }
+.button-row form { margin: 0; }
+
+/* --- Jadwal jaga dan pembagian tugas --- */
+.month-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.6rem 0 0.8rem; }
+.month-pick strong { min-width: 9rem; text-align: center; }
+.clinic-tabs { display: inline-flex; flex-wrap: wrap; gap: 0.3rem; margin-left: 0.5rem; }
+.chip-on { background: var(--teal); color: #fff; border-color: var(--teal); }
+a.chip { text-decoration: none; color: inherit; }
+a.chip.chip-on { color: #fff; }
+.duty-scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 1rem; }
+.duty-grid { border-collapse: collapse; font-size: 0.8rem; min-width: 100%; }
+.duty-grid th, .duty-grid td { border: 1px solid #eef1f1; padding: 0.25rem 0.2rem; text-align: center; min-width: 1.7rem; }
+.duty-grid thead th span { display: block; color: var(--muted); font-weight: 400; font-size: 0.7rem; }
+.duty-grid th.name { text-align: left; white-space: nowrap; padding: 0.25rem 0.6rem; position: sticky; left: 0; background: var(--surface); z-index: 1; min-width: 8rem; }
+.duty-grid th.sun { color: var(--err); }
+.duty-grid th.today { outline: 2px solid var(--teal); outline-offset: -2px; }
+.duty-grid td.num { font-weight: 700; }
+.dc-M { background: #fff; color: var(--muted); }
+.dc-B { background: #d8efee; color: var(--teal-dark); font-weight: 700; }
+.dc-P { background: #fbe2c7; color: #8a4b00; font-weight: 700; }
+.dc-O { background: #f6c9c7; color: var(--err); font-weight: 700; }
+.dc-C { background: #e4ddf3; color: #4b3a7a; font-weight: 700; }
+.dc-none { background: repeating-linear-gradient(45deg, #fafafa, #fafafa 3px, #f0f0f0 3px, #f0f0f0 6px); }
+.duty-legend { display: flex; flex-wrap: wrap; gap: 0.9rem; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem; }
+.duty-legend i.dc { display: inline-block; width: 1rem; height: 0.8rem; border: 1px solid var(--line); vertical-align: -1px; margin-right: 0.3rem; }
+.dc.dc-M { background: #fff; }
+.plan-grid { border-collapse: collapse; font-size: 0.8rem; min-width: 980px; width: 100%; }
+.plan-grid th, .plan-grid td { border-bottom: 1px solid #eef1f1; padding: 0.35rem 0.5rem; vertical-align: top; text-align: left; }
+.plan-grid thead th { position: sticky; top: 0; background: var(--surface); }
+.plan-grid tbody th { white-space: nowrap; }
+.plan-grid tbody th .meta { display: block; font-weight: 400; }
+.plan-grid tr.today th, .plan-grid tr.today td { background: #eaf6f5; }
+.plan-grid tr.sun th a { color: var(--err); }
+.duty-line { white-space: nowrap; line-height: 1.35; }
+.duty-line.manual { font-style: italic; }
+.duty-line.mine { font-weight: 700; }
+.duty-card .duty-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.6rem; }
+.duty-people { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: flex-start; }
+.my-duties { list-style: none; padding: 0; margin: 0; }
+.my-duties li { padding: 0.35rem 0; border-bottom: 1px solid #eef1f1; }
+.assignee { font-size: 0.78rem; color: var(--muted); }
+.assignee.mine { color: var(--teal-dark); font-weight: 700; }

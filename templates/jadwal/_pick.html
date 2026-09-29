@@ -1,0 +1,8 @@
+<div class="month-pick">
+  <a class="btn small secondary" href="?cabang={{ clinic.pk }}&bulan={{ month.prev }}" aria-label="Bulan sebelumnya">‹</a>
+  <strong>{{ month.label }}</strong>
+  <a class="btn small secondary" href="?cabang={{ clinic.pk }}&bulan={{ month.next }}" aria-label="Bulan berikutnya">›</a>
+  {% if clinics|length > 1 %}
+  <span class="clinic-tabs">{% for c in clinics %}<a class="chip{% if c.pk == clinic.pk %} chip-on{% endif %}" href="?cabang={{ c.pk }}&bulan={{ month.value }}">{{ c.name }}</a>{% endfor %}</span>
+  {% endif %}
+</div>

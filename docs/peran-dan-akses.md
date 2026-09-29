@@ -23,14 +23,14 @@ akses ke data sensitif. Seseorang dapat memegang beberapa peran sekaligus.
 | Peran | Untuk siapa | Kewenangan utama |
 |---|---|---|
 | `STAF` | staf operasional umum | mengisi checklist, membuat komplain/masukan/kerusakan |
-| `FRONT_DESK` | koordinator kasir | kas dan rekonsiliasi transaksi |
+| `FRONT_DESK` | yang boleh menjadi kasir hari itu (PIC Kasir dan cadangannya) | kas dan rekonsiliasi transaksi |
 | `PERAWAT` | perawat | checklist ruang dan tally jumlah tindakan |
-| `APOTEKER` | apoteker | stok farmasi, cold chain, obat emergensi, verifikasi stok ruangan |
+| `APOTEKER` | apoteker | FEFO, cold chain, stock opname — butir checklist apotek hanya untuk peran apotek |
 | `ASISTEN_APOTEKER` | asisten apoteker | menerima dan memproses order produk online bersama apoteker |
-| `ONLINE` | koordinator online dan reservasi | kebersihan awal, jadwal dokter, booking, order produk, serah-terima tindakan |
+| `ONLINE` | Koordinator Layanan Daring | jadwal dokter, booking, order produk, serah-terima tindakan |
 | `SUPERVISOR` | koordinator shift | review, verifikasi, override beralasan, roster, jadwal istirahat, triase, penutupan hari, audit |
 | `PIC` | PIC fungsi di cabang | delegasi dan tindak lanjut operasional dalam cabangnya |
-| `AOM` | Area Operational Manager | koordinasi lintas cabang, laporan rahasia sesuai scope, dan publikasi masukan |
+| `AOM` | Direktur Operasional (kode peran tetap `AOM`) | koordinasi lintas cabang, jadwal jaga, pembagian tugas, laporan rahasia sesuai scope, dan publikasi masukan |
 | `ADMIN` | pengelola sistem | pengguna, peran, konfigurasi, template |
 | `OWNER` | pemilik dan manajemen | laporan dan audit, hanya baca |
 
@@ -107,10 +107,26 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Menutup hari operasional | supervisor | — |
 | Membaca audit log | supervisor, AOM, owner | `audit.view`, `admin.full_access` |
 | Mengekspor laporan | supervisor, AOM, owner | `report.export`, `admin.full_access` |
-| Halaman Direktur (Tim, checklist Direktur, catatan, task Direktur) | AOM | — |
+| Ringkasan, Kanban, Prioritas, Jadwal Task, Keputusan, Tim (baca) | AOM, owner | — |
+| Pengaturan klinik (nama, alamat, nomor HP, jam, DPJ, APJ): ubah | admin, AOM, superuser bootstrap | — |
+| Pengaturan klinik: baca | owner | — |
+| Jadwal jaga dan pembagian tugas: baca | semua pengguna dengan akses cabang | — |
+| Jadwal jaga: ubah; pembagian tugas: susun ulang satu bulan | AOM, admin, superuser bootstrap | — |
+| Pembagian tugas: ganti pelaksana satu porsi | AOM, admin, supervisor cabang itu | — |
+| Mengisi butir checklist porsinya walau tidak memegang peran pelaksana (delegasi) | yang ditugaskan pada pembagian tugas hari itu | — |
+| Menggeser urutan papan giliran, menyerahkan pasien ke perawat | supervisor, AOM | — |
+| Checklist Direktur, catatan, task Direktur, mencatat/menetapkan keputusan, menutup temuan | AOM | — |
 | Mengelola pengguna | admin, superuser bootstrap | `user.manage`, `admin.full_access` |
 | Mengubah konfigurasi | admin, superuser bootstrap | — |
 | Mengelola template checklist | admin, supervisor, superuser bootstrap | — |
+
+## Fungsi PIC
+
+`PicAssignment` menyimpan fungsi PIC per cabang dan periode. Nama fungsi mengikuti
+memo penunjukan 002–005: **Koordinator Shift**, **PIC Kasir**, **Koordinator
+Layanan Daring**, **PJ Kebersihan dan Sterilitas**, dan **PIC Apotek**. Pembagian
+tugas harian memberi porsi fungsi itu kepada pemegangnya bila ia bertugas; bila
+libur, porsinya didelegasikan (lihat [`jadwal-dan-giliran.md`](jadwal-dan-giliran.md)).
 
 ## Scope cabang
 
@@ -118,6 +134,9 @@ Pengguna biasa hanya melihat cabang tempat ia punya `UserRole`. `AOM` dan
 `OWNER` dapat membaca lintas cabang sesuai kebutuhan koordinasi dan pengawasan.
 URL langsung tetap diperiksa server-side: objek issue, action item, lampiran,
 dan aset dari cabang lain harus menghasilkan 403 untuk pengguna tanpa scope.
+
+Staf yang bertugas di dua cabang (perbantuan) memegang peran di keduanya. Cabang
+aktifnya pada hari itu mengikuti jadwal jaga, bukan urutan daftar perannya.
 
 ## Task dan delegasi
 

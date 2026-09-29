@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -11,8 +11,18 @@ from django.views.decorators.http import require_POST
 from core.models import ActionItem, Priority, local_today
 from core.permissions import is_aom, require, user_clinic_queryset
 
-from . import services
-from .models import AuditItem, Cadence, CheckResult, DirectorNote, NoteSource, period_start
+from . import dashboard, services
+from .models import (
+    AuditItem,
+    Cadence,
+    CheckResult,
+    Decider,
+    Decision,
+    DecisionStatus,
+    DirectorNote,
+    NoteSource,
+    period_start,
+)
 
 
 def _clinic_from(request, value=None):
@@ -30,12 +40,170 @@ def _errors(request, exc: ValidationError) -> None:
 
 
 @login_required
-@require(is_aom)
+@require(dashboard.can_view_overview)
 def team(request):
     return render(
         request,
         "direktur/team.html",
-        {"clinics": services.team_overview(request.user), "today": local_today()},
+        {
+            "clinics": services.team_overview(request.user),
+            "today": local_today(),
+            "is_director": is_aom(request.user),
+        },
+    )
+
+
+def _filters(request):
+    clinic_id = request.GET.get("cabang", "")
+    clinic_id = int(clinic_id) if clinic_id.isdigit() else None
+    source = request.GET.get("sumber", "")
+    if source not in dict(dashboard.SOURCE_CHOICES):
+        source = ""
+    return clinic_id, source
+
+
+def _filter_context(request, clinic_id, source):
+    return {
+        "clinics": user_clinic_queryset(request.user).order_by("id"),
+        "clinic_id": clinic_id,
+        "source": source,
+        "sources": dashboard.SOURCE_CHOICES,
+    }
+
+
+@login_required
+@require(dashboard.can_view_overview)
+def overview(request):
+    user = request.user
+    return render(
+        request,
+        "direktur/overview.html",
+        {
+            "bird": dashboard.bird_view(user),
+            "matrix": dashboard.eisenhower(user, limit=1),
+            "counts": dashboard.headline_counts(user),
+            "is_director": is_aom(user),
+            "today": local_today(),
+        },
+    )
+
+
+@login_required
+@require(dashboard.can_view_overview)
+def kanban_page(request):
+    clinic_id, source = _filters(request)
+    return render(
+        request,
+        "direktur/kanban.html",
+        {"board": dashboard.kanban(request.user, clinic_id=clinic_id, source=source),
+         **_filter_context(request, clinic_id, source)},
+    )
+
+
+@login_required
+@require(dashboard.can_view_overview)
+def matrix_page(request):
+    clinic_id, source = _filters(request)
+    matrix = dashboard.eisenhower(request.user, clinic_id=clinic_id, source=source)
+    focus = request.GET.get("kuadran", "")
+    if focus in {q["key"] for q in matrix}:
+        matrix = [q for q in matrix if q["key"] == focus]
+    else:
+        focus = ""
+    return render(
+        request,
+        "direktur/matrix.html",
+        {"matrix": matrix, "focus": focus, **_filter_context(request, clinic_id, source)},
+    )
+
+
+@login_required
+@require(dashboard.can_view_overview)
+def gantt_page(request):
+    clinic_id, source = _filters(request)
+    return render(
+        request,
+        "direktur/gantt.html",
+        {"chart": dashboard.gantt(request.user, clinic_id=clinic_id, source=source),
+         **_filter_context(request, clinic_id, source)},
+    )
+
+
+@login_required
+@require(dashboard.can_view_overview)
+def decisions(request):
+    user = request.user
+    if request.method == "POST":
+        if not is_aom(user):
+            raise PermissionDenied("Hanya Direktur Operasional yang mencatat keputusan.")
+        clinic = None
+        if request.POST.get("cabang"):
+            clinic, _ = _clinic_from(request, request.POST.get("cabang"))
+            if clinic is None or str(clinic.pk) != request.POST.get("cabang"):
+                messages.error(request, "Cabang tidak valid.")
+                return redirect("direktur:decisions")
+        try:
+            services.create_decision(
+                actor=user,
+                title=request.POST.get("perkara", ""),
+                decider=request.POST.get("pemutus", ""),
+                clinic=clinic,
+                reference=request.POST.get("rujukan", ""),
+                background=request.POST.get("latar", ""),
+                needed_by=services.parse_date(request.POST.get("tenggat", ""), "Tenggat"),
+            )
+            messages.success(request, "Keputusan dicatat.")
+        except ValidationError as exc:
+            _errors(request, exc)
+        return redirect("direktur:decisions")
+    status = request.GET.get("status", DecisionStatus.MENUNGGU)
+    qs = dashboard.decisions_for(user)
+    if status == "KEBIJAKAN":
+        qs = qs.filter(status=DecisionStatus.DITETAPKAN, is_policy=True)
+    elif status in dict(DecisionStatus.choices):
+        qs = qs.filter(status=status)
+    return render(
+        request,
+        "direktur/decisions.html",
+        {
+            "decisions": qs.order_by("needed_by", "-decided_on", "-created_at"),
+            "status": status,
+            "statuses": [*DecisionStatus.choices, ("KEBIJAKAN", "Kebijakan berlaku"), ("SEMUA", "Semua")],
+            "deciders": Decider.choices,
+            "clinics": user_clinic_queryset(user).order_by("id"),
+            "is_director": is_aom(user),
+            "today": local_today(),
+        },
+    )
+
+
+@login_required
+@require(dashboard.can_view_overview)
+def decision_detail(request, pk: int):
+    decision = get_object_or_404(dashboard.decisions_for(request.user), pk=pk)
+    if request.method == "POST":
+        if not is_aom(request.user):
+            raise PermissionDenied("Hanya Direktur Operasional yang mencatat keputusan.")
+        try:
+            if request.POST.get("aksi") == "batalkan":
+                services.cancel_decision(decision, actor=request.user, reason=request.POST.get("alasan", ""))
+                messages.warning(request, "Keputusan dibatalkan.")
+            else:
+                services.settle_decision(
+                    decision,
+                    actor=request.user,
+                    decision_text=request.POST.get("isi", ""),
+                    is_policy=request.POST.get("kebijakan") == "1",
+                    decided_on=services.parse_date(request.POST.get("tanggal", ""), "Tanggal"),
+                )
+                messages.success(request, "Keputusan ditetapkan.")
+        except ValidationError as exc:
+            _errors(request, exc)
+        return redirect("direktur:decision_detail", pk=decision.pk)
+    return render(
+        request,
+        "direktur/decision_detail.html",
+        {"decision": decision, "is_director": is_aom(request.user), "today": local_today()},
     )
 
 

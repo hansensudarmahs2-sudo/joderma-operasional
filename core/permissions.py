@@ -202,6 +202,15 @@ def can_manage_config(user) -> bool:
     return is_admin(user) or is_bootstrap_superuser(user)
 
 
+def can_edit_clinic_profile(user) -> bool:
+    """Nama, alamat, nomor HP, jam, DPJ, APJ cabang: Admin dan Direktur Operasional."""
+    return is_admin(user) or is_aom(user) or is_bootstrap_superuser(user)
+
+
+def can_view_clinic_profile(user) -> bool:
+    return can_edit_clinic_profile(user) or is_owner(user)
+
+
 def can_review_checklist(user) -> bool:
     return is_supervisor(user)
 
@@ -228,7 +237,17 @@ def can_edit_checklist_response(user, response) -> bool:
     if not can_access_checklist_run(user, response.run) or not can_fill_checklist(user):
         return False
     item_roles = set(response.performer_roles or []) | set(response.verifier_roles or [])
-    return not item_roles or bool(item_roles & roles(user)) or is_aom(user) or is_owner(user)
+    if not item_roles or bool(item_roles & roles(user)) or is_aom(user) or is_owner(user):
+        return True
+    # Pelaksana yang ditugaskan lewat pembagian tugas harian (mis. delegasi saat
+    # Koordinator Shift libur) boleh mengisi porsinya walau tidak memegang perannya.
+    portion = getattr(response, "portion", "")
+    if portion:
+        from jadwal.services import is_assigned
+
+        day = response.run.operational_day
+        return is_assigned(user, day.clinic, day.date, portion)
+    return False
 
 
 def can_close_day(user) -> bool:

@@ -4,13 +4,16 @@
 <h1>Tim — {{ today|date:"d/m/Y" }}</h1>
 <p class="sub">Apa yang sudah dan belum dikerjakan tim, per cabang. Halaman ini hanya untuk membaca; tidak ada skor atau peringkat.</p>
 <p>
+  <a class="btn small secondary" href="{% url 'direktur:overview' %}">Ringkasan</a>
+  {% if is_director %}
   <a class="btn small" href="{% url 'direktur:task_new' %}">Task baru</a>
   <a class="btn small secondary" href="{% url 'direktur:notes' %}">Catatan</a>
   <a class="btn small secondary" href="{% url 'direktur:checklist' %}">Checklist Direktur</a>
+  {% endif %}
 </p>
 
 {% for c in clinics %}
-<h2>{{ c.clinic.name }}</h2>
+<h2 id="cabang-{{ c.clinic.pk }}">{{ c.clinic.name }}</h2>
 
 <div class="grid">
   <div class="card">
@@ -19,8 +22,8 @@
   </div>
   {% for key, s in c.audit.items %}
   <div class="card">
-    <div class="stat">{{ s.pending|length }}/{{ s.total }}</div>
-    <div class="stat-label"><a href="{% url 'direktur:checklist' %}?siklus={{ key }}&cabang={{ c.clinic.pk }}">Checklist Direktur {{ s.label|lower }} belum dicek</a></div>
+    <div class="stat">{{ s.done }}/{{ s.total }}</div>
+    <div class="stat-label">{% if is_director %}<a href="{% url 'direktur:checklist' %}?siklus={{ key }}&cabang={{ c.clinic.pk }}">{% endif %}Checklist Direktur {{ s.label|lower }} sudah dicek{% if is_director %}</a>{% endif %}</div>
   </div>
   {% endfor %}
   <div class="card">
@@ -81,11 +84,13 @@
   <li><strong>{{ f.title }}</strong> <span class="meta">· {{ f.created_at|date:"d/m" }}</span>{% if f.is_overdue %} <span class="tag err">Lewat</span>{% endif %}
     <div class="meta">{{ f.description }}</div>
     <div class="meta">Penerima: {% for a in f.task_assignments.all %}{{ a.assignee }} ({{ a.get_status_display }}){% if not forloop.last %}, {% endif %}{% empty %}<span class="tag warn">belum ada</span>{% endfor %}</div>
+    {% if is_director %}
     <form method="post" action="{% url 'direktur:finding_close' f.pk %}" class="inline">
       {% csrf_token %}<input type="hidden" name="next" value="{% url 'direktur:team' %}">
       <input name="catatan" placeholder="Catatan penutupan" required>
       <button class="btn small secondary" type="submit">Tandai selesai</button>
     </form>
+    {% endif %}
   </li>
   {% empty %}<li class="meta">Tidak ada temuan terbuka.</li>{% endfor %}
 </ul>

@@ -14,9 +14,18 @@ class Clinic(models.Model):
     name = models.CharField("nama", max_length=120)
     code = models.SlugField("kode", max_length=32, unique=True)
     address = models.TextField("alamat", blank=True)
+    phone = models.CharField("nomor HP/WhatsApp", max_length=40, blank=True)
     timezone_name = models.CharField("zona waktu", max_length=64, default="Asia/Jakarta")
     open_time = models.TimeField("jam buka", default="12:00")
     close_time = models.TimeField("jam tutup", default="21:00")
+    dpj_name = models.CharField(
+        "dokter penanggung jawab (DPJ)", max_length=160, blank=True,
+        help_text="Nama lengkap beserta gelar, mis. dr. Yohanes Widjaja, Sp.DVE.",
+    )
+    apj_name = models.CharField(
+        "apoteker penanggung jawab (APJ)", max_length=160, blank=True,
+        help_text="Nama lengkap beserta gelar.",
+    )
     active = models.BooleanField("aktif", default=True)
 
     class Meta:
@@ -57,6 +66,12 @@ DEFAULT_CONFIG: dict[str, object] = {
     "nurse.rotation_policy": "ROUND_ROBIN_PER_CONFIRMED_PROCEDURE",
     "nurse.skip_keeps_position": True,
     "nurse.cancel_before_start_restores_position": True,
+    # Perawat yang total tally bulanannya >= N di bawah total terkecil rekan
+    # didahulukan sampai tinggal 1 di bawah ("sampai total -1").
+    "nurse.catch_up_gap": 2,
+    # Di luar yang mengejar: "PAPAN" = urutan papan Koordinator Shift;
+    # "TERKECIL" = total bulan terkecil lebih dulu, seri mengikuti papan.
+    "nurse.in_band_order": "PAPAN",
     # Istirahat
     "break.min_active_front_desk": 1,
     "break.min_active_nurse": 1,
@@ -71,6 +86,8 @@ DEFAULT_CONFIG: dict[str, object] = {
     "sla.RENDAH.resolve_hours": 168,
     # Pembukaan
     "opening.reminder_minutes_before_open": 30,
+    # Ringkasan/dashboard: task dianggap "mendesak" bila targetnya <= N jam lagi
+    "dashboard.urgent_hours": 48,
 }
 
 

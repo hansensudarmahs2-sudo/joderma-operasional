@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Pembagian tugas{% endblock %}
+{% block content %}
+<h1>Pembagian tugas</h1>
+<p class="sub">{{ clinic.name }}. Opening, closing, apotek, limbah, kas, dan kebersihan dibagi menjadi porsi kecil kepada yang bertugas hari itu. PIC mendapat porsi fungsinya bila masuk; bila libur, porsi didelegasikan bergilir ke yang bebannya paling ringan. Tugas apotek hanya untuk peran apotek.</p>
+{% include "jadwal/_pick.html" %}
+{% if can_plan %}
+<form method="post" class="button-row">{% csrf_token %}
+  <input type="hidden" name="cabang" value="{{ clinic.pk }}"><input type="hidden" name="bulan" value="{{ month.value }}">
+  <button class="btn" type="submit" {% if not has_portions %}disabled{% endif %}>Susun ulang otomatis {{ month.label }}</button>
+  <span class="meta">Porsi yang sudah diubah manual tidak disentuh.</span>
+</form>
+{% endif %}
+{% if not has_portions %}<p class="meta">Porsi tugas cabang ini belum dipasang (<code>manage.py seed_tugas_harian</code>).</p>{% endif %}
+
+<div class="duty-scroll">
+<table class="plan-grid">
+  <thead><tr><th>Tanggal</th>{% for key, label in plan.groups %}<th>{{ label }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for row in plan.table %}
+    <tr class="{% if row.date == today %}today{% endif %}{% if row.date.weekday == 6 %} sun{% endif %}">
+      <th><a href="{% url 'jadwal:day' row.date.isoformat %}?cabang={{ clinic.pk }}">{{ row.date|date:"D d/m" }}</a><span class="meta">{{ row.staff }} bertugas</span></th>
+      {% for cell in row.cells %}<td>{% for a in cell %}<div class="duty-line{% if a.source == 'MANUAL' %} manual{% endif %}{% if a.user_id == user.pk %} mine{% endif %}"><span class="meta">{{ a.portion.short_name }}</span> {{ a.user }}</div>{% empty %}<span class="meta">—</span>{% endfor %}</td>{% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<h2>Beban per orang</h2>
+<table class="responsive">
+  <thead><tr><th>Nama</th><th>Hari bertugas</th><th>Porsi</th><th>Rata-rata/hari</th>{% for key, label in plan.groups %}<th>{{ label }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for p in plan.people %}<tr>
+    <td data-label="Nama">{{ p.user }}</td><td data-label="Hari bertugas">{{ p.days }}</td><td data-label="Porsi"><strong>{{ p.total }}</strong></td><td data-label="Rata-rata/hari">{{ p.per_day }}</td>
+    {% for n in p.by_group %}<td data-label="{{ forloop.counter }}">{{ n }}</td>{% endfor %}
+  </tr>{% empty %}<tr><td colspan="4" class="meta">Belum ada pembagian bulan ini.</td></tr>{% endfor %}</tbody>
+</table>
+<p class="meta">Garis miring = diubah manual. Porsi Anda ditandai tebal.</p>
+{% endblock %}

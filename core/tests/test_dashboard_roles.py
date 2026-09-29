@@ -22,7 +22,7 @@ def test_staf_dashboard_has_no_role_specific_sections(client, role_branch_matrix
     response = client.get(reverse("core:dashboard"))
     assert response.status_code == 200
     body = response.content.decode()
-    assert "Ringkasan AOM" not in body
+    assert "Ringkasan Direktur Operasional" not in body
     assert "Ringkasan PIC" not in body
     assert "Ringkasan Admin" not in body
 
@@ -48,7 +48,7 @@ def test_aom_dashboard_shows_pending_confirmations_across_clinics(client, role_b
     response = client.get(reverse("core:dashboard"))
     assert response.status_code == 200
     body = response.content.decode()
-    assert "Ringkasan AOM" in body
+    assert "Ringkasan Direktur Operasional" in body
     assert "Task lintas cabang untuk AOM" in body
 
 

@@ -200,3 +200,62 @@ class DirectorNote(models.Model):
     @property
     def is_archived(self) -> bool:
         return self.archived_at is not None
+
+
+class DecisionStatus(models.TextChoices):
+    MENUNGGU = "MENUNGGU", "Menunggu keputusan"
+    DITETAPKAN = "DITETAPKAN", "Ditetapkan"
+    DIBATALKAN = "DIBATALKAN", "Dibatalkan"
+
+
+class Decider(models.TextChoices):
+    OWNER = "OWNER", "Owner"
+    DIRUT = "DIRUT", "Direktur Utama"
+    DIREKTUR_OPERASIONAL = "DIREKTUR_OPERASIONAL", "Direktur Operasional"
+    PJ_PELAYANAN = "PJ_PELAYANAN", "Penanggung Jawab Pelayanan"
+    LAINNYA = "LAINNYA", "Lainnya"
+
+
+class Decision(models.Model):
+    """Register keputusan: yang masih menggantung dan kebijakan yang sudah ditetapkan.
+
+    Ditulis Direktur Operasional; dibaca Owner di Ringkasan tanpa perlu bertanya.
+    Tidak pernah dihapus — dibatalkan dengan alasan.
+    """
+
+    clinic = models.ForeignKey(
+        "core.Clinic",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="director_decisions",
+        help_text="Kosong untuk keputusan lintas cabang.",
+    )
+    reference = models.CharField("nomor rujukan", max_length=30, blank=True, help_text="Mis. KP-188.")
+    title = models.CharField("perkara", max_length=200)
+    background = models.TextField("latar / pertanyaan", blank=True)
+    decider = models.CharField("diputuskan oleh", max_length=24, choices=Decider.choices)
+    needed_by = models.DateField("perlu diputuskan sebelum", null=True, blank=True)
+    status = models.CharField(max_length=12, choices=DecisionStatus.choices, default=DecisionStatus.MENUNGGU)
+    decision_text = models.TextField("isi keputusan", blank=True)
+    is_policy = models.BooleanField(
+        "kebijakan berlaku", default=False, help_text="Keputusan ini menjadi aturan yang berlaku bagi staf."
+    )
+    decided_on = models.DateField("tanggal ditetapkan", null=True, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="director_decisions"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "keputusan"
+        verbose_name_plural = "keputusan"
+        ordering = ("status", "needed_by", "-created_at")
+
+    def __str__(self) -> str:
+        prefix = f"{self.reference} · " if self.reference else ""
+        return f"{prefix}{self.title}"
+
+    def is_overdue(self, today: dt.date) -> bool:
+        return bool(self.status == DecisionStatus.MENUNGGU and self.needed_by and self.needed_by < today)

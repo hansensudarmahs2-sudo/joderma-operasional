@@ -282,8 +282,8 @@ def test_manual_task_requires_target(jemur, director, heni):
 
 # --- HTTP ----------------------------------------------------------------------------
 
+# Halaman Tim sekarang juga dibaca Owner (lihat test_dashboard.py); yang di bawah khusus Direktur.
 DIRECTOR_URLS = [
-    ("direktur:team", {}),
     ("direktur:checklist", {}),
     ("direktur:notes", {}),
     ("direktur:task_new", {}),

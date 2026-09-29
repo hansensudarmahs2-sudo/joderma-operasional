@@ -50,6 +50,7 @@ class NurseEligibility(models.Model):
 
 class Availability(models.TextChoices):
     TERSEDIA = "TERSEDIA", "Tersedia"
+    MENANGANI = "MENANGANI", "Sedang menangani"
     ISTIRAHAT = "ISTIRAHAT", "Istirahat"
     OFF_DUTY = "OFF_DUTY", "Pulang/off"
 
@@ -97,6 +98,8 @@ class TurnAction(models.TextChoices):
     OVERRIDE = "OVERRIDE", "Override supervisor"
     TIDAK_ELIGIBLE = "TIDAK_ELIGIBLE", "Dilewati: tidak eligible"
     AVAILABILITY_BERUBAH = "AVAILABILITY_BERUBAH", "Ketersediaan berubah"
+    PASIEN_DISERAHKAN = "PASIEN_DISERAHKAN", "Pasien diserahkan"
+    URUTAN_DIUBAH = "URUTAN_DIUBAH", "Urutan papan diubah"
 
 
 class CommissionTurnEvent(models.Model):

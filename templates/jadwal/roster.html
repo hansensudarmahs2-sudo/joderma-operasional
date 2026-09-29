@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Jadwal jaga{% endblock %}
+{% block content %}
+<h1>Jadwal jaga</h1>
+<p class="sub">{{ clinic.name }}. Dasar roster giliran perawat dan pembagian tugas harian: yang off, cuti, atau sedang di cabang lain tidak diberi tally maupun tugas.</p>
+{% include "jadwal/_pick.html" %}
+<div class="duty-legend">
+  <span><i class="dc dc-M"></i>Masuk</span>
+  <span><i class="dc dc-B"></i>Perbantuan dari cabang lain</span>
+  <span><i class="dc dc-P"></i>Ke cabang lain</span>
+  <span><i class="dc dc-O"></i>Off</span>
+  <span><i class="dc dc-C"></i>Cuti</span>
+</div>
+{% if grid.people %}
+<div class="duty-scroll">
+<table class="duty-grid">
+  <thead>
+    <tr><th class="name">Nama</th>{% for d in grid.days %}<th class="{% if d.weekday == 6 %}sun{% endif %}{% if d == today %} today{% endif %}"><span>{{ d|date:"D"|slice:":1" }}</span>{{ d.day }}</th>{% endfor %}<th>Masuk</th></tr>
+  </thead>
+  <tbody>
+  {% for p in grid.people %}
+    <tr><th class="name">{{ p.user }}{% if not p.home %} <span class="meta">(perbantuan)</span>{% endif %}</th>
+      {% for c in p.row %}<td class="dc-{{ c.code|default:'none' }}" title="{{ c.label }}">{{ c.code }}</td>{% endfor %}
+      <td class="num">{{ p.working }}</td></tr>
+  {% endfor %}
+  </tbody>
+  <tfoot><tr><th class="name">Bertugas</th>{% for t in grid.totals %}<td class="num">{{ t }}</td>{% endfor %}<td></td></tr></tfoot>
+</table>
+</div>
+{% else %}
+<p class="meta">Jadwal bulan ini belum diisi.{% if can_edit %} Impor dengan <code>manage.py import_jadwal_jaga</code> atau isi per tanggal di bawah.{% endif %}</p>
+{% endif %}
+
+{% if can_edit %}
+<div class="card">
+  <h2>Ubah satu tanggal</h2>
+  <form method="post" class="inline">{% csrf_token %}
+    <input type="hidden" name="cabang" value="{{ clinic.pk }}"><input type="hidden" name="bulan" value="{{ month.value }}">
+    <div><label for="orang">Nama</label><select id="orang" name="orang" required>{% for p in grid.people %}{% if p.home %}<option value="{{ p.user.pk }}">{{ p.user }}</option>{% endif %}{% endfor %}</select></div>
+    <div><label for="tanggal">Tanggal</label><input id="tanggal" name="tanggal" type="date" required></div>
+    <div><label for="status">Status</label><select id="status" name="status">{% for v, l in statuses %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+    <div><label for="tujuan">Perbantuan ke</label><select id="tujuan" name="tujuan"><option value="">—</option>{% for c in other_clinics %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
+    <div><label for="catatan">Catatan</label><input id="catatan" name="catatan"></div>
+    <button class="btn" type="submit">Simpan</button>
+  </form>
+  <p class="meta">Hanya orang yang cabang asalnya {{ clinic.name }}. Perubahan tercatat di audit. Sesudah mengubah jadwal, susun ulang pembagian tugas bila perlu.</p>
+</div>
+{% endif %}
+<p><a class="btn small secondary" href="{% url 'jadwal:plan' %}?cabang={{ clinic.pk }}&bulan={{ month.value }}">Pembagian tugas bulan ini →</a></p>
+{% endblock %}

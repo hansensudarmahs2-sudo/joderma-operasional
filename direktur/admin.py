@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AuditCheck, AuditItem, AuditPoint, DirectorNote
+from .models import AuditCheck, AuditItem, AuditPoint, Decision, DirectorNote
 
 
 class AuditPointInline(admin.TabularInline):
@@ -26,3 +26,9 @@ class AuditCheckAdmin(admin.ModelAdmin):
 class DirectorNoteAdmin(admin.ModelAdmin):
     list_display = ("__str__", "author", "clinic", "source", "created_at", "archived_at")
     list_filter = ("source",)
+
+
+@admin.register(Decision)
+class DecisionAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "clinic", "decider", "status", "needed_by", "decided_on", "is_policy")
+    list_filter = ("status", "decider", "is_policy")

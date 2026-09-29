@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Prioritas{% endblock %}
+{% block content %}
+<h1>Prioritas (matriks Eisenhower)</h1>
+<p class="sub">Task yang belum selesai. Penting = prioritas Tinggi/Kritis. Mendesak = target ≤ ambang jam cabang (bawaan 48 jam) atau prioritas Kritis. Kuadran IV bernama "Tinjau ulang" karena task tidak dihapus.</p>
+{% if focus %}<p><a href="{% url 'direktur:matrix' %}">← Tampilkan keempat kuadran</a></p>{% endif %}
+{% include "direktur/_filters.html" %}
+<div class="matrix" style="margin-top:.7rem">
+{% for q in matrix %}
+  <div class="quad quad-{{ q.key }}" id="kuadran-{{ q.key }}">
+    <h3><span>{{ q.key }}. {{ q.title }}</span><span class="tag muted">{{ q.count }}</span></h3>
+    <div class="meta">{{ q.subtitle }}</div>
+    {% for c in q.cards %}{% include "direktur/_task_card.html" %}{% empty %}<p class="meta">Kosong.</p>{% endfor %}
+  </div>
+{% endfor %}
+</div>
+{% endblock %}

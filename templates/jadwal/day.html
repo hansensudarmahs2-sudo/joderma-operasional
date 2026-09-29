@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Tugas {{ day|date:"d/m" }}{% endblock %}
+{% block content %}
+<h1>Tugas {{ day|date:"l, d/m/Y" }}</h1>
+<p class="sub">{{ clinic.name }} · {{ staff|length }} orang bertugas: {% for u in staff %}{{ u }}{% if not forloop.last %}, {% endif %}{% empty %}jadwal jaga belum diisi{% endfor %}.</p>
+<div class="button-row">
+  <a class="btn small secondary" href="{% url 'jadwal:day' prev.isoformat %}?cabang={{ clinic.pk }}">‹ {{ prev|date:"d/m" }}</a>
+  <a class="btn small secondary" href="{% url 'jadwal:plan' %}?cabang={{ clinic.pk }}&bulan={{ month }}">Satu bulan</a>
+  <a class="btn small secondary" href="{% url 'jadwal:day' next.isoformat %}?cabang={{ clinic.pk }}">{{ next|date:"d/m" }} ›</a>
+</div>
+{% for r in rows %}
+{% ifchanged r.portion.group %}<h2>{{ r.portion.get_group_display }}</h2>{% endifchanged %}
+<div class="card duty-card">
+  <div class="duty-head">
+    <div><strong>{{ r.portion.name }}</strong><div class="meta">{{ r.portion.description }}</div></div>
+    <div class="duty-people">{% for a in r.people %}<span class="chip{% if a.user_id == user.pk %} chip-on{% endif %}">{{ a.user }}{% if a.source == 'MANUAL' %} · manual{% endif %}</span>{% empty %}<span class="tag warn">Belum ada</span>{% endfor %}</div>
+  </div>
+  {% if can_swap %}
+  <details><summary>Ganti pelaksana</summary>
+    <form method="post" class="inline">{% csrf_token %}
+      <input type="hidden" name="cabang" value="{{ clinic.pk }}"><input type="hidden" name="porsi" value="{{ r.portion.pk }}">
+      <div><label>Pelaksana ({{ r.portion.people }} orang)</label>
+        <select name="orang" {% if r.portion.people > 1 %}multiple size="4"{% endif %} required>
+        {% for u in r.candidates %}<option value="{{ u.pk }}" {% if u.pk in r.chosen %}selected{% endif %}>{{ u }}</option>{% endfor %}
+        </select></div>
+      <div><label>Alasan</label><input name="catatan" placeholder="mis. tukar dengan Lia"></div>
+      <button class="btn small" type="submit">Simpan</button>
+    </form>
+  </details>
+  {% endif %}
+</div>
+{% empty %}
+<p class="meta">Belum ada porsi tugas untuk cabang ini.</p>
+{% endfor %}
+{% endblock %}

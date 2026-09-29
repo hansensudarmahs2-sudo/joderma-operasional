@@ -18,6 +18,7 @@ urlpatterns = [
     path("laporan/", include(("reports.urls", "reports"), namespace="reports")),
     path("order-online/", include(("orders.urls", "orders"), namespace="orders")),
     path("direktur/", include(("direktur.urls", "direktur"), namespace="direktur")),
+    path("jadwal/", include(("jadwal.urls", "jadwal"), namespace="jadwal")),
     path("audit/", include(("audit.urls", "audit"), namespace="audit")),
     path("health/", core_views.health, name="health"),
     path("django-admin/", admin.site.urls),

@@ -7,7 +7,7 @@ from django.db import models
 
 class ReportVisibility(models.TextChoices):
     CABANG = "CABANG", "Terlihat satu cabang"
-    RAHASIA_AOM = "RAHASIA_AOM", "Rahasia — hanya pelapor dan AOM"
+    RAHASIA_AOM = "RAHASIA_AOM", "Rahasia — hanya pelapor dan Direktur Operasional"
 
 
 class ReportStatus(models.TextChoices):

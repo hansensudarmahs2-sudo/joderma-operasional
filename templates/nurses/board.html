@@ -1,31 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Tally tindakan perawat{% endblock %}
+{% block title %}Giliran perawat{% endblock %}
 {% block content %}
-<h1>Tally tindakan perawat</h1>
-<p class="sub">{{ day.date }} · tally tindakan per perawat dengan nomor RM, nama pasien, dan tindakan untuk rekonsiliasi.</p>
+<h1>Giliran perawat</h1>
+<p class="sub">{{ day.clinic.name }} · {{ day.date|date:"l, d/m/Y" }} · tally dicatat saat tindakan selesai, satu tindakan satu tally. Total bulan digabung dua cabang.</p>
+
+<div class="card next-nurse">
+  <div>
+    <div class="stat-label">Pasien berikutnya untuk</div>
+    <div class="stat">{% if next_entry %}{{ next_entry.nurse }}{% else %}—{% endif %}</div>
+    <div class="meta">{% if next_entry %}{{ rotation.reason|capfirst }}{% else %}Tidak ada perawat yang tersedia saat ini.{% endif %}</div>
+  </div>
+  {% if can_manage and next_entry %}
+  <form method="post" action="{% url 'nurses:hand_over' next_entry.pk %}">{% csrf_token %}
+    <button class="btn" type="submit">Serahkan pasien ke {{ next_entry.nurse }}</button>
+  </form>
+  {% endif %}
+</div>
+
+<h2>Papan giliran</h2>
+<table class="responsive rotation">
+  <thead><tr><th>Urutan</th><th>Perawat</th><th>Status</th><th>Hari ini</th><th>Bulan ini</th>{% if can_manage %}<th>Atur</th>{% endif %}</tr></thead>
+  <tbody>{% for r in rotation.rows %}
+  <tr class="{% if r.is_next %}is-next{% endif %}{% if r.entry.availability == 'OFF_DUTY' %} is-off{% endif %}">
+    <td data-label="Urutan"><strong>{{ r.entry.position }}</strong></td>
+    <td data-label="Perawat">{{ r.entry.nurse }}{% if r.lagging %} <span class="tag warn" title="Total bulan ini {{ r.lagging }} di bawah total terkecil rekan">mengejar {{ r.lagging }}</span>{% endif %}</td>
+    <td data-label="Status">{% if r.entry.availability == 'TERSEDIA' %}<span class="tag ok">Tersedia</span>{% elif r.entry.availability == 'MENANGANI' %}<span class="tag info">Sedang menangani</span>{% elif r.entry.availability == 'ISTIRAHAT' %}<span class="tag muted">Istirahat</span>{% else %}<span class="tag muted">Off / tidak bertugas</span>{% endif %}</td>
+    <td data-label="Hari ini"><strong>{{ r.today }}</strong></td>
+    <td data-label="Bulan ini"><strong>{{ r.month }}</strong></td>
+    {% if can_manage %}<td data-label="Atur" class="row-actions">
+      <form method="post" action="{% url 'nurses:move' r.entry.pk %}">{% csrf_token %}<input type="hidden" name="arah" value="naik"><button class="btn small secondary" type="submit" aria-label="Naikkan {{ r.entry.nurse }}" {% if forloop.first %}disabled{% endif %}>▲</button></form>
+      <form method="post" action="{% url 'nurses:move' r.entry.pk %}">{% csrf_token %}<input type="hidden" name="arah" value="turun"><button class="btn small secondary" type="submit" aria-label="Turunkan {{ r.entry.nurse }}" {% if forloop.last %}disabled{% endif %}>▼</button></form>
+      {% if r.entry.availability == 'TERSEDIA' and not r.is_next %}<form method="post" action="{% url 'nurses:hand_over' r.entry.pk %}">{% csrf_token %}<button class="btn small secondary" type="submit">Serahkan</button></form>{% endif %}
+      {% if r.entry.availability == 'TERSEDIA' %}<form method="post" action="{% url 'nurses:availability' r.entry.pk %}">{% csrf_token %}<input type="hidden" name="ketersediaan" value="ISTIRAHAT"><button class="btn small secondary" type="submit">Istirahat</button></form>{% elif r.entry.availability != 'OFF_DUTY' %}<form method="post" action="{% url 'nurses:availability' r.entry.pk %}">{% csrf_token %}<input type="hidden" name="ketersediaan" value="TERSEDIA"><button class="btn small secondary" type="submit">Tersedia</button></form>{% endif %}
+    </td>{% endif %}
+  </tr>
+  {% empty %}<tr><td colspan="6" class="meta">Belum ada perawat di roster hari ini. Isi jadwal jaga, atau atur roster manual.</td></tr>{% endfor %}</tbody>
+</table>
+<p class="meta">Yang total bulannya {{ rotation.gap }} atau lebih di bawah total terkecil rekan didahulukan sampai tinggal 1 di bawah; selebihnya mengikuti urutan papan. Setelah tally dicatat, perawat pindah ke belakang papan dan kembali tersedia.</p>
+<div class="button-row">
+  {% if can_manage %}
+  <form method="post" action="{% url 'nurses:sync' %}">{% csrf_token %}<button class="btn small secondary" type="submit">Sinkronkan dengan jadwal jaga</button></form>
+  <a class="btn small secondary" href="{% url 'nurses:roster' %}">Atur roster manual</a>
+  {% endif %}
+  <a class="btn small secondary" href="{% url 'nurses:ledger' %}">Riwayat giliran</a>
+</div>
+
 <div class="card">
-  <h2>Tambah tally tindakan</h2>
-  <p class="meta">Nomor RM otomatis memakai prefix {{ rm_prefix }}. Dicatat oleh user yang login untuk rekonsiliasi dengan Omnicare.</p>
+  <h2>Catat tally — saat tindakan selesai</h2>
+  <p class="meta">Nomor RM otomatis memakai prefix {{ rm_prefix }}. Tiga tindakan pada satu pasien = tally 3. Dicatat oleh user yang login untuk rekonsiliasi dengan Omnicare.</p>
   <form method="post" action="{% url 'nurses:tally_create' %}" class="inline">{% csrf_token %}
     {{ tally_form.as_p }}
     <button class="btn" type="submit">Simpan tally</button>
   </form>
 </div>
-<div class="card">
-  <div class="stat-label">Perawat berikutnya</div>
-  <div class="stat">{% if next_entry %}{{ next_entry.nurse }}{% else %}—{% endif %}</div>
-  {% if can_manage %}<a class="btn small secondary" href="{% url 'nurses:roster' %}">Atur ketersediaan</a>{% endif %}
-  <a class="btn small secondary" href="{% url 'nurses:ledger' %}">Riwayat tally</a>
-</div>
-<h2>Rekap hari ini</h2>
-<table class="responsive">
-  <thead><tr><th>#</th><th>Perawat</th><th>Tindakan selesai</th></tr></thead>
-  <tbody>{% for r in roster %}<tr>
-    <td data-label="#"><strong>{{ r.position }}</strong></td><td data-label="Perawat">{{ r.nurse }}</td>
-    <td data-label="Tindakan selesai"><strong>{{ r.turns_taken }}</strong></td>
-  </tr>{% empty %}<tr><td colspan="3" class="meta">Belum ada data perawat untuk hari ini.</td></tr>{% endfor %}</tbody>
-</table>
-<h2>Catatan tally</h2>
+
+<h2>Catatan tally hari ini</h2>
 <table class="responsive"><thead><tr><th>RM</th><th>Nama pasien</th><th>Tindakan</th><th>Jumlah</th><th>Perawat</th><th>Dicatat oleh</th></tr></thead>
-<tbody>{% for t in tallies %}<tr><td>{{ t.rm_number }}</td><td>{{ t.patient_name }}</td><td>{{ t.action_name }}</td><td>{{ t.tally }}</td><td>{{ t.nurse }}</td><td>{{ t.entered_by }}</td></tr>{% empty %}<tr><td colspan="6" class="meta">Belum ada tally.</td></tr>{% endfor %}</tbody></table>
+<tbody>{% for t in tallies %}<tr><td data-label="RM">{{ t.rm_number }}</td><td data-label="Nama pasien">{{ t.patient_name }}</td><td data-label="Tindakan">{{ t.action_name }}</td><td data-label="Jumlah">{{ t.tally }}</td><td data-label="Perawat">{{ t.nurse }}</td><td data-label="Dicatat oleh">{{ t.entered_by }}</td></tr>{% empty %}<tr><td colspan="6" class="meta">Belum ada tally.</td></tr>{% endfor %}</tbody></table>
 {% endblock %}

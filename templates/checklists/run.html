@@ -7,6 +7,8 @@
 <p>
   <a class="btn small secondary" href="?{% if only_problems %}{% else %}masalah=1{% endif %}">
     {% if only_problems %}Tampilkan semua{% else %}Hanya item bermasalah/belum{% endif %}</a>
+  <a class="btn small secondary" href="?{% if only_mine %}{% else %}saya=1{% endif %}">
+    {% if only_mine %}Semua butir{% else %}Hanya tugas saya{% endif %}</a>
   <a class="btn small secondary" href="{% url 'checklists:index' %}">Kembali</a>
 </p>
 
@@ -17,11 +19,12 @@
   {% for r in group.items %}
   <div class="checklist-item-row {% if r.result == 'OK' %}is-done{% endif %} {% if r.is_problem %}is-problem{% endif %}">
     <div class="checklist-item-status">{% if r.result == 'OK' %}✓{% elif r.is_problem %}!{% else %}·{% endif %}</div>
-    <div class="checklist-item-main"><strong>{{ r.label }}</strong>{% if r.checked_by %}<small>{{ r.checked_by }} · {{ r.checked_at|date:"H:i" }}</small>{% endif %}</div>
+    <div class="checklist-item-main"><strong>{{ r.label }}</strong>{% if r.assignees %}<small class="assignee{% if r.is_mine %} mine{% endif %}">Pelaksana: {% for u in r.assignees %}{{ u }}{% if not forloop.last %}, {% endif %}{% endfor %}</small>{% endif %}{% if r.checked_by %}<small>{{ r.checked_by }} · {{ r.checked_at|date:"H:i" }}{% if r.selection %} · {{ r.selection }}{% endif %}</small>{% endif %}{% if r.item_snapshot.help_text %}<small class="meta">{{ r.item_snapshot.help_text }}</small>{% endif %}</div>
     <div class="checklist-item-state">{% if r.result == 'OK' %}<span class="tag ok">OK</span>{% elif r.is_problem %}<span class="tag err">Perlu tindak lanjut</span>{% else %}<span class="tag info">Belum</span>{% endif %}</div>
     <form class="checklist-quick-form" method="post" action="{% url 'checklists:save_response' r.pk %}">
       {% csrf_token %}<input type="hidden" name="versi" value="{{ r.version }}"><input type="hidden" name="hasil" value="OK">
       {% if r.input_type == 'KUANTITAS' %}<input class="checklist-qty" name="jumlah" type="number" min="0" value="{{ r.quantity|default_if_none:'' }}" placeholder="Jumlah">{% endif %}
+      {% if r.input_type == 'JAM' %}<input class="checklist-qty" name="pilihan" type="time" value="{{ r.selection }}" required>{% endif %}
       {% if r.input_type == 'PILIHAN' %}<select class="checklist-choice" name="pilihan"><option value="">Pilih</option>{% for option in r.options %}<option value="{{ option }}" {% if r.selection == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select>{% endif %}
       <input class="checklist-note" name="catatan" value="{{ r.note }}" placeholder="Catatan jika perlu">
       {% if r.result != 'BELUM' %}<input class="checklist-note" name="alasan" placeholder="Alasan koreksi wajib">{% endif %}
