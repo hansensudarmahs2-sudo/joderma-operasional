@@ -69,9 +69,6 @@ DEFAULT_CONFIG: dict[str, object] = {
     # Perawat yang total tally bulanannya >= N di bawah total terkecil rekan
     # didahulukan sampai tinggal 1 di bawah ("sampai total -1").
     "nurse.catch_up_gap": 2,
-    # Di luar yang mengejar: "PAPAN" = urutan papan Koordinator Shift;
-    # "TERKECIL" = total bulan terkecil lebih dulu, seri mengikuti papan.
-    "nurse.in_band_order": "PAPAN",
     # Istirahat
     "break.min_active_front_desk": 1,
     "break.min_active_nurse": 1,

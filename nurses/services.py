@@ -140,27 +140,34 @@ def catch_up_gap(clinic) -> int:
     return int(ClinicConfig.get(clinic, "nurse.catch_up_gap", 2) or 2)
 
 
-def in_band_order(clinic) -> str:
-    """PAPAN (bawaan): di luar yang mengejar, giliran mengikuti urutan papan.
-    TERKECIL: di luar yang mengejar pun total terkecil didahulukan, seri → papan."""
-    value = str(ClinicConfig.get(clinic, "nurse.in_band_order", "PAPAN") or "PAPAN").upper()
-    return value if value in {"PAPAN", "TERKECIL"} else "PAPAN"
+def on_leave_this_month(nurse_ids, date) -> set[int]:
+    """Perawat yang punya hari cuti di bulan berjalan sampai `date` (jadwal jaga)."""
+    from jadwal.models import DutyRoster, DutyStatus
+
+    start, _ = month_bounds(date)
+    return set(
+        DutyRoster.objects.filter(
+            user_id__in=list(nurse_ids), status=DutyStatus.CUTI, date__gte=start, date__lte=date
+        ).values_list("user_id", flat=True)
+    )
 
 
 def rotation_board(day, category: ProcedureCategory | None = None) -> dict:
     """Urutan giliran hari ini beserta alasannya.
 
-    Aturan (ketetapan product owner 29 Sep 2026):
-    1. Tally dihitung per tindakan saat tindakan selesai; total bulanan digabung
-       dua cabang dan mulai dari nol tiap tanggal 1.
-    2. Perawat yang tertinggal — totalnya paling sedikit `gap` (bawaan 2) di bawah
-       total terkecil rekan yang bertugas — didahulukan sampai tinggal satu di
-       bawah rekan itu ("sampai total -1"). Off pengganti hari libur tetap
-       dihitung, jadi yang habis off ikut mengejar.
-    3. Selain itu giliran mengikuti urutan papan yang diatur Koordinator Shift;
-       yang baru mencatat tally pindah ke belakang.
-    4. Yang sedang menangani, istirahat, atau off tidak diberi pasien.
-    Cuti belum dibedakan dari off; diatur bersama jadwal November.
+    Aturan (ketetapan product owner 30 Sep 2026):
+    1. Giliran ditentukan per pasien; tally dicatat per tindakan saat selesai.
+       Total bulanan digabung dua cabang dan mulai dari nol tiap tanggal 1.
+    2. Yang paling sedikit didahulukan. Perawat yang totalnya paling sedikit
+       `gap` (bawaan 2) di bawah total terkecil rekan yang bertugas mendapat
+       pasien berturut-turut sampai tinggal satu di bawah rekan itu ("-1").
+       Off (termasuk tukar libur karena masuk Minggu/hari raya) tetap dihitung.
+    3. Sesudah itu giliran kembali mengikuti urutan papan. Urutan papan awal
+       hari disusun dari total bulanan terkecil; Koordinator Shift dapat
+       menggesernya. Yang baru mencatat tally pindah ke belakang.
+    4. Perawat yang mengajukan cuti di bulan itu tidak mendapat keistimewaan
+       mengejar (butir 2); ia tetap mendapat tempat di papan seperti biasa.
+    5. Yang sedang menangani, istirahat, atau off tidak diberi pasien.
     """
     entries = list(
         NurseRosterEntry.objects.filter(operational_day=day).select_related("nurse").order_by("position", "id")
@@ -169,8 +176,11 @@ def rotation_board(day, category: ProcedureCategory | None = None) -> dict:
     counts = monthly_tally([e.nurse_id for e in entries], day.date)
     today = daily_tally(day)
     gap = catch_up_gap(day.clinic)
+    on_leave = on_leave_this_month([e.nurse_id for e in entries], day.date)
 
     def lagging(entry) -> int:
+        if entry.nurse_id in on_leave:
+            return 0
         others = [counts[o.nurse_id] for o in on_duty if o.pk != entry.pk]
         if not others:
             return 0
@@ -185,9 +195,6 @@ def rotation_board(day, category: ProcedureCategory | None = None) -> dict:
     if chasing:
         pick = chasing[0]
         reason = f"mengejar: {lagging(pick)} di bawah total terkecil rekan"
-    elif available and in_band_order(day.clinic) == "TERKECIL":
-        pick = min(available, key=lambda e: (counts[e.nurse_id], e.position, e.pk))
-        reason = "total bulan terkecil; seri mengikuti urutan papan"
     elif available:
         pick = available[0]
         reason = "urutan papan"
@@ -200,6 +207,7 @@ def rotation_board(day, category: ProcedureCategory | None = None) -> dict:
             "today": today.get(e.nurse_id, 0),
             "lagging": lagging(e) if e.availability != Availability.OFF_DUTY else 0,
             "is_next": pick is not None and e.pk == pick.pk,
+            "on_leave": e.nurse_id in on_leave,
         }
         for e in entries
     ]

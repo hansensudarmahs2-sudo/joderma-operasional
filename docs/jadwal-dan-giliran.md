@@ -95,26 +95,34 @@ Menu **Giliran Perawat**. Roster hari itu dibuat otomatis dari jadwal jaga saat
 halaman pertama kali dibuka: semua pemegang peran PERAWAT yang bertugas di cabang
 itu (termasuk Heni, Desy, dan Regitta, serta perawat perbantuan).
 
-1. **Tally ditambah saat tindakan selesai**, satu tindakan satu tally — tiga
-   tindakan pada satu pasien = tally 3.
+1. **Giliran ditentukan per pasien; tally dicatat per tindakan** saat tindakan
+   selesai — tiga tindakan pada satu pasien = tally 3, tetapi satu giliran.
 2. **Total bulanan** digabung dua cabang dan mulai dari nol tiap tanggal 1.
    Halaman menampilkan tally hari ini dan total bulan ini per orang.
-3. **Yang tertinggal didahulukan sampai tinggal satu di bawah.** Perawat yang
-   totalnya paling sedikit 2 di bawah total terkecil rekan yang bertugas
-   mendapat pasien lebih dulu. Contoh: Lia 11, Alya 10, Yani 6 sesudah off dua
-   hari → Yani mendapat pasien berikutnya sampai totalnya 9, lalu kembali
-   bergiliran. Off pengganti hari libur tetap dihitung, jadi yang habis off ikut
-   mengejar.
-4. **Selebihnya mengikuti urutan papan** yang diatur Koordinator Shift dengan
-   tombol ▲ ▼. Setelah tally dicatat, perawat pindah ke belakang papan.
-5. **Yang sedang menangani tidak diberi pasien.** Koordinator Shift menekan
+3. **Urutan papan awal hari disusun dari total bulanan terkecil**; yang seri dapat
+   ditata Koordinator Shift dengan tombol ▲ ▼. Setelah tally dicatat, perawat
+   pindah ke belakang papan.
+4. **Yang paling sedikit didahulukan sampai −1.** Perawat yang totalnya paling
+   sedikit 2 di bawah total terkecil rekan yang bertugas mendapat pasien
+   berturut-turut sampai tinggal satu di bawah rekan itu, lalu giliran kembali
+   mengikuti papan. Off — termasuk tukar libur karena masuk hari Minggu atau
+   hari raya — tetap dihitung, jadi yang habis off ikut mengejar.
+5. **Yang mengajukan cuti tidak mendapat keistimewaan mengejar.** Hari cuti dicatat
+   di Jadwal Jaga (kode C); perawat yang punya hari cuti di bulan itu tetap
+   mendapat tempat pertama di papan bila totalnya terkecil, tetapi tidak
+   didahulukan berturut-turut. Selain itu tidak ada perlakuan khusus.
+6. **Yang sedang menangani tidak diberi pasien.** Koordinator Shift menekan
    *Serahkan pasien*; perawat itu berstatus *Sedang menangani* sampai tally-nya
    dicatat. Yang istirahat, off, cuti, atau sedang di cabang lain juga dilewati.
 
-Dua angka dapat diubah per cabang di Konfigurasi: `nurse.catch_up_gap` (bawaan 2)
-dan `nurse.in_band_order` — `PAPAN` (bawaan, sesuai ketetapan 29 Sep) atau
-`TERKECIL` (di luar yang mengejar pun total terkecil didahulukan; seri mengikuti
-papan).
+Contoh (skenario product owner 30 Sep): Yani 8 sesudah off, Lia 11, Heni 11,
+Desy 12, Alya 11; Koordinator Shift menata Lia–Heni–Alya. Urutan pasien: Yani,
+Yani (Yani 10), Lia, Heni, Alya, lalu Yani lagi karena ia kembali 2 di bawah
+total terkecil rekan (Desy 12), baru Desy. Akhir: Yani 11, lainnya 12. Esoknya
+Yani di urutan pertama papan tanpa keistimewaan berturut-turut, karena selisihnya
+tinggal 1.
+
+Ambang 2 dapat diubah per cabang lewat Konfigurasi `nurse.catch_up_gap`.
 
 ## Akun staf dan PIC
 

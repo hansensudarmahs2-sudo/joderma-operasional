@@ -92,17 +92,55 @@ def test_catch_up_stops_at_total_minus_one(jmr, team):
     assert monthly_tally([team["yani"].pk], dt.date(2026, 10, 20))[team["yani"].pk] == 10
 
 
-def test_alternative_lowest_first_mode(jmr, team):
-    from core.models import ClinicConfig
-
-    ClinicConfig.set(jmr, "nurse.in_band_order", "TERKECIL")
+def _scenario(jmr, team, counts, date, *, cuti=()):
+    """Roster hari itu dari jadwal jaga; total bulanan diisi pada tanggal 1."""
     heni = team["heni"]
-    _tally(jmr, dt.date(2026, 10, 18), team["lia"], 11, heni)
-    _tally(jmr, dt.date(2026, 10, 18), team["alya"], 10, heni)
-    _tally(jmr, dt.date(2026, 10, 18), team["yani"], 6, heni)
-    day = _roster(jmr, dt.date(2026, 10, 20), [team["lia"], team["alya"], team["yani"]])
-    order = [_give_next(day, heni) for _ in range(7)]
-    assert order == ["yani", "yani", "yani", "yani", "alya", "yani", "lia"]
+    if "desy" not in team:
+        team["desy"] = _user(jmr, "desy", [Role.PERAWAT, Role.FRONT_DESK])
+    for name, n in counts.items():
+        _tally(jmr, dt.date(2026, 10, 1), team[name], n, heni)
+        DutyRoster.objects.create(user=team[name], date=date, home_clinic=jmr, clinic=jmr, status=DutyStatus.MASUK)
+    for name in cuti:
+        DutyRoster.objects.create(user=team[name], date=dt.date(2026, 10, 20), home_clinic=jmr,
+                                  status=DutyStatus.CUTI)
+    day, _ = get_or_create_day(jmr, date=date)
+    sync_roster_with_duty(day)
+    return day
+
+
+def test_scenario_off_catches_up_to_minus_one_then_board(jmr, team):
+    # Skenario product owner 30 Sep: Yani 8 (habis off), Lia 11, Heni 11, Desy 12, Alya 11.
+    day = _scenario(jmr, team, {"yani": 8, "lia": 11, "heni": 11, "desy": 12, "alya": 11}, dt.date(2026, 10, 25))
+    names = [e.nurse.username for e in NurseRosterEntry.objects.filter(operational_day=day).order_by("position")]
+    assert names[0] == "yani" and names[-1] == "desy"  # papan awal: total terkecil dulu
+    # Koordinator Shift menata yang seri: Lia, Heni, Alya.
+    lia = NurseRosterEntry.objects.get(operational_day=day, nurse=team["lia"])
+    move_entry(lia, direction="naik", user=team["heni"])
+    move_entry(lia, direction="naik", user=team["heni"])
+    move_entry(NurseRosterEntry.objects.get(operational_day=day, nurse=team["heni"]), direction="naik",
+               user=team["heni"])
+    order = [_give_next(day, team["heni"]) for _ in range(7)]
+    # Yani 8→10, lalu papan. Sesudah Lia/Heni/Alya jadi 12, Yani (10) kembali 2 di bawah
+    # total terkecil rekan (Desy 12), jadi ia didahulukan lagi sebelum Desy; akhir: Yani 11.
+    assert order == ["yani", "yani", "lia", "heni", "alya", "yani", "desy"]
+
+
+def test_scenario_next_day_lowest_starts_first_without_streak(jmr, team):
+    # Esoknya Yani 11, lainnya 12: Yani urutan pertama, tanpa keistimewaan mengejar.
+    day = _scenario(jmr, team, {"yani": 11, "lia": 12, "heni": 12, "desy": 12, "alya": 12}, dt.date(2026, 10, 26))
+    board = rotation_board(day)
+    assert board["next"].nurse == team["yani"] and board["reason"] == "urutan papan"
+    order = [_give_next(day, team["heni"]) for _ in range(2)]
+    assert order[0] == "yani" and order[1] != "yani"
+
+
+def test_scenario_leave_gets_first_place_but_no_streak(jmr, team):
+    # Yani cuti bulan ini: tetap urutan pertama, tetapi tidak didahulukan berturut-turut.
+    day = _scenario(jmr, team, {"yani": 7, "lia": 10, "heni": 10, "desy": 11, "alya": 10}, dt.date(2026, 10, 25),
+                    cuti=["yani"])
+    order = [_give_next(day, team["heni"]) for _ in range(5)]
+    assert order[0] == "yani" and "yani" not in order[1:] and order[-1] == "desy"
+    assert not any(r["lagging"] for r in rotation_board(day)["rows"])
 
 
 def test_busy_and_off_nurses_are_skipped(jmr, team):

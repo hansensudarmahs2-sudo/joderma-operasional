@@ -41,7 +41,8 @@ Menjawab arahan product owner 29 Sep (10 butir) dan jadwal jaga Oktober 2026. Ri
   input baru `JAM`. Template lama role-specific dinonaktifkan (riwayat tetap).
 - Giliran perawat: total tally bulanan gabung cabang, yang tertinggal ≥2 didahulukan sampai
   total −1, selebihnya urutan papan (▲▼ Koordinator Shift), serahkan pasien → sedang menangani,
-  roster dari jadwal jaga. Konfigurasi `nurse.catch_up_gap`, `nurse.in_band_order`.
+  roster dari jadwal jaga, papan awal hari urut total terkecil; yang cuti bulan itu tanpa keistimewaan
+  mengejar (ketetapan 30 Sep). Konfigurasi `nurse.catch_up_gap`.
 - Pengaturan Klinik (nama, alamat, HP, jam, DPJ, APJ); migrasi data Jemur 14.00–22.00.
 - Label: AOM → Direktur Operasional; fungsi PIC sesuai memo, tambah PIC Apotek. Menu gantt
   Direktur menjadi "Jadwal Task".

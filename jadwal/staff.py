@@ -53,5 +53,6 @@ STAFF = [
     ("silvi", "Silvi", "Perawat", {CTL: [Role.PERAWAT, S]}, []),
 ]
 
-# Ejaan lama di akun demo yang diganti (username lama -> baru).
-RENAMES = {"heny": "heni"}
+# Ejaan lain yang mungkin sudah dipakai sebagai username (lama -> baru). Dijalankan
+# sesudah `rapikan_akun` membuang akhiran _pic, jadi `heny_pic` -> `heny` -> `heni`.
+RENAMES = {"heny": "heni", "regita": "regitta", "rahayu": "ayu", "aliya": "alya", "aliyah": "alya"}

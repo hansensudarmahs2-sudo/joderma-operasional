@@ -109,9 +109,37 @@ cd ~/joderma-ops
 bash scripts/backup.sh                              # backup dulu, selalu
 docker compose build app
 docker compose up -d --force-recreate app
-docker compose exec app python manage.py migrate --noinput
-curl -sS http://127.0.0.1:8731/health/
+sleep 15 && curl -sS http://127.0.0.1:8731/health/  # container menjalankan migrate sendiri saat start
+docker compose exec app python manage.py showmigrations | grep '\[ \]' || echo "semua migrasi sudah jalan"
 ```
+
+Jangan menjalankan `migrate` manual tepat sesudah `up`: perintah `CMD` container
+sudah menjalankannya, dan dua proses migrate bersamaan menghasilkan galat "table
+already exists" yang menakutkan tetapi tidak merusak. Cukup periksa `showmigrations`.
+
+Aplikasi juga diakses dari luar lewat `https://ops.joderma.id` (cloudflared →
+Tailscale port 8446 → `127.0.0.1:8731`).
+
+## Pembaruan 30 September 2026 — jadwal Oktober dan akun
+
+Sekali jalan, sesudah kode baru terpasang dan `showmigrations` bersih:
+
+```bash
+cd ~/joderma-ops
+# Hanya simpan backup terbaru (arahan product owner): hapus arsip lama
+LATEST=$(ls -t backups/daily/joderma-ops-* | head -1); ls -l "$LATEST"
+find backups/daily backups/weekly backups/monthly -type f ! -path "$LATEST" -print -delete
+
+docker compose exec app python manage.py rapikan_akun --dry-run
+docker compose exec app python manage.py rapikan_akun --password klinik123
+docker compose exec app python manage.py seed_staf_cabang --password klinik123 --prune
+docker compose exec app python manage.py import_jadwal_jaga jadwal/data/jadwal-2026-10.json
+docker compose exec app python manage.py seed_tugas_harian --susun 2026-10
+```
+
+`rapikan_akun` membuang akhiran `_pic` dari username (akun yang sama, data lama
+tetap melekat) dan menyetel password semua akun aktif ke password awal dengan
+tanda wajib ganti saat login. Password baru yang dipilih staf minimal 12 karakter.
 
 Bila gagal, kembalikan ke keadaan semula dengan memulihkan backup terakhir sesuai
 prosedur di [`runbook.md`](runbook.md).

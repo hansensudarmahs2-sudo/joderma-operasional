@@ -23,7 +23,7 @@
   <tbody>{% for r in rotation.rows %}
   <tr class="{% if r.is_next %}is-next{% endif %}{% if r.entry.availability == 'OFF_DUTY' %} is-off{% endif %}">
     <td data-label="Urutan"><strong>{{ r.entry.position }}</strong></td>
-    <td data-label="Perawat">{{ r.entry.nurse }}{% if r.lagging %} <span class="tag warn" title="Total bulan ini {{ r.lagging }} di bawah total terkecil rekan">mengejar {{ r.lagging }}</span>{% endif %}</td>
+    <td data-label="Perawat">{{ r.entry.nurse }}{% if r.lagging %} <span class="tag warn" title="Total bulan ini {{ r.lagging }} di bawah total terkecil rekan">mengejar {{ r.lagging }}</span>{% endif %}{% if r.on_leave %} <span class="tag muted" title="Ada cuti di jadwal jaga bulan ini: tidak didahulukan berturut-turut">cuti bulan ini</span>{% endif %}</td>
     <td data-label="Status">{% if r.entry.availability == 'TERSEDIA' %}<span class="tag ok">Tersedia</span>{% elif r.entry.availability == 'MENANGANI' %}<span class="tag info">Sedang menangani</span>{% elif r.entry.availability == 'ISTIRAHAT' %}<span class="tag muted">Istirahat</span>{% else %}<span class="tag muted">Off / tidak bertugas</span>{% endif %}</td>
     <td data-label="Hari ini"><strong>{{ r.today }}</strong></td>
     <td data-label="Bulan ini"><strong>{{ r.month }}</strong></td>
@@ -36,7 +36,7 @@
   </tr>
   {% empty %}<tr><td colspan="6" class="meta">Belum ada perawat di roster hari ini. Isi jadwal jaga, atau atur roster manual.</td></tr>{% endfor %}</tbody>
 </table>
-<p class="meta">Yang total bulannya {{ rotation.gap }} atau lebih di bawah total terkecil rekan didahulukan sampai tinggal 1 di bawah; selebihnya mengikuti urutan papan. Setelah tally dicatat, perawat pindah ke belakang papan dan kembali tersedia.</p>
+<p class="meta">Giliran ditentukan per pasien; tally dicatat per tindakan saat selesai. Yang total bulannya {{ rotation.gap }} atau lebih di bawah total terkecil rekan didahulukan sampai tinggal 1 di bawah, kecuali yang cuti bulan ini; selebihnya mengikuti urutan papan (awal hari: total terkecil dulu). Setelah tally dicatat, perawat pindah ke belakang papan dan kembali tersedia.</p>
 <div class="button-row">
   {% if can_manage %}
   <form method="post" action="{% url 'nurses:sync' %}">{% csrf_token %}<button class="btn small secondary" type="submit">Sinkronkan dengan jadwal jaga</button></form>
