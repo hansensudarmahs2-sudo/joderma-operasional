@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Jadwal{% endblock %}
+{% block content %}
+<h1>Jadwal</h1>
+<p class="sub">Siapa yang bertugas di cabang ini.</p>
+
+<div class="month-pick">
+  <span class="clinic-tabs" style="margin-left:0">
+    {% for c in clinics %}<a class="chip{% if c.pk == clinic.pk %} chip-on{% endif %}" href="?cabang={{ c.pk }}&tanggal={{ day|date:'Y-m-d' }}">{{ c.name }}</a>{% endfor %}
+  </span>
+</div>
+<div class="month-pick">
+  <a class="btn small secondary" href="?cabang={{ clinic.pk }}&tanggal={{ prev|date:'Y-m-d' }}" aria-label="Hari sebelumnya">←</a>
+  <strong>{% if day == today %}Hari ini · {% endif %}{{ day_label }}</strong>
+  <a class="btn small secondary" href="?cabang={{ clinic.pk }}&tanggal={{ next|date:'Y-m-d' }}" aria-label="Hari berikutnya">→</a>
+  {% if day != today %}<a class="btn small secondary" href="?cabang={{ clinic.pk }}">Hari ini</a>{% endif %}
+</div>
+
+<div class="card">
+  <div class="checklist-heading" style="margin:0 0 .4rem">
+    <strong>Bertugas · {{ duty.working|length }} orang</strong>
+    <span class="meta">Jam buka {{ clinic.open_time|time:"H.i" }}–{{ clinic.close_time|time:"H.i" }}</span>
+  </div>
+  {% if duty.working %}
+  <ul class="request-list">
+    {% for w in duty.working %}
+    <li class="request-row"><span class="request-main"><strong>{{ w.user }}</strong><span class="meta">{{ w.title|default:"—" }}{% if w.note %} · {{ w.note }}{% endif %}</span></span></li>
+    {% endfor %}
+  </ul>
+  {% elif duty.filled %}
+  <p class="meta">Tidak ada yang bertugas.</p>
+  {% else %}
+  <p class="meta">Jadwal jaga tanggal ini belum diisi.</p>
+  {% endif %}
+</div>
+
+{% if duty.away %}
+<h2>Tidak di cabang ini</h2>
+<div class="chip-row">
+  {% for a in duty.away %}<span class="chip"><b>{{ a.user }}</b> · {{ a.label }}</span>{% endfor %}
+</div>
+{% endif %}
+
+<p style="margin-top:1rem"><a class="btn secondary" href="{% url 'jadwal:roster' %}?cabang={{ clinic.pk }}&bulan={{ day|date:'Y-m' }}">Lihat jadwal penuh</a></p>
+{% endblock %}

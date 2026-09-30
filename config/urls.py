@@ -5,7 +5,7 @@ from django.urls import include, path
 from core import views as core_views
 
 urlpatterns = [
-    path("", core_views.dashboard, name="home"),
+    path("", core_views.home, name="home"),
     path("hari-ini/", include(("core.urls", "core"), namespace="core")),
     path("akun/", include(("accounts.urls", "accounts"), namespace="accounts")),
     path("pembukaan/", include(("checklists.urls", "checklists"), namespace="checklists")),
@@ -19,6 +19,7 @@ urlpatterns = [
     path("order-online/", include(("orders.urls", "orders"), namespace="orders")),
     path("direktur/", include(("direktur.urls", "direktur"), namespace="direktur")),
     path("jadwal/", include(("jadwal.urls", "jadwal"), namespace="jadwal")),
+    path("owner/", include(("owner.urls", "owner"), namespace="owner")),
     path("audit/", include(("audit.urls", "audit"), namespace="audit")),
     path("health/", core_views.health, name="health"),
     path("django-admin/", admin.site.urls),

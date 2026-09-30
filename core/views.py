@@ -76,6 +76,14 @@ def permission_denied(request, exception=None):
 
 
 @login_required
+def home(request):
+    """Halaman pertama sesudah login mengikuti tampilan peran."""
+    from .peran import home_url
+
+    return redirect(home_url(request.user))
+
+
+@login_required
 def dashboard(request):
     clinic = active_clinic(request.user)
     user = request.user

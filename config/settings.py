@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "aom_migration",
     "direktur",
     "jadwal",
+    "owner",
 ]
 
 MIDDLEWARE = [
@@ -64,6 +65,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "audit.middleware.RequestContextMiddleware",
     "accounts.middleware.SessionTimeoutMiddleware",
+    "core.middleware.PersonaAccessMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -102,7 +104,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "core:dashboard"
+LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "accounts:login"
 
 AUTH_PASSWORD_VALIDATORS = [

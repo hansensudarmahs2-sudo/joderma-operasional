@@ -4,7 +4,7 @@
 <h1>Tim — {{ today|date:"d/m/Y" }}</h1>
 <p class="sub">Apa yang sudah dan belum dikerjakan tim, per cabang. Halaman ini hanya untuk membaca; tidak ada skor atau peringkat.</p>
 <p>
-  <a class="btn small secondary" href="{% url 'direktur:overview' %}">Ringkasan</a>
+  <a class="btn small secondary" href="{% url 'home' %}">{% if is_director %}Ringkasan{% else %}Dashboard{% endif %}</a>
   {% if is_director %}
   <a class="btn small" href="{% url 'direktur:task_new' %}">Task baru</a>
   <a class="btn small secondary" href="{% url 'direktur:notes' %}">Catatan</a>

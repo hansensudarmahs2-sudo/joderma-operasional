@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Summary Harian{% endblock %}
+{% block content %}
+<h1>Summary Harian</h1>
+<p class="sub">Dikirim Direktur Operasional dari Checklist Direktur. Bila dikirim ulang di hari yang sama, yang tampil adalah versi terakhir.</p>
+
+<div class="month-pick">
+  <a class="btn small secondary" href="?tanggal={{ prev|date:'Y-m-d' }}" aria-label="Hari sebelumnya">←</a>
+  <strong>{{ day_label }}</strong>
+  {% if next %}<a class="btn small secondary" href="?tanggal={{ next|date:'Y-m-d' }}" aria-label="Hari berikutnya">→</a>{% endif %}
+  <form method="get" class="inline" style="flex:0 1 auto">
+    <input type="date" name="tanggal" value="{{ day|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" aria-label="Pilih tanggal" style="max-width:11rem">
+    <button class="btn small secondary" type="submit">Buka</button>
+  </form>
+</div>
+
+{% if summary %}
+<p class="meta">Dikirim {{ summary.sent_by }} pukul {{ summary.sent_at|date:"H.i" }}{% if summary.send_count > 1 %} · diperbarui {{ summary.send_count }} kali, pertama pukul {{ summary.first_sent_at|date:"H.i" }}{% endif %}</p>
+{% if summary.note %}
+<div class="card summary-note"><strong>Catatan Direktur</strong><div style="white-space:pre-wrap">{{ summary.note }}</div></div>
+{% endif %}
+{% for s in summary.sections %}
+<h2>{{ s.title }}</h2>
+{% if s.items %}
+<ul class="request-list card">
+  {% for it in s.items %}
+  <li class="request-row"><span class="request-main">{{ it.text }}{% if it.meta %}<span class="meta">{{ it.meta }}</span>{% endif %}</span>{% if it.tag %}<span class="request-state"><span class="tag {{ it.tone|default:'muted' }}">{{ it.tag }}</span></span>{% endif %}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="meta">{{ s.empty|default:"Tidak ada." }}</p>
+{% endif %}
+{% endfor %}
+{% else %}
+<div class="card"><strong>Belum ada summary untuk tanggal ini.</strong>
+  <p class="meta" style="margin:.3rem 0 0">Summary dibuat saat Direktur Operasional menekan "Simpan dan kirim summary ke Owner" di Checklist Direktur.</p></div>
+{% endif %}
+
+{% if recent %}
+<h2>Summary terakhir</h2>
+<div class="chip-row">
+  {% for r in recent %}<a class="chip{% if r.date == day %} chip-on{% endif %}" href="?tanggal={{ r.date|date:'Y-m-d' }}">{{ r.date|date:"d/m" }}</a>{% endfor %}
+</div>
+{% endif %}
+{% endblock %}

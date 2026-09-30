@@ -17,7 +17,7 @@ class Role(models.TextChoices):
     # Kode tetap "AOM" (dipakai di data dan kode); sebutannya kini Direktur Operasional.
     AOM = "AOM", "Direktur Operasional"
     ADMIN = "ADMIN", "Admin"
-    OWNER = "OWNER", "Owner/Manajemen"
+    OWNER = "OWNER", "Owner / Direktur Utama"
 
 
 class User(AbstractUser):

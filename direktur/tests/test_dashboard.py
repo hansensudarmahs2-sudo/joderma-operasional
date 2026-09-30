@@ -223,7 +223,9 @@ OVERVIEW_PAGES = ["direktur:overview", "direktur:kanban", "direktur:matrix", "di
 
 @pytest.mark.parametrize("name", OVERVIEW_PAGES)
 def test_pages_open_for_director_and_owner(client, name, director, owner):
-    for user in (director, owner):
+    # Owner melihat Ringkasan lewat Dashboard Owner (owner:dashboard), bukan halaman Direktur.
+    users = (director,) if name == "direktur:overview" else (director, owner)
+    for user in users:
         client.force_login(user)
         assert client.get(reverse(name)).status_code == 200
 
@@ -283,7 +285,7 @@ def test_overview_page_shows_sections(client, jemur, citraland, owner, director,
     _task(jemur, director, staf, "Susun jadwal piket", priority=Priority.TINGGI,
           due_at=timezone.now() + dt.timedelta(hours=5))
     client.force_login(owner)
-    body = client.get(reverse("direktur:overview")).content.decode()
+    body = client.get(reverse("owner:dashboard")).content.decode()  # isi yang sama dengan Ringkasan Direktur
     for text in ("Yang belum selesai", "Keputusan menggantung", "Kebijakan baru", "Jadwal task",
                  "Kerjakan sekarang", "Menunggu konfirmasi", "Susun jadwal piket", "Per cabang", "Citraland"):
         assert text in body
@@ -293,7 +295,7 @@ def test_overview_page_shows_sections(client, jemur, citraland, owner, director,
 
 def test_owner_nav_shows_overview_links_only(client, owner):
     client.force_login(owner)
-    body = client.get(reverse("direktur:overview")).content.decode()
+    body = client.get(reverse("owner:dashboard")).content.decode()
     assert reverse("direktur:kanban") in body and reverse("direktur:decisions") in body
     assert reverse("direktur:checklist") not in body
 

@@ -13,6 +13,8 @@
   <button class="btn" type="submit">Tampilkan</button>
 </form>
 
+<p class="meta"><a href="#summary-owner">Summary untuk Owner hari ini: {% if owner_summary %}terkirim pukul {{ owner_summary.sent_at|date:"H.i" }}{% if owner_summary.send_count > 1 %} ({{ owner_summary.send_count }} kali){% endif %}{% else %}belum dikirim{% endif %} ↓</a></p>
+
 <p>
   {% for value, label in cadences %}
     {% for key, s in summary.items %}{% if key == value %}
@@ -102,4 +104,28 @@
 {% empty %}
 <p class="meta">Belum ada butir aktif untuk siklus ini. Jalankan <code>manage.py seed_audit_direktur</code>.</p>
 {% endfor %}
+
+<section class="card summary-send" id="summary-owner" aria-labelledby="judul-summary">
+  <h2 id="judul-summary" style="margin-top:0">Summary hari ini untuk Owner</h2>
+  <p class="meta">Mencakup semua cabang. {% if owner_summary %}Terakhir dikirim pukul {{ owner_summary.sent_at|date:"H.i" }}{% if owner_summary.send_count > 1 %}, {{ owner_summary.send_count }} kali{% endif %}. Mengirim lagi akan memperbarui summary hari ini; Owner melihat versi terakhir.{% else %}Belum dikirim hari ini.{% endif %}
+    <a href="{% url 'owner:summary' %}">Lihat summary yang terkirim</a></p>
+  <details>
+    <summary>Pratinjau isi yang disusun otomatis</summary>
+    {% for s in summary_preview.sections %}
+      <h3>{{ s.title }}</h3>
+      {% if s.items %}
+      <ul class="request-list">
+        {% for it in s.items %}<li class="request-row"><span class="request-main">{{ it.text }}{% if it.meta %}<span class="meta">{{ it.meta }}</span>{% endif %}</span>{% if it.tag %}<span class="request-state"><span class="tag {{ it.tone|default:'muted' }}">{{ it.tag }}</span></span>{% endif %}</li>{% endfor %}
+      </ul>
+      {% else %}<p class="meta">{{ s.empty }}</p>{% endif %}
+    {% endfor %}
+  </details>
+  <form method="post" action="{% url 'direktur:summary_send' %}">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <label for="catatan-summary">Catatan Direktur</label>
+    <textarea id="catatan-summary" name="catatan" rows="4" placeholder="Hal yang perlu Owner ketahui hari ini">{{ owner_summary.note|default:'' }}</textarea>
+    <p><button class="btn" type="submit">Simpan dan kirim summary ke Owner</button></p>
+  </form>
+</section>
 {% endblock %}

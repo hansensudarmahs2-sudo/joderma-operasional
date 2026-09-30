@@ -46,5 +46,5 @@
   <p class="meta">Hanya orang yang cabang asalnya {{ clinic.name }}. Perubahan tercatat di audit. Sesudah mengubah jadwal, susun ulang pembagian tugas bila perlu.</p>
 </div>
 {% endif %}
-<p><a class="btn small secondary" href="{% url 'jadwal:plan' %}?cabang={{ clinic.pk }}&bulan={{ month.value }}">Pembagian tugas bulan ini →</a></p>
+{% if nav_can_team_plan %}<p><a class="btn small secondary" href="{% url 'jadwal:plan' %}?cabang={{ clinic.pk }}&bulan={{ month.value }}">Pembagian tugas bulan ini →</a></p>{% endif %}
 {% endblock %}

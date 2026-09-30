@@ -12,8 +12,10 @@ from core.models import ActionItem, Priority, local_today
 from core.permissions import is_aom, require, user_clinic_queryset
 
 from . import dashboard, services
+from . import summary as daily_summary
 from .models import (
     AuditItem,
+    DailySummary,
     Cadence,
     CheckResult,
     Decider,
@@ -234,8 +236,26 @@ def checklist(request):
             "targets": services.target_choices(clinic),
             "priorities": Priority.choices,
             "suggestions": services.direct_check_suggestions(clinic, today) if cadence == Cadence.HARIAN else [],
+            "owner_summary": DailySummary.objects.filter(date=today).first(),
+            "summary_preview": daily_summary.compose(request.user, today),
         },
     )
+
+
+@login_required
+@require(is_aom)
+@require_POST
+def summary_send(request):
+    """Tombol "Simpan dan kirim summary ke Owner" di Checklist Direktur."""
+    item = daily_summary.send_summary(actor=request.user, note=request.POST.get("catatan", ""))
+    if item.send_count > 1:
+        messages.success(request, f"Summary diperbarui dan dikirim ulang ke Owner (kiriman ke-{item.send_count}).")
+    else:
+        messages.success(request, "Summary tersimpan dan dikirim ke Owner.")
+    back = request.POST.get("next", "")
+    if not back.startswith("/direktur/") or "//" in back:
+        back = reverse("direktur:checklist")
+    return redirect(f"{back}#summary-owner")
 
 
 @login_required

@@ -28,7 +28,7 @@ Dijalankan dari mesin pengembangan, dengan mini-PC dapat dijangkau lewat Tailsca
 
 ```bash
 # 1. Kirim kode (tanpa venv, database, lampiran, atau berkas rahasia)
-cd ~/joderma-staff-ops
+cd ~/Desktop/joderma-operasional
 rsync -az --delete \
   --exclude '/.venv/' --exclude '/data/' --exclude '/private_media/' \
   --exclude '/logs/' --exclude '/backups/' --exclude '/staticfiles/' \
@@ -92,7 +92,7 @@ docker compose exec app python manage.py pilot_check
 
 ```bash
 # Dari mesin pengembangan — pastikan test lulus lebih dulu
-cd ~/joderma-staff-ops && .venv/bin/python -m pytest
+cd ~/Desktop/joderma-operasional && .venv/bin/python -m pytest
 
 rsync -az --delete \
   --exclude '/.venv/' --exclude '/data/' --exclude '/private_media/' \
@@ -136,7 +136,7 @@ find backups/daily backups/weekly backups/monthly -type f ! -path "$LATEST" -pri
 
 docker compose exec app python manage.py rapikan_akun --dry-run
 docker compose exec app python manage.py rapikan_akun --password klinik123
-docker compose exec app python manage.py seed_staf_cabang --password klinik123 --prune
+docker compose exec app python manage.py seed_staf_cabang --prune   # atau tombol Admin ▸ Pengguna ▸ Reset peran ke default
 docker compose exec app python manage.py import_jadwal_jaga jadwal/jadwal_bulanan/jadwal-2026-10.json
 docker compose exec app python manage.py seed_tugas_harian --susun 2026-10
 ```

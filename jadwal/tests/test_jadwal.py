@@ -242,8 +242,9 @@ def test_pages_render_and_permissions(client, tim, cabang, direktur):
     assert "Heni" in body and "Ubah satu tanggal" not in body
     assert client.get(reverse("jadwal:roster") + f"?cabang={ctl.pk}").status_code == 403
     assert client.post(reverse("jadwal:plan") + f"?cabang={jmr.pk}&bulan=2026-10").status_code == 403
-    page = client.get(reverse("jadwal:day", args=["2026-10-02"]) + f"?cabang={jmr.pk}").content.decode()
-    assert "Kasir hari ini" in page and "Ganti pelaksana" not in page
+    # Staf tidak membuka pembagian tugas seluruh tim (porsinya ada di Checklist Saya).
+    assert client.get(reverse("jadwal:day", args=["2026-10-02"]) + f"?cabang={jmr.pk}").status_code == 403
+    assert "Pembagian tugas bulan ini" not in body
     client.force_login(tim["heni"])
     page = client.get(reverse("jadwal:day", args=["2026-10-02"]) + f"?cabang={jmr.pk}").content.decode()
     assert "Ganti pelaksana" in page

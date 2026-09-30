@@ -259,3 +259,37 @@ class Decision(models.Model):
 
     def is_overdue(self, today: dt.date) -> bool:
         return bool(self.status == DecisionStatus.MENUNGGU and self.needed_by and self.needed_by < today)
+
+
+class DailySummary(models.Model):
+    """Summary of the day dari Direktur Operasional untuk Owner, satu per tanggal.
+
+    Disusun dari tombol "Simpan dan kirim summary ke Owner" di Checklist Direktur. Bisa
+    dikirim ulang di hari yang sama; Owner melihat versi terakhir beserta jamnya.
+
+    `content` berbentuk ``{"sections": [{"title": str, "empty": str,
+    "items": [{"text": str, "meta": str, "tone": "ok"|"warn"|"err"|""}]}]}`` supaya
+    halaman Owner cukup menampilkan apa adanya.
+    """
+
+    date = models.DateField("tanggal", unique=True)
+    note = models.TextField("catatan Direktur", blank=True)
+    content = models.JSONField("isi", default=dict)
+    sent_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="daily_summaries"
+    )
+    first_sent_at = models.DateTimeField("pertama dikirim", auto_now_add=True)
+    sent_at = models.DateTimeField("terakhir dikirim")
+    send_count = models.PositiveSmallIntegerField("berapa kali dikirim", default=1)
+
+    class Meta:
+        verbose_name = "summary harian"
+        verbose_name_plural = "summary harian"
+        ordering = ("-date",)
+
+    def __str__(self) -> str:
+        return f"Summary {self.date:%d/%m/%Y}"
+
+    @property
+    def sections(self) -> list[dict]:
+        return list((self.content or {}).get("sections") or [])

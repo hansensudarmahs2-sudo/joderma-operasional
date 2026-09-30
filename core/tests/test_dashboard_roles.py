@@ -84,10 +84,11 @@ def test_admin_dashboard_shows_management_shortcuts(client, role_branch_matrix):
     UserRole.objects.create(user=admin_user, clinic=clinic, role=Role.ADMIN)
 
     client.login(username="admin_dash", password="TestPassword123!")
-    response = client.get(reverse("core:dashboard"))
-    body = response.content.decode()
-    assert "Ringkasan Admin" in body
-    assert reverse("accounts:user_list") in body
+    # Admin sistem mendarat di Pengguna dan tidak membuka Hari Ini (tampilan per peran).
+    assert client.get(reverse("home"))["Location"] == reverse("accounts:user_list")
+    assert client.get(reverse("core:dashboard")).status_code == 403
+    body = client.get(reverse("accounts:user_list")).content.decode()
+    assert reverse("accounts:role_reset") in body and reverse("core:config") in body
 
 
 def test_dashboard_requires_login(client):

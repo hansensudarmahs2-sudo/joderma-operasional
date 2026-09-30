@@ -8,6 +8,7 @@ from django.contrib.auth import authenticate, login, logout, update_session_auth
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from audit.middleware import client_ip
@@ -31,7 +32,7 @@ def _is_locked_out(username: str) -> bool:
 
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect("core:dashboard")
+        return redirect("home")
 
     form = LoginForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -77,7 +78,11 @@ def login_view(request):
             if user.must_change_password:
                 messages.info(request, "Silakan ganti kata sandi Anda.")
                 return redirect("accounts:change_password")
-            return redirect(request.GET.get("next") or "core:dashboard")
+            nxt = request.GET.get("next", "")
+            if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()},
+                                                       require_https=request.is_secure()):
+                return redirect(nxt)
+            return redirect("home")
 
     return render(request, "accounts/login.html", {"form": form})
 
@@ -113,7 +118,7 @@ def change_password(request):
             actor=request.user,
         )
         messages.success(request, "Kata sandi berhasil diubah.")
-        return redirect("core:dashboard")
+        return redirect("home")
     return render(request, "accounts/change_password.html", {"form": form})
 
 
@@ -274,4 +279,44 @@ def _sync_roles(user: User, form: UserForm, request) -> None:
         actor=request.user,
         before={"roles": sorted(current_roles), "capabilities": sorted(current_caps)},
         after={"roles": sorted(wanted_roles), "capabilities": sorted(wanted_caps)},
+    )
+
+
+def can_reset_roles(user) -> bool:
+    """Reset peran ke default: Admin, superuser bootstrap, atau Direktur Operasional."""
+    from core.permissions import is_admin, is_aom, is_bootstrap_superuser
+
+    return is_admin(user) or is_bootstrap_superuser(user) or is_aom(user)
+
+
+@login_required
+@require(can_reset_roles)
+def role_reset(request):
+    """Pratinjau lalu terapkan peran standar (docs/KEBUTUHAN_REDEFINISI_PERAN.md)."""
+    from django.core.exceptions import ValidationError
+
+    from .peran_standar import DEFAULT_PASSWORD, apply_plan, build_plan, describe
+
+    try:
+        plans, clinics = build_plan()
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+        return redirect("accounts:user_list" if can_manage_users(request.user) else "home")
+    if request.method == "POST":
+        if request.POST.get("konfirmasi") != "1":
+            messages.error(request, "Centang konfirmasi sebelum menerapkan.")
+            return redirect("accounts:role_reset")
+        n = apply_plan(plans, actor=request.user)
+        messages.success(request, f"Peran dikembalikan ke default: {n} akun berubah.")
+        return redirect("accounts:role_reset")
+    rows = [{"plan": p, "lines": describe(p)} for p in plans]
+    return render(
+        request,
+        "accounts/role_reset.html",
+        {
+            "rows": rows,
+            "changed": [r for r in rows if r["lines"]],
+            "clinics": clinics,
+            "default_password": DEFAULT_PASSWORD,
+        },
     )

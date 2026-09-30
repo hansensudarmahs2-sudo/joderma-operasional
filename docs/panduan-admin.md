@@ -26,6 +26,22 @@ diberi `PERAWAT` dan `FRONT_DESK` sekaligus.
 **Satu akun untuk satu orang.** Akun bersama membuat audit log kehilangan
 maknanya — bila terjadi selisih kas, tidak ada yang dapat ditanyai.
 
+## Reset peran ke default
+
+**Admin ▸ Pengguna ▸ Reset peran ke default** mengembalikan peran, cabang, dan fungsi PIC
+semua akun standar ke definisi di aplikasi (`accounts/peran_standar.py` untuk Owner, Direktur
+Utama, Direktur Operasional, dan Admin; `jadwal/staff.py` untuk staf dua cabang). Dipakai
+sesudah kode baru disinkronkan ke mini PC.
+
+- Halaman menampilkan dulu apa yang akan berubah per akun; perubahan baru diterapkan setelah
+  kotak konfirmasi dicentang.
+- Akun standar yang belum ada dibuat dengan password `klinik123` dan wajib ganti saat login.
+- Peran di luar definisi dicabut dan PIC di luar definisi diakhiri (tidak dihapus).
+- Password akun yang sudah ada, seluruh data, dan akun di luar daftar (mis. `AOM_HS`) tidak
+  disentuh. Semua perubahan tercatat di audit.
+- Dapat dibuka Admin dan Direktur Operasional. Dari terminal, perintah yang sama:
+  `manage.py seed_staf_cabang --prune`.
+
 ## Memberi akses data sensitif
 
 Kapabilitas diberikan per orang pada halaman detail pengguna, terlepas dari

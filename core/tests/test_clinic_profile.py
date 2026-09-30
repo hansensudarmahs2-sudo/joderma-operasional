@@ -43,11 +43,11 @@ def test_invalid_hours_rejected(client, clinic):
     assert clinic.open_time == dt.time(12, 0)
 
 
-def test_owner_reads_staff_forbidden(client, clinic):
+def test_owner_and_staff_forbidden(client, clinic):
+    # Pengaturan Klinik bukan bagian tampilan Owner (keputusan 29 September 2026).
     owner = _user(clinic, "owner1", Role.OWNER)
     client.force_login(owner)
-    body = client.get(reverse("core:clinic_profile")).content.decode()
-    assert "Anda hanya dapat membaca" in body and 'name="dpj"' not in body
+    assert client.get(reverse("core:clinic_profile")).status_code == 403
     assert client.post(reverse("core:clinic_profile"), _form(clinic)).status_code == 403
     client.force_login(_user(clinic, "staf1", Role.STAF))
     assert client.get(reverse("core:clinic_profile")).status_code == 403

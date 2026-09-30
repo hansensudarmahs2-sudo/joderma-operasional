@@ -32,7 +32,7 @@ akses ke data sensitif. Seseorang dapat memegang beberapa peran sekaligus.
 | `PIC` | PIC fungsi di cabang | delegasi dan tindak lanjut operasional dalam cabangnya |
 | `AOM` | Direktur Operasional (kode peran tetap `AOM`) | koordinasi lintas cabang, jadwal jaga, pembagian tugas, laporan rahasia sesuai scope, dan publikasi masukan |
 | `ADMIN` | pengelola sistem | pengguna, peran, konfigurasi, template |
-| `OWNER` | pemilik dan manajemen | laporan dan audit, hanya baca |
+| `OWNER` | Owner dan Direktur Utama (satu peran, satu tampilan) | membaca keadaan klinik: dashboard, keputusan, jadwal (`KEBUTUHAN_REDEFINISI_PERAN.md`) |
 
 **Admin tidak berada di atas Supervisor.** Keduanya sejajar dengan wewenang yang
 berbeda: admin mengurus sistem, supervisor mengurus operasional. Admin tanpa
@@ -43,6 +43,31 @@ membuka halaman pengguna.
 tidak boleh diikat ke nama orang tertentu di kode. Jabatan organisasi formal
 disimpan terpisah dari role akses; fungsi PIC juga selalu bercabang dan memiliki
 periode aktif.
+
+## Tampilan per peran
+
+Sejak fase 3 redefinisi peran (`core/peran.py`), setiap pengguna punya **satu tampilan**
+yang ditentukan dari perannya, dengan urutan: Direktur Operasional (`AOM`) → Owner
+(`OWNER`) → PIC (`PIC` atau `SUPERVISOR`) → Staf (peran kerja lain) → Admin sistem
+(hanya `ADMIN`, atau superuser tanpa peran). Tampilan menentukan tiga hal:
+
+| Tampilan | Halaman pertama | Menu | Halaman yang boleh dibuka |
+|---|---|---|---|
+| Direktur Operasional | Ringkasan | semua, dikelompokkan: ringkasan, Direktur, Operasional, Laporan, Pengaturan | semua (izin per view tetap berlaku) |
+| Owner / Direktur Utama | Dashboard Owner | Dashboard, Keputusan, Summary Harian, Jadwal | **hanya**: halaman Owner (`/owner/`: Dashboard, Permintaan, Summary Harian, Jadwal), Tim, Kanban, Prioritas, Jadwal Task, Keputusan, Jadwal Jaga (baca), Notifikasi, Ganti password. Selain itu 403 |
+| PIC / Koordinator | Hari Ini | Hari Ini, Checklist Saya, Kas/Order bila perannya, Jadwal (termasuk Pembagian Tugas), Lapor, Laporan Operasional | semua kecuali yang ditolak izin per view |
+| Staf | Hari Ini | Hari Ini, Checklist Saya, Kas/Order bila perannya, Jadwal Jaga, Jadwal Istirahat, Giliran Perawat (perawat), Lapor | semua **kecuali** Pembagian Tugas tim (bulanan dan harian), Laporan Operasional dan ekspor, halaman Direktur dan Owner, Audit |
+| Admin sistem | Pengguna | Pengguna, Reset peran, Konfigurasi, Template Checklist, Pengaturan Klinik, Jadwal Jaga, Pembagian Tugas | **hanya** halaman akun, konfigurasi, template, pengaturan klinik, jadwal. Admin dengan `admin.full_access` tidak dibatasi |
+
+Penolakan dilakukan `core.middleware.PersonaAccessMiddleware` untuk setiap permintaan,
+sebelum view berjalan, lalu izin di masing-masing view tetap diperiksa. Keduanya harus
+lolos. Menu dibangun dari daftar yang sama, dan test `core/tests/test_tampilan_peran.py`
+memastikan tidak ada menu yang berujung 403 serta seluruh rute di luar tampilan Owner
+ditolak (GET dan POST).
+
+Catatan: beberapa predikat di `core/permissions.py` masih menyebut owner (mis. audit,
+ekspor, baca pengaturan klinik). Untuk akun yang hanya memegang `OWNER`, halaman itu
+tetap ditolak oleh tampilan Owner.
 
 ## Sepuluh kapabilitas
 
@@ -109,7 +134,7 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Mengekspor laporan | supervisor, AOM, owner | `report.export`, `admin.full_access` |
 | Ringkasan, Kanban, Prioritas, Jadwal Task, Keputusan, Tim (baca) | AOM, owner | — |
 | Pengaturan klinik (nama, alamat, nomor HP, jam, DPJ, APJ): ubah | admin, AOM, superuser bootstrap | — |
-| Pengaturan klinik: baca | owner | — |
+| Pengaturan klinik: baca | (owner dahulu; sejak fase 3 ditolak tampilan Owner) | — |
 | Jadwal jaga dan pembagian tugas: baca | semua pengguna dengan akses cabang | — |
 | Jadwal jaga: ubah; pembagian tugas: susun ulang satu bulan | AOM, admin, superuser bootstrap | — |
 | Pembagian tugas: ganti pelaksana satu porsi | AOM, admin, supervisor cabang itu | — |
@@ -117,8 +142,12 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Menggeser urutan papan giliran, menyerahkan pasien ke perawat | supervisor, AOM | — |
 | Checklist Direktur, catatan, task Direktur, mencatat/menetapkan keputusan, menutup temuan | AOM | — |
 | Mengelola pengguna | admin, superuser bootstrap | `user.manage`, `admin.full_access` |
+| Reset peran ke default (Admin ▸ Pengguna) | admin, AOM, superuser bootstrap | — |
 | Mengubah konfigurasi | admin, superuser bootstrap | — |
 | Mengelola template checklist | admin, supervisor, superuser bootstrap | — |
+| Membuat Permintaan Owner | owner | — |
+| Membaca Permintaan Owner dan menulis catatannya; membaca Summary Harian | owner, AOM | — |
+| Mengirim summary harian ke Owner | AOM | — |
 
 ## Fungsi PIC
 

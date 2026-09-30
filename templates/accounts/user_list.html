@@ -5,7 +5,8 @@
 <p class="sub">Akun bersama tidak diperbolehkan. Setiap staf memiliki akun sendiri.</p>
 <p><a class="btn" href="{% url 'accounts:user_create' %}">Tambah pengguna</a>
    <a class="btn secondary" href="{% url 'core:config' %}">Konfigurasi</a>
-   <a class="btn secondary" href="{% url 'checklists:templates' %}">Template checklist</a></p>
+   <a class="btn secondary" href="{% url 'checklists:templates' %}">Template checklist</a>
+   <a class="btn secondary" href="{% url 'accounts:role_reset' %}">Reset peran ke default</a></p>
 <table class="responsive">
   <thead><tr><th>Pengguna</th><th>Peran</th><th>Kapabilitas</th><th>Status</th><th></th></tr></thead>
   <tbody>

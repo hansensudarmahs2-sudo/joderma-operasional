@@ -5,25 +5,29 @@ oleh asisten AI di sesi baru yang tidak mengetahui riwayat percakapan sebelumnya
 
 ## Tiga kalimat konteks
 
-JoDerma Staff Ops adalah aplikasi internal klinik untuk delapan area operasional
-harian. Aplikasi sudah berjalan di mini-PC klinik lewat Docker dan diakses staf
-melalui Tailscale. Tahap sekarang: siap menjalankan uji coba lima hari, menunggu
-beberapa keputusan pemilik.
+JoDerma Staff Ops adalah aplikasi internal klinik (ops.joderma.id) untuk operasional
+harian dua cabang, Jemur Andayani dan Citraland. Aplikasi berjalan di mini PC klinik
+lewat Docker. Tahap sekarang (30 September 2026): redefinisi seluruh peran, fase 2–5
+selesai dan di-commit tetapi belum dideploy, pekerjaan dijeda sebelum fase 6.
+
+**Posisi terakhir, sisa pekerjaan, dan roadmap ada di bagian atas
+[`../current-progress.md`](../current-progress.md).** Baca itu lebih dulu.
 
 ## Di mana segalanya berada
 
 | | |
 |---|---|
-| Kode di komputer kerja | `~/joderma-staff-ops` |
+| Kode di laptop | `~/Desktop/joderma-operasional` |
 | Cadangan kode | https://github.com/hansensudarmahs2-sudo/joderma-operasional (private) |
 | Server klinik | `ssh joderma-jemur@joderma-jemur`, aplikasi di `~/joderma-ops` |
-| URL staf | `https://joderma-jemur.<tailnet>.ts.net:8443/` |
+| URL staf | `https://ops.joderma.id/` |
+| Rencana aktif | [`KEBUTUHAN_REDEFINISI_PERAN.md`](KEBUTUHAN_REDEFINISI_PERAN.md) |
 | Aplikasi lain di server | Photodex pada port 8080, jangan diganggu |
 
 ## Memulai sesi baru
 
 ```bash
-cd ~/joderma-staff-ops
+cd ~/Desktop/joderma-operasional
 git pull                                  # samakan dengan GitHub
 git log --oneline -5                      # apa yang terakhir dikerjakan
 .venv/bin/python -m pytest                # pastikan semuanya masih hijau
@@ -42,7 +46,7 @@ docker compose exec app python manage.py pilot_check
 ## Menjalankan di komputer kerja untuk mencoba-coba
 
 ```bash
-cd ~/joderma-staff-ops
+cd ~/Desktop/joderma-operasional
 .venv/bin/python manage.py runserver 127.0.0.1:8731
 ```
 
@@ -59,7 +63,7 @@ daripada bug yang hanya digambarkan sebagai "kadang error".
 Alur perbaikannya:
 
 ```bash
-cd ~/joderma-staff-ops
+cd ~/Desktop/joderma-operasional
 # 1. tulis test yang GAGAL karena bug tersebut
 # 2. perbaiki kodenya sampai test lulus
 .venv/bin/python -m pytest
@@ -71,29 +75,37 @@ diperbaiki, dan tidak ada yang mencegahnya kembali.
 
 ## Menerapkan perubahan ke klinik
 
+Hanya kode yang sudah di-commit yang dikirim, dan selalu backup lebih dulu.
+
 ```bash
-# Dari komputer kerja, setelah test lulus
-cd ~/joderma-staff-ops
+# Dari laptop, setelah test lulus dan perubahan di-commit
+cd ~/Desktop/joderma-operasional
+rm -rf /tmp/joderma-deploy && git worktree prune
+git worktree add /tmp/joderma-deploy HEAD
 rsync -az --delete \
-  --exclude '.venv/' --exclude 'data/' --exclude 'private_media/' \
-  --exclude 'logs/' --exclude 'backups/' --exclude 'staticfiles/' \
-  --exclude '.git/' --exclude '__pycache__/' --exclude '.env' \
-  ./ joderma-jemur@joderma-jemur:~/joderma-ops/
+  --exclude '/.venv/' --exclude '/data/' --exclude '/private_media/' --exclude '/logs/' \
+  --exclude '/backups/' --exclude '/staticfiles/' --exclude '/.git/' --exclude '__pycache__/' --exclude '/.env' \
+  /tmp/joderma-deploy/ joderma-jemur@joderma-jemur:~/joderma-ops/
+git worktree remove /tmp/joderma-deploy
 ```
+
+Pola exclude diawali `/` supaya hanya folder di akar yang dilewati. Tanpa `/`, folder
+bernama sama di dalam app (mis. `jadwal/.../data/`) ikut terlewat; itu pernah terjadi.
 
 ```bash
 # Di server klinik
 ssh joderma-jemur@joderma-jemur
 cd ~/joderma-ops
-docker compose exec -T backup /app/scripts/backup.sh    # backup dulu, selalu
+bash scripts/backup.sh                     # backup dulu, selalu
 docker compose build app
-docker compose up -d --force-recreate app
-docker compose exec app python manage.py migrate --noinput
+docker compose up -d --force-recreate app  # container menjalankan migrate saat start
 curl -sS http://127.0.0.1:8731/health/
 ```
 
-Backup dijalankan dari dalam container karena path basis data adalah path
-container, bukan path host.
+Bila menjalankan `docker compose exec` dari dalam skrip yang dikirim lewat `ssh ... <<EOF`,
+tambahkan `</dev/null` di akhir perintahnya, supaya perintah itu tidak menelan sisa skrip.
+Jangan menempelkan `set -e` langsung ke terminal: satu perintah gagal akan menutup terminal.
+Simpan langkahnya sebagai file lalu jalankan dengan `bash nama-file.sh`.
 
 ## Yang masih menunggu keputusan
 
@@ -111,11 +123,10 @@ asistensi dokter (11 September 2026).
 
 ## Sisa pekerjaan kecil
 
-- Tiga pengguna belum punya nama tampilan, sehingga audit log sulit dibaca.
-- Akun `hansen1` dan `superadmin` adalah superuser tanpa peran; bila itu sisa
-  percobaan, nonaktifkan agar tidak menjadi pintu masuk yang terlupakan.
-- Beberapa akun demo masih memakai kata sandi bawaan; wajib diganti sebelum
-  data nyata masuk.
+Daftar lengkap ada di [`../current-progress.md`](../current-progress.md) ▸ Task yang belum
+selesai. Yang paling sering terlupa: ganti password `hansen1` dan `superadmin` (masih
+`klinik123`), dan tekan **Reset peran ke default** sesudah setiap deploy yang mengubah definisi
+peran.
 
 ## Bila bekerja dengan asisten AI di sesi baru
 

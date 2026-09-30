@@ -1,0 +1,274 @@
+"""Tampilan per peran: menu, halaman pertama sesudah login, dan halaman yang boleh dibuka.
+
+Lihat `docs/KEBUTUHAN_REDEFINISI_PERAN.md`. Setiap pengguna punya satu *tampilan*
+(persona) yang ditentukan dari perannya:
+
+- ``DIREKTUR``: memegang peran Direktur Operasional (AOM). Melihat semuanya.
+- ``OWNER``: Owner / Direktur Utama. Hanya baca: dashboard, keputusan, jadwal.
+- ``PIC``: memegang fungsi PIC atau Koordinator Shift. Melihat dan mengatur timnya.
+- ``STAF``: staf biasa. Hanya yang ia kerjakan.
+- ``ADMIN``: akun sistem (Admin tanpa peran kerja lain). Pengguna, konfigurasi, jadwal.
+
+Menu hanya kemudahan. Pembatasan sebenarnya ada di `route_allowed`, yang dipanggil
+`PersonaAccessMiddleware` untuk setiap permintaan, ditambah pemeriksaan izin di masing-masing
+view seperti sebelumnya. Keduanya harus lolos.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from django.urls import reverse
+
+from accounts.models import Role
+
+DIREKTUR = "DIREKTUR"
+OWNER = "OWNER"
+PIC = "PIC"
+STAF = "STAF"
+ADMIN = "ADMIN"
+
+LABELS = {
+    DIREKTUR: "Direktur Operasional",
+    OWNER: "Owner / Direktur Utama",
+    PIC: "PIC / Koordinator",
+    STAF: "Staf",
+    ADMIN: "Admin sistem",
+}
+
+# Halaman pertama sesudah login.
+HOME = {
+    DIREKTUR: "direktur:overview",
+    OWNER: "owner:dashboard",
+    PIC: "core:dashboard",
+    STAF: "core:dashboard",
+    ADMIN: "accounts:user_list",
+}
+
+# Selalu boleh untuk siapa pun yang login.
+COMMON = {
+    ":home",
+    ":health",
+    "accounts:login",
+    "accounts:logout",
+    "accounts:change_password",
+    "notifications:*",
+}
+
+# Owner / Direktur Utama: daftar yang BOLEH (selain itu 403). Tim, Prioritas, Kanban, dan
+# Jadwal Task dibuka dari dalam dashboard, bukan menu utama; Jadwal Jaga dari "Lihat jadwal penuh".
+OWNER_ALLOWED = COMMON | {
+    "owner:*",
+    "direktur:team",
+    "direktur:kanban",
+    "direktur:matrix",
+    "direktur:gantt",
+    "direktur:decisions",
+    "direktur:decision_detail",
+    "jadwal:roster",
+}
+
+# Admin sistem: daftar yang BOLEH. Tidak mengisi checklist, kas, atau data operasional.
+ADMIN_ALLOWED = COMMON | {
+    "accounts:*",
+    "admin:*",  # Django admin (superuser)
+    "core:config",
+    "core:clinic_profile",
+    "checklists:templates",
+    "jadwal:*",
+}
+
+# Staf: daftar yang DILARANG (selain itu mengikuti izin masing-masing view).
+STAF_BLOCKED = {
+    "reports:index",  # Laporan Operasional: rekap seluruh tim
+    "reports:export",
+    "jadwal:plan",  # Pembagian Tugas seluruh tim; porsinya sendiri ada di Checklist Saya
+    "jadwal:day",
+    "direktur:*",
+    "owner:*",
+    "audit:*",
+}
+
+
+def persona(user) -> str:
+    """Satu tampilan per pengguna. Urutan: Direktur, Owner, PIC, Staf, Admin."""
+    from core.permissions import roles
+
+    codes = roles(user)
+    if Role.AOM in codes:
+        return DIREKTUR
+    if Role.OWNER in codes:
+        return OWNER
+    if codes & {Role.PIC, Role.SUPERVISOR}:
+        return PIC
+    if codes - {Role.ADMIN}:
+        return STAF
+    if Role.ADMIN in codes or getattr(user, "is_superuser", False):
+        return ADMIN
+    return STAF
+
+
+def home_url(user) -> str:
+    return reverse(HOME[persona(user)])
+
+
+def _matches(route: str, patterns: set[str]) -> bool:
+    namespace = route.split(":", 1)[0]
+    return route in patterns or f"{namespace}:*" in patterns
+
+
+def route_allowed(user, route: str) -> bool:
+    """Apakah tampilan pengguna ini boleh membuka rute `namespace:nama`."""
+    who = persona(user)
+    if who == OWNER:
+        return _matches(route, OWNER_ALLOWED)
+    if who == ADMIN:
+        from core.permissions import has_admin_full_access
+
+        # Admin yang diberi akses penuh data bisnis (OWNER_DECISION_REVIEW D8) tidak dibatasi.
+        return has_admin_full_access(user) or _matches(route, ADMIN_ALLOWED)
+    if who == STAF:
+        return not _matches(route, STAF_BLOCKED)
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Menu
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class NavSection:
+    title: str = ""
+    items: list[tuple[str, str]] = field(default_factory=list)
+
+    def add(self, label: str, route: str, query: str = "") -> None:
+        self.items.append((label, reverse(route) + query))
+
+
+def _report_section(user, flags) -> NavSection:
+    lapor = NavSection("Lapor")
+    if flags["issues"]:
+        lapor.add("Komplain", "issues:list", "?tipe=KOMPLAIN")
+        lapor.add("Masukan", "issues:list", "?tipe=MASUKAN")
+        lapor.add("Kerusakan", "issues:list", "?tipe=KERUSAKAN")
+    lapor.add("Laporan Saya", "reports:laporan_page")
+    lapor.add("Masukan Saya", "reports:masukan_page")
+    return lapor
+
+
+def _flags(user) -> dict:
+    from core.permissions import (
+        can_manage_config,
+        can_manage_templates,
+        can_manage_users,
+        can_view_audit,
+        can_view_cash_amounts,
+        can_view_clinic_profile,
+        has_role,
+        is_nurse,
+        is_supervisor,
+    )
+
+    return {
+        "cash": can_view_cash_amounts(user),
+        "orders": has_role(user, Role.ONLINE, Role.APOTEKER, Role.ASISTEN_APOTEKER, Role.SUPERVISOR, Role.PIC),
+        "nurses": is_nurse(user) or is_supervisor(user),
+        "issues": True,
+        "audit": can_view_audit(user),
+        "clinic": can_view_clinic_profile(user),
+        "users": can_manage_users(user),
+        "config": can_manage_config(user),
+        "templates": can_manage_templates(user),
+    }
+
+
+def nav_sections(user) -> list[NavSection]:
+    who = persona(user)
+    flags = _flags(user)
+
+    if who == OWNER:
+        main = NavSection()
+        main.add("Dashboard", "owner:dashboard")
+        main.add("Keputusan", "direktur:decisions")
+        main.add("Summary Harian", "owner:summary")
+        main.add("Jadwal", "owner:jadwal")
+        return [main]
+
+    if who == ADMIN:
+        admin = NavSection()
+        admin.add("Pengguna", "accounts:user_list")
+        admin.add("Reset peran", "accounts:role_reset")
+        if flags["config"]:
+            admin.add("Konfigurasi", "core:config")
+        admin.add("Template Checklist", "checklists:templates")
+        admin.add("Pengaturan Klinik", "core:clinic_profile")
+        jadwal = NavSection("Jadwal")
+        jadwal.add("Jadwal Jaga", "jadwal:roster")
+        jadwal.add("Pembagian Tugas", "jadwal:plan")
+        return [admin, jadwal]
+
+    if who == DIREKTUR:
+        overview = NavSection()
+        overview.add("Ringkasan", "direktur:overview")
+        overview.add("Tim", "direktur:team")
+        overview.add("Kanban", "direktur:kanban")
+        overview.add("Prioritas", "direktur:matrix")
+        overview.add("Jadwal Task", "direktur:gantt")
+        overview.add("Keputusan", "direktur:decisions")
+        mine = NavSection("Direktur")
+        mine.add("Checklist Direktur", "direktur:checklist")
+        mine.add("Summary Harian", "owner:summary")
+        mine.add("Catatan", "direktur:notes")
+        ops = NavSection("Operasional")
+        ops.add("Hari Ini", "core:dashboard")
+        ops.add("Checklist Saya", "checklists:index")
+        ops.add("Jadwal Jaga", "jadwal:roster")
+        ops.add("Pembagian Tugas", "jadwal:plan")
+        if flags["nurses"]:
+            ops.add("Giliran Perawat", "nurses:board")
+        if flags["cash"]:
+            ops.add("Kas", "cash:index")
+        if flags["orders"]:
+            ops.add("Order Produk Online", "orders:index")
+        reports = NavSection("Laporan")
+        reports.add("Laporan Operasional", "reports:index")
+        reports.add("Laporan Saya", "reports:laporan_page")
+        reports.add("Masukan Saya", "reports:masukan_page")
+        if flags["audit"]:
+            reports.add("Audit", "audit:log")
+        settings = NavSection("Pengaturan")
+        if flags["clinic"]:
+            settings.add("Pengaturan Klinik", "core:clinic_profile")
+        if flags["users"] or flags["config"]:
+            settings.add("Admin", "accounts:user_list")
+        return [s for s in (overview, mine, ops, reports, settings) if s.items]
+
+    # PIC dan Staf
+    work = NavSection()
+    work.add("Hari Ini", "core:dashboard")
+    work.add("Checklist Saya", "checklists:index")
+    team = NavSection("Jadwal")
+    team.add("Jadwal Jaga", "jadwal:roster")
+    if who == PIC:
+        team.add("Pembagian Tugas", "jadwal:plan")
+    team.add("Jadwal Istirahat", "breaks:list")
+    if flags["nurses"]:
+        team.add("Giliran Perawat", "nurses:board")
+    if flags["cash"]:
+        work.add("Kas", "cash:index")
+    if flags["orders"]:
+        work.add("Order Produk Online", "orders:index")
+    sections = [work, team, _report_section(user, flags)]
+    if who == PIC:
+        manage = NavSection("Koordinasi")
+        manage.add("Laporan Operasional", "reports:index")
+        if flags["audit"]:
+            manage.add("Audit", "audit:log")
+        if flags["templates"]:
+            manage.add("Template Checklist", "checklists:templates")
+        sections.append(manage)
+    if flags["users"] or flags["config"]:
+        settings = NavSection("Pengaturan")
+        settings.add("Admin", "accounts:user_list")
+        sections.append(settings)
+    return sections

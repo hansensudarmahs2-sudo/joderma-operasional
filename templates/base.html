@@ -13,10 +13,12 @@
 <div class="app-header">
 <header class="topbar">
   <button type="button" class="nav-toggle" aria-controls="main-nav" aria-expanded="false" aria-label="Buka menu">&#9776;</button>
-  <a class="brand" href="{% url 'core:dashboard' %}">JoDerma Staff Ops</a>
+  <a class="brand" href="{% url 'home' %}">JoDerma Staff Ops</a>
   <span class="spacer"></span>
-  <a href="{% url 'notifications:list' %}">Notifikasi
-    {% if unread_notifications %}<span class="badge-count">{{ unread_notifications }}</span>{% endif %}
+  <a class="bell" href="{% url 'notifications:list' %}" title="Notifikasi"
+     aria-label="Notifikasi{% if unread_notifications %}, {{ unread_notifications }} belum dibaca{% endif %}">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>
+    {% if unread_notifications %}<span class="bell-count">{% if unread_notifications > 99 %}99+{% else %}{{ unread_notifications }}{% endif %}</span>{% endif %}
   </a>
   <a class="user-name" href="{% url 'accounts:change_password' %}">{{ user }}</a>
   <form method="post" action="{% url 'accounts:logout' %}" style="display:inline">
@@ -26,40 +28,11 @@
 </header>
 </div>
 <nav class="main" id="main-nav" aria-label="Menu utama">
-  <a href="{% url 'core:dashboard' %}">Hari Ini</a>
-  {% if nav_can_overview %}
-    <a href="{% url 'direktur:overview' %}">Ringkasan</a>
-    <a href="{% url 'direktur:kanban' %}">Kanban</a>
-    <a href="{% url 'direktur:matrix' %}">Prioritas</a>
-    <a href="{% url 'direktur:gantt' %}">Jadwal Task</a>
-    <a href="{% url 'direktur:decisions' %}">Keputusan</a>
-    <a href="{% url 'direktur:team' %}">Tim</a>
-  {% endif %}
-  {% if nav_is_director %}
-    <a href="{% url 'direktur:checklist' %}">Checklist Direktur</a>
-    <a href="{% url 'direktur:notes' %}">Catatan</a>
-  {% endif %}
-  <a href="{% url 'checklists:index' %}">Checklist Saya</a>
-  <a href="{% url 'jadwal:roster' %}">Jadwal Jaga</a>
-  <a href="{% url 'jadwal:plan' %}">Pembagian Tugas</a>
-  {% if nav_can_cash %}<a href="{% url 'cash:index' %}">Kas</a>{% endif %}
-  {% if nav_can_orders %}<a href="{% url 'orders:index' %}">Order Produk Online</a>{% endif %}
-  {% if nav_can_roster %}<a href="{% url 'nurses:board' %}">Giliran Perawat</a>{% endif %}
-  {% if nav_can_breaks %}<a href="{% url 'breaks:list' %}">Jadwal Istirahat</a>{% endif %}
-  {% if nav_can_issues %}
-    <a href="{% url 'issues:list' %}?tipe=KOMPLAIN">Komplain</a>
-    <a href="{% url 'issues:list' %}?tipe=MASUKAN">Masukan</a>
-    <a href="{% url 'issues:list' %}?tipe=KERUSAKAN">Kerusakan</a>
-  {% endif %}
-  {% if nav_can_reports %}
-    <a href="{% url 'reports:index' %}">Laporan Operasional</a>
-    <a href="{% url 'reports:laporan_page' %}">Laporan Saya</a>
-    <a href="{% url 'reports:masukan_page' %}">Masukan Saya</a>
-  {% endif %}
-  {% if nav_can_audit %}<a href="{% url 'audit:log' %}">Audit</a>{% endif %}
-  {% if nav_can_clinic %}<a href="{% url 'core:clinic_profile' %}">Pengaturan Klinik</a>{% endif %}
-  {% if nav_can_admin %}<a href="{% url 'accounts:user_list' %}">Admin</a>{% endif %}
-  <a class="nav-account" href="{% url 'accounts:change_password' %}">{{ user }}<span class="meta">Ganti password</span></a>
+  {% for section in nav_sections %}
+    {% if section.title %}<div class="nav-section">{{ section.title }}</div>{% endif %}
+    {% for label, url in section.items %}<a href="{{ url }}">{{ label }}</a>{% endfor %}
+  {% endfor %}
+  <a class="nav-account" href="{% url 'accounts:change_password' %}">{{ user }}<span class="meta">{{ nav_persona_label }} · Ganti password</span></a>
 </nav>
 <div class="nav-backdrop" data-nav-close></div>
 <noscript><style>nav.main { transform: none; visibility: visible; position: static; width: auto; }</style></noscript>

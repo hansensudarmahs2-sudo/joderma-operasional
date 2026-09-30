@@ -54,10 +54,31 @@ antrian tidak masuk checklist ini karena pencatatannya sudah dipegang Finance.
 4. Temuan ditutup dari halaman Tim dengan **Tandai selesai** beserta catatan penutupan, atau
    lewat alur konfirmasi task biasa bila penerimanya mengajukan selesai.
 
+## Summary harian ke Owner
+
+Di bagian bawah **Checklist Direktur** ada kartu **Summary hari ini untuk Owner** (tautan di atas
+halaman langsung menuju ke sana). Summary mencakup semua cabang dan disusun otomatis dari data hari
+itu:
+
+1. hasil Checklist Direktur per cabang: berapa butir harian sudah dicek, temuan hari ini, butir
+   yang belum dicek, serta kemajuan mingguan dan bulanan;
+2. **Catatan Direktur**, satu kotak teks bebas yang Anda tulis sendiri;
+3. keputusan yang dicatat atau ditetapkan dan task yang dibuat atau selesai hari itu (task temuan
+   tidak diulang karena sudah ada di bagian checklist);
+4. status setiap Permintaan Owner yang masih berjalan.
+
+Buka **Pratinjau isi yang disusun otomatis** untuk melihat isinya, tulis catatan, lalu tekan
+**Simpan dan kirim summary ke Owner**. Owner mendapat notifikasi di lonceng. Tombol boleh ditekan
+lagi di hari yang sama; summary hari itu diperbarui (bukan ditambah), Owner melihat versi terakhir
+beserta jamnya dan berapa kali diperbarui, dan notifikasinya tidak menumpuk. Isi yang terkirim adalah
+salinan saat tombol ditekan; perubahan data sesudahnya baru masuk bila dikirim ulang. Riwayat per
+tanggal ada di menu **Summary Harian**.
+
 ## Ringkasan untuk Owner dan Direktur
 
 Owner cukup tahu apakah ada masalah, keputusan apa yang menggantung, dan kebijakan apa yang
-ditetapkan — tanpa sedetail pemeriksaan Direktur. Owner hanya membaca; semua tombol aksi hanya
+ditetapkan — tanpa sedetail pemeriksaan Direktur. Owner melihat isi Ringkasan yang sama di
+**Dashboard Owner**, ditambah Permintaan Owner (lihat [`panduan-owner.md`](panduan-owner.md)). Owner hanya membaca; semua tombol aksi hanya
 muncul, dan hanya diterima server, untuk Direktur.
 
 | Menu | Isi | Owner | Direktur |

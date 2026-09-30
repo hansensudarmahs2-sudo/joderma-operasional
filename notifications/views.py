@@ -25,4 +25,4 @@ def mark_all(request):
 def open_one(request, pk: int):
     notif = get_object_or_404(Notification, pk=pk, user=request.user)
     mark_read(request.user, notif.pk)
-    return redirect(notif.url or "core:dashboard")
+    return redirect(notif.url or "home")

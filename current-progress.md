@@ -1,31 +1,146 @@
 # Current Progress
 
-Status per 26 September 2026 (Asia/Jakarta). Sumber rencana: `docs/AOM_MODULE_INTEGRATION_PLAN.md`.
+Status per **30 September 2026** (Asia/Jakarta). **Pekerjaan dijeda** atas permintaan product owner.
+Bagian atas dokumen ini adalah posisi terakhir, sisa pekerjaan, dan roadmap. Bagian **Riwayat**
+di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
-## Ringkasan
+## Posisi terakhir
 
-Integrasi AOM telah melewati baseline/proteksi (Fase 0), organisasi dan akses (Fase 1),
-task dan delegasi (Fase 2), checklist harian (Fase 3), laporan dan masukan (Fase 4), serta
-UI dan usability (Fase 5, implementasi selesai). Fase 0–5 (termasuk desain checklist PDF dan
-SDM multi-role) sudah DI-COMMIT dan DI-PUSH ke `origin/master` pada commit `0884b3f`
-("feat: compact checklist and SDM role management"); working tree bersih. Semua pekerjaan
-dilakukan di desktop Ubuntu/Linux dengan data dummy. Belum ada perubahan ke mini PC produksi
-atau deployment. Approval eksplisit product owner untuk lanjut ke Fase 6 BELUM dikonfirmasi
-di dokumen ini — verifikasi status approval sebelum memulai Fase 6.
+| | |
+|---|---|
+| Produksi (mini PC, ops.joderma.id) | Commit `1595435` (dideploy 29 September): jadwal jaga Oktober, pembagian tugas, giliran tally bulanan, pengaturan klinik, rapikan akun. Backup tersimpan satu: `joderma-ops-20260929-111438.tar.gz` (tidak terenkripsi; salinannya di Desktop laptop) |
+| Laptop dan GitHub | Commit 30 September "Redefinisi peran fase 2–5". **Belum dideploy** ke mini PC |
+| Test | 562 lulus, 1 dilewati (`.venv/bin/python -m pytest`) |
+| Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
+| Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
-## Matriks fase
+## Redefinisi peran: status per fase
 
-| Fase | Status | Catatan |
+| Fase | Isi | Status |
 |---|---|---|
-| 0 — baseline dan perlindungan | Selesai | Baseline dicatat, fixture role/cabang ditambahkan, backup/restore dummy diverifikasi. |
-| 1 — organisasi dan akses | Selesai | Role AOM/PIC, organisasi, fungsi PIC, capability, scope cabang, dan negative tests tersedia. |
-| 2 — task dan delegasi | Selesai | Snapshot penerima, assignment individual/bersama, lifecycle submit/revision/confirm/cancel, histori, dan tests tersedia. |
-| 3 — checklist harian | Implementasi selesai dan sudah di-commit (`0884b3f`) | Sesi opening/closing/anytime, template berversi (histori tidak berubah), target fungsi PIC/role, tindak lanjut idempoten, koreksi wajib beralasan dengan audit `CORRECTION`. |
-| 4 — laporan dan masukan | Implementasi selesai dan sudah di-commit (`0884b3f`) | Model `Laporan`/`Masukan` ditambahkan di app `reports` yang sudah ada. Visibilitas `CABANG`/`RAHASIA_AOM`, status lifecycle, arsip beralasan+capability+audit, publikasi masukan AOM dengan snapshot immutable, dan negative tests kebocoran lintas cabang/rahasia. |
-| 5 — UI dan usability | Implementasi selesai dan sudah di-commit (`0884b3f`) | Dashboard AOM/PIC/Admin ditambahkan (staf tetap seperti semula), aksi task 'Ajukan selesai'/'Konfirmasi selesai'/'Minta revisi'/'Ambil task bersama' sebagai view terpisah dengan proteksi server-side, halaman HTML laporan/masukan dengan filter status eksplisit di atas endpoint JSON Fase 4, PIC kosong menampilkan pesan ramah di view checklist (bukan crash). Approval eksplisit product owner untuk lanjut ke Fase 6 belum dikonfirmasi. |
-| 6–8 | Belum dimulai | Rehearsal migrasi data AOM, release, observasi, dan cutover belum dikerjakan. |
+| 1 | Baseline: pemeriksaan read-only, seluruh test lulus | Selesai |
+| 2 | Definisi peran standar dan tombol **Reset peran ke default** (akun `jean`) | Selesai, di-commit 30 Sep |
+| 3 | Menu per peran, halaman pertama sesudah login, penolakan server-side (403) dan test negatif | Selesai, di-commit 30 Sep |
+| 4 | Owner: Dashboard + Permintaan Owner, Keputusan, Summary Harian, Jadwal ringkas | Selesai, di-commit 30 Sep |
+| 5 | Direktur: tombol "Simpan dan kirim summary ke Owner", riwayat summary; lonceng notifikasi | Selesai, di-commit 30 Sep |
+| 6 | Permintaan Owner sisi Direktur dan baris Gantt | **Belum** — berikutnya |
+| 7 | Staf sederhana | Belum |
+| 8 | PIC mengatur sesuai porsi fungsinya | Belum |
+| 9 | Uji tampilan per peran (desktop dan HP) bersama product owner | Belum |
 
-## Jadwal jaga, pembagian tugas, dan giliran tally bulanan (29 September 2026) — implementasi selesai, BELUM di-commit
+Fase 2–5 sudah lulus test dan tangkapan layarnya sudah ditinjau product owner per fase, tetapi
+**belum diuji di mini PC** dan belum dipakai staf.
+
+## Task yang belum selesai
+
+### Pengembangan (fase 6–9)
+
+1. **Fase 6 — Permintaan Owner sisi Direktur.**
+   - Kotak masuk permintaan untuk Direktur (menu Direktur), urut lewat target lalu target terdekat.
+   - Tombol "Pecah jadi task" dari halaman permintaan: judul, cabang, penerima, target, prioritas;
+     task dibuat lewat `core.task_services.create_task` dengan `source_type="permintaan_owner"`,
+     `source_id` = permintaan (progres di sisi Owner sudah membaca dari sini).
+   - Gantt (Jadwal Task): satu baris per permintaan beserta task turunannya; target permintaan
+     ditandai.
+   - Test: hanya AOM yang memecah, progres ikut berubah, baris Gantt muncul untuk Owner dan Direktur.
+2. **Fase 7 — Staf sederhana.**
+   - **Tugas hari ini**: daftar pendek butir checklist porsinya hari itu + task yang ditugaskan
+     kepadanya (menggantikan Hari Ini dan Checklist Saya di menu staf).
+   - **Jadwal saya**, **Istirahat saya**, **Tindakan saya** (giliran dan tally dirinya, hari ini dan
+     bulan ini) — hanya dirinya, bukan grid tim; lalu tutup grid tim untuk staf di server.
+   - **Kas hanya pada hari ia ditugaskan sebagai kasir** (porsi "Kasir hari ini"), ditegakkan di
+     server, bukan hanya menu.
+   - Komplain, Masukan, Kerusakan, Laporan Saya, Masukan Saya tetap.
+3. **Fase 8 — PIC sesuai porsi fungsinya.** Pembagian tugas yang ada dipakai apa adanya (uji coba);
+   PIC mengganti pelaksana, giliran perawat, istirahat, dan roster hanya untuk porsi fungsinya di
+   cabangnya. Saat ini hanya Koordinator Shift (SUPERVISOR) yang boleh mengganti pelaksana.
+4. **Fase 9 — Uji tampilan** per peran di desktop dan HP bersama product owner, lalu commit dan
+   deploy fase 6–9 sebagai satu paket.
+
+### Deploy dan operasional (dikerjakan product owner)
+
+- **Deploy fase 2–5 ke mini PC** bila ingin dipakai sebelum fase 6–9 selesai: backup dulu,
+  kirim kode yang sudah di-commit, `docker compose build app` dan `up -d --force-recreate app`
+  (migrate otomatis). Migrasi baru: `accounts 0008`, `checklists 0006`, `direktur 0004`,
+  `owner 0001`. Semua hanya menambah tabel atau mengubah label; data yang ada tidak diubah.
+- **Sesudah deploy:** Admin ▸ Pengguna ▸ **Reset peran ke default**, periksa pratinjau, lalu
+  terapkan. Efeknya: akun `jean` dibuat (password `klinik123`), `yohanes` dipastikan Owner, peran
+  tambahan di `hansen1` dicabut sehingga ia murni Direktur Operasional (urusan admin lewat
+  `superadmin`). `AOM_HS` tidak disentuh.
+- Ganti password `hansen1` dan `superadmin` (masih `klinik123`).
+- Isi DPJ, APJ, dan jam Citraland di Pengaturan Klinik (tidak terisi otomatis karena kode cabang
+  Citraland di mini PC adalah `JC`).
+- Putuskan akun `AOM_HS`: bila akun lama, nonaktifkan.
+- Backup terenkripsi: set `BACKUP_PASSPHRASE` untuk backup yang dijalankan dari host.
+- Opsional: hapus `docs/KEBUTUHAN_ROLE_OWNER.md` (sudah digantikan, isinya hanya penunjuk).
+
+### Celah yang dicatat (bukan blocker)
+
+- Beberapa predikat di `core/permissions.py` (audit, ekspor, baca pengaturan klinik) masih
+  menyebut owner. Untuk akun yang hanya Owner, halaman itu tetap ditolak oleh tampilan Owner
+  (`core/peran.py`); predikatnya dirapikan bila disentuh lagi.
+- Sampai fase 7, staf masih melihat grid Jadwal Jaga seluruh tim dan menu Kas setiap hari bila
+  memegang peran front desk.
+- Summary harian hanya terkirim bila Direktur menekan tombol; belum ada pengingat bila lupa.
+- Pemilih tanggal memakai format bawaan browser (mis. bulan/tanggal di browser berbahasa Inggris).
+- Tangkapan layar tiap fase dibuat di database uji (data contoh), bukan data klinik.
+- Penangguhan lama dari integrasi AOM tetap berlaku (lampiran laporan/masukan, pencarian teks
+  bebas, QA manual viewport dan keyboard) — lihat Riwayat ▸ Langkah berikutnya.
+
+## Roadmap
+
+| Kapan | Apa |
+|---|---|
+| Sesudah jeda | Fase 6 (Permintaan Owner sisi Direktur), fase 7 (staf sederhana), fase 8 (PIC), fase 9 (uji tampilan bersama product owner) |
+| Sesudah fase 9 | Commit, backup, deploy satu paket; Reset peran ke default di mini PC; perkenalan tampilan baru ke Owner, Direktur Utama, PIC, dan staf |
+| Oktober 2026 | Uji coba jadwal jaga, pembagian tugas, dan giliran tally bulanan; catat masalah di `UAT_ISSUE_REGISTER.md`; aturan tally ditweak sesudah uji coba (ketetapan 30 Sep) |
+| Akhir Oktober | Jadwal jaga November: siapkan JSON dari PDF, `import_jadwal_jaga`, `seed_tugas_harian --susun 2026-11` |
+| Belum dijadwalkan | Pengingat summary harian; perapihan predikat owner di `core/permissions.py`; lampiran laporan/masukan; rehearsal migrasi data AOM legacy (fase 6–8 rencana integrasi AOM, perlu persetujuan terpisah) |
+
+---
+
+# Riwayat
+
+## Redefinisi peran — fase 5: summary harian dan lonceng notifikasi (30 September 2026) — di-commit 30 Sep, belum dideploy
+
+`direktur/summary.py` menyusun summary (checklist Direktur per cabang, keputusan dan task hari itu,
+status Permintaan Owner) dan `send_summary` menyimpannya sebagai snapshot `DailySummary` (kirim ulang
+= perbarui, `send_count` naik), mencatat audit, dan memberi satu notifikasi belum-dibaca per tanggal
+ke setiap Owner. Kartu **Summary hari ini untuk Owner** (pratinjau, catatan Direktur, tombol "Simpan
+dan kirim summary ke Owner") di bawah Checklist Direktur; URL `direktur:summary_send` (hanya AOM).
+Menu Direktur mendapat Summary Harian. Topbar: lonceng SVG dengan bulatan merah (99+), nama pengguna
+disembunyikan di layar ≤600px. Test: `direktur/tests/test_summary.py`; 562 test lulus.
+
+## Redefinisi peran — fase 4: halaman Owner (30 September 2026) — di-commit 30 Sep, belum dideploy
+
+App baru `owner` (`/owner/`): Dashboard Owner (Permintaan Owner + isi Ringkasan yang sama lewat
+`templates/direktur/_overview_body.html`), Permintaan baru/detail dengan catatan dua arah dan
+notifikasi, Summary Harian per tanggal (membaca `direktur.DailySummary`; pengirimnya dibangun di
+fase 5), Jadwal ringkas per cabang (bertugas, libur/cuti/di cabang lain, tombol jadwal penuh).
+Owner mendarat di `/owner/`; `direktur:overview` tidak lagi terbuka untuk Owner. Migrasi:
+`owner 0001`, `direktur 0004`, `checklists 0006` (label peran Owner yang tertinggal di fase 2). Test: `owner/tests/test_owner.py`; 552 test lulus. Panduan:
+`docs/panduan-owner.md`.
+
+## Redefinisi peran — fase 3: menu per peran dan penolakan server-side (30 September 2026) — di-commit 30 Sep, belum dideploy
+
+`core/peran.py` menentukan satu tampilan per pengguna (Direktur, Owner, PIC, Staf, Admin): menu,
+halaman pertama sesudah login (`/` dan login mengalihkan ke sana), dan halaman yang boleh dibuka.
+`core.middleware.PersonaAccessMiddleware` menolak (403) halaman di luar tampilan: Owner hanya
+Ringkasan/Tim/Kanban/Prioritas/Jadwal Task/Keputusan/Jadwal Jaga; staf tidak membuka Pembagian
+Tugas tim, Laporan Operasional, Audit, halaman Direktur; Admin sistem hanya halaman akun,
+konfigurasi, template, pengaturan klinik, jadwal. `next` pada login hanya diikuti bila URL internal.
+Test: `core/tests/test_tampilan_peran.py`; 527 test lulus.
+
+## Redefinisi peran — fase 2: peran standar dan Reset peran ke default (29 September 2026) — di-commit 30 Sep, belum dideploy
+
+Rencana: `docs/KEBUTUHAN_REDEFINISI_PERAN.md`. `accounts/peran_standar.py` mendefinisikan akun
+standar (Owner `yohanes`, Direktur Utama `jean` — peran OWNER yang sama —, Direktur Operasional
+`hansen1`, Admin `superadmin`, dan staf dari `jadwal/staff.py`). Halaman Admin ▸ Pengguna ▸
+**Reset peran ke default** (pratinjau → konfirmasi → terapkan; admin dan AOM). `seed_staf_cabang`
+memakai logika yang sama. Label peran OWNER menjadi "Owner / Direktur Utama" (migrasi accounts 0008).
+Test: `accounts/test_reset_peran.py`.
+
+## Jadwal jaga, pembagian tugas, dan giliran tally bulanan (29 September 2026) — di-commit dan dideploy 29 Sep (`18dfcb6`, `1595435`)
 
 Menjawab arahan product owner 29 Sep (10 butir) dan jadwal jaga Oktober 2026. Rincian:
 `docs/jadwal-dan-giliran.md`.
@@ -49,7 +164,7 @@ Menjawab arahan product owner 29 Sep (10 butir) dan jadwal jaga Oktober 2026. Ri
 - Migrasi: accounts 0007, checklists 0005, core 0004–0005, direktur 0003, jadwal 0001,
   nurses 0003–0004, reports 0002.
 
-## Dashboard Owner dan Direktur (29 September 2026) — implementasi selesai, BELUM di-commit
+## Dashboard Owner dan Direktur (29 September 2026) — di-commit dan dideploy (sampai `1595435`)
 
 Menjawab `docs/KEBUTUHAN_CHECKLIST_DAN_DASHBOARD.md` dan arahan product owner 29 Sep: Owner melihat
 gambaran luas (ada masalah atau tidak, keputusan menggantung, kebijakan yang ditetapkan), tidak
@@ -75,7 +190,7 @@ sedetail Direktur; dashboard = bird view + matriks Eisenhower + kanban, dengan h
   `headline_counts()` dan `gantt()` di `direktur/dashboard.py`. Posisi bar ditulis tanpa format
   lokal (`{% localize off %}`) karena `LANGUAGE_CODE=id` memakai koma desimal.
 
-## Peran Direktur Operasional (27 September 2026) — implementasi selesai, BELUM di-commit
+## Peran Direktur Operasional (27 September 2026) — di-commit dan dideploy (sampai `1595435`)
 
 Dikerjakan atas permintaan langsung product owner (Direktur Operasional), di luar urutan fase
 integrasi AOM. Rencana dan keputusan: dokumen "Peran Direktur Operasional — Rencana Fitur"
@@ -108,6 +223,33 @@ migrate dari nol ke SQLite /tmp + seed_demo + seed_audit_direktur (dua kali) # b
 ```
 
 Belum: QA manual mobile viewport; review manusia atas diff; commit/push; deployment.
+
+## Integrasi AOM (status 26 September 2026)
+
+Sumber rencana: `docs/AOM_MODULE_INTEGRATION_PLAN.md`.
+
+### Ringkasan
+
+Integrasi AOM telah melewati baseline/proteksi (Fase 0), organisasi dan akses (Fase 1),
+task dan delegasi (Fase 2), checklist harian (Fase 3), laporan dan masukan (Fase 4), serta
+UI dan usability (Fase 5, implementasi selesai). Fase 0–5 (termasuk desain checklist PDF dan
+SDM multi-role) sudah DI-COMMIT dan DI-PUSH ke `origin/master` pada commit `0884b3f`
+("feat: compact checklist and SDM role management"); working tree bersih. Semua pekerjaan
+dilakukan di desktop Ubuntu/Linux dengan data dummy. Belum ada perubahan ke mini PC produksi
+atau deployment. Approval eksplisit product owner untuk lanjut ke Fase 6 BELUM dikonfirmasi
+di dokumen ini — verifikasi status approval sebelum memulai Fase 6.
+
+### Matriks fase
+
+| Fase | Status | Catatan |
+|---|---|---|
+| 0 — baseline dan perlindungan | Selesai | Baseline dicatat, fixture role/cabang ditambahkan, backup/restore dummy diverifikasi. |
+| 1 — organisasi dan akses | Selesai | Role AOM/PIC, organisasi, fungsi PIC, capability, scope cabang, dan negative tests tersedia. |
+| 2 — task dan delegasi | Selesai | Snapshot penerima, assignment individual/bersama, lifecycle submit/revision/confirm/cancel, histori, dan tests tersedia. |
+| 3 — checklist harian | Implementasi selesai dan sudah di-commit (`0884b3f`) | Sesi opening/closing/anytime, template berversi (histori tidak berubah), target fungsi PIC/role, tindak lanjut idempoten, koreksi wajib beralasan dengan audit `CORRECTION`. |
+| 4 — laporan dan masukan | Implementasi selesai dan sudah di-commit (`0884b3f`) | Model `Laporan`/`Masukan` ditambahkan di app `reports` yang sudah ada. Visibilitas `CABANG`/`RAHASIA_AOM`, status lifecycle, arsip beralasan+capability+audit, publikasi masukan AOM dengan snapshot immutable, dan negative tests kebocoran lintas cabang/rahasia. |
+| 5 — UI dan usability | Implementasi selesai dan sudah di-commit (`0884b3f`) | Dashboard AOM/PIC/Admin ditambahkan (staf tetap seperti semula), aksi task 'Ajukan selesai'/'Konfirmasi selesai'/'Minta revisi'/'Ambil task bersama' sebagai view terpisah dengan proteksi server-side, halaman HTML laporan/masukan dengan filter status eksplisit di atas endpoint JSON Fase 4, PIC kosong menampilkan pesan ramah di view checklist (bukan crash). Approval eksplisit product owner untuk lanjut ke Fase 6 belum dikonfirmasi. |
+| 6–8 | Belum dimulai | Rehearsal migrasi data AOM, release, observasi, dan cutover belum dikerjakan. |
 
 ## Implementasi yang sudah ada
 
@@ -286,9 +428,9 @@ dibuktikan dengan test otomatis di suite ini dan tetap menjadi item QA manual. Y
 dibuktikan: dashboard per role, label tombol yang tidak tertukar, filter status data
 selesai/arsip, dan direct-URL access 403 untuk pihak tak berwenang.
 
-## Working tree
+## Working tree (26 September 2026)
 
-Perubahan Fase 0–5 SUDAH DI-COMMIT (`0884b3f`) dan DI-PUSH ke `origin/master`; working tree
+Posisi terbaru ada di bagian **Posisi terakhir** di atas. Perubahan Fase 0–5 SUDAH DI-COMMIT (`0884b3f`) dan DI-PUSH ke `origin/master`; working tree
 per 26 September 2026 bersih (`git status --short` kosong). Bagian di bawah ini adalah
 riwayat berkas baru/berubah per fase seperti tercatat saat implementasi (sekarang bagian dari
 sejarah commit, bukan lagi perubahan pending). Berkas baru/berubah utama untuk Fase 3:

@@ -25,7 +25,7 @@
       {% if d.run_id %}<a class="btn small secondary" href="{% url 'checklists:run' d.run_id %}?saya=1">{{ d.done }}/{{ d.total }} butir ›</a>{% endif %}</li>
   {% endfor %}
   </ul>
-  <p class="meta"><a href="{% url 'jadwal:day' day.date.isoformat %}?cabang={{ day.clinic.pk }}">Pembagian tugas semua orang hari ini</a></p>
+  {% if nav_can_team_plan %}<p class="meta"><a href="{% url 'jadwal:day' day.date.isoformat %}?cabang={{ day.clinic.pk }}">Pembagian tugas semua orang hari ini</a></p>{% endif %}
 </section>
 {% endif %}
 

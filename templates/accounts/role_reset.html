@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Reset peran ke default{% endblock %}
+{% block content %}
+<h1>Reset peran ke default</h1>
+<p class="sub">Mengembalikan peran, cabang, dan fungsi PIC akun standar ke definisi di aplikasi. Akun yang belum ada dibuat dengan password awal <strong>{{ default_password }}</strong> dan wajib ganti password saat login. Password akun yang sudah ada dan seluruh data (task, catatan, checklist, audit) tidak disentuh. Akun di luar daftar tidak disentuh.</p>
+<p class="meta">Cabang: {% for key, c in clinics.items %}{{ c.name }} ({{ c.code }}){% if not forloop.last %} · {% endif %}{% endfor %}</p>
+
+{% if changed %}
+<h2>Yang akan berubah ({{ changed|length }} akun)</h2>
+{% for r in changed %}
+<div class="card">
+  <strong>{{ r.plan.username }}</strong> <span class="meta">{{ r.plan.display }}</span>
+  <ul class="plain-list">{% for line in r.lines %}<li class="{% if line|slice:':1' == '−' %}line-remove{% elif line|slice:':1' == '+' %}line-add{% endif %}">{{ line }}</li>{% endfor %}</ul>
+</div>
+{% endfor %}
+<form method="post" class="card">{% csrf_token %}
+  <label class="check-line"><input type="checkbox" name="konfirmasi" value="1" required> Saya sudah memeriksa daftar di atas</label>
+  <button class="btn" type="submit">Terapkan reset peran</button>
+</form>
+{% else %}
+<div class="card"><p><span class="tag ok">Sesuai default</span> Semua akun standar sudah memakai peran dan PIC default. Tidak ada yang perlu diubah.</p></div>
+{% endif %}
+
+<h2>Akun standar</h2>
+<table class="responsive">
+  <thead><tr><th>Username</th><th>Nama</th><th>Status</th></tr></thead>
+  <tbody>{% for r in rows %}<tr><td data-label="Username">{{ r.plan.username }}</td><td data-label="Nama">{{ r.plan.display }}</td><td data-label="Status">{% if r.lines %}<span class="tag warn">akan diubah</span>{% else %}<span class="tag ok">sesuai</span>{% endif %}</td></tr>{% endfor %}</tbody>
+</table>
+{% endblock %}

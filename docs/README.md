@@ -37,9 +37,11 @@ Selain itu, mulai dari peran Anda.
 
 | Saya ingin | Baca |
 |---|---|
+| Memakai tampilan Owner (Dashboard, Permintaan Owner, Summary Harian, Jadwal) | [`panduan-owner.md`](panduan-owner.md) |
 | Memutuskan hal yang menunggu keputusan saya | [`../OWNER_DECISION_REVIEW.md`](../OWNER_DECISION_REVIEW.md) |
 | Melihat keadaan klinik sekilas (Ringkasan, prioritas, kanban, keputusan) | [`panduan-direktur.md`](panduan-direktur.md) |
 | Kebutuhan checklist Direktur dan dashboard Owner | [`KEBUTUHAN_CHECKLIST_DAN_DASHBOARD.md`](KEBUTUHAN_CHECKLIST_DAN_DASHBOARD.md) |
+| Kebutuhan redefinisi seluruh peran (Owner, Direktur, PIC, staf, reset peran) | [`KEBUTUHAN_REDEFINISI_PERAN.md`](KEBUTUHAN_REDEFINISI_PERAN.md) |
 | Menjalankan uji coba lima hari | [`../UAT_5_DAY_PILOT_PLAN.md`](../UAT_5_DAY_PILOT_PLAN.md) |
 | Memutuskan aman tidaknya dipakai penuh | [`../GO_LIVE_READINESS_CHECKLIST.md`](../GO_LIVE_READINESS_CHECKLIST.md) |
 

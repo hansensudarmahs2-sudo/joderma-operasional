@@ -1,12 +1,13 @@
+# Folder data aplikasi hanya di akar proyek (bukan jadwal/jadwal_bulanan dst.)
 .venv/
 __pycache__/
 *.py[cod]
 .env
-data/
-private_media/
-logs/
-staticfiles/
-backups/
+/data/
+/private_media/
+/logs/
+/staticfiles/
+/backups/
 .pytest_cache/
 *.sqlite3
 *.sqlite3-wal
