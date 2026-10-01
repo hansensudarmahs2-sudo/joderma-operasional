@@ -108,6 +108,8 @@ angkanya identik.
 - **Kelebihan** = stok − cadangan × rata-rata, minimal 0, 1 desimal.
 - **Saran transfer** = min(kebutuhan penerima, kelebihan pengirim), dibulatkan ke bawah per
   0,5 unit. **Sisa order** = kebutuhan − transfer masuk.
+- **Tampilan**: nilai Rupiah (harga modal) tidak ditampilkan di tab Transfer (keputusan
+  1 Okt 2026, sebelum peluncuran). Nilai tetap dihitung di `stok/hitung.py` untuk test.
 - **Tindakan**: pabrikan DRYN atau Joderma = Produksi sendiri; lainnya Order distributor.
 - Produk non-stok ("~" di Daftar Produk) tidak dihitung.
 

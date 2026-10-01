@@ -233,6 +233,14 @@ def test_pages_render_with_data(client, data_30sep, apoteker):
     assert "Kosong" in body and "Simpan parameter" in body
 
 
+def test_transfer_tab_hides_rupiah_value(client, data_30sep, apoteker):
+    """Keputusan 1 Okt: nilai modal tidak ditampilkan di tab Transfer."""
+    client.force_login(apoteker)
+    body = client.get(reverse("stok:index"), {"tab": "transfer", "cabang": "semua"}).content.decode()
+    assert "Saran Transfer" in body
+    assert "Rp" not in body and "nilai modal" not in body.lower()
+
+
 @pytest.mark.parametrize("roles", [(Role.APOTEKER,), (Role.ASISTEN_APOTEKER,), (Role.AOM,)])
 def test_pharmacy_staff_and_director_can_edit(client, cabang, roles):
     user = _user(cabang[0], "u1", *roles)

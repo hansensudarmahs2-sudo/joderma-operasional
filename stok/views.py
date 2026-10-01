@@ -100,7 +100,6 @@ def index(request):
         "daftar_pabrikan": daftar_pabrikan,
         "baris_order": baris_order,
         "transfer": transfer_tampil,
-        "nilai_transfer": sum(t.nilai for t in transfer_tampil),
         "param": hasil.parameter,
         "bisa_ubah": can_edit_stok(request.user),
         "gabungan": len(dipilih) > 1,
