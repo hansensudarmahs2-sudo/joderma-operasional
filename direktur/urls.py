@@ -20,4 +20,5 @@ urlpatterns = [
     path("catatan/<int:pk>/arsip/", views.note_archive, name="note_archive"),
     path("catatan/<int:pk>/jadikan-task/", views.note_convert, name="note_convert"),
     path("task/baru/", views.task_new, name="task_new"),
+    path("task/<int:pk>/", views.task_detail, name="task_detail"),
 ]

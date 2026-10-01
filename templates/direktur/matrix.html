@@ -10,7 +10,7 @@
   <div class="quad quad-{{ q.key }}" id="kuadran-{{ q.key }}">
     <h3><span>{{ q.key }}. {{ q.title }}</span><span class="tag muted">{{ q.count }}</span></h3>
     <div class="meta">{{ q.subtitle }}</div>
-    {% for c in q.cards %}{% include "direktur/_task_card.html" %}{% empty %}<p class="meta">Kosong.</p>{% endfor %}
+    {% for c in q.cards %}{% include "direktur/_task_card.html" with dari="prioritas" %}{% empty %}<p class="meta">Kosong.</p>{% endfor %}
   </div>
 {% endfor %}
 </div>

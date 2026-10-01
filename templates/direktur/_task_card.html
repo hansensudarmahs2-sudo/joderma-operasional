@@ -1,5 +1,5 @@
 <div class="task-card{% if c.overdue %} overdue{% endif %}">
-  <strong>{{ c.item.title }}</strong>
+  <strong><a href="{% url 'direktur:task_detail' c.item.pk %}?dari={{ dari|default:'kanban' }}">{{ c.item.title }}</a></strong>
   <div class="meta">{{ c.item.clinic.name }} · {{ c.source }}{% if c.item.priority == 'TINGGI' or c.item.priority == 'KRITIS' %} · <span class="tag warn">{{ c.item.get_priority_display }}</span>{% endif %}</div>
   <div class="meta">{% if c.recipients %}{{ c.recipients|join:", " }}{% else %}<span class="tag warn">belum ada penerima</span>{% endif %}</div>
   <div class="meta">{% if c.item.due_at %}Target {{ c.item.due_at|date:"d/m H:i" }}{% if c.overdue %} <span class="tag err">Lewat</span>{% endif %} · {% endif %}umur {{ c.age_days }} hari</div>

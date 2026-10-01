@@ -26,7 +26,7 @@
       {% ifchanged r.item.clinic_id %}<div class="gantt-group">{{ r.item.clinic.name }}</div>{% endifchanged %}
       <div class="gantt-row">
         <div class="gantt-label">
-          <strong>{{ r.item.title }}</strong>
+          <strong><a href="{% url 'direktur:task_detail' r.item.pk %}?dari=gantt">{{ r.item.title }}</a></strong>
           <span class="meta">{% if r.recipients %}{{ r.recipients|join:", " }}{% else %}belum ada penerima{% endif %}</span>
         </div>
         <div class="gantt-track">

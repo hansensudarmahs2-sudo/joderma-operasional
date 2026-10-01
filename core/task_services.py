@@ -315,3 +315,115 @@ def cancel_assignment(assignment: TaskAssignment, *, actor, reason: str) -> Task
         note=reason.strip(),
     )
     return assignment
+
+
+# --- Pengelolaan task oleh pemberi tugas / Direktur (halaman detail task) ------
+
+OPEN_ASSIGNMENT_STATES = {
+    TaskAssignmentStatus.OPEN,
+    TaskAssignmentStatus.IN_PROGRESS,
+    TaskAssignmentStatus.REVISION_REQUIRED,
+    TaskAssignmentStatus.SUBMITTED,
+}
+
+
+def can_manage_task(item: ActionItem, user) -> bool:
+    """Pemberi tugas atau Direktur Operasional boleh mengubah, menutup, dan membatalkan task."""
+    if not user or not user.is_authenticated or not can_access_clinic(user, item.clinic):
+        return False
+    return item.created_by_id == user.pk or is_aom(user)
+
+
+def _assert_manage(item: ActionItem, user) -> None:
+    if not can_manage_task(item, user):
+        raise PermissionDenied("Hanya pemberi tugas atau Direktur Operasional yang dapat mengubah task ini.")
+
+
+def _assert_open(item: ActionItem) -> None:
+    if item.status in (ActionItemStatus.SELESAI, ActionItemStatus.BATAL):
+        raise ValidationError("Task ini sudah selesai atau batal.")
+
+
+@transaction.atomic
+def update_task(item: ActionItem, *, actor, status: str, priority: str, due_at, progress_note: str) -> ActionItem:
+    """Ubah status berjalan (Baru/Dikerjakan), prioritas, target, dan catatan progres."""
+    from audit.services import log_update, snapshot
+
+    _assert_manage(item, actor)
+    _assert_open(item)
+    if status not in (ActionItemStatus.BARU, ActionItemStatus.DIKERJAKAN):
+        raise ValidationError("Gunakan tombol Tandai selesai atau Batalkan task untuk menutup task.")
+    if priority not in dict(Priority.choices):
+        raise ValidationError("Prioritas tidak dikenali.")
+    before = snapshot(item)
+    item.status = status
+    item.priority = priority
+    item.due_at = due_at
+    item.progress_note = (progress_note or "").strip()
+    item.save(update_fields=["status", "priority", "due_at", "progress_note", "updated_at"])
+    log_update(item, before, actor=actor)
+    return item
+
+
+@transaction.atomic
+def close_task(item: ActionItem, *, actor, note: str) -> ActionItem:
+    """Pemberi tugas menyatakan task selesai tanpa menunggu penerima mengajukan.
+
+    Penerima yang masih terbuka dikonfirmasi oleh penutup task, supaya task hilang
+    dari daftar kerja mereka dan jejaknya tercatat di riwayat.
+    """
+    from audit.models import AuditAction
+    from audit.services import log_update, snapshot
+
+    _assert_manage(item, actor)
+    _assert_open(item)
+    note = (note or "").strip()
+    if not note:
+        raise ValidationError("Tuliskan catatan penutupan.")
+    now = timezone.now()
+    for assignment in item.task_assignments.filter(status__in=OPEN_ASSIGNMENT_STATES):
+        assignment.status = TaskAssignmentStatus.CONFIRMED
+        assignment.confirmed_at = now
+        assignment.reviewer = actor
+        assignment.save(update_fields=["status", "confirmed_at", "reviewer", "updated_at"])
+        TaskEvent.objects.create(
+            action_item=item, assignment=assignment, event_type=TaskEventType.CONFIRMED,
+            actor=actor, note=f"Ditutup oleh pemberi tugas: {note}",
+        )
+    before = snapshot(item)
+    item.status = ActionItemStatus.SELESAI
+    item.progress_note = note
+    item.save(update_fields=["status", "progress_note", "updated_at"])
+    log_update(item, before, actor=actor, action=AuditAction.CLOSE, reason=note)
+    return item
+
+
+@transaction.atomic
+def cancel_task(item: ActionItem, *, actor, reason: str) -> ActionItem:
+    from audit.models import AuditAction
+    from audit.services import log_update, snapshot
+
+    _assert_manage(item, actor)
+    _assert_open(item)
+    reason = (reason or "").strip()
+    if not reason:
+        raise ValidationError("Alasan pembatalan wajib diisi.")
+    for assignment in item.task_assignments.filter(status__in=OPEN_ASSIGNMENT_STATES):
+        cancel_assignment(assignment, actor=actor, reason=reason)
+    before = snapshot(item)
+    item.status = ActionItemStatus.BATAL
+    item.progress_note = reason
+    item.save(update_fields=["status", "progress_note", "updated_at"])
+    log_update(item, before, actor=actor, action=AuditAction.CANCEL, reason=reason)
+    return item
+
+
+def add_task_comment(item: ActionItem, *, actor, note: str) -> TaskEvent:
+    """Catatan di riwayat task. Boleh ditulis pemberi tugas, Direktur, atau penerima."""
+    note = (note or "").strip()
+    if not note:
+        raise ValidationError("Catatan kosong.")
+    is_recipient = item.task_assignments.filter(assignee=actor).exists()
+    if not (can_manage_task(item, actor) or is_recipient):
+        raise PermissionDenied("Anda tidak terlibat di task ini.")
+    return TaskEvent.objects.create(action_item=item, event_type=TaskEventType.COMMENT, actor=actor, note=note)

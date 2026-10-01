@@ -69,9 +69,9 @@
     <tr>
       <td data-label="Nama"><strong>{{ p.user }}</strong>{% if p.pic %}<div class="meta">PIC {{ p.pic|join:", " }}</div>{% endif %}</td>
       <td data-label="Belum selesai">
-        {% for a in p.open %}<div>{{ a.action_item.title }}{% if a.action_item.due_at %} <span class="meta">· {{ a.action_item.due_at|date:"d/m" }}</span>{% endif %}{% if a.action_item.is_overdue %} <span class="tag err">Lewat</span>{% endif %}{% if a.status == 'REVISION_REQUIRED' %} <span class="tag warn">Revisi</span>{% endif %}</div>
+        {% for a in p.open %}<div><a href="{% url 'direktur:task_detail' a.action_item_id %}?dari=tim">{{ a.action_item.title }}</a>{% if a.action_item.due_at %} <span class="meta">· {{ a.action_item.due_at|date:"d/m" }}</span>{% endif %}{% if a.action_item.is_overdue %} <span class="tag err">Lewat</span>{% endif %}{% if a.status == 'REVISION_REQUIRED' %} <span class="tag warn">Revisi</span>{% endif %}</div>
         {% empty %}<span class="meta">—</span>{% endfor %}</td>
-      <td data-label="Menunggu konfirmasi">{% for a in p.waiting %}<div>{{ a.action_item.title }}</div>{% empty %}<span class="meta">—</span>{% endfor %}</td>
+      <td data-label="Menunggu konfirmasi">{% for a in p.waiting %}<div><a href="{% url 'direktur:task_detail' a.action_item_id %}?dari=tim">{{ a.action_item.title }}</a></div>{% empty %}<span class="meta">—</span>{% endfor %}</td>
       <td data-label="Selesai 7 hari">{{ p.done|length|default:"—" }}</td>
     </tr>
   {% empty %}<tr><td colspan="4" class="meta">Belum ada task atau PIC di cabang ini.</td></tr>{% endfor %}
@@ -81,7 +81,7 @@
 <h3>Temuan Direktur terbuka</h3>
 <ul class="timeline">
   {% for f in c.findings %}
-  <li><strong>{{ f.title }}</strong> <span class="meta">· {{ f.created_at|date:"d/m" }}</span>{% if f.is_overdue %} <span class="tag err">Lewat</span>{% endif %}
+  <li><strong><a href="{% url 'direktur:task_detail' f.pk %}?dari=tim">{{ f.title }}</a></strong> <span class="meta">· {{ f.created_at|date:"d/m" }}</span>{% if f.is_overdue %} <span class="tag err">Lewat</span>{% endif %}
     <div class="meta">{{ f.description }}</div>
     <div class="meta">Penerima: {% for a in f.task_assignments.all %}{{ a.assignee }} ({{ a.get_status_display }}){% if not forloop.last %}, {% endif %}{% empty %}<span class="tag warn">belum ada</span>{% endfor %}</div>
     {% if is_director %}

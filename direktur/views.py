@@ -8,7 +8,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from core.models import ActionItem, Priority, local_today
+from django.utils import timezone
+
+from core import task_services
+from core.models import ActionItem, ActionItemStatus, Priority, TaskAssignment, TaskAssignmentStatus, local_today
 from core.permissions import is_aom, require, user_clinic_queryset
 
 from . import dashboard, services
@@ -422,5 +425,111 @@ def task_new(request):
             "priorities": Priority.choices,
             "title": request.POST.get("judul", ""),
             "description": request.POST.get("uraian", ""),
+        },
+    )
+
+
+# --- Detail task -------------------------------------------------------------------
+
+_BACK = {
+    "gantt": ("direktur:gantt", "Jadwal Task"),
+    "kanban": ("direktur:kanban", "Kanban"),
+    "prioritas": ("direktur:matrix", "Prioritas"),
+    "tim": ("direktur:team", "Tim"),
+}
+
+
+def _due_from_form(item: ActionItem, value: str):
+    """Tanggal dari formulir. Bila tanggalnya tidak berubah, jam target lama dipertahankan."""
+    value = (value or "").strip()
+    if item.due_at and value == timezone.localtime(item.due_at).date().isoformat():
+        return item.due_at
+    return services.parse_due(value)
+
+
+def _assignment_action(request, item: ActionItem, aksi: str) -> str:
+    assignment = get_object_or_404(TaskAssignment, pk=request.POST.get("assignment"), action_item=item)
+    note = request.POST.get("catatan", "")
+    if aksi == "konfirmasi":
+        task_services.confirm_assignment(assignment, reviewer=request.user, note=note)
+        return f"Pekerjaan {assignment.assignee} dikonfirmasi."
+    if aksi == "revisi":
+        task_services.request_revision(assignment, reviewer=request.user, note=note)
+        return f"Revisi diminta ke {assignment.assignee}."
+    if not task_services.can_manage_task(item, request.user):
+        raise PermissionDenied("Hanya pemberi tugas atau Direktur Operasional yang dapat membatalkan penerima.")
+    task_services.cancel_assignment(assignment, actor=request.user, reason=note)
+    return f"{assignment.assignee} dikeluarkan dari task."
+
+
+@login_required
+@require(dashboard.can_view_overview)
+def task_detail(request, pk: int):
+    item = get_object_or_404(
+        ActionItem.objects.filter(clinic__in=user_clinic_queryset(request.user)).select_related(
+            "clinic", "owner", "created_by"
+        ),
+        pk=pk,
+    )
+    can_manage = task_services.can_manage_task(item, request.user)
+    if request.method == "POST":
+        aksi = request.POST.get("aksi", "")
+        try:
+            if aksi in {"konfirmasi", "revisi", "keluarkan"}:
+                messages.success(request, _assignment_action(request, item, aksi))
+            elif aksi == "catatan":
+                task_services.add_task_comment(item, actor=request.user, note=request.POST.get("catatan", ""))
+                messages.success(request, "Catatan ditambahkan.")
+            elif not can_manage:
+                raise PermissionDenied("Hanya pemberi tugas atau Direktur Operasional yang dapat mengubah task ini.")
+            elif aksi == "ubah":
+                task_services.update_task(
+                    item,
+                    actor=request.user,
+                    status=request.POST.get("status", item.status),
+                    priority=request.POST.get("prioritas", item.priority),
+                    due_at=_due_from_form(item, request.POST.get("batas", "")),
+                    progress_note=request.POST.get("progres", ""),
+                )
+                messages.success(request, "Task diperbarui.")
+            elif aksi == "selesai":
+                task_services.close_task(item, actor=request.user, note=request.POST.get("catatan", ""))
+                messages.success(request, "Task ditandai selesai.")
+            elif aksi == "batal":
+                task_services.cancel_task(item, actor=request.user, reason=request.POST.get("catatan", ""))
+                messages.warning(request, "Task dibatalkan.")
+            else:
+                messages.error(request, "Aksi tidak dikenali.")
+        except ValidationError as exc:
+            _errors(request, exc)
+        return redirect("direktur:task_detail", pk=item.pk)
+
+    assignments = list(item.task_assignments.select_related("assignee", "claimed_by", "reviewer"))
+    rows = [
+        {
+            "a": a,
+            "can_review": a.status == TaskAssignmentStatus.SUBMITTED
+            and task_services.can_review_assignment(a, request.user),
+            "can_remove": can_manage and a.status in task_services.OPEN_ASSIGNMENT_STATES,
+        }
+        for a in assignments
+    ]
+    is_open = item.status not in (ActionItemStatus.SELESAI, ActionItemStatus.BATAL)
+    return render(
+        request,
+        "direktur/task_detail.html",
+        {
+            "item": item,
+            "rows": rows,
+            "events": item.task_events.select_related("actor", "assignment__assignee"),
+            "source": dict(dashboard.SOURCE_CHOICES).get(dashboard.source_group(item), "Modul lain"),
+            "column": dict(dashboard.COLUMNS).get(dashboard.kanban_column(item, assignments)),
+            "can_manage": can_manage,
+            "can_comment": can_manage or any(a.assignee_id == request.user.pk for a in assignments),
+            "is_open": is_open,
+            "priorities": Priority.choices,
+            "statuses": [(ActionItemStatus.BARU, "Baru"), (ActionItemStatus.DIKERJAKAN, "Dikerjakan")],
+            "due_value": timezone.localtime(item.due_at).date().isoformat() if item.due_at else "",
+            "back": _BACK.get(request.GET.get("dari", ""), _BACK["kanban"]),
         },
     )

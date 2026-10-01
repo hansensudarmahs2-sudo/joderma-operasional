@@ -62,6 +62,7 @@ OWNER_ALLOWED = COMMON | {
     "direktur:kanban",
     "direktur:matrix",
     "direktur:gantt",
+    "direktur:task_detail",  # baca saja; tombol ubah hanya untuk pemberi tugas/Direktur
     "direktur:decisions",
     "direktur:decision_detail",
     "jadwal:roster",

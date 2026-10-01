@@ -118,6 +118,21 @@ Fase 2–5 sudah lulus test dan tangkapan layarnya sudah ditinjau product owner 
 
 # Riwayat
 
+## Detail task untuk Direktur (1 Oktober 2026) — selesai di desktop, belum di-commit
+
+Temuan: task "Limbah perlu koordinasi ..." untuk Desy tampil di Jadwal Task, tetapi Direktur
+(hanya peran AOM sejak Reset peran) tidak bisa mengubahnya. `action_item_update` hanya menerima
+Supervisor atau pemegang task, daftar Action item hanya memuat task milik sendiri, dan Jadwal
+Task/Kanban/Prioritas/Tim tidak bertautan ke task.
+
+Perbaikan: halaman `/direktur/task/<id>/` (`direktur.views.task_detail`, template
+`direktur/task_detail.html`). Layanan baru di `core/task_services.py`: `can_manage_task`
+(pembuat task atau AOM), `update_task`, `close_task` (penerima terbuka dikonfirmasi atas nama
+penutup), `cancel_task`, `add_task_comment`. Judul task di Jadwal Task, Kanban, Prioritas, Tim,
+dan Hari Ini (menunggu konfirmasi) menjadi tautan. Owner membuka detail tanpa tombol
+(`direktur:task_detail` masuk `OWNER_ALLOWED`). `action_item_update` kini juga menerima
+pembuat task dan AOM. Test `direktur/tests/test_task_detail.py` (10). Suite 596 lulus, 1 dilewati.
+
 ## Stok Apotek fase 1 (1 Oktober 2026) — di-commit dan dideploy 1 Okt (`e966da7`)
 
 App `stok`: model `Produk`, `ProdukAlias`, `Unggahan`, `PosisiStok`, `PergerakanBulanan`,

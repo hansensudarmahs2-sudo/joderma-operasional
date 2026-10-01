@@ -287,7 +287,9 @@ def action_item_update(request, pk: int):
     item = get_object_or_404(ActionItem, pk=pk)
     if not can_access_clinic(request.user, item.clinic):
         raise PermissionDenied("Anda tidak memiliki akses ke action item cabang ini.")
-    if not (is_supervisor(request.user) or item.owner_id == request.user.pk):
+    from .task_services import can_manage_task
+
+    if not (is_supervisor(request.user) or item.owner_id == request.user.pk or can_manage_task(item, request.user)):
         raise PermissionDenied("Anda bukan penanggung jawab action item ini.")
     from audit.services import log_update, snapshot
 

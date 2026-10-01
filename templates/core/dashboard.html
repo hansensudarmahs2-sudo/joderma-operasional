@@ -9,7 +9,7 @@
   <p class="meta">Konfirmasi tertunda lintas cabang, laporan rahasia, dan masukan menunggu tinjauan.</p>
   <ul class="timeline">
     {% for a in aom_pending_confirmations %}
-      <li><strong>{{ a.action_item.title }}</strong> · {{ a.action_item.clinic.name }}
+      <li><strong><a href="{% url 'direktur:task_detail' a.action_item_id %}">{{ a.action_item.title }}</a></strong> · {{ a.action_item.clinic.name }}
         <div class="meta">Diajukan oleh {{ a.assignee }} · {{ a.submitted_at|date:"d/m H:i" }}</div></li>
     {% empty %}<li class="meta">Tidak ada task menunggu konfirmasi Direktur Operasional.</li>{% endfor %}
   </ul>

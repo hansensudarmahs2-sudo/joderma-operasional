@@ -2,13 +2,13 @@
 {% block title %}Kanban{% endblock %}
 {% block content %}
 <h1>Kanban</h1>
-<p class="sub">Hanya membaca. Status berubah lewat alur task (ajukan selesai, konfirmasi, revisi) supaya jejak audit tetap utuh. Task batal tidak ditampilkan tetapi tetap tersimpan.</p>
+<p class="sub">Klik judul task untuk membuka detailnya: konfirmasi, minta revisi, ubah target, tandai selesai, atau batalkan. Setiap perubahan tercatat di riwayat task dan audit. Task batal tidak ditampilkan tetapi tetap tersimpan.</p>
 {% include "direktur/_filters.html" %}
 <div class="board" style="margin-top:.7rem">
 {% for col in board %}
   <div class="board-col">
     <h3><span>{{ col.label }}</span><span class="tag muted">{{ col.count }}</span></h3>
-    {% for c in col.cards %}{% include "direktur/_task_card.html" %}{% empty %}<p class="meta">Kosong.</p>{% endfor %}
+    {% for c in col.cards %}{% include "direktur/_task_card.html" with dari="kanban" %}{% empty %}<p class="meta">Kosong.</p>{% endfor %}
   </div>
 {% endfor %}
 </div>

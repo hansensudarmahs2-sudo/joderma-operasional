@@ -105,6 +105,20 @@ membuat task agar matriks bermakna.
 Kolom kanban dibaca dari status penerima task, bukan dari status task utama; perpindahan kolom
 tetap lewat alur ajukan selesai → konfirmasi supaya jejak audit utuh. Kanban hanya membaca.
 
+**Detail task** (`/direktur/task/<id>/`, ditambahkan 1 Okt 2026). Judul task di Jadwal Task,
+Kanban, Prioritas, Tim, dan daftar "menunggu konfirmasi" di Hari Ini bisa diklik. Halaman ini
+memuat uraian, penerima dengan statusnya, dan riwayat. Direktur (atau pembuat task) dapat:
+
+- **Konfirmasi selesai** / **Minta revisi** bila penerima sudah mengajukan selesai;
+- **Ubah task**: status Baru/Dikerjakan, prioritas, target, catatan progres;
+- **Tandai selesai** tanpa menunggu penerima (catatan wajib; penerima yang masih terbuka
+  ikut dikonfirmasi atas nama Direktur sehingga task hilang dari daftar kerja mereka);
+- **Batalkan task** atau **keluarkan** satu penerima (alasan wajib);
+- **Tambah catatan** ke riwayat.
+
+Semua perubahan tercatat di riwayat task dan audit log. Owner membuka halaman yang sama tanpa
+tombol.
+
 **Keputusan.** Direktur mencatat perkara yang perlu diputuskan (siapa pemutusnya, tenggatnya),
 lalu menetapkannya setelah diputuskan — oleh Owner, Direktur Utama, atau Direktur sendiri.
 Centang *Kebijakan berlaku* bila keputusan itu menjadi aturan bagi staf. Perkara tidak dihapus;
