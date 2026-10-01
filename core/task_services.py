@@ -427,3 +427,75 @@ def add_task_comment(item: ActionItem, *, actor, note: str) -> TaskEvent:
     if not (can_manage_task(item, actor) or is_recipient):
         raise PermissionDenied("Anda tidak terlibat di task ini.")
     return TaskEvent.objects.create(action_item=item, event_type=TaskEventType.COMMENT, actor=actor, note=note)
+
+
+# --- Tugas saya (halaman Hari Ini) -------------------------------------------------
+
+MY_OPEN_ASSIGNMENT = (
+    TaskAssignmentStatus.OPEN,
+    TaskAssignmentStatus.IN_PROGRESS,
+    TaskAssignmentStatus.REVISION_REQUIRED,
+    TaskAssignmentStatus.SUBMITTED,
+)
+
+
+def _my_task_row(item: ActionItem, assignment: TaskAssignment | None, user, now) -> dict:
+    shared = item.assignment_mode == TaskAssignmentMode.BERSAMA
+    status = assignment.status if assignment else None
+    workable = status in (
+        TaskAssignmentStatus.OPEN,
+        TaskAssignmentStatus.IN_PROGRESS,
+        TaskAssignmentStatus.REVISION_REQUIRED,
+    )
+    local_due = timezone.localtime(item.due_at).date() if item.due_at else None
+    return {
+        "item": item,
+        "assignment": assignment,
+        "waiting": status == TaskAssignmentStatus.SUBMITTED,
+        "revision": status == TaskAssignmentStatus.REVISION_REQUIRED,
+        "overdue": item.is_overdue,
+        "due_today": bool(local_due and local_due == timezone.localtime(now).date() and not item.is_overdue),
+        "can_claim": bool(assignment and shared and assignment.claimed_by_id is None
+                          and status == TaskAssignmentStatus.OPEN),
+        "can_submit": bool(assignment and workable and (not shared or assignment.claimed_by_id == user.pk)),
+    }
+
+
+def my_tasks(user) -> list[dict]:
+    """Task yang masih harus dikerjakan pengguna, untuk ditampilkan di Hari Ini.
+
+    - Dibaca dari penerima task (`TaskAssignment`), bukan hanya `ActionItem.owner`: task yang
+      dikirim ke beberapa orang atau ke satu peran tidak punya owner tunggal.
+    - Semua cabang yang dapat ia akses, dan **tidak** bergantung pada sesi hari operasional:
+      tugas tetap tampil walau opening hari itu belum dibuat.
+    - Task bersama yang sudah diambil orang lain tidak ditampilkan.
+    - Yang sudah diajukan selesai tetap tampil di bawah dengan tanda menunggu konfirmasi.
+    """
+    from .permissions import user_clinic_queryset
+
+    now = timezone.now()
+    open_items = ActionItem.objects.filter(
+        clinic__in=user_clinic_queryset(user),
+        status__in=[ActionItemStatus.BARU, ActionItemStatus.DIKERJAKAN],
+    )
+    rows, seen = [], set()
+    assignments = (
+        TaskAssignment.objects.filter(assignee=user, status__in=MY_OPEN_ASSIGNMENT, action_item__in=open_items)
+        .select_related("action_item", "action_item__clinic", "action_item__created_by")
+    )
+    for a in assignments:
+        item = a.action_item
+        if item.assignment_mode == TaskAssignmentMode.BERSAMA and a.claimed_by_id not in (None, user.pk):
+            continue
+        rows.append(_my_task_row(item, a, user, now))
+        seen.add(item.pk)
+    for item in open_items.filter(owner=user).exclude(pk__in=seen).select_related("clinic", "created_by"):
+        if TaskAssignment.objects.filter(action_item=item).exists():
+            continue  # sudah dikirim ke orang lain atau sudah dikonfirmasi; bukan tugas terbuka saya
+        rows.append(_my_task_row(item, None, user, now))
+    import datetime as dt
+
+    far = dt.datetime.max.replace(tzinfo=dt.timezone.utc)
+    rows.sort(key=lambda r: (r["waiting"], not r["overdue"], not r["revision"], r["item"].due_at or far,
+                             r["item"].created_at))
+    return rows

@@ -44,6 +44,7 @@ from .permissions import (
     is_pic,
     is_supervisor,
     require,
+    user_clinic_queryset,
 )
 from .services import (
     active_clinic,
@@ -100,10 +101,15 @@ def dashboard(request):
         messages.success(request, "Sesi hari operasional dibuat.")
         return redirect("core:dashboard")
 
+    from .task_services import my_tasks
+
     context = {
         "clinic": clinic,
         "day": day,
         "today": local_today(),
+        # Tugas saya tampil walau sesi hari operasional belum dibuat.
+        "my_tasks": my_tasks(user),
+        "my_issues": user.issue_assignments.filter(active=True).select_related("issue")[:10],
         "can_view_cash": can_view_cash_amounts(user),
         "can_close": can_close_day(user),
         "is_supervisor": is_supervisor(user),
@@ -169,12 +175,6 @@ def dashboard(request):
                 "breaks_soon": upcoming_breaks(clinic, timezone.now(), 60)[:8],
                 "issues": issue_counters(clinic),
                 "closing_blockers": closing_blockers(day) if can_close_day(user) else [],
-                "my_actions": ActionItem.objects.filter(
-                    clinic=clinic,
-                    owner=user,
-                    status__in=[ActionItemStatus.BARU, ActionItemStatus.DIKERJAKAN],
-                ).order_by("due_at")[:10],
-                "my_issues": user.issue_assignments.filter(active=True).select_related("issue")[:10],
             }
         )
     return render(request, "core/dashboard.html", context)
@@ -228,13 +228,18 @@ def day_action(request, pk: int):
 def action_items(request):
     clinic = active_clinic(request.user)
     status = request.GET.get("status", "")
-    qs = ActionItem.objects.filter(clinic=clinic).select_related("owner").prefetch_related(
+    qs = ActionItem.objects.select_related("owner", "clinic").prefetch_related(
         "task_assignments", "task_assignments__assignee"
     )
     if status:
         qs = qs.filter(status=status)
-    if not (is_supervisor(request.user) or is_owner(request.user)):
-        qs = qs.filter(Q(owner=request.user) | Q(task_assignments__assignee=request.user)).distinct()
+    if is_supervisor(request.user) or is_owner(request.user):
+        qs = qs.filter(clinic=clinic)
+    else:
+        # Task milik sendiri dari semua cabang yang dapat diakses (mis. hari perbantuan).
+        qs = qs.filter(clinic__in=user_clinic_queryset(request.user)).filter(
+            Q(owner=request.user) | Q(task_assignments__assignee=request.user)
+        ).distinct()
 
     user = request.user
     rows = []
@@ -302,6 +307,17 @@ def action_item_update(request, pk: int):
     return redirect("core:action_items")
 
 
+def _back(request, default: str):
+    """Kembali ke halaman asal (mis. Hari Ini) bila `next` aman; selain itu ke `default`."""
+    from django.utils.http import url_has_allowed_host_and_scheme
+
+    nxt = request.POST.get("next", "")
+    if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()},
+                                               require_https=request.is_secure()):
+        return redirect(nxt)
+    return redirect(default)
+
+
 def _assignment_or_404(pk: int) -> TaskAssignment:
     return get_object_or_404(
         TaskAssignment.objects.select_related("action_item", "action_item__clinic"), pk=pk
@@ -320,7 +336,7 @@ def assignment_claim(request, pk: int):
         messages.success(request, "Task diambil.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
-    return redirect("core:action_items")
+    return _back(request, "core:action_items")
 
 
 @login_required
@@ -335,7 +351,7 @@ def assignment_submit(request, pk: int):
         messages.success(request, "Task diajukan selesai, menunggu konfirmasi.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
-    return redirect("core:action_items")
+    return _back(request, "core:action_items")
 
 
 @login_required

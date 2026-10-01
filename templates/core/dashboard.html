@@ -3,6 +3,53 @@
 {% block content %}
 <h1>Hari Ini</h1>
 
+<section class="card my-tasks" id="tugas-saya" aria-labelledby="judul-tugas-saya">
+  <div class="checklist-heading" style="margin:0">
+    <h2 id="judul-tugas-saya" style="margin:0">Tugas saya</h2>
+    {% with open_count=my_tasks|length %}{% if open_count or my_issues %}<span class="meta">{{ open_count }} task{% if my_issues %} · {{ my_issues|length }} catatan{% endif %}</span>{% endif %}{% endwith %}
+  </div>
+  {% if my_tasks or my_issues %}
+  <ul class="request-list">
+    {% for t in my_tasks %}
+    <li class="request-row{% if t.waiting %} is-waiting{% endif %}">
+      <span class="request-main">
+        <strong>{{ t.item.title }}</strong>
+        <span class="meta">{% if t.item.created_by %}dari {{ t.item.created_by }} · {% endif %}{{ t.item.clinic.name }}{% if t.item.due_at %} · target {{ t.item.due_at|date:"d/m H.i" }}{% endif %}</span>
+        {% if t.item.description %}<span class="meta">{{ t.item.description|truncatechars:160 }}</span>{% endif %}
+        {% if t.revision and t.assignment.revision_note %}<span class="meta">Catatan revisi: {{ t.assignment.revision_note }}</span>{% endif %}
+      </span>
+      <span class="request-state">
+        {% if t.overdue %}<span class="tag err">Lewat target</span>{% elif t.due_today %}<span class="tag warn">Target hari ini</span>{% endif %}
+        {% if t.revision %}<span class="tag warn">Perlu revisi</span>{% endif %}
+        {% if t.waiting %}<span class="tag info">Menunggu konfirmasi</span>{% endif %}
+        {% if t.can_claim %}
+        <form method="post" action="{% url 'core:assignment_claim' t.assignment.pk %}" class="inline-form">
+          {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button class="btn small secondary" type="submit">Ambil task</button>
+        </form>
+        {% elif t.can_submit %}
+        <form method="post" action="{% url 'core:assignment_submit' t.assignment.pk %}" class="inline-form">
+          {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button class="btn small" type="submit">Ajukan selesai</button>
+        </form>
+        {% endif %}
+      </span>
+    </li>
+    {% endfor %}
+    {% for asg in my_issues %}
+    <li class="request-row">
+      <span class="request-main"><a href="{% url 'issues:detail' asg.issue.pk %}"><strong>{{ asg.issue.number }} · {{ asg.issue.title }}</strong></a>
+        <span class="meta">{{ asg.issue.get_status_display }} · target {{ asg.due_at|default:asg.issue.due_at|default:"—" }}</span></span>
+      <span class="request-state">{% if asg.issue.is_overdue %}<span class="tag err">Lewat target</span>{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="meta">Tidak ada tugas yang menunggu Anda.</p>
+  {% endif %}
+  <p style="margin:.6rem 0 0"><a class="btn small secondary" href="{% url 'core:action_items' %}">Semua task saya</a></p>
+</section>
+
 {% if is_aom %}
 <h2>Ringkasan Direktur Operasional</h2>
 <div class="card">
@@ -106,26 +153,6 @@
       </p>
       <a class="btn small secondary" href="{% url 'issues:list' %}?terbuka=1">Lihat catatan</a>
     </div>
-  </div>
-
-  <h2>Perlu tindakan saya</h2>
-  <div class="card">
-    <ul class="timeline">
-      {% for a in my_actions %}
-        <li><strong>{{ a.title }}</strong>
-          {% if a.is_overdue %}<span class="tag err">Lewat target</span>{% endif %}
-          <div class="meta">{{ a.get_priority_display }} · target {{ a.due_at|default:"—" }} · sumber {{ a.source_label|default:a.source_type }}</div>
-        </li>
-      {% endfor %}
-      {% for asg in my_issues %}
-        <li><a href="{% url 'issues:detail' asg.issue.pk %}">{{ asg.issue.number }} · {{ asg.issue.title }}</a>
-          {% if asg.issue.is_overdue %}<span class="tag err">Lewat target</span>{% endif %}
-          <div class="meta">{{ asg.issue.get_status_display }} · target {{ asg.due_at|default:asg.issue.due_at|default:"—" }}</div>
-        </li>
-      {% endfor %}
-      {% if not my_actions and not my_issues %}<li class="meta">Tidak ada pekerjaan tertunda untuk Anda.</li>{% endif %}
-    </ul>
-    <a class="btn small secondary" href="{% url 'core:action_items' %}">Semua action item</a>
   </div>
 
   <h2>Status hari operasional</h2>

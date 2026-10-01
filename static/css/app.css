@@ -447,3 +447,8 @@ a.request-row:hover { background: #f7faf9; }
 @media (max-width: 640px) {
   table.responsive td.stack { flex-direction: column; }
 }
+
+/* --- Tugas saya (Hari Ini) --- */
+.my-tasks { margin: 0.4rem 0 1rem; border-left: 4px solid var(--teal); }
+.my-tasks .is-waiting { opacity: 0.75; }
+.inline-form { display: inline; margin: 0; }

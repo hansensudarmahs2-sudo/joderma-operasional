@@ -12,7 +12,8 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 | Produksi (mini PC, ops.joderma.id) | Commit `e966da7` (dideploy 1 Oktober): Stok Apotek fase 1 dan redefinisi peran fase 2–5. Health ok, semua migrasi jalan (`stok 0001`), `xlrd 2.0.2` terpasang. Backup sebelum deploy: `joderma-ops-20261001-105543.tar.gz` (tidak terenkripsi) |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Test | 586 lulus di desktop 1 Okt (585 lulus, 1 dilewati di lingkungan uji lain) (`.venv/bin/python -m pytest`), termasuk 21 test Stok Apotek |
+| Belum dideploy | `f84e8d8` (Stok: sembunyikan Rupiah di Transfer), `0e29474` (detail task Direktur), `569a504` (panduan docx), dan **Tugas saya di Hari Ini** (1 Okt, lihat Riwayat) |
+| Test | 605 (604 lulus, 1 dilewati) per 1 Okt sesudah Tugas saya (`.venv/bin/python -m pytest`), termasuk 21 test Stok Apotek |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -118,7 +119,21 @@ Fase 2–5 sudah lulus test dan tangkapan layarnya sudah ditinjau product owner 
 
 # Riwayat
 
-## Detail task untuk Direktur (1 Oktober 2026) — selesai di desktop, belum di-commit
+## Tugas saya di Hari Ini (1 Oktober 2026) — belum dideploy
+
+Temuan product owner: task pengolahan limbah untuk Desy ada di database mini PC tetapi tidak tampil
+di Hari Ini, sehingga mudah terlupa. Sebabnya, daftar lama "Perlu tindakan saya": (1) hanya dirender
+bila sesi hari operasional hari itu sudah dibuat; (2) hanya membaca `ActionItem.owner`, yang kosong
+untuk task ke beberapa orang, ke satu peran, atau ke fungsi PIC; (3) hanya cabang aktif.
+
+Perbaikan: `core.task_services.my_tasks(user)` membaca penerima task (`TaskAssignment`) di semua
+cabang yang dapat diakses, tanpa bergantung pada sesi hari, menyembunyikan task bersama yang sudah
+diambil orang lain, dan menaruh yang lewat target paling atas serta yang sudah diajukan paling bawah
+("Menunggu konfirmasi"). Kartu **Tugas saya** kini paling atas di Hari Ini untuk semua peran, dengan
+tombol **Ajukan selesai** / **Ambil task** yang kembali ke Hari Ini (`next` aman). Halaman Semua task
+saya untuk staf kini lintas cabang yang dapat diakses. Test: `core/tests/test_tugas_saya.py` (9).
+
+## Detail task untuk Direktur (1 Oktober 2026) — di-commit (`0e29474`), belum dideploy
 
 Temuan: task "Limbah perlu koordinasi ..." untuk Desy tampil di Jadwal Task, tetapi Direktur
 (hanya peran AOM sejak Reset peran) tidak bisa mengubahnya. `action_item_update` hanya menerima
