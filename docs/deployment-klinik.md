@@ -28,11 +28,13 @@ Dijalankan dari mesin pengembangan, dengan mini-PC dapat dijangkau lewat Tailsca
 
 ```bash
 # 1. Kirim kode (tanpa venv, database, lampiran, atau berkas rahasia)
-cd ~/Desktop/joderma-operasional
-rsync -az --delete \
+cd /mnt/e/Claude/Projects/joderma-operasional   # desktop (WSL) sejak 30 Sep
+rsync -az --delete --chmod=D755,F644 \
   --exclude '/.venv/' --exclude '/data/' --exclude '/private_media/' \
   --exclude '/logs/' --exclude '/backups/' --exclude '/staticfiles/' \
-  --exclude '/.git/' --exclude '__pycache__/' --exclude '/.env' \
+  --exclude '/.git' --exclude '/.env' --exclude '__pycache__/' \
+  --exclude '/.pytest_cache/' --exclude '/apotek/' --exclude '/.claude-sync/' \
+  --exclude '/Claude outputs/' \
   ./ joderma-jemur@joderma-jemur:~/joderma-ops/
 ```
 
@@ -92,12 +94,14 @@ docker compose exec app python manage.py pilot_check
 
 ```bash
 # Dari mesin pengembangan — pastikan test lulus lebih dulu
-cd ~/Desktop/joderma-operasional && .venv/bin/python -m pytest
+cd /mnt/e/Claude/Projects/joderma-operasional && .venv/bin/python -m pytest   # desktop (WSL) sejak 30 Sep
 
-rsync -az --delete \
+rsync -az --delete --chmod=D755,F644 \
   --exclude '/.venv/' --exclude '/data/' --exclude '/private_media/' \
   --exclude '/logs/' --exclude '/backups/' --exclude '/staticfiles/' \
-  --exclude '/.git/' --exclude '__pycache__/' --exclude '/.env' \
+  --exclude '/.git' --exclude '/.env' --exclude '__pycache__/' \
+  --exclude '/.pytest_cache/' --exclude '/apotek/' --exclude '/.claude-sync/' \
+  --exclude '/Claude outputs/' \
   ./ joderma-jemur@joderma-jemur:~/joderma-ops/
 ```
 
@@ -107,6 +111,7 @@ ssh joderma-jemur@joderma-jemur
 cd ~/joderma-ops
 
 bash scripts/backup.sh                              # backup dulu, selalu
+chmod +x scripts/*.sh                               # --chmod F644 mencabut bit eksekusi
 docker compose build app
 docker compose up -d --force-recreate app
 sleep 15 && curl -sS http://127.0.0.1:8731/health/  # container menjalankan migrate sendiri saat start
@@ -116,6 +121,16 @@ docker compose exec app python manage.py showmigrations | grep '\[ \]' || echo "
 Pola `--exclude` diawali `/` supaya hanya folder di akar proyek yang dilewati.
 Tanpa `/`, `data/` ikut membuang folder lain bernama `data` (pernah terjadi pada
 data jadwal jaga, yang kini ada di `jadwal/jadwal_bulanan/`).
+
+`/.git` sengaja tanpa garis miring penutup. Pola `/.git/` hanya cocok dengan folder,
+sehingga berkas `.git` di mini PC terhapus oleh `--delete` saat deploy 1 Oktober 2026.
+`/apotek/`, `/.claude-sync/`, dan `/Claude outputs/` adalah arsip kerja di desktop yang
+tidak di-commit (memuat harga modal) dan tidak boleh ikut ke mini PC.
+
+`--chmod=D755,F644` dipakai karena repo di desktop berada di drive NTFS (`/mnt/e/…`) yang
+membuat semua berkas tampil 0777. Akibatnya bit eksekusi skrip ikut hilang, jadi
+`chmod +x scripts/*.sh` wajib sebelum `docker compose build`; container backup menjalankan
+`scripts/backup_loop.sh` langsung sebagai entrypoint.
 
 Jangan menjalankan `migrate` manual tepat sesudah `up`: perintah `CMD` container
 sudah menjalankannya, dan dua proses migrate bersamaan menghasilkan galat "table

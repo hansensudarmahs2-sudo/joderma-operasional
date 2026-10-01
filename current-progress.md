@@ -9,10 +9,10 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
 | | |
 |---|---|
-| Produksi (mini PC, ops.joderma.id) | Commit `1595435` (dideploy 29 September): jadwal jaga Oktober, pembagian tugas, giliran tally bulanan, pengaturan klinik, rapikan akun. Backup tersimpan satu: `joderma-ops-20260929-111438.tar.gz` (tidak terenkripsi; salinannya di Desktop laptop) |
-| Laptop dan GitHub | Commit 30 September "Redefinisi peran fase 2–5". **Belum dideploy** ke mini PC |
-| Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) | Komputer kerja sejak 30 Sep. Sejajar dengan GitHub di `6276cdf`, ditambah modul Stok Apotek fase 1 yang **belum di-commit** |
-| Test | 585 lulus, 1 dilewati (`.venv/bin/python -m pytest`), termasuk 21 test Stok Apotek |
+| Produksi (mini PC, ops.joderma.id) | Commit `e966da7` (dideploy 1 Oktober): Stok Apotek fase 1 dan redefinisi peran fase 2–5. Health ok, semua migrasi jalan (`stok 0001`), `xlrd 2.0.2` terpasang. Backup sebelum deploy: `joderma-ops-20261001-105543.tar.gz` (tidak terenkripsi) |
+| Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
+| Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
+| Test | 586 lulus di desktop 1 Okt (585 lulus, 1 dilewati di lingkungan uji lain) (`.venv/bin/python -m pytest`), termasuk 21 test Stok Apotek |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -22,7 +22,7 @@ Spesifikasi: [`docs/stok-apotek.md`](docs/stok-apotek.md). App baru `stok`, hala
 
 | Fase | Isi | Status |
 |---|---|---|
-| 1 | Impor Daftar Produk, Tingkat Persediaan, Pergerakan (.xls Omnicare); penggabungan unduhan terpotong; 4 uji kelengkapan; tab Prioritas Order, Transfer, Impor Data; parameter | Selesai di desktop 1 Okt, angka identik dengan workbook 30 Sep. **Belum di-commit, belum dideploy** |
+| 1 | Impor Daftar Produk, Tingkat Persediaan, Pergerakan (.xls Omnicare); penggabungan unduhan terpotong; 4 uji kelengkapan; tab Prioritas Order, Transfer, Impor Data; parameter | Selesai 1 Okt, angka identik dengan workbook 30 Sep. Commit `e966da7`, dideploy 1 Okt |
 | 2 | Moving, Kandidat Nonaktif, tanda tindak lanjut, unduh daftar order per pabrikan | Belum |
 | 3 | Lead time distributor, bulan berjalan, kemasan | Belum |
 
@@ -107,9 +107,9 @@ Fase 2–5 sudah lulus test dan tangkapan layarnya sudah ditinjau product owner 
 
 | Kapan | Apa |
 |---|---|
-| Sekarang | Stok Apotek fase 1: review, commit, deploy; lalu fase 2 |
+| Sekarang | Stok Apotek fase 1 dipakai apoteker dengan data produksi; keputusan A5–A9; lalu fase 2 |
 | Sesudah Stok Apotek | Fase 6 (Permintaan Owner sisi Direktur), fase 7 (staf sederhana), fase 8 (PIC), fase 9 (uji tampilan bersama product owner) |
-| Sesudah fase 9 | Commit, backup, deploy satu paket; Reset peran ke default di mini PC; perkenalan tampilan baru ke Owner, Direktur Utama, PIC, dan staf |
+| Sesudah fase 9 | Commit, backup, deploy; perkenalan tampilan baru ke Owner, Direktur Utama, PIC, dan staf |
 | Oktober 2026 | Uji coba jadwal jaga, pembagian tugas, dan giliran tally bulanan; catat masalah di `UAT_ISSUE_REGISTER.md`; aturan tally ditweak sesudah uji coba (ketetapan 30 Sep) |
 | Akhir Oktober | Jadwal jaga November: siapkan JSON dari PDF, `import_jadwal_jaga`, `seed_tugas_harian --susun 2026-11` |
 | Belum dijadwalkan | Pengingat summary harian; perapihan predikat owner di `core/permissions.py`; lampiran laporan/masukan; rehearsal migrasi data AOM legacy (fase 6–8 rencana integrasi AOM, perlu persetujuan terpisah) |
@@ -118,7 +118,7 @@ Fase 2–5 sudah lulus test dan tangkapan layarnya sudah ditinjau product owner 
 
 # Riwayat
 
-## Stok Apotek fase 1 (1 Oktober 2026) — selesai di desktop, belum di-commit
+## Stok Apotek fase 1 (1 Oktober 2026) — di-commit dan dideploy 1 Okt (`e966da7`)
 
 App `stok`: model `Produk`, `ProdukAlias`, `Unggahan`, `PosisiStok`, `PergerakanBulanan`,
 `StatusPeriode`, `Parameter` (migrasi `stok 0001`). `stok/parser.py` membaca tiga ekspor .xls
@@ -136,7 +136,7 @@ test tidak butuh `collectstatic` di clone baru dan suite penuh selesai sekitar 4
 `xlrd` masuk `requirements.txt`; `docs/stok-apotek.md` (revisi PRD), `docs/README.md`,
 `docs/peran-dan-akses.md`, `README.md` (jumlah test).
 
-## Redefinisi peran — fase 5: summary harian dan lonceng notifikasi (30 September 2026) — di-commit 30 Sep, belum dideploy
+## Redefinisi peran — fase 5: summary harian dan lonceng notifikasi (30 September 2026) — di-commit 30 Sep, dideploy 1 Okt (`e966da7`)
 
 `direktur/summary.py` menyusun summary (checklist Direktur per cabang, keputusan dan task hari itu,
 status Permintaan Owner) dan `send_summary` menyimpannya sebagai snapshot `DailySummary` (kirim ulang
@@ -146,7 +146,7 @@ dan kirim summary ke Owner") di bawah Checklist Direktur; URL `direktur:summary_
 Menu Direktur mendapat Summary Harian. Topbar: lonceng SVG dengan bulatan merah (99+), nama pengguna
 disembunyikan di layar ≤600px. Test: `direktur/tests/test_summary.py`; 562 test lulus.
 
-## Redefinisi peran — fase 4: halaman Owner (30 September 2026) — di-commit 30 Sep, belum dideploy
+## Redefinisi peran — fase 4: halaman Owner (30 September 2026) — di-commit 30 Sep, dideploy 1 Okt (`e966da7`)
 
 App baru `owner` (`/owner/`): Dashboard Owner (Permintaan Owner + isi Ringkasan yang sama lewat
 `templates/direktur/_overview_body.html`), Permintaan baru/detail dengan catatan dua arah dan
@@ -156,7 +156,7 @@ Owner mendarat di `/owner/`; `direktur:overview` tidak lagi terbuka untuk Owner.
 `owner 0001`, `direktur 0004`, `checklists 0006` (label peran Owner yang tertinggal di fase 2). Test: `owner/tests/test_owner.py`; 552 test lulus. Panduan:
 `docs/panduan-owner.md`.
 
-## Redefinisi peran — fase 3: menu per peran dan penolakan server-side (30 September 2026) — di-commit 30 Sep, belum dideploy
+## Redefinisi peran — fase 3: menu per peran dan penolakan server-side (30 September 2026) — di-commit 30 Sep, dideploy 1 Okt (`e966da7`)
 
 `core/peran.py` menentukan satu tampilan per pengguna (Direktur, Owner, PIC, Staf, Admin): menu,
 halaman pertama sesudah login (`/` dan login mengalihkan ke sana), dan halaman yang boleh dibuka.
@@ -166,7 +166,7 @@ Tugas tim, Laporan Operasional, Audit, halaman Direktur; Admin sistem hanya hala
 konfigurasi, template, pengaturan klinik, jadwal. `next` pada login hanya diikuti bila URL internal.
 Test: `core/tests/test_tampilan_peran.py`; 527 test lulus.
 
-## Redefinisi peran — fase 2: peran standar dan Reset peran ke default (29 September 2026) — di-commit 30 Sep, belum dideploy
+## Redefinisi peran — fase 2: peran standar dan Reset peran ke default (29 September 2026) — di-commit 30 Sep, dideploy 1 Okt (`e966da7`)
 
 Rencana: `docs/KEBUTUHAN_REDEFINISI_PERAN.md`. `accounts/peran_standar.py` mendefinisikan akun
 standar (Owner `yohanes`, Direktur Utama `jean` — peran OWNER yang sama —, Direktur Operasional

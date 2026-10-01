@@ -12,3 +12,6 @@ __pycache__/
 *.sqlite3
 *.sqlite3-wal
 *.sqlite3-shm
+# Berkas kerja sesi Claude di desktop
+/.claude-sync/
+/Claude outputs/

@@ -15,7 +15,7 @@ tidak mengikuti pemakaian.
 
 | Fase | Isi | Status |
 |---|---|---|
-| 1 | Impor tiga jenis file, penggabungan unduhan, uji kelengkapan, tab Prioritas Order, Transfer, Impor Data, parameter | Selesai di desktop 1 Okt 2026, belum di-commit dan belum dideploy |
+| 1 | Impor tiga jenis file, penggabungan unduhan, uji kelengkapan, tab Prioritas Order, Transfer, Impor Data, parameter | Selesai 1 Okt 2026, commit `e966da7`, dideploy ke mini PC 1 Okt |
 | 2 | Tab Moving dan Kandidat Nonaktif, tanda tindak lanjut, unduh daftar order per pabrikan | Belum |
 | 3 | Lead time per distributor, pemakaian bulan berjalan, ukuran kemasan | Belum |
 
