@@ -65,6 +65,7 @@ OWNER_ALLOWED = COMMON | {
     "direktur:decisions",
     "direktur:decision_detail",
     "jadwal:roster",
+    "stok:index",  # Stok Apotek, baca saja; unggah dan parameter tetap ditolak
 }
 
 # Admin sistem: daftar yang BOLEH. Tidak mengisi checklist, kas, atau data operasional.
@@ -163,6 +164,7 @@ def _flags(user) -> dict:
         can_manage_users,
         can_view_audit,
         can_view_cash_amounts,
+        can_edit_stok,
         can_view_clinic_profile,
         has_role,
         is_nurse,
@@ -179,6 +181,7 @@ def _flags(user) -> dict:
         "users": can_manage_users(user),
         "config": can_manage_config(user),
         "templates": can_manage_templates(user),
+        "stok": can_edit_stok(user),
     }
 
 
@@ -192,6 +195,7 @@ def nav_sections(user) -> list[NavSection]:
         main.add("Keputusan", "direktur:decisions")
         main.add("Summary Harian", "owner:summary")
         main.add("Jadwal", "owner:jadwal")
+        main.add("Stok Apotek", "stok:index")
         return [main]
 
     if who == ADMIN:
@@ -230,6 +234,7 @@ def nav_sections(user) -> list[NavSection]:
             ops.add("Kas", "cash:index")
         if flags["orders"]:
             ops.add("Order Produk Online", "orders:index")
+        ops.add("Stok Apotek", "stok:index")
         reports = NavSection("Laporan")
         reports.add("Laporan Operasional", "reports:index")
         reports.add("Laporan Saya", "reports:laporan_page")
@@ -258,6 +263,8 @@ def nav_sections(user) -> list[NavSection]:
         work.add("Kas", "cash:index")
     if flags["orders"]:
         work.add("Order Produk Online", "orders:index")
+    if flags["stok"]:
+        work.add("Stok Apotek", "stok:index")
     sections = [work, team, _report_section(user, flags)]
     if who == PIC:
         manage = NavSection("Koordinasi")

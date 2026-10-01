@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Stok Apotek{% endblock %}
+{% block content %}
+<h1>Stok Apotek</h1>
+<p class="sub">Prioritas order, saran transfer antar cabang, dan impor data, dihitung dari ekspor Omnicare.</p>
+
+<div class="chip-row" aria-label="Pilih cabang">
+  {% for c in cabang_semua %}
+  <a class="chip{% if pilihan == c.clinic.pk|stringformat:'s' %} chip-on{% endif %}" href="?tab={{ tab }}&cabang={{ c.clinic.pk }}">{{ c.clinic.name }}</a>
+  {% endfor %}
+  {% if cabang_semua|length > 1 %}<a class="chip{% if pilihan == 'semua' %} chip-on{% endif %}" href="?tab={{ tab }}&cabang=semua">Kedua cabang</a>{% endif %}
+</div>
+
+{% if not cabang_semua %}
+<div class="card" style="margin-top:.8rem"><strong>Belum ada data stok.</strong>
+  <p class="meta" style="margin:.3rem 0 0">Unggah Daftar Produk, Tingkat Persediaan, dan Ringkasan Pergerakan Stok dari Omnicare di tab Impor Data.</p></div>
+{% endif %}
+
+{% for r in ringkas %}
+<p class="meta" style="margin:.5rem 0 0">
+  <strong>{{ r.data.clinic.name }}</strong>:
+  {% if r.data.tanggal_stok %}stok {{ r.data.tanggal_stok|date:"j M Y" }}{% else %}belum ada stok{% endif %}
+  · pemakaian {{ r.data.label_periode }}
+  {% if r.basi %}<span class="tag warn">Stok lebih dari 2 hari</span>{% endif %}
+  {% if r.data.periode_belum_lengkap %}<span class="tag err">Ada periode belum lengkap</span>{% endif %}
+  {% if r.data.periode|length < param.bulan_rata_rata %}<span class="tag warn">Baru {{ r.data.periode|length }} dari {{ param.bulan_rata_rata }} bulan lengkap</span>{% endif %}
+</p>
+{% endfor %}
+
+{% if ringkas %}
+<div class="stok-stats">
+  <a class="card" href="?tab=order&cabang={{ pilihan }}&status=Kosong"><div class="stat">{{ total_kosong }}</div><div class="stat-label">Kosong</div></a>
+  <a class="card" href="?tab=order&cabang={{ pilihan }}&status=Di+bawah+buffer"><div class="stat">{{ total_bawah }}</div><div class="stat-label">Di bawah buffer</div></a>
+  <a class="card" href="?tab=order&cabang={{ pilihan }}&status=Mendekati+buffer"><div class="stat">{{ total_dekat }}</div><div class="stat-label">Mendekati buffer</div></a>
+  <a class="card" href="?tab=transfer&cabang={{ pilihan }}"><div class="stat">{{ jumlah_transfer }}</div><div class="stat-label">Saran transfer</div></a>
+</div>
+{% endif %}
+
+{% if bisa_ubah %}
+<details class="card" style="margin-top:.7rem">
+  <summary><strong>Parameter perhitungan</strong> <span class="meta">buffer {{ param.bulan_buffer|floatformat:"-1" }} bln · target {{ param.target_bulan|floatformat:"-1" }} bln · cadangan {{ param.cadangan_bulan|floatformat:"-1" }} bln{% if param.diubah_oleh %} · diubah {{ param.diubah_oleh }} {{ param.diubah|date:"j M H.i" }}{% endif %}</span></summary>
+  <form method="post" action="{% url 'stok:parameter' %}" class="inline" style="margin-top:.6rem">
+    {% csrf_token %}
+    <label>Jumlah bulan rata-rata<input type="number" name="bulan_rata_rata" min="1" max="12" step="1" value="{{ param.bulan_rata_rata }}"></label>
+    <label>Bulan buffer<input type="number" name="bulan_buffer" min="0.1" max="12" step="0.1" value="{{ param.bulan_buffer|stringformat:'g' }}"></label>
+    <label>Ambang mendekati buffer (%)<input type="number" name="ambang_persen" min="0" max="200" step="1" value="{{ param.ambang_persen }}"></label>
+    <label>Target stok setelah order (bulan)<input type="number" name="target_bulan" min="0.1" max="12" step="0.1" value="{{ param.target_bulan|stringformat:'g' }}"></label>
+    <label>Cadangan cabang pengirim (bulan)<input type="number" name="cadangan_bulan" min="0" max="12" step="0.1" value="{{ param.cadangan_bulan|stringformat:'g' }}"></label>
+    <button class="btn" type="submit">Simpan parameter</button>
+  </form>
+  <p class="meta">Nilai awal adalah asumsi PRD. Buffer = rata-rata pemakaian × bulan buffer; idealnya mengikuti lead time distributor.</p>
+</details>
+{% endif %}
+
+<div class="chip-row" style="margin-top:1rem" role="tablist">
+  {% for key, label in tabs %}
+  <a class="chip{% if tab == key %} chip-on{% endif %}" role="tab" href="?tab={{ key }}&cabang={{ pilihan }}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+{% if tab != "impor" and ringkas %}
+<form method="get" class="inline" style="margin-top:.7rem">
+  <input type="hidden" name="tab" value="{{ tab }}"><input type="hidden" name="cabang" value="{{ pilihan }}">
+  <label>Cari nama<input type="search" name="q" value="{{ q }}" placeholder="mis. Stenirol"></label>
+  <label>Pabrikan<select name="pabrikan"><option value="">Semua</option>{% for p in daftar_pabrikan %}<option value="{{ p }}"{% if p == pabrikan %} selected{% endif %}>{{ p }}</option>{% endfor %}</select></label>
+  {% if tab == "order" %}
+  <label>Status<select name="status"><option value="">Semua</option>{% for s in status_list %}<option value="{{ s }}"{% if s == status_filter %} selected{% endif %}>{{ s }}</option>{% endfor %}</select></label>
+  {% endif %}
+  <button class="btn small secondary" type="submit">Saring</button>
+</form>
+{% endif %}
+
+{% if tab == "order" and ringkas %}
+<h2>Prioritas Order <span class="meta">{{ baris_order|length }} produk</span></h2>
+<table class="responsive">
+  <thead><tr>{% if gabungan %}<th>Cabang</th>{% endif %}<th>Produk</th><th>Status</th><th>Stok</th><th>Rata-rata/bln</th><th>Buffer</th><th>Bulan stok</th><th>Dari cabang lain</th><th>Sisa order</th><th>Tindakan</th></tr></thead>
+  <tbody>
+  {% for b in baris_order %}
+  <tr>
+    {% if gabungan %}<td data-label="Cabang">{{ b.clinic.name }}</td>{% endif %}
+    <td data-label="Produk"><strong>{{ b.produk }}</strong><span class="meta" style="display:block">{{ b.produk.pabrikan|default:"—" }} · pakai {{ b.pakai_total|floatformat:"-1" }} dalam {{ b.pakai|length }} bln · {{ b.moving }}</span></td>
+    <td data-label="Status"><span class="tag {% if b.status == 'Kosong' %}err{% elif b.status == 'Di bawah buffer' %}warn{% elif b.status == 'Mendekati buffer' %}info{% else %}ok{% endif %}">{{ b.status }}</span></td>
+    <td data-label="Stok">{{ b.stok|floatformat:"-1" }}</td>
+    <td data-label="Rata-rata/bln">{{ b.rata|floatformat:"-1" }}</td>
+    <td data-label="Buffer">{{ b.buffer|floatformat:"-1" }}</td>
+    <td data-label="Bulan stok">{{ b.bulan_stok|floatformat:1 }}</td>
+    <td data-label="Dari cabang lain">{% for c, j in b.transfer_dari %}{{ j|floatformat:"-1" }} dari {{ c.name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+    <td data-label="Sisa order">{% if b.sisa_order %}<strong>{{ b.sisa_order|floatformat:"-1" }}</strong>{% else %}—{% endif %}</td>
+    <td data-label="Tindakan">{% if b.sisa_order %}{{ b.tindakan }}{% else %}—{% endif %}</td>
+  </tr>
+  {% empty %}<tr><td colspan="10" class="meta">Tidak ada produk yang cocok.</td></tr>{% endfor %}
+  </tbody>
+</table>
+<p class="meta">Sisa order = kebutuhan sampai target {{ param.target_bulan|floatformat:"-1" }} bulan dikurangi yang bisa diisi dari cabang lain. Satuan unit Omnicare, belum box.</p>
+{% endif %}
+
+{% if tab == "transfer" and ringkas %}
+<h2>Saran Transfer <span class="meta">{{ transfer|length }} produk · nilai modal Rp {{ nilai_transfer|floatformat:"0g" }}</span></h2>
+<table class="responsive">
+  <thead><tr><th>Produk</th><th>Dari → ke</th><th>Saran</th><th>Pengirim: stok / rata-rata</th><th>Penerima: stok / rata-rata</th><th>Status penerima</th><th>Nilai (Rp)</th></tr></thead>
+  <tbody>
+  {% for t in transfer %}
+  <tr>
+    <td data-label="Produk"><strong>{{ t.produk }}</strong><span class="meta" style="display:block">{{ t.produk.pabrikan|default:"—" }}</span></td>
+    <td data-label="Dari → ke">{{ t.dari.clinic.name }} → {{ t.ke.clinic.name }}</td>
+    <td data-label="Saran"><strong>{{ t.jumlah|floatformat:"-1" }}</strong></td>
+    <td data-label="Pengirim">{{ t.dari.stok|floatformat:"-1" }} / {{ t.dari.rata|floatformat:"-1" }} <span class="meta">kelebihan {{ t.dari.kelebihan|floatformat:"-1" }}</span></td>
+    <td data-label="Penerima">{{ t.ke.stok|floatformat:"-1" }} / {{ t.ke.rata|floatformat:"-1" }} <span class="meta">kebutuhan {{ t.ke.kebutuhan|floatformat:"-1" }}</span></td>
+    <td data-label="Status penerima"><span class="tag {% if t.ke.status == 'Kosong' %}err{% else %}warn{% endif %}">{{ t.ke.status }}</span></td>
+    <td data-label="Nilai (Rp)">{{ t.nilai|floatformat:"0g" }}</td>
+  </tr>
+  {% empty %}<tr><td colspan="7" class="meta">Tidak ada saran transfer.</td></tr>{% endfor %}
+  </tbody>
+</table>
+<p class="meta">Pengirim menahan cadangan {{ param.cadangan_bulan|floatformat:"-1" }} bulan pemakaian; saran dibulatkan ke bawah per 0,5 unit. Tanggal kedaluwarsa belum ada di data Omnicare, jadi cek ED sebelum memindah.</p>
+{% endif %}
+
+{% if tab == "impor" %}
+{% if bisa_ubah %}
+<h2>Unggah ekspor Omnicare</h2>
+<form method="post" action="{% url 'stok:unggah' %}" enctype="multipart/form-data" class="card">
+  {% csrf_token %}
+  <div class="inline">
+    <label>File .xls (boleh beberapa sekaligus)<input type="file" name="file" accept=".xls" multiple required></label>
+    <label>Cabang<select name="cabang"><option value="">Otomatis dari judul/nama file</option>{% for c in semua_klinik %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></label>
+    <button class="btn" type="submit">Unggah</button>
+  </div>
+  <p class="meta" style="margin:.5rem 0 0">Jenis file dikenali dari judulnya: Daftar Produk, Tingkat Persediaan, atau Ringkasan Pergerakan Stok (satu bulan penuh). Daftar Produk diproses lebih dulu. Unduhan pergerakan yang terpotong boleh diunggah beberapa kali untuk periode yang sama; barisnya digabung.</p>
+</form>
+{% endif %}
+
+<h2>Status periode pergerakan</h2>
+<table class="responsive">
+  <thead><tr><th>Cabang</th><th>Periode</th><th>Baris</th><th>Status</th><th>Catatan</th></tr></thead>
+  <tbody>
+  {% for p in periode %}
+  <tr>
+    <td data-label="Cabang">{{ p.clinic.name }}</td>
+    <td data-label="Periode">{{ p.bulan|stringformat:"02d" }}/{{ p.tahun }}</td>
+    <td data-label="Baris">{{ p.jumlah_baris }}</td>
+    <td data-label="Status">{% if p.lengkap %}<span class="tag ok">Lengkap</span>{% else %}<span class="tag err">Belum lengkap</span>{% endif %}</td>
+    <td data-label="Catatan">
+      {% if p.diduga_hilang %}<strong>Diduga hilang, unduh ulang laporan ini:</strong> {{ p.diduga_hilang|join:", " }}<br>{% endif %}
+      {% if p.hasil.seimbang %}Tidak seimbang: {{ p.hasil.seimbang|join:", " }}<br>{% endif %}
+      {% if p.hasil.mutasi and not p.diduga_hilang %}Mutasi tidak saling menutup: {{ p.hasil.mutasi|join:", " }}<br>{% endif %}
+      {% if p.selisih_stok %}<span class="meta">{{ p.selisih_stok|length }} produk beda dengan Tingkat Persediaan (transaksi di antara dua waktu unduh; stok akhir pergerakan yang dipakai):
+        {% for s in p.selisih_stok|slice:":8" %}{{ s.produk }} {{ s.pergerakan|floatformat:"-1" }} vs {{ s.persediaan|floatformat:"-1" }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if p.selisih_stok|length > 8 %} …{% endif %}</span>{% endif %}
+      {% if p.lengkap and not p.selisih_stok %}—{% endif %}
+    </td>
+  </tr>
+  {% empty %}<tr><td colspan="5" class="meta">Belum ada laporan pergerakan.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h2>Riwayat unggahan</h2>
+<table class="responsive">
+  <thead><tr><th>Waktu</th><th>Jenis</th><th>Cabang / periode</th><th>Baris</th><th>Pengunggah</th><th>Peringatan</th></tr></thead>
+  <tbody>
+  {% for u in unggahan %}
+  <tr>
+    <td data-label="Waktu">{{ u.waktu|date:"j M H.i" }}</td>
+    <td data-label="Jenis">{{ u.get_jenis_display }}<span class="meta" style="display:block">{{ u.nama_file }}</span></td>
+    <td data-label="Cabang / periode">{{ u.clinic.name|default:"—" }}{% if u.tahun %} · {{ u.bulan|stringformat:"02d" }}/{{ u.tahun }}{% elif u.tanggal %} · {{ u.tanggal|date:"j M Y" }}{% endif %}</td>
+    <td data-label="Baris">{{ u.jumlah_cocok }} / {{ u.jumlah_baris }}</td>
+    <td data-label="Pengunggah">{{ u.diunggah_oleh }}</td>
+    <td data-label="Peringatan">{{ u.peringatan|join:" " |default:"—" }}</td>
+  </tr>
+  {% empty %}<tr><td colspan="6" class="meta">Belum ada unggahan.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

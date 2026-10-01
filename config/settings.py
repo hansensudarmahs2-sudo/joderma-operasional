@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "aom_migration",
     "direktur",
     "jadwal",
+    "stok",
     "owner",
 ]
 

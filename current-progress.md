@@ -1,6 +1,7 @@
 # Current Progress
 
-Status per **30 September 2026** (Asia/Jakarta). **Pekerjaan dijeda** atas permintaan product owner.
+Status per **1 Oktober 2026** (Asia/Jakarta). Keputusan product owner 1 Okt: **modul Stok Apotek
+dikerjakan lebih dulu**, sebelum fase 6–9 redefinisi peran.
 Bagian atas dokumen ini adalah posisi terakhir, sisa pekerjaan, dan roadmap. Bagian **Riwayat**
 di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
@@ -10,9 +11,24 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 |---|---|
 | Produksi (mini PC, ops.joderma.id) | Commit `1595435` (dideploy 29 September): jadwal jaga Oktober, pembagian tugas, giliran tally bulanan, pengaturan klinik, rapikan akun. Backup tersimpan satu: `joderma-ops-20260929-111438.tar.gz` (tidak terenkripsi; salinannya di Desktop laptop) |
 | Laptop dan GitHub | Commit 30 September "Redefinisi peran fase 2–5". **Belum dideploy** ke mini PC |
-| Test | 562 lulus, 1 dilewati (`.venv/bin/python -m pytest`) |
+| Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) | Komputer kerja sejak 30 Sep. Sejajar dengan GitHub di `6276cdf`, ditambah modul Stok Apotek fase 1 yang **belum di-commit** |
+| Test | 585 lulus, 1 dilewati (`.venv/bin/python -m pytest`), termasuk 21 test Stok Apotek |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
+
+## Stok Apotek: status
+
+Spesifikasi: [`docs/stok-apotek.md`](docs/stok-apotek.md). App baru `stok`, halaman `/stok-apotek/`.
+
+| Fase | Isi | Status |
+|---|---|---|
+| 1 | Impor Daftar Produk, Tingkat Persediaan, Pergerakan (.xls Omnicare); penggabungan unduhan terpotong; 4 uji kelengkapan; tab Prioritas Order, Transfer, Impor Data; parameter | Selesai di desktop 1 Okt, angka identik dengan workbook 30 Sep. **Belum di-commit, belum dideploy** |
+| 2 | Moving, Kandidat Nonaktif, tanda tindak lanjut, unduh daftar order per pabrikan | Belum |
+| 3 | Lead time distributor, bulan berjalan, kemasan | Belum |
+
+Hak akses (keputusan 1 Okt): apoteker, asisten apoteker, dan Direktur Operasional membuka,
+mengunggah, dan mengubah parameter; Owner hanya baca; peran lain 403. Deploy butuh
+`docker compose build app` karena dependensi baru `xlrd`. Migrasi baru: `stok 0001`.
 
 ## Redefinisi peran: status per fase
 
@@ -91,7 +107,8 @@ Fase 2–5 sudah lulus test dan tangkapan layarnya sudah ditinjau product owner 
 
 | Kapan | Apa |
 |---|---|
-| Sesudah jeda | Fase 6 (Permintaan Owner sisi Direktur), fase 7 (staf sederhana), fase 8 (PIC), fase 9 (uji tampilan bersama product owner) |
+| Sekarang | Stok Apotek fase 1: review, commit, deploy; lalu fase 2 |
+| Sesudah Stok Apotek | Fase 6 (Permintaan Owner sisi Direktur), fase 7 (staf sederhana), fase 8 (PIC), fase 9 (uji tampilan bersama product owner) |
 | Sesudah fase 9 | Commit, backup, deploy satu paket; Reset peran ke default di mini PC; perkenalan tampilan baru ke Owner, Direktur Utama, PIC, dan staf |
 | Oktober 2026 | Uji coba jadwal jaga, pembagian tugas, dan giliran tally bulanan; catat masalah di `UAT_ISSUE_REGISTER.md`; aturan tally ditweak sesudah uji coba (ketetapan 30 Sep) |
 | Akhir Oktober | Jadwal jaga November: siapkan JSON dari PDF, `import_jadwal_jaga`, `seed_tugas_harian --susun 2026-11` |
@@ -100,6 +117,24 @@ Fase 2–5 sudah lulus test dan tangkapan layarnya sudah ditinjau product owner 
 ---
 
 # Riwayat
+
+## Stok Apotek fase 1 (1 Oktober 2026) — selesai di desktop, belum di-commit
+
+App `stok`: model `Produk`, `ProdukAlias`, `Unggahan`, `PosisiStok`, `PergerakanBulanan`,
+`StatusPeriode`, `Parameter` (migrasi `stok 0001`). `stok/parser.py` membaca tiga ekspor .xls
+Omnicare (`xlrd` dengan `ignore_workbook_corruption=True`); `stok/services.py` mengimpor,
+menggabungkan unduhan terpotong, dan menjalankan 4 uji kelengkapan; `stok/hitung.py`
+menghitung status, moving, kebutuhan, kelebihan, dan saran transfer saat halaman dibuka.
+Halaman `/stok-apotek/` (tab Prioritas Order, Transfer, Impor Data; parameter; unggah
+beberapa file sekaligus). Izin `core.permissions.can_view_stok`/`can_edit_stok`; `stok:index`
+masuk `OWNER_ALLOWED`; menu Stok Apotek untuk Direktur, Owner, dan staf apotek.
+Test `stok/tests/test_stok.py` (21) memakai ekspor asli 30 Sep di `stok/tests/fixtures/`;
+status 48/90/14/133/67 dan 43/49/19/149/50, transfer 40 + 19, nilai rupiah sama dengan workbook.
+
+Juga: `conftest.py` memakai storage static biasa dan hash password MD5 khusus test, sehingga
+test tidak butuh `collectstatic` di clone baru dan suite penuh selesai sekitar 40 detik;
+`xlrd` masuk `requirements.txt`; `docs/stok-apotek.md` (revisi PRD), `docs/README.md`,
+`docs/peran-dan-akses.md`, `README.md` (jumlah test).
 
 ## Redefinisi peran — fase 5: summary harian dan lonceng notifikasi (30 September 2026) — di-commit 30 Sep, belum dideploy
 

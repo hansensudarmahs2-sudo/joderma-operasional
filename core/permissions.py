@@ -350,6 +350,17 @@ def can_archive_masukan(user) -> bool:
     )
 
 
+def can_edit_stok(user) -> bool:
+    """Stok Apotek: unggah, ubah parameter, tindak lanjut. Keputusan product owner 1 Okt 2026:
+    halaman ini milik operasional apotek, jadi apoteker dan asisten apoteker penuh haknya."""
+    return has_role(user, Role.APOTEKER, Role.ASISTEN_APOTEKER, Role.AOM)
+
+
+def can_view_stok(user) -> bool:
+    """Owner hanya membaca (PRD A6, belum diputuskan lain)."""
+    return can_edit_stok(user) or is_owner(user)
+
+
 def read_only_for(user) -> bool:
     """Owner bersifat read-only kecuali diberi kapabilitas approval."""
     return is_owner(user) and not (roles(user) - {Role.OWNER})

@@ -19,6 +19,7 @@ urlpatterns = [
     path("order-online/", include(("orders.urls", "orders"), namespace="orders")),
     path("direktur/", include(("direktur.urls", "direktur"), namespace="direktur")),
     path("jadwal/", include(("jadwal.urls", "jadwal"), namespace="jadwal")),
+    path("stok-apotek/", include(("stok.urls", "stok"), namespace="stok")),
     path("owner/", include(("owner.urls", "owner"), namespace="owner")),
     path("audit/", include(("audit.urls", "audit"), namespace="audit")),
     path("health/", core_views.health, name="health"),

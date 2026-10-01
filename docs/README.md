@@ -14,6 +14,7 @@ Selain itu, mulai dari peran Anda.
 | Membuat akun dan mengatur izin | [`panduan-admin.md`](panduan-admin.md) |
 | Memakai halaman Direktur Operasional (Ringkasan, Tim, checklist Direktur, catatan, keputusan) | [`panduan-direktur.md`](panduan-direktur.md) |
 | Melihat jadwal jaga, tugas saya hari ini, dan aturan giliran tally | [`jadwal-dan-giliran.md`](jadwal-dan-giliran.md) |
+| Memakai Stok Apotek: unggah ekspor Omnicare, prioritas order, saran transfer | [`stok-apotek.md`](stok-apotek.md) |
 
 ## Saya mengurus server
 

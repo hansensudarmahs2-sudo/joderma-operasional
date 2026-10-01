@@ -17,6 +17,7 @@ selesai dan di-commit tetapi belum dideploy, pekerjaan dijeda sebelum fase 6.
 
 | | |
 |---|---|
+| Kode di desktop (komputer kerja sejak 30 Sep 2026) | WSL: `/mnt/e/Claude/Projects/joderma-operasional` (Windows: `E:\Claude\Projects\joderma-operasional`) |
 | Kode di laptop | `~/Desktop/joderma-operasional` |
 | Cadangan kode | https://github.com/hansensudarmahs2-sudo/joderma-operasional (private) |
 | Server klinik | `ssh joderma-jemur@joderma-jemur`, aplikasi di `~/joderma-ops` |
@@ -26,8 +27,10 @@ selesai dan di-commit tetapi belum dideploy, pekerjaan dijeda sebelum fase 6.
 
 ## Memulai sesi baru
 
+Clone baru belum punya `.venv`: `python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt`.
+
 ```bash
-cd ~/Desktop/joderma-operasional
+cd ~/Desktop/joderma-operasional    # desktop: /mnt/e/Claude/Projects/joderma-operasional
 git pull                                  # samakan dengan GitHub
 git log --oneline -5                      # apa yang terakhir dikerjakan
 .venv/bin/python -m pytest                # pastikan semuanya masih hijau

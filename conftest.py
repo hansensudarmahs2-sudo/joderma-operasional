@@ -13,6 +13,21 @@ from core.services import get_or_create_day
 from nurses.models import NurseEligibility, ProcedureCategory
 
 
+@pytest.fixture(autouse=True)
+def _test_settings(settings):
+    """Pengaturan khusus test, tidak berlaku di produksi.
+
+    - Static memakai storage biasa: test tidak bergantung pada ``collectstatic``
+      (folder ``staticfiles/`` di-.gitignore sehingga tidak ada di clone baru).
+    - Hash password cepat: ribuan ``create_user`` di test tidak perlu PBKDF2.
+    """
+    settings.STORAGES = {
+        **settings.STORAGES,
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
+    settings.PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+
 @pytest.fixture
 def clinic(db):
     return Clinic.objects.create(
