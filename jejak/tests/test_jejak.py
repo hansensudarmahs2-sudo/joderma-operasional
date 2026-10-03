@@ -220,3 +220,26 @@ def test_initial_branch_coordinates_migration(db):
     assert (jemur.latitude, jemur.longitude) == (Decimal("-7.328501"), Decimal("112.739425"))
     assert (citraland.latitude, citraland.longitude) == (Decimal("-7.286665"), Decimal("112.655565"))
     assert manual.latitude == Decimal("-7.1")  # tidak ditimpa
+
+
+def test_csv_export(client, people, jemur):
+    from audit.models import AuditAction, AuditEvent
+
+    services.stamp(_request(people["heni"], geo_status="OK", geo_lat="-7.3201", geo_lng="112.7401", geo_acc="15"),
+                   Event.CHECKLIST, clinic=jemur)
+    services.stamp(_request(people["yani"], ip="114.5.111.216", geo_status="DITOLAK"), Event.LOGIN, clinic=jemur)
+    client.force_login(people["hansen"])
+    page = client.get(reverse("jejak:index")).content.decode()
+    assert "Unduh CSV" in page and "unduh=csv" in page
+    res = client.get(reverse("jejak:index"), {"unduh": "csv"})
+    text = b"".join(res.streaming_content).decode("utf-8")
+    assert res["Content-Type"].startswith("text/csv") and text.startswith("﻿")
+    lines = text.strip().splitlines()
+    assert len(lines) == 3 and "Jarak ke klinik (m)" in lines[0]
+    assert "heni" in lines[1] and "Kuat" in lines[1] and "-7.3201" in lines[1]
+    assert "yani" in lines[2] and "Izin lokasi ditolak" in lines[2] and "114.5.111.216" in lines[2]
+    only_weak = b"".join(client.get(reverse("jejak:index"), {"unduh": "csv", "label": "LEMAH"}).streaming_content)
+    assert only_weak.decode().strip().count("\n") == 1
+    assert AuditEvent.objects.filter(action=AuditAction.EXPORT, entity_type="presencestamp").count() == 2
+    client.force_login(people["yani"])
+    assert client.get(reverse("jejak:index"), {"unduh": "csv"}).status_code in (302, 403)

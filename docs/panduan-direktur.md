@@ -221,7 +221,8 @@ dan lokasi sesaat bila staf mengizinkan (browser menanyakan izin sekali; lokasi 
 tombol ditekan, tidak dilacak). Setiap jejak berlabel **Kuat** (perangkat klinik terdaftar, atau
 lokasi di dalam radius cabang), **Sedang** (lokasi dekat tetapi kurang akurat, atau IP yang lazim di
 cabang itu), atau **Lemah**. Tidak ada yang diblokir; targetnya pola yang benar lebih dari 60%.
-Ringkasan per staf menampilkan persentase Kuat + Sedang. Siapkan dua hal:
+Ringkasan per staf menampilkan persentase Kuat + Sedang. **Unduh CSV** mengunduh jejak sesuai
+saringan (tercatat sebagai ekspor di Audit). Siapkan dua hal:
 
 - **Koordinat cabang** di Pengaturan Klinik. Sudah terisi otomatis saat deploy dari titik Google
   Maps (Jemur −7.328501, 112.739425; Citraland −7.286665, 112.655565); ubah di sana bila perlu

@@ -10,11 +10,11 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
 | | |
 |---|---|
-| Produksi (mini PC, ops.joderma.id) | Commit `3056c3d` (dideploy 3 Oktober): tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
+| Produksi (mini PC, ops.joderma.id) | Commit `8c48cde` (dideploy 3 Oktober 21.33): tahap 3 paket E (jejak kehadiran, koordinat cabang terisi, Semua cabang saat memilah), di atas `3056c3d`: tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | **Paket E tahap 3**: jejak kehadiran (IP, perangkat, lokasi sesaat); migrasi `core 0007`, `core 0008` (data: koordinat Google Maps kedua cabang, hanya bila kosong), `jejak 0001` (3 Okt, lihat Riwayat) |
-| Test | 713 (712 lulus, 1 dilewati) per 3 Okt: 692 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
+| Belum dideploy | Unduh CSV di halaman Jejak (3 Okt); tanpa migrasi |
+| Test | 714 (713 lulus, 1 dilewati) per 3 Okt: 693 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -151,7 +151,15 @@ metrik kedisiplinan (tepat waktu, kelengkapan) per staf.
 
 # Riwayat
 
-## Paket E tahap 3: jejak kehadiran (3 Oktober 2026) — belum di-commit
+## Unduh CSV jejak (3 Oktober 2026) — belum di-commit
+
+- Tombol **Unduh CSV** di `/jejak/` (`?unduh=csv`, saringan sama termasuk label): waktu, staf,
+  cabang, kejadian, label + alasan, IP, kelompok IP, jaringan, perangkat, status lokasi, lintang,
+  bujur, akurasi, jarak, entitas, user agent. Tercatat EXPORT `presencestamp` di audit. Direktur dan
+  Owner. Untuk analisis bersama ekspor audit.
+- Test di `jejak/tests/test_jejak.py` (+1).
+
+## Paket E tahap 3: jejak kehadiran (3 Oktober 2026) — `8c48cde`, dideploy 3 Okt 21.33
 
 - Keputusan product owner: target akurasi > 60%, IP tetap dicatat walau tidak statis untuk dibaca
   polanya; Tailscale hanya untuk perangkat milik klinik (paket gratis maks. 6 user).

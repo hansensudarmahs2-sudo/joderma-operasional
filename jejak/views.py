@@ -58,6 +58,11 @@ def index(request):
     event = request.GET.get("kejadian", "")
     if event in dict(Event.choices):
         qs = qs.filter(event=event)
+    if request.GET.get("unduh") == "csv":
+        label = request.GET.get("label", "")
+        if label in dict(Confidence.choices):
+            qs = qs.filter(confidence=label)
+        return _csv(request, qs, start, end)
     # Ringkasan per staf memakai saringan yang sama kecuali label.
     per_user: dict = defaultdict(Counter)
     names = {}
@@ -80,6 +85,11 @@ def index(request):
     page = Paginator(qs.order_by("-created_at"), PAGE_SIZE).get_page(request.GET.get("hal"))
     params = request.GET.copy()
     params.pop("hal", None)
+    params.pop("unduh", None)
+    csv_params = params.copy()
+    csv_params["unduh"] = "csv"
+    csv_params.setdefault("dari", start.isoformat())
+    csv_params.setdefault("sampai", end.isoformat())
     from accounts.models import User
 
     staff = User.objects.filter(presence_stamps__isnull=False).distinct().order_by("display_name", "username")
@@ -87,7 +97,7 @@ def index(request):
         "page": page, "summary": summary, "clinics": clinics, "clinic": clinic, "start": start, "end": end,
         "staff": staff, "staff_id": int(staff_id) if staff_id.isdigit() else None,
         "events": Event.choices, "event": event, "labels": Confidence.choices, "label": label,
-        "base_query": params.urlencode(), "total": page.paginator.count,
+        "base_query": params.urlencode(), "total": page.paginator.count, "csv_query": csv_params.urlencode(),
     })
 
 
@@ -176,3 +186,45 @@ def _save_device(request, clinics):
         device = KnownDevice.objects.create(ip_address=ip, **data)
         log_create(device, actor=request.user)
         messages.success(request, f"Perangkat {device.name} ditambahkan.")
+
+
+def _csv(request, qs, start, end):
+    """Unduh jejak sesuai saringan (UTF-8 dengan BOM, terbuka di Excel). Tercatat EXPORT di audit."""
+    import csv
+
+    from django.http import StreamingHttpResponse
+
+    from audit.views import _cell, _Echo
+
+    total = qs.count()
+    log_event(action=AuditAction.EXPORT, entity_type="presencestamp",
+              entity_label=f"Ekspor jejak {total} baris", actor=request.user,
+              after={"filter": {k: v for k, v in request.GET.items() if k != "unduh"}, "rows": total},
+              request=request)
+    writer = csv.writer(_Echo())
+
+    def rows():
+        yield "\ufeff"
+        yield writer.writerow([
+            "Waktu (WIB)", "Username", "Nama", "Cabang", "Kejadian", "Label", "Alasan label", "Alamat IP",
+            "Kelompok IP", "Jaringan", "Perangkat dikenal", "Jenis perangkat", "Status lokasi", "Lintang",
+            "Bujur", "Akurasi (m)", "Jarak ke klinik (m)", "Jenis data", "ID data", "Perangkat (user agent)",
+        ])
+        for s in qs.order_by("created_at", "id").iterator(chunk_size=500):
+            yield writer.writerow([
+                timezone.localtime(s.created_at).strftime("%Y-%m-%d %H:%M:%S"), _cell(s.user.username),
+                _cell(str(s.user)), _cell(s.clinic.name if s.clinic else ""), s.get_event_display(),
+                s.get_confidence_display(), _cell(s.reason), s.ip_address or "", s.ip_prefix,
+                s.get_network_display() if s.network else "", _cell(s.device.name if s.device else ""),
+                _cell(s.device_kind), s.get_geo_status_display() if s.geo_status else "",
+                s.latitude if s.latitude is not None else "", s.longitude if s.longitude is not None else "",
+                s.accuracy_m if s.accuracy_m is not None else "", s.distance_m if s.distance_m is not None else "",
+                s.entity_type, s.entity_id or "", _cell(s.user_agent),
+            ])
+
+    stamp = timezone.localtime().strftime("%Y%m%d-%H%M")
+    response = StreamingHttpResponse(rows(), content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = (
+        f'attachment; filename="jejak_{start:%Y-%m-%d}_{end:%Y-%m-%d}_{stamp}.csv"'
+    )
+    return response

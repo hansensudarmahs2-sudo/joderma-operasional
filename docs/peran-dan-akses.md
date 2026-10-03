@@ -160,7 +160,7 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Catat temuan Owner (target opsional) dan permintaan | owner | — |
 | Konfirmasi selesai / minta revisi task yang pemeriksanya Direktur Utama / Owner (otomatis bila penerimanya Direktur Operasional), dan menulis catatan di task itu | owner | — |
 | Lapor progres task sendiri; catatan bukti wajib saat ajukan selesai | penerima task | — |
-| Jejak kehadiran: daftar jejak, ringkasan per staf, IP lazim (baca) | AOM, owner | — |
+| Jejak kehadiran: daftar jejak, ringkasan per staf, IP lazim (baca), unduh CSV | AOM, owner | — |
 | Mengatur perangkat dikenal (IP Tailscale perangkat klinik) | AOM | — |
 | Koordinat dan radius cabang (Pengaturan Klinik) | yang boleh mengubah pengaturan klinik | — |
 | Mengunduh audit (CSV, sesuai saringan; tercatat sebagai EXPORT) | AOM | `admin.full_access` |

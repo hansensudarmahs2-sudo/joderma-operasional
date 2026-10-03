@@ -16,7 +16,8 @@
     <div><label for="dari">Dari</label><input id="dari" type="date" name="dari" value="{{ start|date:'Y-m-d' }}"></div>
     <div><label for="sampai">Sampai</label><input id="sampai" type="date" name="sampai" value="{{ end|date:'Y-m-d' }}"></div>
   </div>
-  <p class="inline-actions"><button class="btn" type="submit">Terapkan</button></p>
+  <p class="inline-actions"><button class="btn" type="submit">Terapkan</button>
+    <a class="btn secondary" href="?{{ csv_query }}">Unduh CSV</a></p>
 </form>
 
 <h2>Per staf</h2>
