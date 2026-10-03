@@ -154,6 +154,26 @@ def create_manual_task(
     )
 
 
+def create_task_from_source(
+    *, actor, clinic, title, target, description="", priority=Priority.SEDANG, due_at=None,
+    source_type: str, source_id: int, source_label: str = "",
+) -> ActionItem:
+    """Task hasil pilah Inbox: bersumber dari laporan, masukan, permintaan/temuan Owner."""
+    assert_director(actor)
+    _assert_clinic(actor, clinic)
+    if not (title or "").strip():
+        raise ValidationError("Judul task wajib diisi.")
+    if not (target or "").strip():
+        raise ValidationError("Pilih penerima task.")
+    if priority not in dict(Priority.choices):
+        priority = Priority.SEDANG
+    return _create_task_or_record(
+        clinic=clinic, actor=actor, title=title, description=description or "", target=target,
+        priority=priority, due_at=due_at, source_type=source_type, source_id=source_id,
+        source_label=source_label,
+    )
+
+
 # --- Checklist Direktur --------------------------------------------------------
 
 def items_for(clinic, cadence: str):

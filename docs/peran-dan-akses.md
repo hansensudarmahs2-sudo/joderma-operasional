@@ -54,7 +54,7 @@ yang ditentukan dari perannya, dengan urutan: Direktur Operasional (`AOM`) → O
 | Tampilan | Halaman pertama | Menu | Halaman yang boleh dibuka |
 |---|---|---|---|
 | Direktur Operasional | Ringkasan | semua, dikelompokkan: ringkasan, Direktur, Operasional, Laporan, Pengaturan | semua (izin per view tetap berlaku) |
-| Owner / Direktur Utama | Dashboard Owner | Dashboard, Laporan Masuk, Daftar Task, Keputusan, Summary Harian, Jadwal, Stok Apotek | **hanya**: halaman Owner (`/owner/`: Dashboard, Permintaan, Summary Harian, Jadwal), Tim, Daftar Task (baca + CSV), Kanban, Prioritas, Jadwal Task, Detail task (baca), Keputusan, Jadwal Jaga (baca), Stok Apotek (baca), Notifikasi, Ganti password. Selain itu 403 |
+| Owner / Direktur Utama | Dashboard Owner | Dashboard, Inbox, Daftar Task, Keputusan, Summary Harian, Jadwal, Stok Apotek | **hanya**: halaman Owner (`/owner/`: Dashboard, Permintaan dan temuan, Summary Harian, Jadwal), Inbox (baca), Tim, Daftar Task (baca + CSV), Kanban, Prioritas, Jadwal Task, Detail task (baca), Keputusan, Jadwal Jaga (baca), Stok Apotek (baca), Notifikasi, Ganti password. Selain itu 403 |
 | PIC / Koordinator | Hari Ini | Hari Ini, Checklist Saya, Kas/Order/Stok Apotek bila perannya, Jadwal (termasuk Pembagian Tugas), Lapor, Laporan Operasional | semua kecuali yang ditolak izin per view |
 | Staf | Hari Ini | Hari Ini, Checklist Saya, Kas/Order/Stok Apotek bila perannya, Jadwal Jaga, Jadwal Istirahat, Giliran Perawat (perawat), Lapor | semua **kecuali** Pembagian Tugas tim (bulanan dan harian), Laporan Operasional dan ekspor, halaman Direktur dan Owner, Audit |
 | Admin sistem | Pengguna | Pengguna, Reset peran, Konfigurasi, Template Checklist, Pengaturan Klinik, Jadwal Jaga, Pembagian Tugas | **hanya** halaman akun, konfigurasi, template, pengaturan klinik, jadwal. Admin dengan `admin.full_access` tidak dibatasi |
@@ -155,7 +155,9 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Mengirim summary harian ke Owner | AOM | — |
 | Stok Apotek: membuka | apoteker, asisten apoteker, AOM, owner | — |
 | Stok Apotek: unggah ekspor Omnicare, ubah parameter | apoteker, asisten apoteker, AOM (keputusan 1 Okt 2026) | — |
-| Laporan Masuk: semua komplain, masukan, kerusakan, laporan, dan masukan staf lintas cabang | AOM (tindak lanjut), owner (baca saja) | `admin.full_access` |
+| Inbox (dulu Laporan Masuk): semua komplain, masukan, kerusakan, laporan, masukan staf lintas cabang, permintaan/temuan Owner; catatan Direktur hanya untuk penulisnya | AOM (tindak lanjut), owner (baca saja) | `admin.full_access` |
+| Pilah item Inbox (tugaskan, teruskan, bawa ke rapat, tidak ditindaklanjuti); tambah task dari permintaan Owner | AOM | — |
+| Catat temuan Owner (target opsional) dan permintaan | owner | — |
 | Mengunduh audit (CSV, sesuai saringan; tercatat sebagai EXPORT) | AOM | `admin.full_access` |
 | Mengoreksi tally (jumlah, perawat, tindakan; alasan wajib) | supervisor (Koordinator Shift) cabang itu, AOM (keputusan 3 Okt 2026) | `tally.correct` |
 | Menutup hari sesudah kas akhir diajukan (verifikasi menyusul) | supervisor, AOM | — |

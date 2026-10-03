@@ -80,7 +80,7 @@ def test_compose_collects_the_four_parts(jemur, citraland, hansen, owners):
     # Task tindak lanjut temuan tidak diulang; temuannya sudah ada di bagian Checklist Direktur.
     assert not any(t.startswith("Task baru: Temuan") for t in texts)
 
-    requests = _section(content, "Permintaan Owner")
+    requests = _section(content, "Permintaan dan temuan Owner")
     assert [i["text"] for i in requests["items"]] == [req.title]
     assert requests["items"][0]["tag"] == "Menunggu Direktur"
 

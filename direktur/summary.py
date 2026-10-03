@@ -122,7 +122,9 @@ def _requests_section(user, day: dt.date) -> dict:
     items = []
     for r in request_rows(user, include_done_days=0):
         req = r["request"]
-        meta = [f"target {req.target_date:%d/%m}"]
+        meta = [f"target {req.target_date:%d/%m}" if req.target_date else "tanpa target"]
+        if req.kind == "TEMUAN":
+            meta.insert(0, "temuan")
         if r["total"]:
             meta.insert(0, f"{r['done']}/{r['total']} task selesai")
         if r["late"]:
@@ -130,7 +132,7 @@ def _requests_section(user, day: dt.date) -> dict:
         tone = {"done": "ok", "running": "info"}.get(r["state"], "muted")
         tag = "Lewat target" if r["late"] else r["label"]
         items.append(_item(req.title, " · ".join(meta), tag, "err" if r["late"] else tone))
-    return {"title": "Permintaan Owner", "items": items, "empty": "Tidak ada permintaan yang berjalan."}
+    return {"title": "Permintaan dan temuan Owner", "items": items, "empty": "Tidak ada permintaan yang berjalan."}
 
 
 def compose(user, day: dt.date | None = None) -> dict:

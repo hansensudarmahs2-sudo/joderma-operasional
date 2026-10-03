@@ -1,20 +1,27 @@
 {% extends "base.html" %}
 {% load foto %}
-{% block title %}Permintaan baru{% endblock %}
+{% block title %}{% if temuan %}Catat temuan{% else %}Permintaan baru{% endif %}{% endblock %}
 {% block content %}
 <p><a href="{% url 'owner:dashboard' %}">← Dashboard</a></p>
-<h1>Permintaan baru</h1>
-<p class="sub">Dikirim ke Direktur Operasional. Ia memecahnya menjadi task; progresnya tampil di dashboard Anda.</p>
+<h1>{% if temuan %}Catat temuan{% else %}Permintaan baru{% endif %}</h1>
+<p class="sub">{% if temuan %}Hal yang Anda lihat dan perlu dibereskan. Masuk Inbox Direktur Operasional, yang menentukan PIC, prioritas, dan target.{% else %}Dikirim ke Inbox Direktur Operasional. Ia memecahnya menjadi task; progresnya tampil di dashboard Anda.{% endif %}
+  {% if temuan %}<a href="{% url 'owner:request_new' %}">Tulis permintaan dengan target</a>{% else %}<a href="?jenis=TEMUAN">Catat temuan tanpa target</a>{% endif %}</p>
 <form method="post" class="card" enctype="multipart/form-data">
   {% csrf_token %}
-  <label for="judul">Apa yang diminta</label>
-  <input id="judul" name="judul" maxlength="200" required value="{{ form.judul }}" placeholder="Mis. Rapikan alur pendaftaran pasien baru">
+  <input type="hidden" name="jenis" value="{% if temuan %}TEMUAN{% else %}PERMINTAAN{% endif %}">
+  <label for="judul">{% if temuan %}Temuan{% else %}Apa yang diminta{% endif %}</label>
+  <input id="judul" name="judul" maxlength="200" required value="{{ form.judul }}" placeholder="{% if temuan %}Mis. Wastafel ruang tindakan bocor{% else %}Mis. Rapikan alur pendaftaran pasien baru{% endif %}">
   <label for="rincian">Rincian <span class="meta">(opsional)</span></label>
-  <textarea id="rincian" name="rincian" rows="5" placeholder="Latar belakang, hasil yang diharapkan">{{ form.rincian }}</textarea>
-  <label for="target">Target selesai</label>
-  <input id="target" type="date" name="target" required min="{{ today|date:'Y-m-d' }}" value="{{ form.target }}" style="max-width:14rem">
-  {% foto_input "Foto temuan (opsional)" "foto" "Misalnya kondisi di klinik yang perlu dibereskan." %}
-  <p class="help">Bila target perlu diubah atau tidak terpenuhi, Direktur membicarakannya langsung dengan Anda atau menulis catatan pada permintaan ini.</p>
-  <p><button class="btn" type="submit">Kirim permintaan</button></p>
+  <textarea id="rincian" name="rincian" rows="4" placeholder="{% if temuan %}Di mana, sejak kapan, apa dampaknya{% else %}Latar belakang, hasil yang diharapkan{% endif %}">{{ form.rincian }}</textarea>
+  <div class="inline">
+    <div><label for="cabang">Cabang</label>
+      <select id="cabang" name="cabang"><option value="">Lintas cabang</option>{% for c in clinics %}<option value="{{ c.pk }}"{% if form.cabang == c.pk|stringformat:"s" %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+    <div><label for="target">Target selesai{% if temuan %} <span class="meta">(opsional)</span>{% endif %}</label>
+      <input id="target" type="date" name="target"{% if not temuan %} required{% endif %} min="{{ today|date:'Y-m-d' }}" value="{{ form.target }}"></div>
+  </div>
+  <label><input type="checkbox" name="mendesak" value="1" style="width:auto"{% if form.mendesak %} checked{% endif %}> Mendesak</label>
+  {% foto_input "Foto (opsional)" "foto" "Misalnya kondisi di klinik yang perlu dibereskan." %}
+  <p class="help">Bila target perlu diubah atau tidak terpenuhi, Direktur membicarakannya langsung dengan Anda atau menulis catatan.</p>
+  <p><button class="btn" type="submit">{% if temuan %}Kirim temuan{% else %}Kirim permintaan{% endif %}</button></p>
 </form>
 {% endblock %}

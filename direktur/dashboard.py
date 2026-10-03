@@ -36,6 +36,9 @@ SOURCE_LABELS = {
     "manual": "Task manual",
     "permintaan_owner": "Permintaan Owner",
     "keputusan": "Keputusan",
+    "issue": "Komplain/masukan/kerusakan",
+    "laporan": "Laporan staf",
+    "masukan": "Masukan staf",
 }
 
 
@@ -62,9 +65,27 @@ SOURCE_CHOICES = [
     ("manual", "Task manual"),
     ("permintaan_owner", "Permintaan Owner"),
     ("keputusan", "Keputusan"),
+    ("issue", "Komplain/masukan/kerusakan"),
+    ("laporan", "Laporan staf"),
+    ("masukan", "Masukan staf"),
     ("checklist", "Checklist staf"),
     ("lain", "Modul lain"),
 ]
+
+
+def source_url(item: ActionItem) -> str:
+    """Tautan ke asal task (laporan, permintaan Owner, keputusan), bila ada halamannya."""
+    from django.urls import reverse
+
+    routes = {
+        "issue": "issues:detail",
+        "laporan": "reports:laporan_page_detail",
+        "masukan": "reports:masukan_page_detail",
+        "permintaan_owner": "owner:request_detail",
+        "keputusan": "direktur:decision_detail",
+    }
+    route = routes.get(item.source_type)
+    return reverse(route, args=[item.source_id]) if route and item.source_id else ""
 
 
 def reporters(items) -> dict[int, object]:
@@ -75,7 +96,9 @@ def reporters(items) -> dict[int, object]:
     Satu query per jenis sumber, bukan per task.
     """
     from checklists.models import ChecklistResponse
+    from issues.models import Issue
     from owner.models import OwnerRequest
+    from reports.models import Laporan, Masukan
 
     from .models import AuditCheck, DirectorNote
 
@@ -85,6 +108,9 @@ def reporters(items) -> dict[int, object]:
         "audit_direktur": (AuditCheck, "checked_by"),
         "permintaan_owner": (OwnerRequest, "created_by"),
         "catatan_direktur": (DirectorNote, "author"),
+        "issue": (Issue, "created_by"),
+        "laporan": (Laporan, "created_by"),
+        "masukan": (Masukan, "created_by"),
     }
     found: dict[tuple[str, int], object] = {}
     for source, (model, field) in lookups.items():

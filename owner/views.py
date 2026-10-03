@@ -66,29 +66,42 @@ def dashboard_page(request):
 @login_required
 @require(services.can_create_request)
 def request_new(request):
-    form = {"judul": "", "rincian": "", "target": ""}
+    from core.permissions import user_clinic_queryset
+
+    from .models import RequestKind
+
+    form = {"judul": "", "rincian": "", "target": "", "cabang": "", "mendesak": ""}
+    temuan = (request.POST.get("jenis") or request.GET.get("jenis")) == RequestKind.TEMUAN
+    clinics = list(user_clinic_queryset(request.user).order_by("id"))
     if request.method == "POST":
         form = {k: request.POST.get(k, "") for k in form}
+        clinic = next((c for c in clinics if form["cabang"].isdigit() and c.pk == int(form["cabang"])), None)
         try:
             with transaction.atomic():
                 req = services.create_request(
                     actor=request.user,
+                    kind=RequestKind.TEMUAN if temuan else RequestKind.PERMINTAAN,
                     title=form["judul"],
                     description=form["rincian"],
-                    target_date=services.parse_target(form["target"]),
+                    target_date=services.parse_target(form["target"], required=not temuan),
+                    clinic=clinic,
+                    urgent=form["mendesak"] == "1",
                 )
                 save_optional_photo(request, entity_type="ownerrequest", entity_id=req.pk)
-            messages.success(request, "Permintaan dikirim ke Direktur Operasional.")
+            messages.success(request, ("Temuan" if temuan else "Permintaan") + " dikirim ke Direktur Operasional.")
             return redirect("owner:request_detail", pk=req.pk)
         except ValidationError as exc:
             messages.error(request, " ".join(exc.messages))
-    return render(request, "owner/request_form.html", {"form": form, "today": local_today()})
+    return render(request, "owner/request_form.html",
+                  {"form": form, "today": local_today(), "temuan": temuan, "clinics": clinics})
 
 
 @login_required
 @require(services.can_view_requests)
 def request_detail(request, pk: int):
-    req = get_object_or_404(OwnerRequest.objects.select_related("created_by"), pk=pk)
+    req = get_object_or_404(OwnerRequest.objects.select_related("created_by", "clinic"), pk=pk)
+    if request.method == "POST" and request.POST.get("aksi") == "task":
+        return _request_task(request, req)
     if request.method == "POST":
         try:
             with transaction.atomic():
@@ -99,6 +112,20 @@ def request_detail(request, pk: int):
             messages.error(request, " ".join(exc.messages))
         return redirect("owner:request_detail", pk=req.pk)
     notes = list(req.notes.select_related("author"))
+    task_form = {}
+    if is_aom(request.user):
+        from direktur import services as direktur
+        from direktur.views import _clinic_from
+
+        from core.models import Priority
+
+        clinic, clinics = _clinic_from(request, request.GET.get("cabang") or (req.clinic_id or None))
+        task_form = {"clinic": clinic, "clinics": clinics, "priorities": Priority.choices,
+                     "targets": direktur.target_choices(clinic) if clinic else []}
+    from reports.models import InboxTriage
+
+    triage = InboxTriage.objects.filter(source_type="permintaan_owner", source_id=req.pk).select_related(
+        "triaged_by", "decision").first()
     return render(
         request,
         "owner/request_detail.html",
@@ -108,8 +135,35 @@ def request_detail(request, pk: int):
             "photos": photos_for("ownerrequest", [req.pk]).get(req.pk, []),
             "note_photos": photos_for("ownerrequestnote", [n.pk for n in notes]),
             "is_director": is_aom(request.user),
+            "task_form": task_form,
+            "triage": triage,
         },
     )
+
+
+def _request_task(request, req):
+    """Direktur menambah task untuk permintaan/temuan ini (langkah kedua dan seterusnya)."""
+    from direktur import services as direktur
+    from direktur.views import _clinic_from
+
+    if not is_aom(request.user):
+        raise PermissionDenied("Hanya Direktur Operasional yang memecah permintaan menjadi task.")
+    clinic, _ = _clinic_from(request, request.POST.get("cabang"))
+    try:
+        if clinic is None or str(clinic.pk) != request.POST.get("cabang"):
+            raise ValidationError("Cabang tidak valid.")
+        item = direktur.create_task_from_source(
+            actor=request.user, clinic=clinic, title=request.POST.get("judul", ""),
+            target=request.POST.get("penerima", ""), description=request.POST.get("uraian", ""),
+            priority=request.POST.get("prioritas", "SEDANG"),
+            due_at=direktur.parse_due(request.POST.get("batas", "")),
+            source_type="permintaan_owner", source_id=req.pk,
+            source_label=f"{req.get_kind_display()} P-{req.pk}",
+        )
+        messages.success(request, f"Task ditambahkan: {item.title}.")
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    return redirect("owner:request_detail", pk=req.pk)
 
 
 @login_required

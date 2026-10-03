@@ -56,13 +56,35 @@ antrian tidak masuk checklist ini karena pencatatannya sudah dipegang Finance.
 5. Temuan ditutup dari halaman Tim dengan **Tandai selesai** beserta catatan penutupan, atau
    lewat alur konfirmasi task biasa bila penerimanya mengajukan selesai.
 
-## Laporan Masuk
+## Inbox (dulu Laporan Masuk)
 
-Menu **Laporan Masuk** (di bawah Ringkasan) memuat semua Komplain, Masukan, Kerusakan, Laporan
-staf, dan Masukan staf dari kedua cabang, terbaru di atas, dengan nama pelapor. Saring per cabang,
-jenis, atau kata kunci (judul, nomor, lokasi, nama pelapor); centang "Tampilkan yang sudah selesai"
-untuk riwayat. Setiap catatan baru dari cabang mana pun juga masuk ke lonceng notifikasi. Kotak
-**Laporan Masuk** di Ringkasan menunjukkan jumlah yang masih terbuka per cabang.
+Menu **Inbox** (di bawah Ringkasan) adalah satu pintu untuk semua yang masuk: Komplain, Masukan,
+Kerusakan, Laporan staf, dan Masukan staf dari kedua cabang, **Permintaan dan Temuan Owner**, serta
+**Catatan Direktur** milik Anda sendiri (hanya Anda yang melihatnya). Terbaru di atas, dengan nama
+pelapor. Saring per cabang, jenis, atau kata kunci. Setiap catatan baru juga masuk ke lonceng
+notifikasi. Kotak **Inbox** di Ringkasan menunjukkan berapa yang **belum dipilah**.
+
+Tab: **Belum dipilah** (bawaan), **Diteruskan, dipantau**, **Sudah dipilah**, **Semua**. Item yang
+sudah ditangani di cabang (status bukan Baru), permintaan yang sudah punya task, dan catatan yang
+sudah dijadikan task dihitung sudah dipilah.
+
+Tombol **Pilah** membuka halaman satu item dengan empat pilihan, sesuai matriks wewenang:
+
+- **Putuskan dan tugaskan** — bidang Anda (operasional harian, SDM ringan, kas ≤ Rp1 juta): judul,
+  PIC, prioritas, target → menjadi task bersumber item itu (pelapornya ikut tercatat, judul sumber
+  di detail task bisa diketuk). Permintaan/temuan Owner yang perlu beberapa langkah: task berikutnya
+  ditambah dari halaman permintaan (**Tambah task**).
+- **Teruskan dan pantau** — di luar bidang Anda (apotek/stok/harga obat → Apoteker, Omnicare,
+  keuangan di atas batas, medis, strategis/SP → Dirut). Item tetap di tab **Dipantau** sampai
+  selesai.
+- **Bawa ke rapat Kamis** — menjadi perkara di Keputusan (pemutus Rapat bersama) dan tampil di
+  Agenda rapat Kamis.
+- **Tidak ditindaklanjuti** — alasan wajib.
+
+Pada komplain/masukan/kerusakan, pilah juga ditulis di riwayat catatan supaya cabang tahu, dan
+statusnya maju dari Baru ke Ditinjau / Dipertimbangkan / Ditriase (ke Ditugaskan bila dijadikan
+task dan alurnya mengizinkan). Memilah lagi menggantikan hasil sebelumnya; semuanya tercatat di
+audit log. Matriks hanya panduan: sistem tidak memaksa (PP belum disahkan).
 
 ## Ekspor audit
 

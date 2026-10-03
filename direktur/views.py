@@ -597,6 +597,7 @@ def task_detail(request, pk: int):
             "column": dict(dashboard.COLUMNS).get(dashboard.kanban_column(item, assignments)),
             "can_manage": can_manage,
             "reporter": dashboard.reporters([item]).get(item.pk),
+            "source_url": dashboard.source_url(item),
             "waiting_on": waiting_on,
             "hold_choices": hold_choices,
             "is_director": is_aom(request.user),

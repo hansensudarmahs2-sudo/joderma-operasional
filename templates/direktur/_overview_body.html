@@ -1,8 +1,8 @@
 {# Isi Ringkasan: dipakai Ringkasan Direktur dan Dashboard Owner. #}
 {% if inbox %}
 <a class="card inbox-alert tile-link" href="{% url 'reports:inbox' %}" id="laporan-masuk">
-  <span><strong>Laporan Masuk</strong> · {{ inbox.total }} terbuka{% if inbox.critical %} · <span class="tag err">{{ inbox.critical }} kritis</span>{% endif %}</span>
-  <span class="meta">{% for c, n in inbox.by_clinic.items %}{{ c.name }} {{ n.total }}{% if not forloop.last %} · {% endif %}{% empty %}Semua sudah ditangani{% endfor %} →</span>
+  <span><strong>Inbox</strong> · {% if inbox.untriaged %}<span class="tag warn">{{ inbox.untriaged }} belum dipilah</span>{% else %}semua sudah dipilah{% endif %}{% if inbox.watching %} · {{ inbox.watching }} dipantau{% endif %}{% if inbox.critical %} · <span class="tag err">{{ inbox.critical }} kritis</span>{% endif %}</span>
+  <span class="meta">{{ inbox.total }} terbuka{% for c, n in inbox.by_clinic.items %} · {{ c.name }} {{ n.total }}{% endfor %}{% if inbox.shared %} · lintas cabang {{ inbox.shared }}{% endif %} →</span>
 </a>
 {% endif %}
 {% if agenda %}

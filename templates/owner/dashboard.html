@@ -11,8 +11,8 @@
 
 <section class="card owner-requests" aria-labelledby="judul-permintaan">
   <div class="checklist-heading" style="margin:0">
-    <h2 id="judul-permintaan" style="margin:0">Permintaan Owner</h2>
-    {% if can_create %}<a class="btn small" href="{% url 'owner:request_new' %}">+ Permintaan baru</a>{% endif %}
+    <h2 id="judul-permintaan" style="margin:0">Permintaan dan temuan</h2>
+    {% if can_create %}<span class="inline-actions"><a class="btn small" href="{% url 'owner:request_new' %}?jenis=TEMUAN">+ Catat temuan</a><a class="btn small secondary" href="{% url 'owner:request_new' %}">+ Permintaan</a></span>{% endif %}
   </div>
   {% if requests %}
   <ul class="request-list">
@@ -20,8 +20,8 @@
     <li>
       <a class="request-row" href="{% url 'owner:request_detail' r.request.pk %}">
         <span class="request-main">
-          <strong>{{ r.request.title }}</strong>
-          <span class="meta">Target {{ r.request.target_date|date:"d/m/Y" }}{% if r.state != 'done' %} · {% if r.days_left > 0 %}{{ r.days_left }} hari lagi{% elif r.days_left == 0 %}hari ini{% else %}lewat {{ r.days_late }} hari{% endif %}{% endif %} · {{ r.request.created_by }}</span>
+          <strong>{% if r.request.kind == 'TEMUAN' %}<span class="tag info">Temuan</span> {% endif %}{% if r.request.urgent %}<span class="tag err">Mendesak</span> {% endif %}{{ r.request.title }}</strong>
+          <span class="meta">{% if r.request.target_date %}Target {{ r.request.target_date|date:"d/m/Y" }}{% if r.state != 'done' %} · {% if r.days_left > 0 %}{{ r.days_left }} hari lagi{% elif r.days_left == 0 %}hari ini{% else %}lewat {{ r.days_late }} hari{% endif %}{% endif %}{% else %}Tanpa target{% endif %} · {{ r.request.clinic.name|default:"Lintas cabang" }} · {{ r.request.created_by }}</span>
         </span>
         <span class="request-state">{% include "owner/_request_state.html" %}</span>
       </a>
@@ -29,7 +29,7 @@
     {% endfor %}
   </ul>
   {% else %}
-  <p class="meta">Belum ada permintaan yang berjalan. Tulis permintaan baru; Direktur Operasional akan memecahnya menjadi task, dan progresnya tampil di sini.</p>
+  <p class="meta">Belum ada permintaan atau temuan yang berjalan. Catat temuan atau tulis permintaan; keduanya masuk Inbox Direktur Operasional, yang memilahnya menjadi task, meneruskannya, atau membawanya ke rapat. Progresnya tampil di sini.</p>
   {% endif %}
 </section>
 

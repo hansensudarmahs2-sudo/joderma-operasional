@@ -3,8 +3,8 @@
 {% block title %}{{ row.request.title }}{% endblock %}
 {% block content %}
 <p><a href="{% url 'home' %}">← {% if is_director %}Kembali{% else %}Dashboard{% endif %}</a></p>
-<h1>{{ row.request.title }}</h1>
-<p class="sub">Diminta {{ row.request.created_by }} · {{ row.request.created_at|date:"d/m/Y" }} · target <strong>{{ row.request.target_date|date:"d/m/Y" }}</strong></p>
+<h1>{% if row.request.kind == 'TEMUAN' %}<span class="tag info">Temuan</span> {% endif %}{{ row.request.title }}</h1>
+<p class="sub">{% if row.request.kind == 'TEMUAN' %}Dicatat{% else %}Diminta{% endif %} {{ row.request.created_by }} · {{ row.request.created_at|date:"d/m/Y" }} · {{ row.request.clinic.name|default:"lintas cabang" }} · {% if row.request.target_date %}target <strong>{{ row.request.target_date|date:"d/m/Y" }}</strong>{% else %}tanpa target{% endif %}{% if row.request.urgent %} · <span class="tag err">Mendesak</span>{% endif %}</p>
 <p>{% with r=row %}{% include "owner/_request_state.html" %}{% endwith %}</p>
 
 {% if row.request.description %}<div class="card" style="white-space:pre-wrap">{{ row.request.description }}</div>{% endif %}
@@ -23,6 +23,32 @@
 </ul>
 {% else %}
 <p class="meta">Belum dipecah menjadi task oleh Direktur Operasional.</p>
+{% endif %}
+{% if triage %}<p class="meta">Dipilah di Inbox {{ triage.triaged_at|date:"d/m/Y" }}: <strong>{{ triage.get_action_display }}</strong>{% if triage.forwarded_to %} ke {{ triage.get_forwarded_to_display }}{% endif %}{% if triage.decision %} — <a href="{% url 'direktur:decision_detail' triage.decision.pk %}">{{ triage.decision.title }}</a>{% endif %}{% if triage.note %} — {{ triage.note }}{% endif %}</p>{% endif %}
+
+{% if is_director %}
+<details class="card"{% if not row.tasks %} open{% endif %}>
+  <summary><strong>{% if row.tasks %}Tambah task{% else %}Pecah menjadi task{% endif %}</strong></summary>
+  <form method="get" class="inline">
+    <div><label for="cabang-pilih">Cabang</label>
+      <select id="cabang-pilih" name="cabang">{% for c in task_form.clinics %}<option value="{{ c.pk }}"{% if task_form.clinic and c.pk == task_form.clinic.pk %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+    <button class="btn small secondary" type="submit">Ganti cabang</button>
+  </form>
+  <form method="post">{% csrf_token %}<input type="hidden" name="aksi" value="task"><input type="hidden" name="cabang" value="{{ task_form.clinic.pk }}">
+    <label for="judul">Judul task</label>
+    <input id="judul" name="judul" maxlength="200" required value="{% if not row.tasks %}{{ row.request.title }}{% endif %}">
+    <label for="uraian">Uraian</label>
+    <textarea id="uraian" name="uraian" rows="2"></textarea>
+    <div class="inline">
+      <div><label for="penerima">PIC</label>
+        <select id="penerima" name="penerima" required><option value="">Pilih PIC…</option>{% for v, l in task_form.targets %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+      <div><label for="prioritas">Prioritas</label>
+        <select id="prioritas" name="prioritas">{% for v, l in task_form.priorities %}<option value="{{ v }}"{% if v == 'TINGGI' and row.request.urgent or v == 'SEDANG' and not row.request.urgent %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div><label for="batas">Target</label><input id="batas" type="date" name="batas" value="{{ row.request.target_date|date:'Y-m-d' }}"></div>
+    </div>
+    <p><button class="btn small" type="submit">Kirim task</button></p>
+  </form>
+</details>
 {% endif %}
 
 <h2>Catatan</h2>

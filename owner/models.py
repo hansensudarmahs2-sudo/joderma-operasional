@@ -14,10 +14,23 @@ from django.db import models
 SOURCE_TYPE = "permintaan_owner"
 
 
+class RequestKind(models.TextChoices):
+    PERMINTAAN = "PERMINTAAN", "Permintaan"
+    TEMUAN = "TEMUAN", "Temuan"
+
+
 class OwnerRequest(models.Model):
+    """Permintaan atau temuan Owner. Temuan: target boleh kosong, Direktur yang menentukan."""
+
+    kind = models.CharField("jenis", max_length=12, choices=RequestKind.choices, default=RequestKind.PERMINTAAN)
     title = models.CharField("permintaan", max_length=200)
     description = models.TextField("rincian", blank=True)
-    target_date = models.DateField("target")
+    target_date = models.DateField("target", null=True, blank=True)
+    clinic = models.ForeignKey(
+        "core.Clinic", on_delete=models.PROTECT, null=True, blank=True, related_name="owner_requests",
+        help_text="Kosong bila lintas cabang.",
+    )
+    urgent = models.BooleanField("mendesak", default=False)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="owner_requests"
     )

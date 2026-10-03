@@ -1,0 +1,138 @@
+"""Pilah item Inbox oleh Direktur Operasional (GTD, tahap 2 paket B).
+
+Empat hasil, mengikuti matriks wewenang yang diusulkan (Okt 2026):
+
+- TUGASKAN  : bidang Direktur Operasional sendiri (operasional harian, SDM ringan, kas
+              <= Rp1 juta) -> buat task dengan PIC, prioritas, target.
+- TERUSKAN  : di luar bidangnya (apotek/stok/harga obat, Omnicare, keuangan di atas batas,
+              medis, strategis) -> catat diteruskan ke siapa; item tetap dipantau di Inbox.
+- RAPAT     : perlu diputuskan bersama -> perkara baru di Keputusan (pemutus Rapat bersama).
+- TIDAK     : tidak ditindaklanjuti, alasan wajib.
+
+Matriks tidak dipaksakan sistem (PP belum disahkan); halaman pilah hanya menampilkannya
+sebagai panduan. Semua pilah tercatat di audit log; pada komplain/masukan/kerusakan juga
+ditulis di riwayat catatan supaya cabang tahu.
+"""
+from __future__ import annotations
+
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
+
+from audit.models import AuditAction
+from audit.services import log_event
+
+from . import inbox
+from .models import ForwardTo, InboxTriage, TriageAction
+
+
+def _assert(user) -> None:
+    if not inbox.can_triage(user):
+        raise PermissionDenied("Pilah Inbox hanya untuk Direktur Operasional.")
+
+
+def _issue_followup(row, *, actor, action: str, text: str) -> None:
+    """Tulis hasil pilah di riwayat komplain/masukan/kerusakan dan majukan statusnya bila boleh."""
+    if row["source_type"] != inbox.SOURCE_ISSUE:
+        return
+    from issues.models import Issue, IssueStatus
+    from issues.services import WORKFLOWS, add_update, change_status
+
+    issue = Issue.objects.get(pk=row["source_id"])
+    # Dipilah = sudah ditinjau: Baru -> Ditinjau / Dipertimbangkan / Ditriase. Bila ditugaskan dan alurnya
+    # mengizinkan, maju sekali lagi ke Ditugaskan. Selain itu cukup catatan di riwayat.
+    review = {IssueStatus.DITINJAU, IssueStatus.DIPERTIMBANGKAN, IssueStatus.DITRIASE}
+    path = []
+    if action != TriageAction.TIDAK and issue.status == IssueStatus.BARU:
+        step = next(iter(WORKFLOWS.get(issue.issue_type, {}).get(issue.status, set()) & review), None)
+        if step:
+            path.append(step)
+    if action == TriageAction.TUGASKAN:
+        path.append(IssueStatus.DITUGASKAN)
+    for status in path:
+        if status in WORKFLOWS.get(issue.issue_type, {}).get(issue.status, set()):
+            issue = change_status(issue, user=actor, to_status=status, note="Dipilah Direktur Operasional.")
+    add_update(issue, user=actor, note=text)
+
+
+def _save(row, *, actor, action, note="", forwarded_to="", task=None, decision=None) -> InboxTriage:
+    triage, created = InboxTriage.objects.update_or_create(
+        source_type=row["source_type"], source_id=row["source_id"],
+        defaults={"action": action, "note": note.strip(), "forwarded_to": forwarded_to, "task": task,
+                  "decision": decision, "triaged_by": actor},
+    )
+    log_event(
+        action=AuditAction.CREATE if created else AuditAction.UPDATE,
+        entity_type="inboxtriage", entity_id=triage.pk,
+        entity_label=f"Pilah {row['kind_label']} {row['ref']}: {triage.get_action_display()}",
+        actor=actor,
+        after={"source": f"{row['source_type']}#{row['source_id']}", "action": action,
+               "forwarded_to": forwarded_to, "task": task.pk if task else None,
+               "decision": decision.pk if decision else None, "note": note.strip()[:300]},
+    )
+    return triage
+
+
+@transaction.atomic
+def assign(row, *, actor, clinic, title, target, description="", priority="SEDANG", due_at=None) -> InboxTriage:
+    from direktur import services as direktur
+
+    _assert(actor)
+    if row["source_type"] == inbox.SOURCE_NOTE:
+        from direktur.models import DirectorNote
+
+        note = DirectorNote.objects.get(pk=row["source_id"])
+        task = direktur.convert_note(note, user=actor, clinic=clinic, title=title, target=target,
+                                     priority=priority, due_at=due_at)
+    else:
+        task = direktur.create_task_from_source(
+            actor=actor, clinic=clinic, title=title, target=target,
+            description=description or row["description"], priority=priority, due_at=due_at,
+            source_type=row["source_type"], source_id=row["source_id"],
+            source_label=f"{row['kind_label']} {row['ref']}",
+        )
+    triage = _save(row, actor=actor, action=TriageAction.TUGASKAN, task=task)
+    names = ", ".join(str(a.assignee) for a in task.task_assignments.all()) or "belum ada penerima"
+    _issue_followup(row, actor=actor, action=TriageAction.TUGASKAN,
+                    text=f"Dipilah Direktur Operasional: dijadikan task \"{task.title}\" untuk {names}.")
+    return triage
+
+
+@transaction.atomic
+def forward(row, *, actor, to: str, note: str = "") -> InboxTriage:
+    _assert(actor)
+    if to not in dict(ForwardTo.choices):
+        raise ValidationError("Pilih diteruskan ke siapa.")
+    if to == ForwardTo.LAINNYA and not note.strip():
+        raise ValidationError("Tulis diteruskan ke siapa.")
+    triage = _save(row, actor=actor, action=TriageAction.TERUSKAN, forwarded_to=to, note=note)
+    label = ForwardTo(to).label.split(" (")[0]
+    _issue_followup(row, actor=actor, action=TriageAction.TERUSKAN,
+                    text=f"Dipilah Direktur Operasional: diteruskan ke {label}." + (f" {note.strip()}" if note.strip() else ""))
+    return triage
+
+
+@transaction.atomic
+def to_meeting(row, *, actor, title: str = "", background: str = "", needed_by=None) -> InboxTriage:
+    from direktur import services as direktur
+    from direktur.models import Decider
+
+    _assert(actor)
+    decision = direktur.create_decision(
+        actor=actor, title=(title or row["title"])[:200], decider=Decider.RAPAT_BERSAMA, clinic=row["clinic"],
+        reference=row["ref"][:30], background=background or row["description"], needed_by=needed_by,
+    )
+    triage = _save(row, actor=actor, action=TriageAction.RAPAT, decision=decision)
+    _issue_followup(row, actor=actor, action=TriageAction.RAPAT,
+                    text="Dipilah Direktur Operasional: dibawa ke rapat bersama (Kamis) untuk diputuskan.")
+    return triage
+
+
+@transaction.atomic
+def dismiss(row, *, actor, reason: str) -> InboxTriage:
+    _assert(actor)
+    if not (reason or "").strip():
+        raise ValidationError("Alasan wajib diisi.")
+    triage = _save(row, actor=actor, action=TriageAction.TIDAK, note=reason)
+    _issue_followup(row, actor=actor, action=TriageAction.TIDAK,
+                    text=f"Dipilah Direktur Operasional: tidak ditindaklanjuti. Alasan: {reason.strip()}")
+    return triage

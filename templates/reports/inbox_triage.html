@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Pilah: {{ row.title }}{% endblock %}
+{% block content %}
+<p><a href="{% url 'reports:inbox' %}">← Inbox</a></p>
+<h1>{{ row.title }}</h1>
+<p class="sub">{{ row.kind_label }} {{ row.ref }} · {{ row.clinic.name|default:"Lintas cabang" }} · dari <strong>{{ row.reporter }}</strong> · {{ row.created_at|date:"d/m/Y H.i" }} · <a href="{{ row.url }}">buka aslinya</a></p>
+<p><span class="tag {% if row.open %}warn{% else %}ok{% endif %}">{{ row.status }}</span>{% if row.critical %} <span class="tag err">{% if row.source_type == 'permintaan_owner' %}Mendesak{% else %}Kritis{% endif %}</span>{% endif %}{% if row.target_date %} <span class="tag muted">Target Owner {{ row.target_date|date:"d/m/Y" }}</span>{% endif %}</p>
+{% if row.description %}<div class="card" style="white-space:pre-wrap">{{ row.description }}</div>{% endif %}
+
+{% if row.triage %}
+<p class="card">Sudah dipilah {{ row.triage.triaged_at|date:"d/m/Y H.i" }} oleh {{ row.triage.triaged_by|default:"—" }}: <strong>{{ row.triage.get_action_display }}</strong>{% if row.triage.forwarded_to %} ke {{ row.triage.get_forwarded_to_display }}{% endif %}{% if row.triage.note %} — {{ row.triage.note }}{% endif %}. Memilih lagi di bawah akan menggantikan hasil ini.</p>
+{% elif row.handled %}
+<p class="meta">Catatan: item ini sudah {{ row.handled }}.</p>
+{% endif %}
+
+<h2>Pilah</h2>
+<div class="triage-grid">
+  <details class="card" open>
+    <summary><strong>Putuskan dan tugaskan</strong></summary>
+    <p class="help">Bidang Direktur Operasional: operasional harian (jadwal, PIC, alur layanan, fasilitas, limbah), SDM ringan (izin, tukar jaga, teguran lisan, pelatihan), refund/kas sampai Rp1 juta.</p>
+    <form method="get" class="inline">
+      <div><label for="cabang-pilih">Cabang</label>
+        <select id="cabang-pilih" name="cabang">{% for c in clinics %}<option value="{{ c.pk }}"{% if clinic and c.pk == clinic.pk %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+      <button class="btn small secondary" type="submit">Ganti cabang</button>
+    </form>
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="aksi" value="tugaskan"><input type="hidden" name="cabang" value="{{ clinic.pk }}">
+      <label for="judul">Judul task</label>
+      <input id="judul" name="judul" maxlength="200" required value="{{ row.title }}">
+      {% if row.source_type != 'catatan_direktur' %}<label for="uraian">Uraian</label>
+      <textarea id="uraian" name="uraian" rows="3">{{ row.description }}</textarea>{% endif %}
+      <div class="inline">
+        <div><label for="penerima">PIC</label>
+          <select id="penerima" name="penerima" required><option value="">Pilih PIC…</option>{% for v, l in targets %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+        <div><label for="prioritas">Prioritas</label>
+          <select id="prioritas" name="prioritas">{% for v, l in priorities %}<option value="{{ v }}"{% if v == default_priority %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+        <div><label for="batas">Target</label><input id="batas" type="date" name="batas" value="{{ default_due|date:'Y-m-d' }}"></div>
+      </div>
+      <p><button class="btn" type="submit">Jadikan task</button></p>
+      {% if row.source_type == 'permintaan_owner' %}<p class="help">Permintaan yang perlu beberapa langkah: task berikutnya ditambahkan dari halaman permintaan.</p>{% endif %}
+    </form>
+  </details>
+
+  <details class="card">
+    <summary><strong>Teruskan dan pantau</strong></summary>
+    <p class="help">Di luar bidang Direktur Operasional: apotek, stok dan harga obat, Omnicare, keuangan di atas batas, medis, strategis, SP dan pemberhentian. Item tetap tampil di tab Dipantau sampai selesai.</p>
+    <form method="post">{% csrf_token %}<input type="hidden" name="aksi" value="teruskan">
+      <label for="ke">Diteruskan ke</label>
+      <select id="ke" name="ke" required><option value="">Pilih…</option>{% for v, l in forward_choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+      <label for="catatan-teruskan">Catatan</label>
+      <input id="catatan-teruskan" name="catatan" maxlength="300" placeholder="Mis. sudah dikirim ke apt. Elvira lewat WA">
+      <p><button class="btn secondary" type="submit">Catat diteruskan</button></p>
+    </form>
+  </details>
+
+  <details class="card">
+    <summary><strong>Bawa ke rapat Kamis</strong></summary>
+    <p class="help">Perlu diputuskan bersama. Menjadi perkara di halaman Keputusan dan tampil di Agenda rapat Kamis.</p>
+    <form method="post">{% csrf_token %}<input type="hidden" name="aksi" value="rapat">
+      <label for="perkara">Perkara</label>
+      <input id="perkara" name="perkara" maxlength="200" required value="{{ row.title }}">
+      <label for="latar">Yang perlu diputuskan</label>
+      <textarea id="latar" name="latar" rows="2">{{ row.description }}</textarea>
+      <div class="inline"><div><label for="tenggat">Perlu diputuskan sebelum</label><input id="tenggat" type="date" name="tenggat"></div></div>
+      <p><button class="btn secondary" type="submit">Bawa ke rapat</button></p>
+    </form>
+  </details>
+
+  <details class="card">
+    <summary><strong>Tidak ditindaklanjuti</strong></summary>
+    <form method="post">{% csrf_token %}<input type="hidden" name="aksi" value="tidak">
+      <label for="alasan">Alasan</label>
+      <input id="alasan" name="alasan" maxlength="300" required placeholder="Mis. sudah beres sendiri / dobel dengan K-012">
+      <p><button class="btn secondary" type="submit">Catat</button></p>
+    </form>
+  </details>
+</div>
+{% endblock %}

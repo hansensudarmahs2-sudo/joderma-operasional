@@ -9,8 +9,9 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Count, Q
-from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
@@ -563,24 +564,89 @@ def masukan_page_detail(request, pk: int):
 
 @login_required
 def inbox(request):
-    """Laporan Masuk lintas cabang untuk Direktur Operasional dan Owner (reports/inbox.py)."""
+    """Inbox Direktur Operasional: semua yang masuk, dipilah per item (reports/inbox.py, triage.py)."""
     from core.permissions import user_clinic_queryset
 
-    from .inbox import KINDS, can_view_inbox, inbox_rows, open_counts
+    from .inbox import KINDS, STATES, can_triage, can_view_inbox, inbox_rows, open_counts
 
     if not can_view_inbox(request.user):
-        raise PermissionDenied("Laporan Masuk untuk Direktur Operasional dan Owner.")
+        raise PermissionDenied("Inbox untuk Direktur Operasional dan Owner.")
     clinics = list(user_clinic_queryset(request.user).order_by("id"))
     raw = request.GET.get("cabang", "")
     clinic = next((c for c in clinics if raw.isdigit() and c.pk == int(raw)), None)
     kind = request.GET.get("jenis", "")
     if kind not in dict(KINDS):
         kind = ""
-    only_open = request.GET.get("semua") != "1"
+    state = request.GET.get("pilah", "belum")
+    if state not in dict(STATES):
+        state = "belum"
+    if request.GET.get("semua") == "1":  # tautan lama "tampilkan yang sudah selesai"
+        state = "semua"
     q = request.GET.get("q", "")[:100]
+    kinds = KINDS if can_triage(request.user) else [k for k in KINDS if k[0] != "CATATAN"]
     return render(request, "reports/inbox.html", {
-        "rows": inbox_rows(request.user, clinic=clinic, kind=kind, only_open=only_open, q=q),
+        "rows": inbox_rows(request.user, clinic=clinic, kind=kind, state=state, q=q),
         "counts": open_counts(request.user),
-        "clinics": clinics, "clinic": clinic, "kind": kind, "kinds": KINDS,
-        "only_open": only_open, "q": q,
+        "clinics": clinics, "clinic": clinic, "kind": kind, "kinds": kinds,
+        "state": state, "states": STATES, "q": q, "can_triage": can_triage(request.user),
+    })
+
+
+@login_required
+def inbox_triage(request, sumber: str, pk: int):
+    """Halaman pilah satu item: tugaskan, teruskan, bawa ke rapat, atau tidak ditindaklanjuti."""
+    from core.models import Priority
+    from core.permissions import user_clinic_queryset
+    from direktur import services as direktur
+    from direktur.views import _clinic_from
+
+    from . import triage
+    from .inbox import can_triage, find_row
+    from .models import ForwardTo
+
+    if not can_triage(request.user):
+        raise PermissionDenied("Pilah Inbox hanya untuk Direktur Operasional.")
+    row = find_row(request.user, sumber, pk)
+    if row is None:
+        raise Http404("Item Inbox tidak ditemukan.")
+    default_clinic = row["clinic"].pk if row["clinic"] else None
+    clinic, clinics = _clinic_from(request, request.POST.get("cabang") or request.GET.get("cabang") or default_clinic)
+    if request.method == "POST":
+        aksi = request.POST.get("aksi", "")
+        try:
+            if aksi == "tugaskan":
+                if clinic is None or str(clinic.pk) != request.POST.get("cabang"):
+                    raise ValidationError("Cabang tidak valid.")
+                t = triage.assign(row, actor=request.user, clinic=clinic, title=request.POST.get("judul", ""),
+                                  target=request.POST.get("penerima", ""),
+                                  description=request.POST.get("uraian", ""),
+                                  priority=request.POST.get("prioritas") or Priority.SEDANG,
+                                  due_at=direktur.parse_due(request.POST.get("batas", "")))
+                messages.success(request, f"Dijadikan task: {t.task.title}.")
+            elif aksi == "teruskan":
+                triage.forward(row, actor=request.user, to=request.POST.get("ke", ""),
+                               note=request.POST.get("catatan", ""))
+                messages.success(request, "Dicatat sebagai diteruskan; tetap dipantau di tab Dipantau.")
+            elif aksi == "rapat":
+                t = triage.to_meeting(row, actor=request.user, title=request.POST.get("perkara", ""),
+                                      background=request.POST.get("latar", ""),
+                                      needed_by=direktur.parse_date(request.POST.get("tenggat", ""), "Tenggat"))
+                messages.success(request, f"Dibawa ke rapat Kamis: {t.decision}.")
+            elif aksi == "tidak":
+                triage.dismiss(row, actor=request.user, reason=request.POST.get("alasan", ""))
+                messages.success(request, "Dicatat: tidak ditindaklanjuti.")
+            else:
+                raise ValidationError("Aksi tidak dikenali.")
+            return redirect(f"{reverse('reports:inbox')}?pilah=belum")
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+    return render(request, "reports/inbox_triage.html", {
+        "row": row,
+        "clinic": clinic,
+        "clinics": clinics,
+        "targets": direktur.target_choices(clinic) if clinic else [],
+        "priorities": Priority.choices,
+        "forward_choices": ForwardTo.choices,
+        "default_priority": "TINGGI" if row["critical"] else "SEDANG",
+        "default_due": row.get("target_date"),
     })

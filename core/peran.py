@@ -205,7 +205,7 @@ def nav_sections(user) -> list[NavSection]:
     if who == OWNER:
         main = NavSection()
         main.add("Dashboard", "owner:dashboard")
-        main.add("Laporan Masuk", "reports:inbox")
+        main.add("Inbox", "reports:inbox")
         main.add("Daftar Task", "direktur:tasks")
         main.add("Keputusan", "direktur:decisions")
         main.add("Summary Harian", "owner:summary")
@@ -231,7 +231,7 @@ def nav_sections(user) -> list[NavSection]:
     if who == DIREKTUR:
         overview = NavSection()
         overview.add("Ringkasan", "direktur:overview")
-        overview.add("Laporan Masuk", "reports:inbox")
+        overview.add("Inbox", "reports:inbox")
         overview.add("Daftar Task", "direktur:tasks")
         overview.add("Tim", "direktur:team")
         overview.add("Kanban", "direktur:kanban")

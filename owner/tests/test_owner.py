@@ -175,10 +175,10 @@ def test_staff_cannot_open_requests(client, jemur, yohanes):
 def test_owner_dashboard_has_overview_and_requests(client, jemur, yohanes):
     client.force_login(yohanes)
     body = client.get(reverse("owner:dashboard")).content.decode()
-    for text in ("Dashboard", "Permintaan Owner", "+ Permintaan baru", "Yang belum selesai", "Per cabang",
+    for text in ("Dashboard", "Permintaan dan temuan", "+ Permintaan", "+ Catat temuan", "Yang belum selesai", "Per cabang",
                  "Keputusan menggantung", reverse("direktur:matrix"), reverse("direktur:team")):
         assert text in body
-    assert "Belum ada permintaan" in body
+    assert "Belum ada permintaan atau temuan" in body
 
 
 def test_director_sees_owner_dashboard_without_create_button(client, hansen, yohanes):

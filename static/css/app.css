@@ -508,7 +508,7 @@ a.request-row:hover { background: #f7faf9; }
 
 /* --- Laporan Masuk (Direktur, Owner) --- */
 .inbox-counts { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); margin: .6rem 0; }
-.inbox-counts a.card { display: flex; flex-direction: column; text-decoration: none; color: inherit; padding: .6rem .75rem; margin: 0; }
+.inbox-counts .card { display: flex; flex-direction: column; text-decoration: none; color: inherit; padding: .6rem .75rem; margin: 0; }
 .inbox-counts .stat { font-size: 1.6rem; font-weight: 700; color: var(--teal-dark); }
 .err-text { color: var(--err); }
 .inbox-alert { display: flex; flex-wrap: wrap; gap: .4rem .8rem; align-items: center; justify-content: space-between; }
@@ -528,3 +528,9 @@ tr.row-late td:first-child { box-shadow: inset 3px 0 0 var(--err); }
 .agenda-list { margin: .3rem 0 .4rem; padding-left: 1.2rem; }
 .agenda-list li { margin-bottom: .45rem; }
 .hold-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+
+/* Inbox pilah (Paket B) */
+.tab-row { display: flex; flex-wrap: wrap; gap: .4rem; }
+.triage-cell { display: flex; flex-direction: column; gap: .15rem; align-items: flex-start; }
+.triage-grid { display: grid; gap: .6rem; }
+.triage-grid details > summary { cursor: pointer; }

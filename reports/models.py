@@ -185,3 +185,57 @@ class MasukanPublication(models.Model):
 
     def __str__(self) -> str:
         return f"Publikasi Masukan#{self.masukan_id} · v{self.source_version}"
+
+
+class TriageAction(models.TextChoices):
+    TUGASKAN = "TUGASKAN", "Diputuskan dan ditugaskan"
+    TERUSKAN = "TERUSKAN", "Diteruskan, dipantau"
+    RAPAT = "RAPAT", "Dibawa ke rapat bersama"
+    TIDAK = "TIDAK", "Tidak ditindaklanjuti"
+
+
+class ForwardTo(models.TextChoices):
+    """Pemegang wewenang di luar bidang Direktur Operasional (matriks wewenang, Okt 2026)."""
+
+    DIRUT = "DIRUT", "Direktur Utama / Owner (strategis, SP/pemberhentian)"
+    APOTEKER = "APOTEKER", "Apoteker (apotek, stok, harga obat)"
+    KEUANGAN = "KEUANGAN", "Keuangan (di atas Rp1 juta)"
+    MEDIS = "MEDIS", "Penanggung jawab medis"
+    OMNICARE = "OMNICARE", "Omnicare"
+    LAINNYA = "LAINNYA", "Lainnya"
+
+
+class InboxTriage(models.Model):
+    """Hasil pilah satu item Inbox oleh Direktur Operasional (GTD, tahap 2 paket B).
+
+    Satu baris per item sumber; pilah ulang memperbarui baris yang sama (jejaknya di audit log).
+    Sumber: issue (komplain/masukan/kerusakan), laporan, masukan staf, permintaan_owner
+    (permintaan dan temuan Owner), catatan_direktur.
+    """
+
+    source_type = models.CharField("jenis sumber", max_length=24)
+    source_id = models.PositiveIntegerField("id sumber")
+    action = models.CharField("hasil pilah", max_length=12, choices=TriageAction.choices)
+    forwarded_to = models.CharField("diteruskan ke", max_length=12, choices=ForwardTo.choices, blank=True)
+    note = models.TextField("catatan", blank=True)
+    task = models.ForeignKey(
+        "core.ActionItem", on_delete=models.SET_NULL, null=True, blank=True, related_name="inbox_triages"
+    )
+    decision = models.ForeignKey(
+        "direktur.Decision", on_delete=models.SET_NULL, null=True, blank=True, related_name="inbox_triages"
+    )
+    triaged_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="inbox_triages"
+    )
+    triaged_at = models.DateTimeField("dipilah pada", auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "pilah inbox"
+        verbose_name_plural = "pilah inbox"
+        constraints = [
+            models.UniqueConstraint(fields=["source_type", "source_id"], name="uniq_inbox_triage_source")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.source_type}#{self.source_id} · {self.get_action_display()}"

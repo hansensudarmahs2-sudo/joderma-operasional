@@ -119,11 +119,11 @@ def test_inbox_forbidden_for_staff_and_coordinator(client, people):
 def test_menus_and_dashboards_show_inbox(client, people, citraland_reports):
     client.force_login(people["hansen"])
     body = client.get(reverse("direktur:overview")).content.decode()
-    assert 'href="/laporan/masuk/">Laporan Masuk</a>' in body and 'id="laporan-masuk"' in body
+    assert 'href="/laporan/masuk/">Inbox</a>' in body and 'id="laporan-masuk"' in body
     assert "Joderma Citraland 6" in body
     client.force_login(people["jean"])
     body = client.get(reverse("owner:dashboard")).content.decode()
-    assert "Laporan Masuk" in body and 'id="laporan-masuk"' in body
+    assert "Inbox" in body and 'id="laporan-masuk"' in body
 
 
 def test_owner_reads_details_but_cannot_change(client, people, citraland_reports):

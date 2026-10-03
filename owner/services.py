@@ -12,7 +12,7 @@ from audit.services import log_create, log_event
 from core.models import ActionItemStatus, local_today
 from core.permissions import is_aom, is_owner
 
-from .models import OwnerRequest, OwnerRequestNote
+from .models import OwnerRequest, OwnerRequestNote, RequestKind
 
 TITLE_MAX = 200
 
@@ -61,30 +61,45 @@ def _notify(users, *, actor, request: OwnerRequest, title: str, body: str = "") 
         )
 
 
-def parse_target(raw: str) -> dt.date:
+def parse_target(raw: str, *, required: bool = True) -> dt.date | None:
+    raw = (raw or "").strip()
+    if not raw and not required:
+        return None
     try:
-        return dt.date.fromisoformat((raw or "").strip())
+        return dt.date.fromisoformat(raw)
     except ValueError:
         raise ValidationError("Tanggal target wajib diisi.")
 
 
 @transaction.atomic
-def create_request(*, actor, title: str, description: str = "", target_date: dt.date) -> OwnerRequest:
+def create_request(
+    *, actor, title: str, description: str = "", target_date: dt.date | None = None,
+    kind: str = RequestKind.PERMINTAAN, clinic=None, urgent: bool = False,
+) -> OwnerRequest:
+    """Permintaan (target wajib) atau temuan (target opsional) dari Owner ke Inbox Direktur."""
     if not can_create_request(actor):
         raise PermissionDenied("Permintaan hanya dibuat oleh Owner / Direktur Utama.")
+    if kind not in dict(RequestKind.choices):
+        raise ValidationError("Jenis tidak dikenal.")
     title = (title or "").strip()
     if not title:
-        raise ValidationError("Tulis apa yang diminta.")
+        raise ValidationError("Tulis apa yang diminta." if kind == RequestKind.PERMINTAAN else "Tulis temuannya.")
     if len(title) > TITLE_MAX:
-        raise ValidationError(f"Permintaan terlalu panjang (maks. {TITLE_MAX} karakter); rinciannya tulis di kolom rincian.")
-    if target_date < local_today():
+        raise ValidationError(f"Judul terlalu panjang (maks. {TITLE_MAX} karakter); rinciannya tulis di kolom rincian.")
+    if target_date is None and kind == RequestKind.PERMINTAAN:
+        raise ValidationError("Tanggal target wajib diisi.")
+    if target_date is not None and target_date < local_today():
         raise ValidationError("Tanggal target tidak boleh sebelum hari ini.")
     req = OwnerRequest.objects.create(
-        title=title, description=(description or "").strip(), target_date=target_date, created_by=actor
+        kind=kind, title=title, description=(description or "").strip(), target_date=target_date,
+        clinic=clinic, urgent=bool(urgent), created_by=actor,
     )
     log_create(req, actor=actor, label=title)
-    _notify(_directors(), actor=actor, request=req, title=f"Permintaan Owner baru: {title}",
-            body=f"Target {target_date:%d/%m/%Y} · dari {actor}")
+    label = "Temuan Owner" if kind == RequestKind.TEMUAN else "Permintaan Owner"
+    detail = [f"target {target_date:%d/%m/%Y}" if target_date else "tanpa target",
+              clinic.name if clinic else "lintas cabang", f"dari {actor}"]
+    _notify(_directors(), actor=actor, request=req,
+            title=f"{label} baru{' (mendesak)' if urgent else ''}: {title}", body=" · ".join(detail))
     return req
 
 
@@ -116,7 +131,7 @@ def progress(req: OwnerRequest, today: dt.date | None = None) -> dict:
         state, label = "done", "Selesai"
     else:
         state, label = "running", "Berjalan"
-    late = state != "done" and req.target_date < today
+    late = state != "done" and req.target_date is not None and req.target_date < today
     return {
         "request": req,
         "tasks": tasks,
@@ -126,8 +141,8 @@ def progress(req: OwnerRequest, today: dt.date | None = None) -> dict:
         "state": state,
         "label": label,
         "late": late,
-        "days_left": (req.target_date - today).days,
-        "days_late": max(0, (today - req.target_date).days),
+        "days_left": (req.target_date - today).days if req.target_date else None,
+        "days_late": max(0, (today - req.target_date).days) if req.target_date else 0,
     }
 
 
@@ -136,12 +151,13 @@ def request_rows(user, *, include_done_days: int = 14) -> list[dict]:
     if not can_view_requests(user):
         raise PermissionDenied("Permintaan Owner hanya untuk Owner dan Direktur Operasional.")
     today = local_today()
-    rows = [progress(r, today) for r in OwnerRequest.objects.select_related("created_by")]
+    rows = [progress(r, today) for r in OwnerRequest.objects.select_related("created_by", "clinic")]
     since = today - dt.timedelta(days=include_done_days)
     rows = [r for r in rows if r["state"] != "done" or r["request"].updated_at.date() >= since
             or any(t.updated_at.date() >= since for t in r["tasks"])]
     order = {"waiting": 1, "running": 1, "done": 2}
-    rows.sort(key=lambda r: (not r["late"], order[r["state"]], r["request"].target_date))
+    far = dt.date.max
+    rows.sort(key=lambda r: (not r["late"], order[r["state"]], r["request"].target_date or far))
     return rows
 
 
