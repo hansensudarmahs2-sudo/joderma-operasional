@@ -151,5 +151,6 @@ Akun: `superadmin`. Pengguna, konfigurasi, template, ditambah:
    permintaan lewat Inbox (Paket B); baris Gantt per permintaan, lihat `current-progress.md` ▸ Fase 6.
 7. **Staf:** Tugas hari ini, Jadwal saya, Istirahat saya, Tindakan saya. *Selesai di kode 4 Oktober
    2026:* lihat `current-progress.md` ▸ Riwayat ▸ Fase 7.
-8. **PIC:** lihat dan atur tim sesuai jawaban pertanyaan no. 3.
+8. **PIC:** lihat dan atur tim sesuai jawaban pertanyaan no. 3. *Selesai di kode 4 Oktober 2026:*
+   ganti pelaksana porsi per fungsi PIC, lihat `current-progress.md` ▸ Fase 8.
 9. **Uji tampilan** per peran (desktop dan HP), dicek bersama product owner sebelum commit.

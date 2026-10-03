@@ -141,8 +141,7 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Jadwal jaga dan pembagian tugas: baca | semua pengguna dengan akses cabang | — |
 | Jadwal jaga: ubah (harian dan bulanan) | AOM, admin, superuser bootstrap; supervisor (Koordinator Shift) untuk staf yang cabang asalnya cabangnya (keputusan 3 Okt 2026) | — |
 | Pembagian tugas: susun ulang satu bulan | AOM, admin, superuser bootstrap | — |
-| Pembagian tugas: ganti pelaksana satu porsi | AOM, admin, supervisor cabang itu | — |
-| Pembagian tugas: ganti pelaksana satu porsi | AOM, admin, supervisor cabang itu | — |
+| Pembagian tugas: ganti pelaksana satu porsi | AOM, admin, supervisor (Koordinator Shift) cabang itu: semua porsi. PIC lain hanya porsi fungsinya di cabangnya (PIC Kasir: Kas; PIC Apotek: Apotek; PJ Kebersihan dan Sterilitas: Kebersihan dan Limbah; Layanan Daring: tidak ada porsi), menurut penugasan PIC yang aktif pada tanggal itu (fase 8, 4 Okt 2026) | — |
 | Mengisi butir checklist porsinya walau tidak memegang peran pelaksana (delegasi) | yang ditugaskan pada pembagian tugas hari itu | — |
 | Menggeser urutan papan giliran, menyerahkan pasien ke perawat | supervisor, AOM | — |
 | Checklist Direktur, catatan, task Direktur, mencatat/menetapkan keputusan, menutup temuan | AOM | — |

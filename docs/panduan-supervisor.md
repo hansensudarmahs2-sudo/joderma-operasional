@@ -7,6 +7,21 @@ Peran supervisor memegang hampir semua keputusan operasional: verifikasi,
 persetujuan, override, dan penutupan hari. Setiap override tercatat atas nama
 Anda beserta alasannya, dan dapat dibaca kembali oleh owner.
 
+## PIC selain Koordinator Shift
+
+PIC Kasir, PIC Apotek, dan PJ Kebersihan dan Sterilitas dapat **mengganti pelaksana porsi fungsinya**
+di cabangnya: buka **Pembagian Tugas** → pilih tanggal → **Ganti pelaksana** pada porsi yang bertanda.
+
+| Fungsi | Porsi yang boleh diganti pelaksananya |
+|---|---|
+| Koordinator Shift | Semua porsi cabangnya (juga giliran perawat, jadwal istirahat, dan jadwal jaga) |
+| PIC Kasir | Kas ("Kasir hari ini"). Bila kasir berganti mendadak, ganti di sini supaya kasir pengganti bisa membuka Kas |
+| PIC Apotek | Apotek (FEFO, cold chain, stock opname) |
+| PJ Kebersihan dan Sterilitas | Kebersihan dan Limbah |
+| Koordinator Layanan Daring | Tidak ada porsi |
+
+Porsi lain, giliran perawat, jadwal istirahat, dan jadwal jaga tetap diatur Koordinator Shift.
+
 ## Pagi
 
 **1. Pastikan sesi hari ada.** Buka **Hari Ini**. Bila belum ada, tekan **Buat

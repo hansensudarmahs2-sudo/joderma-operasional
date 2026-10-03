@@ -34,6 +34,7 @@
   </ul>
 </section>
 
+{% if can_swap and not swap_all %}<p class="meta">Anda dapat mengganti pelaksana porsi fungsi Anda (bertanda <strong>Ganti pelaksana</strong>). Porsi lain diatur Koordinator Shift.</p>{% endif %}
 {% for r in rows %}
 {% ifchanged r.portion.group %}<h2>{{ r.portion.get_group_display }}</h2>{% endifchanged %}
 <div class="card duty-card">
@@ -41,7 +42,7 @@
     <div><strong>{{ r.portion.name }}</strong><div class="meta">{{ r.portion.description }}</div></div>
     <div class="duty-people">{% for a in r.people %}<span class="chip{% if a.user_id == user.pk %} chip-on{% endif %}">{{ a.user }}{% if a.source == 'MANUAL' %} · manual{% endif %}</span>{% empty %}<span class="tag warn">Belum ada</span>{% endfor %}</div>
   </div>
-  {% if can_swap %}
+  {% if r.can_swap %}
   <details><summary>Ganti pelaksana</summary>
     <form method="post" class="inline">{% csrf_token %}
       <input type="hidden" name="cabang" value="{{ clinic.pk }}"><input type="hidden" name="porsi" value="{{ r.portion.pk }}">

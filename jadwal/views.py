@@ -227,7 +227,6 @@ def day(request, date: str):
         the_day = dt.date.fromisoformat(date)
     except ValueError:
         raise PermissionDenied("Tanggal tidak valid.")
-    can_swap = services.can_swap_duties(request.user, clinic)
     if request.method == "POST" and request.POST.get("aksi") == "jadwal":
         _save_duty(request, clinic)
         return redirect(f"{reverse('jadwal:day', args=[the_day.isoformat()])}?cabang={clinic.pk}#bertugas")
@@ -237,6 +236,8 @@ def day(request, date: str):
         if not users:
             messages.error(request, "Pilih minimal satu orang.")
         else:
+            if not services.can_swap_portion(request.user, portion, the_day):
+                raise PermissionDenied("Porsi ini di luar fungsi Anda.")
             try:
                 services.set_portion_people(portion, the_day, users, actor=request.user,
                                             note=request.POST.get("catatan", ""))
@@ -258,6 +259,7 @@ def day(request, date: str):
                 "portion": portion,
                 "people": people,
                 "chosen": {a.user_id for a in people},
+                "can_swap": services.can_swap_portion(request.user, portion, the_day),
                 "candidates": [u for u in staff if not wanted or u.role_codes() & wanted]
                 or staff,
             }
@@ -288,7 +290,8 @@ def day(request, date: str):
             "today": local_today(),
             "rows": rows,
             "staff": staff,
-            "can_swap": can_swap,
+            "can_swap": any(r["can_swap"] for r in rows),
+            "swap_all": services.can_swap_duties(request.user, clinic),
             "prev": the_day - dt.timedelta(days=1),
             "next": the_day + dt.timedelta(days=1),
             "month": f"{the_day:%Y-%m}",

@@ -79,6 +79,42 @@ def can_swap_duties(user, clinic) -> bool:
     ).exists()
 
 
+# Fase 8: PIC mengganti pelaksana hanya untuk porsi fungsinya di cabangnya (keputusan no. 3).
+# Koordinator Shift (peran SUPERVISOR) tetap untuk semua porsi cabangnya; giliran perawat, jadwal
+# istirahat, dan jadwal jaga tetap bagian Koordinator Shift.
+PIC_PORTION_GROUPS = {
+    "CASHIER": {"KAS"},
+    "PHARMACY": {"APOTEK"},
+    "CLEANLINESS": {"KEBERSIHAN", "LIMBAH"},
+}
+
+
+def pic_functions_of(user, clinic, day: dt.date | None = None) -> set[str]:
+    """Fungsi PIC yang aktif untuk pengguna di cabang itu pada tanggal itu."""
+    from core.models import local_today
+
+    day = day or local_today()
+    return set(
+        PicAssignment.objects.filter(user=user, clinic=clinic, active=True, starts_on__lte=day)
+        .filter(Q(ends_on__isnull=True) | Q(ends_on__gte=day))
+        .values_list("function", flat=True)
+    )
+
+
+def can_swap_portion(user, portion: DutyPortion, day: dt.date | None = None) -> bool:
+    """Mengganti pelaksana satu porsi: Koordinator Shift/Direktur/Admin semua porsi; PIC lain hanya
+    porsi fungsinya (kelompok porsi, atau porsi yang didahulukan untuk fungsinya) di cabangnya."""
+    from core.permissions import can_access_clinic
+
+    if can_swap_duties(user, portion.clinic):
+        return True
+    if not can_access_clinic(user, portion.clinic):
+        return False
+    functions = pic_functions_of(user, portion.clinic, day)
+    groups = set().union(*(PIC_PORTION_GROUPS.get(f, set()) for f in functions)) if functions else set()
+    return portion.group in groups or bool(portion.pic_function and portion.pic_function in functions)
+
+
 def can_view_duties(user, clinic) -> bool:
     from core.permissions import can_access_clinic
 
@@ -468,8 +504,9 @@ def plan_month(clinic, year: int, month: int, *, actor=None) -> int:
 @transaction.atomic
 def set_portion_people(portion: DutyPortion, day: dt.date, users: list[User], *, actor, note: str = ""):
     """Ganti pelaksana satu porsi pada satu tanggal (menjadi manual)."""
-    if not can_swap_duties(actor, portion.clinic):
-        raise PermissionDenied("Hanya Koordinator Shift cabang ini, Direktur Operasional, atau Admin.")
+    if not can_swap_portion(actor, portion, day):
+        raise PermissionDenied("Hanya Koordinator Shift cabang ini, PIC fungsi porsi ini, Direktur Operasional, "
+                               "atau Admin.")
     on_duty = {u.pk for u in staff_on_duty(portion.clinic, day)}
     for u in users:
         if u.pk not in on_duty:
