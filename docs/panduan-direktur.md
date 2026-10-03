@@ -230,6 +230,11 @@ saringan (tercatat sebagai ekspor di Audit). Siapkan dua hal:
 - **Perangkat klinik** di Jejak → *Perangkat & IP lazim*: IP Tailscale 100.x perangkat milik klinik
   (daftar IP Tailscale yang pernah tercatat tampil di sana). HP staf tidak perlu Tailscale.
 
+**Banner saran.** Di atas layar staf, Direktur, dan PIC tampil satu kotak saran yang tidak memaksa:
+ajakan mengganti password awal (bila akun masih memakainya), atau ajakan mengizinkan lokasi (bila
+browser belum diizinkan; tidak tampil di perangkat klinik terdaftar dan tidak untuk Owner).
+**Nanti** menyembunyikannya 7 hari. Tidak ada pekerjaan yang diblokir.
+
 **Pelapor.** Kartu task (Kanban, Prioritas), detail task, dan Daftar Task menampilkan pelapor
 asal: staf yang mengisi butir checklist, pemeriksa temuan Direktur, Owner untuk permintaan
 Owner, penulis catatan; selain itu pembuat task.

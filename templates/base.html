@@ -50,6 +50,18 @@
 <noscript><style>nav.main { transform: none; visibility: visible; position: static; width: auto; }</style></noscript>
 {% endif %}
 <main>
+  {% if banner.password %}
+  <div class="soft-banner" data-banner="sandi" role="status" hidden>
+    <span class="soft-banner-text">Akun Anda masih memakai password awal. Ganti agar tidak ada orang lain yang bisa masuk atas nama Anda.</span>
+    <span class="soft-banner-actions"><a class="btn small" href="{% url 'accounts:change_password' %}">Ganti sekarang</a><button type="button" class="btn small secondary" data-banner-later>Nanti</button></span>
+  </div>
+  {% elif banner.location %}
+  <div class="soft-banner" data-banner="lokasi" role="status" hidden>
+    <span class="soft-banner-text" data-geo-prompt>Izinkan lokasi agar checklist, kas, dan buka/tutup hari tercatat dikerjakan di klinik. Lokasi hanya diambil saat tombol ditekan. Tidak wajib.</span>
+    <span class="soft-banner-text" data-geo-denied hidden>Izin lokasi untuk situs ini sedang ditolak di browser Anda. Bila ingin mengizinkan — iPhone: Pengaturan → Safari → Lokasi; Android (Chrome): ketuk ikon di samping alamat situs → Izin → Lokasi. Tidak wajib.</span>
+    <span class="soft-banner-actions"><button type="button" class="btn small" data-geo-allow>Izinkan</button><button type="button" class="btn small secondary" data-banner-later>Nanti</button></span>
+  </div>
+  {% endif %}
   {% if messages %}
     {% for message in messages %}
       <div class="msg {{ message.tags }}">{{ message }}</div>
@@ -173,6 +185,45 @@ document.querySelectorAll('input[type=file][data-photo]').forEach(function (inpu
     img.src = url;
   });
 });
+// Banner saran (password awal / izin lokasi): tidak memaksa; "Nanti" menyembunyikan 7 hari di browser ini.
+(function () {
+  var b = document.querySelector('[data-banner]');
+  if (!b) return;
+  var key = 'banner-nanti-' + b.getAttribute('data-banner'), WEEK = 7 * 864e5;
+  try { var t = Number(localStorage.getItem(key)); if (t && Date.now() - t < WEEK) return; } catch (e) {}
+  b.querySelector('[data-banner-later]').addEventListener('click', function () {
+    try { localStorage.setItem(key, String(Date.now())); } catch (e) {}
+    b.hidden = true;
+  });
+  if (b.getAttribute('data-banner') !== 'lokasi') { b.hidden = false; return; }
+  if (!navigator.geolocation || !window.isSecureContext) return;
+  var allow = b.querySelector('[data-geo-allow]');
+  function show(state) {
+    if (state === 'granted') { b.hidden = true; return; }
+    var denied = state === 'denied';
+    b.querySelector('[data-geo-prompt]').hidden = denied;
+    b.querySelector('[data-geo-denied]').hidden = !denied;
+    allow.hidden = denied;
+    b.hidden = false;
+  }
+  allow.addEventListener('click', function () {
+    allow.disabled = true;
+    navigator.geolocation.getCurrentPosition(function (p) {
+      try { sessionStorage.setItem('jejak-geo', JSON.stringify({ status: 'OK', lat: p.coords.latitude.toFixed(5),
+        lng: p.coords.longitude.toFixed(5), acc: Math.round(p.coords.accuracy), t: Date.now() })); } catch (e) {}
+      b.hidden = true;
+    }, function (err) {
+      allow.disabled = false;
+      if (err && err.code === 1) show('denied');
+    }, { enableHighAccuracy: true, timeout: 20000 });
+  });
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({ name: 'geolocation' }).then(function (st) {
+      show(st.state);
+      st.onchange = function () { show(st.state); };
+    }, function () { show('prompt'); });
+  } else { show('prompt'); }
+})();
 // Jejak kehadiran (tahap 3 paket E): formulir bertanda data-jejak mengirim lokasi sesaat bila diizinkan.
 // Tidak ada pelacakan: lokasi hanya diminta saat formulir dikirim. Ditolak/gagal tetap terkirim.
 (function () {

@@ -39,7 +39,12 @@ cabang tugas di jadwal jaga hari ini, atau cabang asal bila Anda sedang off.
 - **Izin lokasi:** saat login, buka/tutup hari, mengisi checklist, kas, lapor progres, atau ajukan
   selesai, browser dapat menanyakan izin lokasi. Lokasi hanya diambil sesaat ketika tombol ditekan
   (tidak dilacak terus) untuk mencatat bahwa pekerjaan dilakukan di klinik. Bila ditolak, pekerjaan
-  tetap tersimpan.
+  tetap tersimpan. Selama izin belum diberikan, kotak saran di atas layar menawarkan tombol
+  **Izinkan**; bila izin pernah ditolak, kotak itu menunjukkan cara membukanya kembali (iPhone:
+  Pengaturan → Safari → Lokasi; Android Chrome: ikon di samping alamat situs → Izin → Lokasi).
+  **Nanti** menyembunyikan kotak itu selama 7 hari. Tidak wajib.
+- **Password awal**: bila akun masih memakai password awal, kotak saran di atas layar mengajak
+  menggantinya (**Ganti sekarang**). Ganti agar tidak ada orang lain yang bisa masuk atas nama Anda.
 - **Tugas saya** (paling atas di **Hari Ini**): task yang dikirim Direktur atau PIC kepada Anda,
   dari cabang mana pun, termasuk task yang dikirim ke beberapa orang atau ke satu peran. Tampil
   walau sesi hari operasional belum dibuat. Yang lewat target bertanda merah dan berada paling

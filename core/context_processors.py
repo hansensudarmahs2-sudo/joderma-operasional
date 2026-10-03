@@ -33,4 +33,41 @@ def app_context(request):
         "nav_persona": who,
         "nav_persona_label": LABELS[who],
         "nav_can_team_plan": route_allowed(user, "jadwal:plan"),
+        "banner": soft_banner(request, who),
     }
+
+
+SESSION_DEFAULT_PASSWORD = "sandi_awal"
+
+
+def soft_banner(request, who: str) -> dict:
+    """Saran lembut di atas layar (bukan paksaan; 'Nanti' menyembunyikan 7 hari di browser itu).
+
+    - password: akun masih memakai password awal. Dicek sekali per sesi (saat login dari isian
+      login; untuk sesi lama, sekali di sini) dan disimpan di sesi, bukan di database.
+    - location: ajakan mengizinkan lokasi untuk jejak kehadiran; status izin dibaca di browser.
+      Tidak untuk Owner, dan tidak di perangkat klinik terdaftar (jejaknya sudah Kuat).
+    """
+    user = request.user
+    session = getattr(request, "session", None)
+    uses_default = False
+    if session is not None:
+        if SESSION_DEFAULT_PASSWORD not in session:
+            from accounts.peran_standar import DEFAULT_PASSWORD
+
+            session[SESSION_DEFAULT_PASSWORD] = bool(user.has_usable_password()
+                                                     and user.check_password(DEFAULT_PASSWORD))
+        uses_default = bool(session.get(SESSION_DEFAULT_PASSWORD))
+    match = getattr(request, "resolver_match", None)
+    on_password_page = bool(match and match.view_name == "accounts:change_password")
+    if uses_default and not on_password_page:
+        return {"password": True, "location": False}
+    location = who != "OWNER"
+    if location:
+        from audit.middleware import client_ip
+        from jejak.models import KnownDevice
+
+        ip = client_ip(request)
+        if ip and KnownDevice.objects.filter(ip_address=ip, is_clinic_device=True).exists():
+            location = False
+    return {"password": False, "location": location}

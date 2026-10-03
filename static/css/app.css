@@ -549,3 +549,11 @@ tr.row-late td:first-child { box-shadow: inset 3px 0 0 var(--err); }
   a { color: inherit; text-decoration: none; }
   .meeting-section { break-inside: avoid-page; }
 }
+
+/* Banner saran lembut (password awal, izin lokasi) */
+.soft-banner { display: flex; flex-wrap: wrap; gap: .5rem .8rem; align-items: center; justify-content: space-between;
+  background: var(--info-bg); color: var(--teal-dark); border: 1px solid #bcd7e2; border-radius: 8px;
+  padding: .6rem .8rem; margin-bottom: .8rem; font-size: .93rem; }
+.soft-banner[hidden] { display: none; }
+.soft-banner-text { flex: 1 1 18rem; }
+.soft-banner-actions { display: flex; gap: .4rem; flex-wrap: wrap; }

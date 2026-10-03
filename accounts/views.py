@@ -68,6 +68,10 @@ def login_view(request):
             )
         else:
             login(request, user)
+            from accounts.peran_standar import DEFAULT_PASSWORD
+            from core.context_processors import SESSION_DEFAULT_PASSWORD
+
+            request.session[SESSION_DEFAULT_PASSWORD] = password == DEFAULT_PASSWORD
             log_event(
                 action=AuditAction.LOGIN_SUCCESS,
                 entity_type="user",
@@ -115,6 +119,9 @@ def change_password(request):
         request.user.must_change_password = False
         request.user.save()
         update_session_auth_hash(request, request.user)
+        from core.context_processors import SESSION_DEFAULT_PASSWORD
+
+        request.session[SESSION_DEFAULT_PASSWORD] = False
         log_event(
             action=AuditAction.PASSWORD_CHANGED,
             entity_type="user",
