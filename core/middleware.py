@@ -24,3 +24,27 @@ class PersonaAccessMiddleware:
         if not route_allowed(user, route):
             raise PermissionDenied("Halaman ini bukan bagian dari tampilan peran Anda.")
         return None
+
+
+class ActiveClinicMiddleware:
+    """Pilihan cabang dari pengalih di kanan atas berlaku untuk hari ini saja.
+
+    Disimpan di sesi sebagai ``{"id": <pk>, "date": "YYYY-MM-DD"}`` dan dipasang ke
+    ``request.user._clinic_override``, yang dibaca `core.services.active_clinic`.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = getattr(request, "user", None)
+        if user is not None and user.is_authenticated:
+            from .models import local_today
+            from .services import CLINIC_SESSION_KEY
+
+            choice = request.session.get(CLINIC_SESSION_KEY) or {}
+            if choice.get("date") == local_today().isoformat():
+                user._clinic_override = choice.get("id")
+            elif choice:
+                request.session.pop(CLINIC_SESSION_KEY, None)
+        return self.get_response(request)

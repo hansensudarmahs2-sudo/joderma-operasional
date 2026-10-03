@@ -51,8 +51,24 @@ antrian tidak masuk checklist ini karena pencatatannya sudah dipegang Finance.
 3. Mengubah hasil yang sudah tercatat wajib diberi alasan dan dicatat di audit sebagai
    koreksi. Isi butir disimpan sebagai snapshot pada saat dicek, jadi menyunting teks butir
    kemudian tidak mengubah riwayat.
-4. Temuan ditutup dari halaman Tim dengan **Tandai selesai** beserta catatan penutupan, atau
+4. **Foto temuan** (opsional) dapat dilampirkan saat mencatat; foto ikut terlihat oleh penerima
+   task temuan di Hari Ini mereka dan di detail task.
+5. Temuan ditutup dari halaman Tim dengan **Tandai selesai** beserta catatan penutupan, atau
    lewat alur konfirmasi task biasa bila penerimanya mengajukan selesai.
+
+## Kas dan tally cabang
+
+- **Verifikasi kas.** Koordinator Shift boleh menutup hari begitu kas akhir diajukan. Sesi yang
+  menunggu verifikasi dari kedua cabang tampil di **Kas ▸ Menunggu verifikasi** dan di Hari Ini.
+  Verifikasi boleh dilakukan sesudah hari ditutup; sejak itu selisih menjadi tanggung jawab Anda
+  sebagai verifikator. Dual-control tetap berlaku: penghitung tidak memverifikasi hitungannya sendiri.
+- **Koreksi tally.** Seperti Koordinator Shift, Anda dapat mengoreksi tally di kedua cabang lewat
+  **Giliran Perawat ▸ Koreksi tally per tanggal** (alasan wajib, tercatat di audit).
+- **Cabang aktif.** Pilih cabang di kanan atas; pilihan berlaku untuk hari ini.
+- **Penugasan staf.** Harian: Pembagian Tugas ▸ klik tanggal ▸ **Siapa bertugas hari ini**,
+  ubah status atau kirim perbantuan ke cabang lain. Bulanan: ketuk kotak di **Jadwal Jaga**.
+  Porsi tugas dan giliran perawat hari itu menyesuaikan otomatis. Koordinator Shift dapat
+  melakukan hal yang sama untuk staf cabangnya.
 
 ## Summary harian ke Owner
 

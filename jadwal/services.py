@@ -34,6 +34,34 @@ def can_edit_roster(user) -> bool:
     return is_aom(user) or is_admin(user) or is_bootstrap_superuser(user)
 
 
+def can_edit_duty(user, home_clinic) -> bool:
+    """Mengubah jadwal jaga satu orang (masuk, off, cuti, perbantuan).
+
+    Direktur Operasional dan Admin: semua orang. Koordinator Shift: orang yang cabang asalnya
+    cabang koordinasinya, termasuk mengirimnya perbantuan ke cabang lain (keputusan 3 Okt 2026).
+    """
+    from accounts.models import Role
+    from core.permissions import can_access_clinic
+
+    if can_edit_roster(user):
+        return True
+    return bool(home_clinic) and can_access_clinic(user, home_clinic) and user.user_roles.filter(
+        clinic=home_clinic, role=Role.SUPERVISOR
+    ).exists()
+
+
+def home_clinic_for(user, day: dt.date, default=None):
+    """Cabang asal seseorang pada tanggal itu: baris jadwal hari itu, baris terdekat sebelumnya,
+    baris terdekat sesudahnya, atau `default`."""
+    rows = DutyRoster.objects.filter(user=user).select_related("home_clinic")
+    row = (
+        rows.filter(date=day).first()
+        or rows.filter(date__lt=day).order_by("-date").first()
+        or rows.filter(date__gt=day).order_by("date").first()
+    )
+    return row.home_clinic if row else default
+
+
 def can_plan_duties(user) -> bool:
     """Menyusun ulang pembagian tugas satu bulan."""
     return can_edit_roster(user)
@@ -137,7 +165,7 @@ def roster_grid(clinic, year: int, month: int) -> dict:
         entry["cells"][r.date] = {"code": code, "label": label}
     ordered = sorted(people.values(), key=lambda e: (not e["home"], str(e["user"]).lower()))
     for e in ordered:
-        e["row"] = [e["cells"].get(d, {"code": "", "label": "Belum diisi"}) for d in days]
+        e["row"] = [{**e["cells"].get(d, {"code": "", "label": "Belum diisi"}), "date": d} for d in days]
         e["working"] = sum(1 for c in e["row"] if c["code"] in ("M", "B"))
     totals = [sum(1 for e in ordered if e["row"][i]["code"] in ("M", "B")) for i in range(len(days))]
     return {"days": days, "people": ordered, "totals": totals}
@@ -145,8 +173,17 @@ def roster_grid(clinic, year: int, month: int) -> dict:
 
 @transaction.atomic
 def set_duty(*, user, day: dt.date, status: str, home_clinic, clinic=None, actor, note: str = "") -> DutyRoster:
-    if not can_edit_roster(actor):
-        raise PermissionDenied("Jadwal jaga hanya diubah Direktur Operasional atau Admin.")
+    """Ubah jadwal satu orang pada satu tanggal.
+
+    Untuk hari ini dan sesudahnya, porsi tugas dan roster giliran perawat ikut menyesuaikan:
+    porsi orang yang tidak lagi bertugas di sebuah cabang dilepas lalu diisi orang lain yang
+    bertugas (porsi yang sudah dipegang orang lain tidak diacak ulang). Hasilnya ada di
+    ``row.sync`` untuk pesan ke pengguna.
+    """
+    if not can_edit_duty(actor, home_clinic):
+        raise PermissionDenied(
+            "Jadwal jaga diubah Direktur Operasional, Admin, atau Koordinator Shift cabang asal orang itu."
+        )
     if status not in DutyStatus.values:
         raise ValidationError("Status jadwal tidak dikenali.")
     if status == DutyStatus.MASUK:
@@ -174,8 +211,44 @@ def set_duty(*, user, day: dt.date, status: str, home_clinic, clinic=None, actor
         actor=actor,
         before=before,
         after={"status": row.status, "clinic": row.clinic_id, "home_clinic": row.home_clinic_id},
+        reason=row.note,
     )
+    row.sync = _after_duty_change(row, before["clinic"] if before else None, actor=actor)
     return row
+
+
+def _after_duty_change(row: DutyRoster, before_clinic_id, *, actor) -> dict:
+    """Porsi tugas dan roster giliran perawat mengikuti perubahan jadwal (hari ini ke depan)."""
+    from core.models import Clinic, OperationalDay, local_today
+
+    out = {"released": [], "filled": []}
+    if row.date < local_today():
+        return out
+    now_at = row.clinic_id if row.status in WORKING_STATUSES else None
+    affected = [c for c in {before_clinic_id, now_at} if c]
+    for clinic in Clinic.objects.filter(pk__in=affected):
+        if clinic.pk != now_at:
+            mine = DutyAssignment.objects.filter(user=row.user, date=row.date, clinic=clinic).select_related("portion")
+            out["released"] += [a.portion.name for a in mine]
+            mine.delete()
+        if DutyPortion.objects.filter(clinic=clinic, active=True).exists():
+            created = _plan_day(clinic, row.date, _month_tally(clinic, row.date), actor=actor, fill_only=True)
+            out["filled"] += [f"{a.portion.name}: {a.user}" for a in created]
+        day = OperationalDay.objects.filter(clinic=clinic, date=row.date).first()
+        if day is not None:
+            from nurses.services import sync_roster_with_duty
+
+            sync_roster_with_duty(day, actor=actor)
+    if out["released"] or out["filled"]:
+        log_event(
+            action=AuditAction.UPDATE,
+            entity_type="dutyassignment",
+            entity_id=f"roster:{row.pk}",
+            entity_label=f"Porsi menyesuaikan jadwal {row.user} {row.date:%d/%m}",
+            actor=actor,
+            after=out,
+        )
+    return out
 
 
 @transaction.atomic
@@ -292,15 +365,16 @@ def _month_tally(clinic, day: dt.date) -> _Tally:
     return tally
 
 
-def _plan_day(clinic, day: dt.date, tally: _Tally, *, actor=None) -> list[DutyAssignment]:
+def _plan_day(clinic, day: dt.date, tally: _Tally, *, actor=None, fill_only: bool = False) -> list[DutyAssignment]:
+    """Susun porsi satu hari. ``fill_only``: pertahankan semua porsi yang sudah terisi dan hanya
+    isi yang kosong (dipakai sesudah jadwal jaga satu orang berubah)."""
     staff = staff_on_duty(clinic, day)
     roles = {u.pk: u.role_codes() for u in staff}
-    DutyAssignment.objects.filter(clinic=clinic, date=day, source=AssignmentSource.OTOMATIS).delete()
-    manual = list(
-        DutyAssignment.objects.filter(clinic=clinic, date=day, source=AssignmentSource.MANUAL).select_related(
-            "portion"
-        )
-    )
+    kept = DutyAssignment.objects.filter(clinic=clinic, date=day)
+    if not fill_only:
+        kept.filter(source=AssignmentSource.OTOMATIS).delete()
+        kept = kept.filter(source=AssignmentSource.MANUAL)
+    manual = list(kept.select_related("portion"))
     today = Counter()
     for a in manual:
         today[a.user_id] += 1

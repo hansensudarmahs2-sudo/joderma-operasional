@@ -67,6 +67,7 @@ MIDDLEWARE = [
     "audit.middleware.RequestContextMiddleware",
     "accounts.middleware.SessionTimeoutMiddleware",
     "core.middleware.PersonaAccessMiddleware",
+    "core.middleware.ActiveClinicMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load foto %}
 {% block title %}Action item{% endblock %}
 {% block content %}
 <h1>Action item</h1>
@@ -15,7 +16,7 @@
   {% for row in rows %}
     {% with item=row.item %}
     <tr>
-      <td data-label="Judul"><strong>{{ item.title }}</strong><div class="meta">{{ item.source_label|default:item.source_type }}</div></td>
+      <td data-label="Judul"><strong>{{ item.title }}</strong><div class="meta">{{ item.source_label|default:item.source_type }}</div>{% foto_thumbs task_photos|ambil:item.pk %}</td>
       <td data-label="Owner">{{ item.owner|default:"—" }}</td>
       <td data-label="Prioritas">{{ item.get_priority_display }}</td>
       <td data-label="Target">{{ item.due_at|default:"—" }}{% if item.is_overdue %} <span class="tag err">Lewat</span>{% endif %}</td>
@@ -37,9 +38,10 @@
         {% endif %}
 
         {% if row.can_submit %}
-        <form method="post" action="{% url 'core:assignment_submit' row.my_assignment.pk %}" style="margin-top:.3rem">
+        <form method="post" action="{% url 'core:assignment_submit' row.my_assignment.pk %}" style="margin-top:.3rem" enctype="multipart/form-data">
           {% csrf_token %}
           <input name="catatan" placeholder="Catatan (opsional)">
+          <input type="file" name="foto" accept="image/*" data-photo="1" aria-label="Foto bukti (opsional)">
           <button class="btn small" type="submit">Ajukan selesai</button>
         </form>
         {% endif %}

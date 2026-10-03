@@ -4,6 +4,7 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -13,6 +14,7 @@ from core.permissions import (
     can_review_checklist,
     require,
 )
+from core.photos import photos_for, save_optional_photo
 from core.services import active_clinic, get_or_create_day
 
 from .models import ChecklistResponse, ChecklistRun, ChecklistTemplate, PROBLEM_RESULTS, ResponseResult
@@ -147,6 +149,10 @@ def run_detail(request, run_id: int):
             "category_groups": category_groups,
             "progress": run_progress(run),
             "results": ResponseResult.choices,
+            "problem_results": [(v, l) for v, l in ResponseResult.choices
+                                if v in (ResponseResult.TIDAK_LENGKAP, ResponseResult.RUSAK,
+                                         ResponseResult.TIDAK_BERLAKU)],
+            "photos": photos_for("checklistresponse", [r.pk for r in responses]),
             "only_problems": only_problems,
             "only_mine": only_mine,
         },
@@ -158,22 +164,41 @@ def run_detail(request, run_id: int):
 def save_response(request, pk: int):
     response = _accessible_response(request, pk)
     try:
-        record_response(
-            response,
-            user=request.user,
-            result=request.POST.get("hasil", ""),
-            quantity=request.POST.get("jumlah") or None,
-            selection=request.POST.get("pilihan", ""),
-            note=request.POST.get("catatan", ""),
-            expected_version=int(request.POST.get("versi") or response.version),
-            reason=request.POST.get("alasan", ""),
-        )
+        with transaction.atomic():
+            _record_with_photo(request, response)
         messages.success(request, f"{response.label} disimpan.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
     except ValueError:
         messages.error(request, "Jumlah harus berupa angka.")
     return redirect("checklists:run", run_id=response.run_id)
+
+
+def _record_with_photo(request, response):
+    """Simpan hasil butir; foto (opsional) ikut tersimpan hanya bila hasilnya sah."""
+    record_response(
+        response,
+        user=request.user,
+        result=request.POST.get("hasil", ""),
+        quantity=request.POST.get("jumlah") or None,
+        selection=request.POST.get("pilihan", ""),
+        note=request.POST.get("catatan", ""),
+        expected_version=int(request.POST.get("versi") or response.version),
+        reason=request.POST.get("alasan", ""),
+    )
+    save_optional_photo(request, entity_type="checklistresponse", entity_id=response.pk)
+
+
+def _copy_photos(response, issue):
+    """Foto butir checklist ikut tampil di laporan kerusakan (berkas yang sama, tidak disalin ulang)."""
+    from core.models import Attachment
+
+    for a in Attachment.objects.filter(entity_type="checklistresponse", entity_id=response.pk):
+        Attachment.objects.get_or_create(
+            entity_type="issue", entity_id=issue.pk, file=a.file.name,
+            defaults={"original_name": a.original_name, "mime_type": a.mime_type, "size_bytes": a.size_bytes,
+                      "sensitive": a.sensitive, "uploaded_by": a.uploaded_by},
+        )
 
 
 @login_required
@@ -184,6 +209,7 @@ def make_damage(request, pk: int):
         issue = create_damage_from_response(
             response, request.user, urgency=request.POST.get("urgensi") or None
         )
+        _copy_photos(response, issue)
         messages.success(request, f"Laporan kerusakan {issue.number} dibuat.")
         return redirect("issues:detail", pk=issue.pk)
     except ValidationError as exc:

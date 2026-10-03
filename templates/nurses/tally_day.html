@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Koreksi tally{% endblock %}
+{% block content %}
+<p><a href="{% url 'nurses:board' %}">← Giliran Perawat</a></p>
+<h1>Koreksi tally per tanggal</h1>
+<p class="sub">Untuk Koordinator Shift cabang dan Direktur Operasional. Setiap koreksi wajib beralasan dan tercatat di audit; total bulanan ikut terkoreksi.</p>
+<form method="get" class="inline card">
+  {% if clinics|length > 1 %}
+  <div><label for="cabang">Cabang</label>
+    <select id="cabang" name="cabang">{% for c in clinics %}<option value="{{ c.pk }}"{% if c.pk == clinic.pk %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+  {% else %}<input type="hidden" name="cabang" value="{{ clinic.pk }}">{% endif %}
+  <div><label for="tanggal">Tanggal</label><input id="tanggal" type="date" name="tanggal" value="{{ date|date:'Y-m-d' }}"></div>
+  <button class="btn" type="submit">Tampilkan</button>
+</form>
+<h2>{{ clinic.name }} · {{ date|date:"l, d/m/Y" }}</h2>
+<table class="responsive"><thead><tr><th>RM</th><th>Nama pasien</th><th>Tindakan</th><th>Jumlah</th><th>Perawat</th><th>Dicatat oleh</th><th></th></tr></thead>
+<tbody>{% for t in tallies %}<tr>
+  <td data-label="RM">{{ t.rm_number }}</td><td data-label="Nama pasien">{{ t.patient_name }}</td><td data-label="Tindakan">{{ t.action_name }}</td>
+  <td data-label="Jumlah">{{ t.tally }}{% if t.corrected_at %}<div class="meta">dikoreksi {{ t.corrected_by }} {{ t.corrected_at|date:"d/m H.i" }}: {{ t.correction_reason }}</div>{% endif %}</td>
+  <td data-label="Perawat">{{ t.nurse }}</td><td data-label="Dicatat oleh">{{ t.entered_by }} <span class="meta">{{ t.created_at|date:"H.i" }}</span></td>
+  <td><a class="btn small secondary" href="{% url 'nurses:tally_correct' t.pk %}">Koreksi</a></td>
+</tr>{% empty %}<tr><td colspan="7" class="meta">{% if has_day %}Belum ada tally pada tanggal ini.{% else %}Tidak ada sesi hari operasional pada tanggal ini.{% endif %}</td></tr>{% endfor %}</tbody></table>
+{% endblock %}

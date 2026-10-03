@@ -55,6 +55,7 @@
 </div>
 
 <h2>Catatan tally hari ini</h2>
-<table class="responsive"><thead><tr><th>RM</th><th>Nama pasien</th><th>Tindakan</th><th>Jumlah</th><th>Perawat</th><th>Dicatat oleh</th></tr></thead>
-<tbody>{% for t in tallies %}<tr><td data-label="RM">{{ t.rm_number }}</td><td data-label="Nama pasien">{{ t.patient_name }}</td><td data-label="Tindakan">{{ t.action_name }}</td><td data-label="Jumlah">{{ t.tally }}</td><td data-label="Perawat">{{ t.nurse }}</td><td data-label="Dicatat oleh">{{ t.entered_by }}</td></tr>{% empty %}<tr><td colspan="6" class="meta">Belum ada tally.</td></tr>{% endfor %}</tbody></table>
+{% if can_correct %}<p class="meta">Salah input? Tekan <strong>Koreksi</strong> pada barisnya. Tally tanggal lain: <a href="{% url 'nurses:tally_day' %}">Koreksi tally per tanggal</a>.</p>{% endif %}
+<table class="responsive"><thead><tr><th>RM</th><th>Nama pasien</th><th>Tindakan</th><th>Jumlah</th><th>Perawat</th><th>Dicatat oleh</th>{% if can_correct %}<th></th>{% endif %}</tr></thead>
+<tbody>{% for t in tallies %}<tr><td data-label="RM">{{ t.rm_number }}</td><td data-label="Nama pasien">{{ t.patient_name }}</td><td data-label="Tindakan">{{ t.action_name }}</td><td data-label="Jumlah">{{ t.tally }}{% if t.corrected_at %} <span class="tag warn" title="{{ t.correction_reason }}">dikoreksi</span>{% endif %}</td><td data-label="Perawat">{{ t.nurse }}</td><td data-label="Dicatat oleh">{{ t.entered_by }}</td>{% if can_correct %}<td><a class="btn small secondary" href="{% url 'nurses:tally_correct' t.pk %}">Koreksi</a></td>{% endif %}</tr>{% empty %}<tr><td colspan="7" class="meta">Belum ada tally.</td></tr>{% endfor %}</tbody></table>
 {% endblock %}

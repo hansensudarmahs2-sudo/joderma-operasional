@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -18,6 +18,7 @@ from core.services import active_clinic, get_or_create_day
 
 from .models import CashSession, CashSessionType, CashStatus, VerificationResult
 from .services import (
+    pending_verification,
     cash_summary,
     correct_after_verification,
     denominations_for,
@@ -37,6 +38,16 @@ def _quantities_from_post(post, denominations) -> dict[int, int]:
     return result
 
 
+def _session(request, pk: int) -> CashSession:
+    """Sesi kas hanya untuk pengguna yang punya akses ke cabangnya."""
+    from core.permissions import can_access_clinic
+
+    session = get_object_or_404(CashSession.objects.select_related("operational_day__clinic"), pk=pk)
+    if not can_access_clinic(request.user, session.operational_day.clinic):
+        raise PermissionDenied("Sesi kas ini milik cabang lain.")
+    return session
+
+
 @login_required
 @require(can_view_cash_amounts)
 def index(request):
@@ -49,6 +60,7 @@ def index(request):
             "day": day,
             "summary": cash_summary(day),
             "can_edit": can_edit_cash(request.user),
+            "pending": pending_verification(request.user),
             "dual_control": dual_control_enabled(clinic),
         },
     )
@@ -80,7 +92,7 @@ def form(request, session_type: str):
 @require(can_view_cash_amounts, can_edit_cash)
 @require_POST
 def save(request, pk: int):
-    session = get_object_or_404(CashSession, pk=pk)
+    session = _session(request, pk)
     clinic = session.operational_day.clinic
     try:
         save_count(
@@ -105,7 +117,7 @@ def save(request, pk: int):
 @require(can_view_cash_amounts, can_edit_cash)
 @require_POST
 def submit(request, pk: int):
-    session = get_object_or_404(CashSession, pk=pk)
+    session = _session(request, pk)
     try:
         submit_for_verification(session, request.user)
         messages.success(request, "Kas diajukan untuk verifikasi.")
@@ -117,7 +129,7 @@ def submit(request, pk: int):
 @login_required
 @require(can_view_cash_amounts)
 def review(request, pk: int):
-    session = get_object_or_404(CashSession, pk=pk)
+    session = _session(request, pk)
     rows = [
         {"denomination": d.denomination, "quantity": d.quantity, "subtotal": d.subtotal}
         for d in session.denominations.all()
@@ -140,7 +152,7 @@ def review(request, pk: int):
 @require(can_verify_cash)
 @require_POST
 def verify_action(request, pk: int):
-    session = get_object_or_404(CashSession, pk=pk)
+    session = _session(request, pk)
     try:
         recounted = request.POST.get("hitung_ulang")
         verify(
@@ -162,7 +174,7 @@ def verify_action(request, pk: int):
 @require(can_correct_cash)
 @require_POST
 def correct(request, pk: int):
-    session = get_object_or_404(CashSession, pk=pk)
+    session = _session(request, pk)
     clinic = session.operational_day.clinic
     try:
         correct_after_verification(

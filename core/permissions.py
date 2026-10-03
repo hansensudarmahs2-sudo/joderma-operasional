@@ -110,10 +110,14 @@ def is_nurse(user) -> bool:
 # --- Kapabilitas turunan -------------------------------------------------
 
 def can_view_cash_amounts(user) -> bool:
-    """Nominal kas: kasir/front desk, supervisor, owner berizin. Admin TIDAK otomatis."""
+    """Nominal kas: kasir/front desk, supervisor, Direktur Operasional (verifikator), owner berizin.
+
+    Admin TIDAK otomatis.
+    """
     return (
         is_front_desk(user)
         or is_supervisor(user)
+        or is_aom(user)
         or Capability.CASH_VIEW_AMOUNTS in caps(user)
         or has_admin_full_access(user)
     )
@@ -133,14 +137,16 @@ def can_verify_cash(user) -> bool:
     return (
         is_supervisor(user)
         or is_front_desk(user)
+        or is_aom(user)
         or Capability.CASH_APPROVE in caps(user)
         or has_admin_full_access(user)
     )
 
 
 def can_correct_cash(user) -> bool:
-    """Koreksi setelah verifikasi tetap hanya supervisor (PRD 20.3)."""
-    return is_supervisor(user) or Capability.CASH_APPROVE in caps(user) or has_admin_full_access(user)
+    """Koreksi setelah verifikasi: supervisor dan Direktur Operasional (PRD 20.3)."""
+    return (is_supervisor(user) or is_aom(user) or Capability.CASH_APPROVE in caps(user)
+            or has_admin_full_access(user))
 
 
 def can_view_patient_detail(user) -> bool:
@@ -251,7 +257,8 @@ def can_edit_checklist_response(user, response) -> bool:
 
 
 def can_close_day(user) -> bool:
-    return is_supervisor(user)
+    """Koordinator Shift (supervisor) dan Direktur Operasional."""
+    return is_supervisor(user) or is_aom(user)
 
 
 def can_assign_issue(user) -> bool:

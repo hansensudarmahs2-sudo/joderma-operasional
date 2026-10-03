@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load foto %}
 {% block title %}Checklist Direktur{% endblock %}
 {% block content %}
 <h1>Checklist Direktur</h1>
@@ -53,7 +54,8 @@
 
   {% if check %}
     <p class="meta">Dicek {{ check.updated_at|date:"d/m H:i" }} oleh {{ check.checked_by|default:"—" }}{% if check.direct %} · dicek langsung{% endif %}{% if check.note %} · {{ check.note }}{% endif %}
-    {% if check.finding %}· task temuan: {{ check.finding.title }} ({{ check.finding.get_status_display }}){% endif %}</p>
+    {% if check.finding %}· task temuan: <a href="{% url 'direktur:task_detail' check.finding.pk %}">{{ check.finding.title }}</a> ({{ check.finding.get_status_display }}){% endif %}</p>
+    {% foto_thumbs photos|ambil:check.pk %}
   {% endif %}
 
   <details>
@@ -65,7 +67,7 @@
   </details>
 
   {% if check %}<details><summary>Ubah hasil</summary>{% endif %}
-  <form method="post" action="{% url 'direktur:record' item.pk %}">
+  <form method="post" action="{% url 'direktur:record' item.pk %}" enctype="multipart/form-data">
     {% csrf_token %}
     <input type="hidden" name="cabang" value="{{ clinic.pk }}">
     <div class="inline">
@@ -81,6 +83,7 @@
       <label for="alasan-{{ item.pk }}">Alasan koreksi (wajib bila hasil diubah)</label>
       <input id="alasan-{{ item.pk }}" name="alasan">
     {% endif %}
+    {% foto_input "Foto temuan (opsional)" "foto" "Foto ikut terlihat oleh penerima task temuan." %}
     {% if not check.finding %}
     <details>
       <summary>Tindak lanjut bila ada temuan</summary>

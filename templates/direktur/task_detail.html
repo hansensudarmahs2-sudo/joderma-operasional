@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load foto %}
 {% block title %}{{ item.title }}{% endblock %}
 {% block content %}
 <p><a href="{% url back.0 %}">← {{ back.1 }}</a></p>
@@ -11,6 +12,7 @@
 </p>
 
 {% if item.description %}<div class="card" style="white-space:pre-wrap">{{ item.description }}</div>{% endif %}
+{% if source_photos %}<p class="meta" style="margin-bottom:0">Foto dari sumber temuan:</p>{% foto_thumbs source_photos %}{% endif %}
 {% if item.progress_note %}<p class="meta" style="white-space:pre-wrap">Catatan progres: {{ item.progress_note }}</p>{% endif %}
 
 <h2>Penerima</h2>
@@ -21,7 +23,8 @@
   <tr>
     <td data-label="Nama"><strong>{{ r.a.assignee }}</strong>{% if r.a.claimed_by and r.a.claimed_by_id != r.a.assignee_id %}<div class="meta">diambil {{ r.a.claimed_by }}</div>{% endif %}</td>
     <td data-label="Status"><span class="tag {% if r.a.status == 'CONFIRMED' %}ok{% elif r.a.status == 'SUBMITTED' %}info{% elif r.a.status == 'REVISION_REQUIRED' %}warn{% elif r.a.status == 'CANCELLED' %}muted{% endif %}">{{ r.a.get_status_display }}</span>
-      {% if r.a.status == 'REVISION_REQUIRED' and r.a.revision_note %}<div class="meta">Revisi: {{ r.a.revision_note }}</div>{% endif %}</td>
+      {% if r.a.status == 'REVISION_REQUIRED' and r.a.revision_note %}<div class="meta">Revisi: {{ r.a.revision_note }}</div>{% endif %}
+      {% foto_thumbs evidence_photos|ambil:r.a.pk %}</td>
     <td data-label="Waktu" class="meta">{% if r.a.confirmed_at %}dikonfirmasi {{ r.a.confirmed_at|date:"d/m H:i" }}{% if r.a.reviewer %} oleh {{ r.a.reviewer }}{% endif %}{% elif r.a.submitted_at %}diajukan {{ r.a.submitted_at|date:"d/m H:i" }}{% else %}dikirim {{ r.a.created_at|date:"d/m H:i" }}{% endif %}</td>
     <td data-label="Tindakan" class="stack"><div class="task-actions">
       {% if r.can_review %}

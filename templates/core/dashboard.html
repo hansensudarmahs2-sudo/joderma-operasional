@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load foto %}
 {% block title %}Hari Ini{% endblock %}
 {% block content %}
 <h1>Hari Ini</h1>
@@ -17,6 +18,19 @@
         <span class="meta">{% if t.item.created_by %}dari {{ t.item.created_by }} · {% endif %}{{ t.item.clinic.name }}{% if t.item.due_at %} · target {{ t.item.due_at|date:"d/m H.i" }}{% endif %}</span>
         {% if t.item.description %}<span class="meta">{{ t.item.description|truncatechars:160 }}</span>{% endif %}
         {% if t.revision and t.assignment.revision_note %}<span class="meta">Catatan revisi: {{ t.assignment.revision_note }}</span>{% endif %}
+        {% foto_thumbs task_photos|ambil:t.item.pk %}
+        {% if t.can_submit %}
+        <details class="task-submit">
+          <summary class="btn small">Ajukan selesai</summary>
+          <form method="post" action="{% url 'core:assignment_submit' t.assignment.pk %}" enctype="multipart/form-data" class="stack-form">
+            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <label for="catatan-task-{{ t.assignment.pk }}">Catatan (opsional)</label>
+            <input id="catatan-task-{{ t.assignment.pk }}" name="catatan" placeholder="Mis. limbah sudah ditimbang 2,4 kg">
+            {% foto_input "Foto bukti (opsional)" "foto" %}
+            <button class="btn small" type="submit">Kirim</button>
+          </form>
+        </details>
+        {% endif %}
       </span>
       <span class="request-state">
         {% if t.overdue %}<span class="tag err">Lewat target</span>{% elif t.due_today %}<span class="tag warn">Target hari ini</span>{% endif %}
@@ -26,11 +40,6 @@
         <form method="post" action="{% url 'core:assignment_claim' t.assignment.pk %}" class="inline-form">
           {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
           <button class="btn small secondary" type="submit">Ambil task</button>
-        </form>
-        {% elif t.can_submit %}
-        <form method="post" action="{% url 'core:assignment_submit' t.assignment.pk %}" class="inline-form">
-          {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
-          <button class="btn small" type="submit">Ajukan selesai</button>
         </form>
         {% endif %}
       </span>
@@ -60,6 +69,13 @@
         <div class="meta">Diajukan oleh {{ a.assignee }} · {{ a.submitted_at|date:"d/m H:i" }}</div></li>
     {% empty %}<li class="meta">Tidak ada task menunggu konfirmasi Direktur Operasional.</li>{% endfor %}
   </ul>
+  {% if aom_pending_cash %}
+  <p class="meta" style="margin-top:.6rem"><strong>Kas menunggu verifikasi Anda</strong></p>
+  <ul class="timeline">
+    {% for c in aom_pending_cash %}<li><a href="{% url 'cash:review' c.pk %}">{{ c.get_session_type_display }} · {{ c.operational_day.clinic.name }} · {{ c.operational_day.date|date:"d/m" }}</a>
+      <div class="meta">dihitung {{ c.counted_by|default:"—" }}{% if c.variance %} · selisih Rp {{ c.variance }}{% endif %}</div></li>{% endfor %}
+  </ul>
+  {% endif %}
   <p>
     <a class="btn small" href="{% url 'direktur:team' %}">Team Viewer</a>
     <a class="btn small secondary" href="{% url 'direktur:checklist' %}">Checklist Direktur</a>
@@ -164,15 +180,18 @@
       {% csrf_token %}
       <label for="aksi">Aksi</label>
       <select id="aksi" name="aksi">
+        {% if day.status == 'CLOSED' %}
+          {% if can_close %}<option value="reopen">Buka kembali (perlu alasan)</option>{% endif %}
+        {% else %}
         <option value="ready">Tandai siap</option>
         {% if is_supervisor %}<option value="ready_issues">Siap dengan catatan (perlu alasan)</option>{% endif %}
         <option value="open">Buka klinik</option>
         {% if can_close %}
-          <option value="closing">Mulai penutupan</option>
           <option value="close">Tutup hari</option>
-          <option value="reopen">Buka kembali (perlu alasan)</option>
+        {% endif %}
         {% endif %}
       </select>
+      {% if can_close and day.status != 'CLOSED' %}<p class="help">Tutup hari bisa langsung dari status mana pun. Syaratnya kas akhir sudah dihitung dan diajukan; verifikasi Direktur boleh menyusul.</p>{% endif %}
       <label for="alasan">Alasan (wajib untuk pengecualian, override, dan buka kembali)</label>
       <textarea id="alasan" name="alasan" rows="2"></textarea>
       <p></p>

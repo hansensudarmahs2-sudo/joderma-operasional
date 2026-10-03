@@ -10,24 +10,80 @@ from audit.services import log_event, log_update, snapshot
 
 from .models import Clinic, DayStatus, OperationalDay, local_today
 
+# Tutup hari boleh dari status mana pun yang belum tutup (keputusan 3 Okt 2026): staf sering
+# tidak menjalankan Siap/Buka/Mulai penutupan, dan hari tidak boleh tertahan karenanya.
 ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     DayStatus.DRAFT: {DayStatus.OPENING_IN_PROGRESS},
-    DayStatus.OPENING_IN_PROGRESS: {DayStatus.READY, DayStatus.READY_WITH_ISSUES},
-    DayStatus.READY: {DayStatus.OPEN, DayStatus.OPENING_IN_PROGRESS},
-    DayStatus.READY_WITH_ISSUES: {DayStatus.OPEN, DayStatus.OPENING_IN_PROGRESS},
-    DayStatus.OPEN: {DayStatus.CLOSING},
+    DayStatus.OPENING_IN_PROGRESS: {DayStatus.READY, DayStatus.READY_WITH_ISSUES, DayStatus.CLOSED},
+    DayStatus.READY: {DayStatus.OPEN, DayStatus.OPENING_IN_PROGRESS, DayStatus.CLOSED},
+    DayStatus.READY_WITH_ISSUES: {DayStatus.OPEN, DayStatus.OPENING_IN_PROGRESS, DayStatus.CLOSED},
+    DayStatus.OPEN: {DayStatus.CLOSING, DayStatus.CLOSED},
     DayStatus.CLOSING: {DayStatus.CLOSED, DayStatus.OPEN},
     DayStatus.CLOSED: {DayStatus.OPEN},  # hanya lewat reopen_day()
 }
 
 
+CLINIC_SESSION_KEY = "active_clinic"
+
+
+def clinic_key(clinic) -> str:
+    """Kunci tetap cabang, tidak bergantung pada kode di database.
+
+    Di mini PC kode Citraland adalah ``JC``, di data uji ``citraland``. Kode program yang
+    membedakan cabang (prefix RM, butir khusus cabang) memakai kunci ini, bukan kode mentah.
+    """
+    code = (getattr(clinic, "code", "") or "").strip()
+    text = f"{code} {getattr(clinic, 'name', '') or ''}".lower()
+    if "citraland" in text or code.upper() == "JC":
+        return "citraland"
+    if "jemur" in text or code.upper() == "JJ":
+        return "jemur-andayani"
+    return code.lower()
+
+
+def rm_prefix(clinic) -> str:
+    """Prefix nomor RM cabang: JJ- Jemur, JC- Citraland."""
+    return {"jemur-andayani": "JJ-", "citraland": "JC-"}.get(clinic_key(clinic), "J_-")
+
+
+def home_clinic_id(user) -> int | None:
+    """Cabang asal pengguna bila hari ini ia tidak bertugas (off, cuti) atau belum dijadwalkan.
+
+    Urutan: cabang asal di jadwal jaga hari ini → cabang asal jadwal terdekat → cabang fungsi
+    PIC aktif (bila hanya satu cabang).
+    """
+    from accounts.models import PicAssignment
+    from jadwal.models import DutyRoster
+
+    today = local_today()
+    rows = DutyRoster.objects.filter(user=user)
+    row = rows.filter(date=today).first()
+    if row is None:
+        row = rows.filter(date__lte=today).order_by("-date").first() or rows.order_by("date").first()
+    if row is not None:
+        return row.home_clinic_id
+    pic_clinics = set(PicAssignment.objects.filter(user=user, active=True).values_list("clinic_id", flat=True))
+    if len(pic_clinics) == 1:
+        return pic_clinics.pop()
+    return None
+
+
 def active_clinic(user=None) -> Clinic:
+    """Cabang tempat pengguna bekerja sekarang.
+
+    Urutan: pilihan cabang di sesi hari ini (pengalih cabang di kanan atas) → cabang tugas di
+    jadwal jaga hari ini → cabang asal (lihat `home_clinic_id`) → cabang pertama yang dapat
+    diakses.
+    """
     if user is not None:
         from .permissions import user_clinic_queryset
 
         clinics = user_clinic_queryset(user)
         clinic = None
-        if getattr(user, "is_authenticated", False):
+        override = getattr(user, "_clinic_override", None)
+        if override:
+            clinic = clinics.filter(pk=override).first()
+        if clinic is None and getattr(user, "is_authenticated", False):
             # Staf perbantuan (mis. Yani di Citraland hari Minggu) bekerja di cabang
             # menurut jadwal jaga hari itu, bukan cabang pertama pada daftar perannya.
             from jadwal.models import WORKING_STATUSES, DutyRoster
@@ -39,6 +95,10 @@ def active_clinic(user=None) -> Clinic:
             )
             if duty:
                 clinic = clinics.filter(pk=duty).first()
+            if clinic is None:
+                home = home_clinic_id(user)
+                if home:
+                    clinic = clinics.filter(pk=home).first()
         if clinic is None:
             clinic = clinics.order_by("id").first()
         if clinic is None and getattr(user, "is_superuser", False):
@@ -167,7 +227,12 @@ def start_closing(day: OperationalDay, user):
 
 
 def closing_blockers(day: OperationalDay) -> list[str]:
-    """Tidak boleh tutup bila kas akhir belum selesai atau ada item kritis (PRD 18)."""
+    """Tidak boleh tutup bila kas akhir belum diajukan atau ada item kritis (PRD 18).
+
+    Kas akhir cukup **diajukan** (menunggu verifikasi). Verifikasi dilakukan Direktur Operasional
+    sesudahnya, juga setelah hari ditutup; tanggung jawab selisih berpindah ke verifikator saat
+    ia memverifikasi (keputusan 3 Okt 2026).
+    """
     from cash.models import CashSession, CashSessionType, CashStatus
     from issues.models import Issue, IssueStatus, IssueType
     from core.models import Priority
@@ -177,7 +242,7 @@ def closing_blockers(day: OperationalDay) -> list[str]:
         operational_day=day, session_type=CashSessionType.CLOSING
     ).exclude(status__in=[CashStatus.DRAFT]).exists()
     if not closing_cash:
-        blockers.append("Kas akhir belum dicatat dan diverifikasi.")
+        blockers.append("Kas akhir belum dihitung dan diajukan (verifikasi Direktur boleh menyusul).")
 
     open_critical = Issue.objects.filter(
         clinic=day.clinic,
@@ -195,7 +260,7 @@ def close_day(day: OperationalDay, user, *, override_reason: str = ""):
     blockers = closing_blockers(day)
     if blockers and not override_reason.strip():
         raise ValidationError(
-            "Hari belum dapat ditutup: " + " ".join(blockers) + " Supervisor dapat override dengan alasan."
+            "Hari belum dapat ditutup: " + " ".join(blockers) + " Koordinator Shift dapat menutup dengan alasan."
         )
     _transition(day, DayStatus.CLOSED)
     day.closed_at = timezone.now()

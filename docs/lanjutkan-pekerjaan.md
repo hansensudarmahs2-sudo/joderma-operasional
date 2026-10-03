@@ -7,8 +7,9 @@ oleh asisten AI di sesi baru yang tidak mengetahui riwayat percakapan sebelumnya
 
 JoDerma Staff Ops adalah aplikasi internal klinik (ops.joderma.id) untuk operasional
 harian dua cabang, Jemur Andayani dan Citraland. Aplikasi berjalan di mini PC klinik
-lewat Docker. Tahap sekarang (30 September 2026): redefinisi seluruh peran, fase 2–5
-selesai dan di-commit tetapi belum dideploy, pekerjaan dijeda sebelum fase 6.
+lewat Docker. Tahap sekarang (3 Oktober 2026): perbaikan dua cabang dan foto lampiran
+(tahap 1) selesai, berikutnya task management GTD dan List View task (tahap 2) lalu catatan
+KPI (tahap 3); fase 6–9 redefinisi peran menyusul.
 
 **Posisi terakhir, sisa pekerjaan, dan roadmap ada di bagian atas
 [`../current-progress.md`](../current-progress.md).** Baca itu lebih dulu.

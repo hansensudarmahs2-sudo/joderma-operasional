@@ -11,7 +11,20 @@ def app_context(request):
     if not user or not user.is_authenticated:
         return {"app_name": "JoDerma Staff Ops"}
     who = persona(user)
+    from django.core.exceptions import ValidationError
+
+    from .permissions import user_clinic_queryset
+    from .services import active_clinic
+
+    try:
+        clinic = active_clinic(user)
+    except ValidationError:
+        clinic = None
+    choices = list(user_clinic_queryset(user).order_by("id")) if who != "OWNER" else []
     return {
+        # Cabang aktif selalu terlihat di kanan atas; pengalih tampil bila akun punya >1 cabang.
+        "nav_clinic": clinic,
+        "nav_clinic_choices": choices if len(choices) > 1 else [],
         "app_name": "JoDerma Staff Ops",
         "unread_notifications": unread_count(user),
         # Menu hanya kemudahan; halaman di luar tampilan peran ditolak di server

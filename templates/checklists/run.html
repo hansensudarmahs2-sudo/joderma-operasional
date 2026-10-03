@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load foto %}
 {% block title %}{{ run.template.name }}{% endblock %}
 {% block content %}
 <h1>{{ run.template.name }}</h1>
@@ -31,6 +32,23 @@
       <button class="btn small" type="submit">{% if r.result == 'OK' %}✓ Tetap OK{% else %}Check{% endif %}</button>
       {% if r.result == 'OK' %}<button class="btn small secondary" type="submit" name="hasil" value="BELUM">Uncheck</button>{% endif %}
     </form>
+    {% with fotos=photos|ambil:r.pk %}{% if fotos %}<div class="checklist-photos">{% foto_thumbs fotos %}</div>{% endif %}{% endwith %}
+    <details class="checklist-problem"{% if r.is_problem %} open{% endif %}>
+      <summary>{% if r.is_problem %}Ubah catatan masalah / tambah foto{% else %}Ada masalah?{% endif %}</summary>
+      <form method="post" action="{% url 'checklists:save_response' r.pk %}" enctype="multipart/form-data" class="stack-form">
+        {% csrf_token %}<input type="hidden" name="versi" value="{{ r.version }}">
+        <label for="hasil-{{ r.pk }}">Hasil</label>
+        <select id="hasil-{{ r.pk }}" name="hasil" required>
+          {% for value, label in problem_results %}<option value="{{ value }}"{% if r.result == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        {% if r.input_type == 'KUANTITAS' %}<label for="jumlah-{{ r.pk }}">Jumlah aktual</label><input id="jumlah-{{ r.pk }}" name="jumlah" type="number" min="0" value="{{ r.quantity|default_if_none:'' }}">{% endif %}
+        <label for="catatan-{{ r.pk }}">Apa masalahnya? <span aria-hidden="true">*</span></label>
+        <textarea id="catatan-{{ r.pk }}" name="catatan" rows="2" required placeholder="Contoh: tisu tinggal 1 pak, lampu kanan mati">{{ r.note }}</textarea>
+        {% if r.result != 'BELUM' %}<label for="alasan-{{ r.pk }}">Alasan mengubah hasil <span aria-hidden="true">*</span></label><input id="alasan-{{ r.pk }}" name="alasan" required>{% endif %}
+        {% foto_input "Foto (opsional)" "foto" %}
+        <button class="btn small" type="submit">Simpan masalah</button>
+      </form>
+    </details>
     {% if r.result == 'RUSAK' %}<form method="post" action="{% url 'checklists:make_damage' r.pk %}">{% csrf_token %}<button class="btn small secondary" type="submit">Laporan</button></form>{% endif %}
     {% if r.result == 'TIDAK_LENGKAP' %}<form method="post" action="{% url 'checklists:make_action' r.pk %}">{% csrf_token %}<button class="btn small secondary" type="submit">Tindak lanjut</button></form>{% endif %}
   </div>

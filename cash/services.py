@@ -139,8 +139,11 @@ def verify(
     result: str | None = None,
     note: str = "",
 ) -> CashSession:
-    """Dual-control: verifikator tidak boleh sama dengan penghitung (PRD 20.3)."""
-    session.operational_day.assert_editable()
+    """Dual-control: verifikator tidak boleh sama dengan penghitung (PRD 20.3).
+
+    Boleh dilakukan setelah hari ditutup: verifikasi tidak mengubah hitungan, hanya menetapkan
+    hasil dan memindahkan tanggung jawab selisih ke verifikator.
+    """
 
     if session.status != CashStatus.MENUNGGU_VERIFIKASI:
         raise ValidationError("Sesi kas tidak dalam status menunggu verifikasi.")
@@ -233,3 +236,20 @@ def cash_summary(day) -> dict:
             s.status == CashStatus.MENUNGGU_VERIFIKASI for s in sessions.values()
         ),
     }
+
+
+
+def pending_verification(user, *, limit: int = 30):
+    """Sesi kas yang menunggu verifikasi di semua cabang yang dapat diakses pengguna."""
+    from core.permissions import can_verify_cash, user_clinic_queryset
+
+    if not can_verify_cash(user):
+        return CashSession.objects.none()
+    return (
+        CashSession.objects.filter(
+            status=CashStatus.MENUNGGU_VERIFIKASI,
+            operational_day__clinic__in=user_clinic_queryset(user),
+        )
+        .select_related("operational_day__clinic", "counted_by")
+        .order_by("operational_day__date", "id")[:limit]
+    )

@@ -28,4 +28,18 @@
     {% if can_edit %}<a class="btn small" href="{% url 'cash:form' 'CLOSING' %}">Hitung kas akhir</a>{% endif %}
   </div>
 </div>
+<p class="meta">Kas akhir cukup dihitung lalu <strong>diajukan</strong>; hari bisa ditutup sesudahnya. Verifikasi dilakukan Direktur Operasional, juga setelah hari ditutup, dan sejak itu selisih menjadi tanggung jawab verifikator.</p>
+
+{% if pending %}
+<h2>Menunggu verifikasi</h2>
+<ul class="request-list card">
+  {% for p in pending %}
+  <li><a class="request-row" href="{% url 'cash:review' p.pk %}">
+    <span class="request-main"><strong>{{ p.get_session_type_display }} · {{ p.operational_day.clinic.name }}</strong>
+      <span class="meta">{{ p.operational_day.date|date:"l, d/m/Y" }} · dihitung {{ p.counted_by|default:"—" }}{% if p.submitted_at %} · diajukan {{ p.submitted_at|date:"d/m H.i" }}{% endif %}</span></span>
+    <span class="request-state">{% if p.variance %}<span class="tag err">Selisih Rp {{ p.variance|intcomma }}</span>{% else %}<span class="tag ok">Tanpa selisih</span>{% endif %}<span class="tag info">Verifikasi</span></span>
+  </a></li>
+  {% endfor %}
+</ul>
+{% endif %}
 {% endblock %}

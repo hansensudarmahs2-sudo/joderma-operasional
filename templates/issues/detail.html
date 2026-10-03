@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load foto %}
 {% block title %}{{ issue.number }}{% endblock %}
 {% block content %}
 <h1>{{ issue.number }}</h1>
@@ -82,6 +83,7 @@
 
 <div class="card">
   <h3>Lampiran</h3>
+  {% foto_thumbs photos %}
   <ul class="timeline">
     {% for a in attachments %}
       <li><a href="{% url 'core:attachment' a.pk %}">{{ a.original_name }}</a>
@@ -90,8 +92,8 @@
   </ul>
   <form method="post" action="{% url 'issues:upload' issue.pk %}" enctype="multipart/form-data">
     {% csrf_token %}
-    <label for="file">Unggah (JPG, PNG, PDF · maks 5 MB)</label>
-    <input id="file" type="file" name="file" accept=".jpg,.jpeg,.png,.pdf" required>
+    <label for="file">Unggah foto atau PDF (foto dikecilkan otomatis · PDF maks 5 MB)</label>
+    <input id="file" type="file" name="file" accept="image/*,.pdf" required data-photo="1">
     <p></p>
     <button class="btn secondary" type="submit">Unggah</button>
   </form>

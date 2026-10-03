@@ -11,9 +11,11 @@ import datetime as dt
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
 from core.models import Clinic, local_today
+from core.photos import photos_for, save_optional_photo
 from core.permissions import is_aom, require, user_clinic_queryset
 from direktur import dashboard
 from direktur.models import DailySummary
@@ -60,12 +62,14 @@ def request_new(request):
     if request.method == "POST":
         form = {k: request.POST.get(k, "") for k in form}
         try:
-            req = services.create_request(
-                actor=request.user,
-                title=form["judul"],
-                description=form["rincian"],
-                target_date=services.parse_target(form["target"]),
-            )
+            with transaction.atomic():
+                req = services.create_request(
+                    actor=request.user,
+                    title=form["judul"],
+                    description=form["rincian"],
+                    target_date=services.parse_target(form["target"]),
+                )
+                save_optional_photo(request, entity_type="ownerrequest", entity_id=req.pk)
             messages.success(request, "Permintaan dikirim ke Direktur Operasional.")
             return redirect("owner:request_detail", pk=req.pk)
         except ValidationError as exc:
@@ -79,17 +83,22 @@ def request_detail(request, pk: int):
     req = get_object_or_404(OwnerRequest.objects.select_related("created_by"), pk=pk)
     if request.method == "POST":
         try:
-            services.add_note(req, actor=request.user, body=request.POST.get("catatan", ""))
+            with transaction.atomic():
+                note = services.add_note(req, actor=request.user, body=request.POST.get("catatan", ""))
+                save_optional_photo(request, entity_type="ownerrequestnote", entity_id=note.pk)
             messages.success(request, "Catatan disimpan.")
         except ValidationError as exc:
             messages.error(request, " ".join(exc.messages))
         return redirect("owner:request_detail", pk=req.pk)
+    notes = list(req.notes.select_related("author"))
     return render(
         request,
         "owner/request_detail.html",
         {
             "row": services.progress(req),
-            "notes": req.notes.select_related("author"),
+            "notes": notes,
+            "photos": photos_for("ownerrequest", [req.pk]).get(req.pk, []),
+            "note_photos": photos_for("ownerrequestnote", [n.pk for n in notes]),
             "is_director": is_aom(request.user),
         },
     )

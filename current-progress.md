@@ -1,7 +1,8 @@
 # Current Progress
 
-Status per **1 Oktober 2026** (Asia/Jakarta). Keputusan product owner 1 Okt: **modul Stok Apotek
-dikerjakan lebih dulu**, sebelum fase 6–9 redefinisi peran.
+Status per **3 Oktober 2026** (Asia/Jakarta). Keputusan product owner 3 Okt: **perbaiki masalah
+Citraland dulu** (tahap 1, selesai di kode, menunggu commit dan deploy), lalu task management
+GTD dan daftar task (tahap 2), lalu catatan KPI (tahap 3). Fase 6–9 redefinisi peran menyusul.
 Bagian atas dokumen ini adalah posisi terakhir, sisa pekerjaan, dan roadmap. Bagian **Riwayat**
 di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
@@ -12,8 +13,8 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 | Produksi (mini PC, ops.joderma.id) | Commit `e966da7` (dideploy 1 Oktober): Stok Apotek fase 1 dan redefinisi peran fase 2–5. Health ok, semua migrasi jalan (`stok 0001`), `xlrd 2.0.2` terpasang. Backup sebelum deploy: `joderma-ops-20261001-105543.tar.gz` (tidak terenkripsi) |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | `f84e8d8` (Stok: sembunyikan Rupiah di Transfer), `0e29474` (detail task Direktur), `569a504` (panduan docx), dan **Tugas saya di Hari Ini** (1 Okt, lihat Riwayat) |
-| Test | 605 (604 lulus, 1 dilewati) per 1 Okt sesudah Tugas saya (`.venv/bin/python -m pytest`), termasuk 21 test Stok Apotek |
+| Belum dideploy | `eee0b2e` (Tugas saya, dkk.) bila `deploy_joderma.sh` 1 Okt belum dijalankan, dan **Dua cabang + foto** (3 Okt, lihat Riwayat; migrasi `nurses 0005`) |
+| Test | 652 (651 lulus, 1 dilewati) per 3 Okt: 631 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -48,6 +49,19 @@ mengunggah, dan mengubah parameter; Owner hanya baca; peran lain 403. Deploy but
 Fase 2–5 sudah lulus test dan tangkapan layarnya sudah ditinjau product owner per fase, tetapi
 **belum diuji di mini PC** dan belum dipakai staf.
 
+## Tahap 2 dan 3 (permintaan dr. Yohanes dan product owner, 3 Okt)
+
+**Tahap 2 — task management GTD.** Alur: siapa pun (termasuk Owner) memasukkan ide/temuan ke
+*Inbox* → Direktur Operasional memutuskan, menetapkan PIC dan prioritas → PIC mengerjakan,
+melaporkan progres, mengirim bukti → Direktur Operasional memverifikasi → capaian dilaporkan ke
+Direktur Utama. Bila Hansen sendiri PIC, verifikatornya dr. Yohanes. Juga: temuan Owner langsung
+di aplikasi; nama/ID pelapor tercantum di setiap laporan; **List View** semua task dengan sort,
+filter, dan pencarian; butir yang perlu diputuskan bersama tampil di halaman utama untuk rapat
+mingguan (K-015). Foto bukti dan foto temuan sudah tersedia (tahap 1) dan dipakai alur ini.
+
+**Tahap 3 — KPI (K-016).** Setiap checklist mencatat ID staf, geolokasi, dan IP Wi-Fi klinik;
+metrik kedisiplinan (tepat waktu, kelengkapan) per staf.
+
 ## Task yang belum selesai
 
 ### Pengembangan (fase 6–9)
@@ -81,7 +95,10 @@ Fase 2–5 sudah lulus test dan tangkapan layarnya sudah ditinjau product owner 
   (migrate otomatis). Migrasi baru: `accounts 0008`, `checklists 0006`, `direktur 0004`,
   `owner 0001`. Semua hanya menambah tabel atau mengubah label; data yang ada tidak diubah.
 - **Sesudah deploy:** Admin ▸ Pengguna ▸ **Reset peran ke default**, periksa pratinjau, lalu
-  terapkan. Efeknya: akun `jean` dibuat (password `klinik123`), `yohanes` dipastikan Owner, peran
+  terapkan. **Perhatian (cek 3 Okt pada salinan database produksi):** reset belum pernah dijalankan,
+  dan pratinjaunya juga akan mencabut peran yang mungkin sengaja ditambahkan manual (Front Desk
+  heni/lia/yani, Supervisor elvira, peran Jemur milik ayu). Untuk regita cukup cabut peran Jemur
+  (ONLINE/PIC/SUPERVISOR) lewat Admin bila reset belum ingin dijalankan. Efeknya: akun `jean` dibuat (password `klinik123`), `yohanes` dipastikan Owner, peran
   tambahan di `hansen1` dicabut sehingga ia murni Direktur Operasional (urusan admin lewat
   `superadmin`). `AOM_HS` tidak disentuh.
 - Ganti password `hansen1` dan `superadmin` (masih `klinik123`).
@@ -108,8 +125,11 @@ Fase 2–5 sudah lulus test dan tangkapan layarnya sudah ditinjau product owner 
 
 | Kapan | Apa |
 |---|---|
-| Sekarang | Stok Apotek fase 1 dipakai apoteker dengan data produksi; keputusan A5–A9; lalu fase 2 |
-| Sesudah Stok Apotek | Fase 6 (Permintaan Owner sisi Direktur), fase 7 (staf sederhana), fase 8 (PIC), fase 9 (uji tampilan bersama product owner) |
+| Sekarang | Commit dan deploy tahap 1 (dua cabang + foto); Regitta mencoba koreksi tally, tutup hari, dan foto di Citraland |
+| Berikutnya | Tahap 2: task management GTD, List View task, keputusan bersama di halaman utama, nama pelapor (permintaan dr. Yohanes) |
+| Sesudah tahap 2 | Tahap 3: catatan KPI (ID staf, geolokasi, IP Wi-Fi) dan metrik kedisiplinan |
+| Paralel | Stok Apotek fase 1 dipakai apoteker dengan data produksi; keputusan A5–A9; lalu fase 2 |
+| Sesudah itu | Fase 6 (Permintaan Owner sisi Direktur), fase 7 (staf sederhana), fase 8 (PIC), fase 9 (uji tampilan bersama product owner) |
 | Sesudah fase 9 | Commit, backup, deploy; perkenalan tampilan baru ke Owner, Direktur Utama, PIC, dan staf |
 | Oktober 2026 | Uji coba jadwal jaga, pembagian tugas, dan giliran tally bulanan; catat masalah di `UAT_ISSUE_REGISTER.md`; aturan tally ditweak sesudah uji coba (ketetapan 30 Sep) |
 | Akhir Oktober | Jadwal jaga November: siapkan JSON dari PDF, `import_jadwal_jaga`, `seed_tugas_harian --susun 2026-11` |
@@ -118,6 +138,103 @@ Fase 2–5 sudah lulus test dan tangkapan layarnya sudah ditinjau product owner 
 ---
 
 # Riwayat
+
+## Penelusuran jadwal jaga Oktober dan penempatan staf (3 Oktober 2026)
+
+Diperiksa pada salinan database mini PC (3 Okt 16.15) terhadap "JADWAL LIBUR OCTOBER 2026.pdf"
+(warna sel dibaca per piksel): **403 dari 403 baris jadwal sama persis** dengan PDF, cabang asal
+13 staf benar (8 Jemur termasuk Yani dan Luki, 5 Citraland), belum ada perubahan manual. Porsi
+tugas Oktober seluruhnya jatuh ke orang yang bertugas di cabangnya, tally seluruhnya oleh perawat
+yang bertugas di cabangnya. Kolom "Jumlah" di PDF menulis Heni 25 dan Elvira 26, sedangkan selnya
+memberi 26 dan 27 (sel yang dipakai).
+
+Yang keliru adalah **peran lama yang tertinggal**: regita masih ONLINE/PIC/SUPERVISOR di Jemur,
+ayu masih APOTEKER/FRONT_DESK/STAF di Jemur, dan elvira SUPERVISOR di Jemur. Akibatnya Regita dan
+Elvira berwenang sebagai Koordinator Shift Jemur (tutup hari, ubah jadwal, koreksi tally), dan
+porsi opening/closing Koordinator Shift 8 Okt serta closing limbah 9 dan 29 Okt jatuh ke Elvira.
+Keputusan product owner: Regitta hanya Citraland (Koordinator Shift dan Layanan Daring), Ayu hanya
+Citraland sebagai apoteker, Elvira apoteker dan PIC Kebersihan Jemur. Perintah baru
+`manage.py cabut_peran` (audit PERMISSION_CHANGED, `--dry-run`) dan `manage.py susun_ulang_tugas`
+(porsi otomatis untuk rentang tanggal, porsi manual dipertahankan); `deploy_dua_cabang.sh`
+menjalankan keduanya sesudah backup. Diuji pada salinan produksi: sesudahnya porsi Koordinator
+Shift Jemur 8 Okt jatuh ke Desy, kas 4 Okt ke Elvira (cadangan kasir). Peran Regita di Citraland
+(termasuk PERAWAT untuk giliran tally) dan FRONT_DESK Ayu di Citraland (kasir sementara) tetap.
+Daftar "Siapa bertugas hari ini" tidak lagi menampilkan orang yang hanya punya peran tertinggal.
+
+## Hak khusus koreksi tally untuk Regitta (3 Oktober 2026) — belum di-commit
+
+Permintaan product owner: Regitta diberi hak khusus mengoreksi tally. Kapabilitas baru
+`tally.correct` ("Mengoreksi tally perawat"), berlaku di cabang yang dapat diakses pemegangnya
+dan tidak ikut hilang saat Reset peran. Bisa dicentang di Admin ▸ Pengguna ▸ ubah, atau lewat
+perintah baru `manage.py beri_hak <username> tally.correct [--cabut]` (tercatat di audit).
+`deploy_dua_cabang.sh` memberikannya ke akun `regita` di mini PC. Migrasi `accounts 0009`
+(hanya pilihan kapabilitas). Test di `core/tests/test_dua_cabang.py`.
+
+## Penugasan staf harian dan bulanan oleh Direktur dan Koordinator Shift (3 Oktober 2026) — belum di-commit
+
+Keputusan product owner sesudah kasus Citraland: Direktur Operasional mengubah penugasan tiap
+staf per hari atau per bulan; Koordinator Shift juga bisa. Sebelumnya jadwal jaga hanya diubah
+Direktur/Admin lewat satu form di bawah tabel, dan perubahan tidak menyentuh porsi tugas.
+
+- `jadwal.services.can_edit_duty(actor, cabang_asal)`: Direktur/Admin semua orang; Koordinator
+  Shift (SUPERVISOR) untuk staf yang cabang asalnya cabangnya, termasuk mengirim perbantuan.
+  `home_clinic_for` menjaga cabang asal saat diubah dari halaman cabang lain (sebelumnya form
+  bulanan selalu menimpa cabang asal dengan cabang halaman).
+- Tabel Jadwal Jaga: setiap kotak bisa diketuk untuk mengubah satu orang pada satu tanggal.
+- Halaman tugas per tanggal: bagian **Siapa bertugas hari ini** dengan pilihan Masuk /
+  Perbantuan ke cabang lain / Off / Cuti per orang.
+- `set_duty` untuk hari ini ke depan: porsi orang yang tidak lagi bertugas di cabang itu dilepas,
+  porsi kosong diisi (`_plan_day(..., fill_only=True)`, porsi orang lain tidak diacak), dan
+  roster giliran perawat disinkronkan bila hari operasional sudah dibuat.
+- Test `jadwal/tests/test_ubah_jadwal.py` (8); `test_only_director_edits_roster` diganti
+  `test_who_edits_roster`. Panduan Direktur, Supervisor, `docs/jadwal-dan-giliran.md`,
+  `docs/peran-dan-akses.md` diperbarui.
+
+## Dua cabang (Jemur dan Citraland) dan foto lampiran (3 Oktober 2026) — belum di-commit
+
+Laporan Regitta (Koordinator Shift Citraland) 2–3 Okt, didiagnosis pada salinan database mini PC
+(`tarik_db.sh`, integrity ok):
+
+- **Akun tampil sebagai Jemur.** Regita masih memegang peran lama di Jemur (Reset peran belum
+  dijalankan) dan pada 2 Okt ia off, sehingga cabang aktif jatuh ke cabang pertama (Jemur).
+  Perbaikan: `core.services.active_clinic` kini memakai pilihan cabang hari ini → cabang tugas di
+  jadwal jaga → **cabang asal** (`home_clinic_id`: jadwal hari ini/terdekat, atau satu-satunya
+  cabang fungsi PIC) → cabang pertama. Pengalih cabang di kanan atas (`accounts:switch_clinic`,
+  berlaku hari ini saja lewat `core.middleware.ActiveClinicMiddleware`) untuk akun dengan lebih
+  dari satu cabang; cabang aktif selalu terlihat. Di HP nama aplikasi disembunyikan agar cabang muat.
+- **Kode Citraland di mini PC adalah `JC`**, bukan `citraland`, sehingga prefix RM jatuh ke `J_-`
+  dan butir Direktur khusus Citraland tidak cocok. `core.services.clinic_key`/`rm_prefix` kini
+  menjadi satu-satunya penentu; dipakai `orders.services.normalize_rm_number`, papan tally, dan
+  `direktur.AuditItem.applies_to`.
+- **Tally tidak bisa dikoreksi.** Koordinator Shift cabang itu dan Direktur Operasional kini bisa
+  mengoreksi jumlah (0 = batal), perawat, dan nama tindakan dengan alasan wajib, tercatat di audit
+  (CORRECTION) dan `turns_taken` ikut disesuaikan (`nurses.services.correct_tally`, halaman
+  `nurses:tally_day` dan `nurses:tally_correct`, kolom Koreksi di papan). Migrasi `nurses 0005`
+  (kolom `corrected_by`, `corrected_at`, `correction_reason`). Duplikat Sculptra JC-0108 1 Okt bisa
+  dibatalkan dari sini.
+- **Hari tidak bisa ditutup.** Semua hari operasional di produksi tertahan di "Pembukaan berjalan".
+  Keputusan: Koordinator Shift boleh menutup sesudah kas akhir **diajukan**; verifikasi Direktur
+  menyusul (juga setelah hari ditutup) dan sejak itu selisih menjadi tanggung jawab verifikator.
+  Tutup hari kini boleh dari status mana pun yang belum tutup; pilihan di Hari Ini disederhanakan
+  (hari tutup hanya "Buka kembali"). Direktur Operasional (AOM) melihat nominal, memverifikasi,
+  dan mengoreksi kas; daftar **Menunggu verifikasi** di Kas dan Hari Ini Direktur. Sesi kas cabang
+  lain kini ditolak (sebelumnya bisa dibuka lewat ID).
+
+**Foto lampiran** (keputusan 3 Okt, empat tempat): butir checklist bermasalah (form "Ada masalah?"
+dengan hasil Tidak lengkap/Rusak/Tidak berlaku, catatan wajib, foto), Komplain/Masukan/Kerusakan,
+temuan Direktur (Checklist Direktur) dan Owner (permintaan dan catatannya), serta bukti task
+selesai (Hari Ini, Semua task saya; tampil di detail task). `core/photos.py`: foto dikecilkan di
+browser lalu dikompres ulang di server (sisi terpanjang 1600 px, JPEG q75, EXIF/GPS dibuang),
+disimpan di `private_media` sebagai `core.Attachment`, dan hanya terbuka lewat `core:attachment`
+(`?lihat=1` untuk tampil langsung) dengan izin mengikuti entitas induknya; foto sumber temuan ikut
+terlihat oleh penerima task tindak lanjutnya. Laporan kerusakan dari butir checklist membawa foto
+butirnya. Bila foto gagal dibaca, isian tidak tersimpan setengah (transaksi).
+
+Uji coba: migrasi berjalan di salinan database produksi; tangkapan layar dari salinan itu (regita
+melihat Citraland, koreksi tally 1 Okt, form masalah checklist, Tugas saya Desy dengan foto bukti,
+Kas Direktur); unggah foto 11,7 MB dari browser HP menjadi 0,7 MB. Test baru:
+`core/tests/test_dua_cabang.py` (24) dan `core/tests/test_foto.py` (12). Suite 620 lulus di luar
+Stok Apotek.
 
 ## Tugas saya di Hari Ini (1 Oktober 2026) — belum dideploy
 

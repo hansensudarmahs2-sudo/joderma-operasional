@@ -8,6 +8,32 @@
   <a class="btn small secondary" href="{% url 'jadwal:plan' %}?cabang={{ clinic.pk }}&bulan={{ month }}">Satu bulan</a>
   <a class="btn small secondary" href="{% url 'jadwal:day' next.isoformat %}?cabang={{ clinic.pk }}">{{ next|date:"d/m" }} ›</a>
 </div>
+<section class="card" id="bertugas" aria-labelledby="judul-bertugas">
+  <h2 id="judul-bertugas" style="margin-top:0">Siapa bertugas {% if day == today %}hari ini{% else %}{{ day|date:"d/m" }}{% endif %}</h2>
+  {% if can_edit_any %}<p class="meta">Ubah status satu orang lalu Simpan. {% if is_past %}Tanggal ini sudah lewat: hanya jadwalnya yang dicatat ulang, porsi tidak diubah.{% else %}Porsi tugas orang yang tidak bertugas dilepas dan diisi orang lain yang bertugas; roster giliran perawat ikut diperbarui.{% endif %}</p>{% endif %}
+  <ul class="duty-people-list">
+  {% for p in people %}
+    <li class="duty-person">
+      <span class="duty-person-name"><strong>{{ p.user }}</strong>
+        <span class="meta">{% if p.home_clinic and p.home_clinic.pk != clinic.pk and p.cell.code != 'B' %}staf {{ p.home_clinic.name }}{% if p.editable %} · {% endif %}{% endif %}{% if p.editable %}{{ p.cell.label }}{% endif %}</span></span>
+      {% if p.editable %}
+      <form method="post" class="duty-person-form">{% csrf_token %}
+        <input type="hidden" name="aksi" value="jadwal"><input type="hidden" name="cabang" value="{{ clinic.pk }}">
+        <input type="hidden" name="orang" value="{{ p.user.pk }}"><input type="hidden" name="tanggal" value="{{ day|date:'Y-m-d' }}">
+        <label class="visually-hidden" for="st-{{ p.user.pk }}">Status {{ p.user }}</label>
+        <select id="st-{{ p.user.pk }}" name="status" required>
+          {% if not p.value %}<option value="" selected disabled>Belum diisi</option>{% endif %}
+          {% for v, l in p.choices %}<option value="{{ v }}"{% if v == p.value %} selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+        <input name="catatan" placeholder="Catatan" aria-label="Catatan {{ p.user }}">
+        <button class="btn small" type="submit">Simpan</button>
+      </form>
+      {% else %}<span class="tag {% if p.cell.code == 'B' or p.cell.code == 'M' and p.home_clinic.pk == clinic.pk %}ok{% else %}muted{% endif %}">{{ p.cell.label }}</span>{% endif %}
+    </li>
+  {% empty %}<li class="meta">Belum ada staf untuk cabang ini.</li>{% endfor %}
+  </ul>
+</section>
+
 {% for r in rows %}
 {% ifchanged r.portion.group %}<h2>{{ r.portion.get_group_display }}</h2>{% endifchanged %}
 <div class="card duty-card">

@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 
 from accounts.models import Role, User
 from core.permissions import can_manage_roster, is_aom, is_supervisor, require
-from core.services import active_clinic, get_or_create_day
+from core.services import active_clinic, get_or_create_day, rm_prefix
 from queueing.models import QueueEntry
 
 from .forms import NurseActionTallyForm
@@ -24,6 +24,8 @@ from .models import (
     NurseActionTally,
 )
 from .services import (
+    can_correct_tally,
+    correct_tally,
     after_tally,
     hand_over,
     move_entry,
@@ -72,7 +74,8 @@ def board(request):
             "can_manage": can_manage_roster(request.user) or is_aom(request.user),
             "tallies": NurseActionTally.objects.filter(operational_day=day).select_related("nurse", "entered_by"),
             "tally_form": NurseActionTallyForm(nurse_queryset=_tally_nurses(day)),
-            "rm_prefix": "JJ-" if clinic.code == "jemur-andayani" else "JC-" if clinic.code == "citraland" else "RM-",
+            "rm_prefix": rm_prefix(clinic),
+            "can_correct": can_correct_tally(request.user, clinic),
         },
     )
 
@@ -270,3 +273,61 @@ def ledger(request):
         "nurse", "actor", "procedure_category"
     )
     return render(request, "nurses/ledger.html", {"day": day, "events": events})
+
+
+
+def _parse_date(raw, default):
+    import datetime as dt
+
+    try:
+        return dt.date.fromisoformat(raw or "")
+    except ValueError:
+        return default
+
+
+@login_required
+def tally_day(request):
+    """Daftar tally satu tanggal untuk dikoreksi (Koordinator Shift / Direktur)."""
+    from core.models import Clinic, OperationalDay, local_today
+    from core.permissions import can_access_clinic, user_clinic_queryset
+
+    clinic = active_clinic(request.user)
+    raw_clinic = request.GET.get("cabang", "")
+    if raw_clinic:
+        clinic = get_object_or_404(Clinic, pk=raw_clinic if raw_clinic.isdigit() else 0)
+    if not can_access_clinic(request.user, clinic) or not can_correct_tally(request.user, clinic):
+        raise PermissionDenied("Koreksi tally hanya oleh Koordinator Shift cabang ini, Direktur Operasional, atau pemegang hak koreksi tally.")
+    the_date = _parse_date(request.GET.get("tanggal"), local_today())
+    tallies = NurseActionTally.objects.filter(
+        operational_day__clinic=clinic, operational_day__date=the_date
+    ).select_related("nurse", "entered_by", "corrected_by")
+    return render(request, "nurses/tally_day.html", {
+        "clinic": clinic,
+        "clinics": [c for c in user_clinic_queryset(request.user).order_by("id") if can_correct_tally(request.user, c)],
+        "date": the_date,
+        "tallies": tallies,
+        "has_day": OperationalDay.objects.filter(clinic=clinic, date=the_date).exists(),
+    })
+
+
+@login_required
+def tally_correct(request, pk: int):
+    tally = get_object_or_404(NurseActionTally.objects.select_related("operational_day__clinic", "nurse"), pk=pk)
+    day = tally.operational_day
+    if not can_correct_tally(request.user, day.clinic):
+        raise PermissionDenied("Koreksi tally hanya oleh Koordinator Shift cabang ini, Direktur Operasional, atau pemegang hak koreksi tally.")
+    nurses = User.objects.filter(
+        is_active=True, user_roles__role=Role.PERAWAT
+    ).distinct().order_by("display_name", "username")
+    if request.method == "POST":
+        nurse = nurses.filter(pk=request.POST.get("perawat") or tally.nurse_id).first()
+        try:
+            correct_tally(tally, user=request.user, amount=request.POST.get("jumlah", ""), nurse=nurse,
+                          action_name=request.POST.get("tindakan", ""), reason=request.POST.get("alasan", ""))
+            messages.success(request, "Tally dikoreksi. Total bulanan ikut diperbarui.")
+            from django.urls import reverse
+
+            return redirect(f"{reverse('nurses:tally_day')}?cabang={day.clinic_id}&tanggal={day.date.isoformat()}")
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+    return render(request, "nurses/tally_correct.html", {"tally": tally, "day": day, "nurses": nurses})

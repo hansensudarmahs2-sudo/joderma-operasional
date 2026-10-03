@@ -68,8 +68,10 @@ class AuditItem(models.Model):
         return f"{self.get_cadence_display()} {self.number}. {self.title}"
 
     def applies_to(self, clinic) -> bool:
+        from core.services import clinic_key
+
         codes = list(self.clinic_codes or [])
-        return not codes or clinic.code in codes
+        return not codes or clinic.code in codes or clinic_key(clinic) in codes
 
     def to_snapshot(self) -> dict:
         return {

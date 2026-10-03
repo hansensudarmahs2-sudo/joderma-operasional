@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Koreksi tally{% endblock %}
+{% block content %}
+<p><a href="{% url 'nurses:tally_day' %}?cabang={{ day.clinic_id }}&tanggal={{ day.date|date:'Y-m-d' }}">← Tally {{ day.date|date:"d/m/Y" }}</a></p>
+<h1>Koreksi tally</h1>
+<p class="sub">{{ day.clinic.name }} · {{ day.date|date:"l, d/m/Y" }} · {{ tally.rm_number }} {{ tally.patient_name }} · dicatat {{ tally.entered_by }} pukul {{ tally.created_at|date:"H.i" }}</p>
+<form method="post" class="card">
+  {% csrf_token %}
+  <div class="inline">
+    <div><label for="jumlah">Jumlah</label><input id="jumlah" type="number" name="jumlah" min="0" max="20" value="{{ tally.tally }}" required style="max-width:7rem"></div>
+    <div><label for="perawat">Perawat</label>
+      <select id="perawat" name="perawat">{% for n in nurses %}<option value="{{ n.pk }}"{% if n.pk == tally.nurse_id %} selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
+    <div><label for="tindakan">Tindakan</label><input id="tindakan" name="tindakan" value="{{ tally.action_name }}" maxlength="160"></div>
+  </div>
+  <p class="help">Jumlah 0 berarti tally ini dibatalkan (mis. tercatat dua kali).</p>
+  <label for="alasan">Alasan koreksi</label>
+  <input id="alasan" name="alasan" required maxlength="250" placeholder="Mis. tercatat dua kali untuk pasien yang sama">
+  <p><button class="btn" type="submit">Simpan koreksi</button></p>
+</form>
+{% endblock %}

@@ -13,9 +13,12 @@ diberikan admin. Anda harus terhubung Tailscale dan memakai akun pribadi.
 2. Masuk **Pembukaan**, isi setiap area (akses umum, komputer, ruang konsultasi,
    ruang tindakan).
 3. Untuk tiap item pilih hasil: OK, Tidak lengkap, Rusak, atau Tidak berlaku.
-   - Bila bukan OK, **catatan wajib diisi**.
+   - Butir yang beres: tekan **Check**.
+   - Butir bermasalah: buka **Ada masalah?** di bawah butir itu, pilih hasilnya, tulis
+     masalahnya (**wajib**), dan bila perlu lampirkan **foto** (opsional, dikecilkan otomatis).
+     Jangan memotret wajah atau data pasien.
    - Item bertipe jumlah: isi jumlah aktual yang Anda hitung.
-   - Item **Rusak** → tekan *Buat laporan kerusakan*.
+   - Item **Rusak** → tekan *Buat laporan kerusakan* (foto butir ikut terbawa).
    - Item **Tidak lengkap** → tekan *Buat tindak lanjut kekurangan*.
 4. Front desk mencatat **Kas awal**: isi jumlah lembar per pecahan (total dihitung
    otomatis), isi uang modal yang diharapkan, lalu **Ajukan verifikasi**.
@@ -25,12 +28,19 @@ diberikan admin. Anda harus terhubung Tailscale dan memakai akun pribadi.
    pengecualian* disertai alasan.
 7. Di **Hari Ini**, jalankan aksi **Tandai siap** lalu **Buka klinik**.
 
+## Cabang yang tampil
+
+Cabang aktif tampil di kanan atas. Akun yang bekerja di dua cabang bisa menggantinya dari
+pilihan di sana; pilihan itu berlaku untuk hari ini saja. Tanpa memilih, sistem memakai
+cabang tugas di jadwal jaga hari ini, atau cabang asal bila Anda sedang off.
+
 ## Sepanjang hari
 
 - **Tugas saya** (paling atas di **Hari Ini**): task yang dikirim Direktur atau PIC kepada Anda,
   dari cabang mana pun, termasuk task yang dikirim ke beberapa orang atau ke satu peran. Tampil
   walau sesi hari operasional belum dibuat. Yang lewat target bertanda merah dan berada paling
-  atas. Bila sudah dikerjakan, tekan **Ajukan selesai**; task tetap tampil dengan tanda
+  atas. Bila sudah dikerjakan, tekan **Ajukan selesai**, tulis catatan singkat dan lampirkan
+  **foto bukti** bila ada (opsional), lalu **Kirim**; task tetap tampil dengan tanda
   **Menunggu konfirmasi** sampai pemberi task mengonfirmasi. Task bersama harus **Ambil task**
   dulu. Daftar lengkap ada di **Semua task saya**.
 - **Antrean**: tambah pasien, ubah status (check-in → menunggu → dipanggil →
@@ -52,17 +62,18 @@ diberikan admin. Anda harus terhubung Tailscale dan memakai akun pribadi.
   | Kerusakan | **+ Laporkan kerusakan** | ringkasan, lokasi/aset, dampak |
 
   Form hanya menampilkan field yang relevan dengan tipe yang dipilih, jadi
-  daftarnya pendek. Field bertanda `*` wajib diisi. Komplain sensitif dapat
+  daftarnya pendek. Field bertanda `*` wajib diisi. **Foto** (opsional) bisa langsung
+  dilampirkan, misalnya kerusakan alat. Komplain sensitif dapat
   ditandai **Terbatas** — hanya pembuat, penanggung jawab, supervisor, dan owner
   yang bisa membukanya.
 
 ## Sore: menutup hari
 
-1. Front desk mencatat **Kas akhir** dan mengajukan verifikasi.
-2. Orang kedua memverifikasi.
-3. Supervisor: **Mulai penutupan** → **Tutup hari**. Bila masih ada kas akhir yang
-   belum selesai atau catatan kritis belum ditriase, penutupan hanya dapat dilakukan
-   dengan alasan override.
+1. Front desk mencatat **Kas akhir** dan **Ajukan verifikasi**.
+2. Koordinator Shift: di **Hari Ini** pilih **Tutup hari**. Cukup kas akhir sudah
+   **diajukan**; verifikasi oleh Direktur Operasional boleh menyusul, juga sesudah hari
+   ditutup. Bila kas akhir belum diajukan atau ada catatan kritis belum ditriase, penutupan
+   hanya dapat dilakukan dengan alasan.
 4. Hari tertutup bersifat read-only. Koreksi hanya lewat *Buka kembali* oleh
    supervisor disertai alasan.
 

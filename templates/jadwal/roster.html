@@ -20,7 +20,7 @@
   <tbody>
   {% for p in grid.people %}
     <tr><th class="name">{{ p.user }}{% if not p.home %} <span class="meta">(perbantuan)</span>{% endif %}</th>
-      {% for c in p.row %}<td class="dc-{{ c.code|default:'none' }}" title="{{ c.label }}">{{ c.code }}</td>{% endfor %}
+      {% for c in p.row %}<td class="dc-{{ c.code|default:'none' }}" title="{{ c.label }}">{% if p.editable %}<button type="button" class="dc-edit" data-orang="{{ p.user.pk }}" data-nama="{{ p.user }}" data-tanggal="{{ c.date|date:'Y-m-d' }}" data-kode="{{ c.code }}" data-label="{{ c.date|date:'D d/m' }}: {{ c.label }}" aria-label="Ubah {{ p.user }} {{ c.date|date:'d/m' }} ({{ c.label }})">{{ c.code|default:'·' }}</button>{% else %}{{ c.code }}{% endif %}</td>{% endfor %}
       <td class="num">{{ p.working }}</td></tr>
   {% endfor %}
   </tbody>
@@ -32,19 +32,55 @@
 {% endif %}
 
 {% if can_edit %}
+<dialog id="ubah-jadwal" class="duty-dialog" aria-labelledby="ubah-judul">
+  <form method="post">{% csrf_token %}
+    <input type="hidden" name="cabang" value="{{ clinic.pk }}"><input type="hidden" name="bulan" value="{{ month.value }}">
+    <input type="hidden" name="orang" id="dlg-orang"><input type="hidden" name="tanggal" id="dlg-tanggal">
+    <h2 id="ubah-judul" style="margin-top:0"></h2>
+    <p class="meta" id="dlg-label"></p>
+    <label for="dlg-status">Status</label>
+    <select id="dlg-status" name="status">{% for v, l in statuses %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+    <label for="dlg-tujuan">Perbantuan ke</label>
+    <select id="dlg-tujuan" name="tujuan"><option value="">—</option>{% for c in other_clinics %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}{% if clinic %}<option value="{{ clinic.pk }}">{{ clinic.name }}</option>{% endif %}</select>
+    <label for="dlg-catatan">Catatan</label><input id="dlg-catatan" name="catatan" placeholder="mis. tukar off dengan Lia">
+    <p class="help">Untuk hari ini dan sesudahnya, porsi tugas dan giliran perawat ikut menyesuaikan.</p>
+    <div class="button-row"><button class="btn" type="submit">Simpan</button>
+      <button class="btn secondary" type="button" data-dlg-close>Batal</button></div>
+  </form>
+</dialog>
 <div class="card">
   <h2>Ubah satu tanggal</h2>
+  <p class="meta">Ketuk kotak di tabel untuk mengubah satu orang pada satu tanggal, atau isi form ini.
+  Perubahan tercatat di audit.</p>
   <form method="post" class="inline">{% csrf_token %}
     <input type="hidden" name="cabang" value="{{ clinic.pk }}"><input type="hidden" name="bulan" value="{{ month.value }}">
-    <div><label for="orang">Nama</label><select id="orang" name="orang" required>{% for p in grid.people %}{% if p.home %}<option value="{{ p.user.pk }}">{{ p.user }}</option>{% endif %}{% endfor %}</select></div>
+    <div><label for="orang">Nama</label><select id="orang" name="orang" required>{% for p in grid.people %}{% if p.editable %}<option value="{{ p.user.pk }}">{{ p.user }}</option>{% endif %}{% endfor %}</select></div>
     <div><label for="tanggal">Tanggal</label><input id="tanggal" name="tanggal" type="date" required></div>
     <div><label for="status">Status</label><select id="status" name="status">{% for v, l in statuses %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
     <div><label for="tujuan">Perbantuan ke</label><select id="tujuan" name="tujuan"><option value="">—</option>{% for c in other_clinics %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
     <div><label for="catatan">Catatan</label><input id="catatan" name="catatan"></div>
     <button class="btn" type="submit">Simpan</button>
   </form>
-  <p class="meta">Hanya orang yang cabang asalnya {{ clinic.name }}. Perubahan tercatat di audit. Sesudah mengubah jadwal, susun ulang pembagian tugas bila perlu.</p>
 </div>
+<script>
+(function () {
+  var dlg = document.getElementById('ubah-jadwal');
+  if (!dlg || typeof dlg.showModal !== 'function') return;
+  document.querySelectorAll('.dc-edit').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.getElementById('dlg-orang').value = b.dataset.orang;
+      document.getElementById('dlg-tanggal').value = b.dataset.tanggal;
+      document.getElementById('ubah-judul').textContent = b.dataset.nama;
+      document.getElementById('dlg-label').textContent = b.dataset.label;
+      var map = {M: 'MASUK', B: 'PERBANTUAN', P: 'PERBANTUAN', O: 'OFF', C: 'CUTI'};
+      if (map[b.dataset.kode]) document.getElementById('dlg-status').value = map[b.dataset.kode];
+      document.getElementById('dlg-catatan').value = '';
+      dlg.showModal();
+    });
+  });
+  dlg.querySelector('[data-dlg-close]').addEventListener('click', function () { dlg.close(); });
+})();
+</script>
 {% endif %}
 {% if nav_can_team_plan %}<p><a class="btn small secondary" href="{% url 'jadwal:plan' %}?cabang={{ clinic.pk }}&bulan={{ month.value }}">Pembagian tugas bulan ini →</a></p>{% endif %}
 {% endblock %}

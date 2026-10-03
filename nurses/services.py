@@ -611,3 +611,71 @@ def set_availability(
     )
     log_update(roster_entry, before, actor=user, reason=reason)
     return roster_entry
+
+
+
+# --- Koreksi tally ---------------------------------------------------------------
+
+
+def can_correct_tally(user, clinic) -> bool:
+    """Koordinator Shift cabang itu, Direktur Operasional, atau pemegang hak khusus
+    "Mengoreksi tally" (`Capability.TALLY_CORRECT`) di cabang yang dapat ia akses
+    (keputusan 3 Okt 2026). Hak khusus tidak ikut hilang saat peran direset."""
+    from accounts.models import Capability
+    from core.permissions import can_access_clinic, caps, is_aom
+
+    if is_aom(user):
+        return True
+    if not can_access_clinic(user, clinic):
+        return False
+    return Capability.TALLY_CORRECT in caps(user) or user.user_roles.filter(
+        clinic=clinic, role="SUPERVISOR"
+    ).exists()
+
+
+@transaction.atomic
+def correct_tally(tally: NurseActionTally, *, user, amount: int, nurse=None, action_name: str = "",
+                  reason: str) -> NurseActionTally:
+    """Ubah jumlah (0 = batal), perawat, atau nama tindakan satu catatan tally.
+
+    Total bulanan dihitung dari catatan tally, jadi ikut terkoreksi. Hitungan giliran hari itu
+    di papan (`turns_taken`) disesuaikan dengan selisihnya. Wajib alasan; diaudit sebagai
+    CORRECTION.
+    """
+    from audit.models import AuditAction
+    from audit.services import log_update, snapshot
+
+    day = tally.operational_day
+    if not can_correct_tally(user, day.clinic):
+        raise PermissionDenied("Koreksi tally hanya oleh Koordinator Shift cabang ini, Direktur Operasional, atau pemegang hak koreksi tally.")
+    reason = (reason or "").strip()
+    if not reason:
+        raise ValidationError("Tuliskan alasan koreksi.")
+    try:
+        amount = int(amount)
+    except (TypeError, ValueError):
+        raise ValidationError("Jumlah tidak valid.")
+    if amount < 0 or amount > 20:
+        raise ValidationError("Jumlah harus antara 0 dan 20 (0 berarti tally dibatalkan).")
+    nurse = nurse or tally.nurse
+    action_name = (action_name or "").strip() or tally.action_name
+    if amount == tally.tally and nurse.pk == tally.nurse_id and action_name == tally.action_name:
+        raise ValidationError("Tidak ada yang berubah.")
+
+    before = snapshot(tally)
+    old_nurse_id, old_amount = tally.nurse_id, tally.tally
+    tally.tally = amount
+    tally.nurse = nurse
+    tally.action_name = action_name
+    tally.corrected_by = user
+    tally.corrected_at = timezone.now()
+    tally.correction_reason = reason[:250]
+    tally.save()
+    log_update(tally, before, actor=user, reason=reason, action=AuditAction.CORRECTION)
+
+    for nurse_id, delta in ((old_nurse_id, -old_amount), (nurse.pk, amount)):
+        entry = NurseRosterEntry.objects.filter(operational_day=day, nurse_id=nurse_id).first()
+        if entry is not None and delta:
+            entry.turns_taken = max(0, entry.turns_taken + delta)
+            entry.save(update_fields=["turns_taken"])
+    return tally

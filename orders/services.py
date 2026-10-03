@@ -28,9 +28,9 @@ def normalize_rm_number(clinic, raw_value: str) -> str:
         return f"JC-{raw[1:]}"
     if raw.startswith("J"):
         return f"JJ-{raw[1:]}"
-    code = (getattr(clinic, "code", "") or "").lower()
-    prefix = "JJ-" if "jemur" in code else "JC-" if "citraland" in code else "J_-"
-    return f"{prefix}{raw}"
+    from core.services import rm_prefix
+
+    return f"{rm_prefix(clinic)}{raw}"
 
 
 def can_manage_online_orders(user):

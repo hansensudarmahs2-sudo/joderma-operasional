@@ -88,10 +88,14 @@ def test_staff_on_duty_follows_roster(tim, cabang):
     assert "desy" not in {u.username for u in staff_on_duty(jmr, d(12))}  # libur tetap Senin
 
 
-def test_only_director_edits_roster(tim, cabang, direktur):
-    jmr, _ = cabang
-    with pytest.raises(PermissionDenied):
-        set_duty(user=tim["lia"], day=d(2), status=DutyStatus.OFF, home_clinic=jmr, actor=tim["heni"])
+def test_who_edits_roster(tim, cabang, direktur):
+    """Direktur: semua orang. Koordinator Shift: orang yang cabang asalnya cabangnya (3 Okt 2026)."""
+    jmr, ctl = cabang
+    with pytest.raises(PermissionDenied):  # perawat biasa
+        set_duty(user=tim["lia"], day=d(2), status=DutyStatus.OFF, home_clinic=jmr, actor=tim["alya"])
+    with pytest.raises(PermissionDenied):  # Koordinator Shift Jemur tidak mengubah staf Citraland
+        set_duty(user=tim["silvi"], day=d(2), status=DutyStatus.OFF, home_clinic=ctl, actor=tim["heni"])
+    set_duty(user=tim["lia"], day=d(3), status=DutyStatus.OFF, home_clinic=jmr, actor=tim["heni"])
     row = set_duty(user=tim["lia"], day=d(2), status=DutyStatus.OFF, home_clinic=jmr, actor=direktur)
     assert row.clinic is None
     with pytest.raises(ValidationError):

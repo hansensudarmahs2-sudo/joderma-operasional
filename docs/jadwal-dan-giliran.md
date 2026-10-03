@@ -22,8 +22,26 @@ Menu **Jadwal Jaga**. Satu baris per orang, satu kolom per tanggal:
 | O | Off |
 | C | Cuti |
 
-Semua staf dapat membaca jadwal cabangnya. Yang mengubah hanya Direktur
-Operasional atau Admin, per tanggal, tercatat di audit.
+Semua staf dapat membaca jadwal cabangnya. Yang mengubah (keputusan 3 Oktober 2026):
+
+- **Direktur Operasional** dan Admin: siapa pun, di kedua cabang.
+- **Koordinator Shift**: staf yang cabang asalnya cabang koordinasinya, termasuk
+  mengirimnya perbantuan ke cabang lain. Staf perbantuan dari cabang lain diubah
+  oleh Koordinator Shift cabang asalnya atau oleh Direktur.
+
+Dua cara, keduanya tercatat di audit:
+
+1. **Bulanan**: ketuk satu kotak di tabel Jadwal Jaga, pilih Masuk / Perbantuan
+   (dan cabang tujuannya) / Off / Cuti, Simpan.
+2. **Harian**: Pembagian Tugas ▸ klik tanggal ▸ **Siapa bertugas hari ini**; ubah
+   status tiap orang langsung dari daftar.
+
+Untuk hari ini dan sesudahnya, perubahan langsung terasa: porsi tugas orang yang
+tidak lagi bertugas di cabang itu dilepas (juga porsi manual) dan diisi orang lain
+yang bertugas mengikuti aturan penyusunan di bawah, tanpa mengacak porsi orang lain;
+roster giliran perawat hari itu ikut diperbarui. Tanggal yang sudah lewat hanya
+mencatat ulang jadwalnya. Cabang asal orang itu tidak berubah saat ia diubah dari
+halaman cabang lain.
 
 Jadwal satu bulan diimpor dari berkas JSON (bentuknya: `jadwal/jadwal_bulanan/jadwal-2026-10.json`,
 disalin dari "JADWAL LIBUR OCTOBER 2026.pdf"):

@@ -4,6 +4,7 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -11,6 +12,7 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 
 from core import task_services
+from core.photos import SOURCE_PHOTO_ENTITY, photos_for, save_optional_photo
 from core.models import ActionItem, ActionItemStatus, Priority, TaskAssignment, TaskAssignmentStatus, local_today
 from core.permissions import is_aom, require, user_clinic_queryset
 
@@ -224,6 +226,7 @@ def checklist(request):
         return redirect("core:dashboard")
     today = local_today()
     summary = services.pending_summary(clinic, today)
+    rows = services.board(clinic, cadence, today)
     return render(
         request,
         "direktur/checklist.html",
@@ -234,7 +237,8 @@ def checklist(request):
             "cadences": Cadence.choices,
             "summary": summary,
             "period_start": period_start(cadence, today),
-            "rows": services.board(clinic, cadence, today),
+            "rows": rows,
+            "photos": photos_for("auditcheck", [r["check"].pk for r in rows if r.get("check")]),
             "results": CheckResult.choices,
             "targets": services.target_choices(clinic),
             "priorities": Priority.choices,
@@ -272,18 +276,8 @@ def record(request, item_id: int):
         messages.error(request, "Cabang tidak valid.")
         return redirect(back)
     try:
-        check = services.record_check(
-            item=item,
-            clinic=clinic,
-            actor=request.user,
-            result=request.POST.get("hasil", ""),
-            note=request.POST.get("catatan", ""),
-            direct=request.POST.get("langsung") == "1",
-            reason=request.POST.get("alasan", ""),
-            target=request.POST.get("penerima", ""),
-            due_at=services.parse_due(request.POST.get("batas", "")),
-            priority=request.POST.get("prioritas") or Priority.SEDANG,
-        )
+        with transaction.atomic():
+            check = _record_check_with_photo(request, item, clinic)
     except ValidationError as exc:
         _errors(request, exc)
     else:
@@ -292,6 +286,23 @@ def record(request, item_id: int):
         else:
             messages.success(request, f"{item.title}: {check.get_result_display().lower()}.")
     return redirect(f"{back}#butir-{item.pk}")
+
+
+def _record_check_with_photo(request, item, clinic):
+    check = services.record_check(
+        item=item,
+        clinic=clinic,
+        actor=request.user,
+        result=request.POST.get("hasil", ""),
+        note=request.POST.get("catatan", ""),
+        direct=request.POST.get("langsung") == "1",
+        reason=request.POST.get("alasan", ""),
+        target=request.POST.get("penerima", ""),
+        due_at=services.parse_due(request.POST.get("batas", "")),
+        priority=request.POST.get("prioritas") or Priority.SEDANG,
+    )
+    save_optional_photo(request, entity_type="auditcheck", entity_id=check.pk)
+    return check
 
 
 @login_required
@@ -515,12 +526,16 @@ def task_detail(request, pk: int):
         for a in assignments
     ]
     is_open = item.status not in (ActionItemStatus.SELESAI, ActionItemStatus.BATAL)
+    entity = SOURCE_PHOTO_ENTITY.get(item.source_type)
     return render(
         request,
         "direktur/task_detail.html",
         {
             "item": item,
             "rows": rows,
+            "source_photos": photos_for(entity, [item.source_id]).get(item.source_id, [])
+            if entity and item.source_id else [],
+            "evidence_photos": photos_for("taskassignment", [a.pk for a in assignments]),
             "events": item.task_events.select_related("actor", "assignment__assignee"),
             "source": dict(dashboard.SOURCE_CHOICES).get(dashboard.source_group(item), "Modul lain"),
             "column": dict(dashboard.COLUMNS).get(dashboard.kanban_column(item, assignments)),

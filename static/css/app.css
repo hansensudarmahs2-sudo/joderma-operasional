@@ -452,3 +452,56 @@ a.request-row:hover { background: #f7faf9; }
 .my-tasks { margin: 0.4rem 0 1rem; border-left: 4px solid var(--teal); }
 .my-tasks .is-waiting { opacity: 0.75; }
 .inline-form { display: inline; margin: 0; }
+
+/* --- Cabang aktif / pengalih cabang (kanan atas) --- */
+.clinic-name { font-size: 0.85rem; opacity: 0.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clinic-switch { margin: 0; min-width: 0; }
+.clinic-switch select {
+  min-height: 32px; padding: 0.15rem 1.6rem 0.15rem 0.5rem; width: auto; max-width: 13rem;
+  font-size: 0.85rem; color: #fff; background-color: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 8px;
+}
+.clinic-switch select option { color: var(--ink); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 600px) {
+  /* HP: nama aplikasi memberi tempat untuk cabang aktif (tombol menu tetap ada). */
+  .topbar:has(.clinic-switch) .brand, .topbar:has(.clinic-name) .brand { display: none; }
+  .clinic-switch { flex: 0 1 auto; }
+  .clinic-switch select { width: 100%; max-width: 11rem; }
+  .clinic-name { max-width: 11rem; }
+}
+
+/* Foto lampiran (core/photos.py) */
+.photo-thumbs { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.photo-thumbs img { width: 72px; height: 72px; object-fit: cover; border-radius: 6px;
+  border: 1px solid var(--line); display: block; background: #f3f4f6; }
+.photo-preview { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.photo-preview img { max-width: 120px; max-height: 120px; border-radius: 6px; object-fit: cover; }
+.checklist-photos, .checklist-problem { grid-column: 2 / -1; }
+.checklist-problem summary { cursor: pointer; font-size: .82rem; color: var(--muted); padding: .15rem 0; }
+.checklist-problem[open] summary { color: var(--ink); font-weight: 600; }
+.stack-form { display: grid; gap: .35rem; max-width: 520px; padding: .4rem 0 .2rem; }
+.stack-form label { font-size: .82rem; margin: .2rem 0 0; }
+.stack-form .field-row { margin: 0; }
+.stack-form .btn { justify-self: start; }
+.task-submit { margin-top: .35rem; }
+.task-submit > summary { list-style: none; display: inline-flex; cursor: pointer; }
+.task-submit > summary::-webkit-details-marker { display: none; }
+.task-submit[open] > summary { display: none; }
+
+/* --- Jadwal: ubah per tanggal dan siapa bertugas --- */
+.duty-grid td .dc-edit { all: unset; display: block; width: 100%; min-height: 1.6rem; text-align: center;
+  cursor: pointer; border-radius: 4px; }
+.duty-grid td .dc-edit:hover, .duty-grid td .dc-edit:focus-visible { outline: 2px solid var(--teal); }
+.duty-dialog { border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; width: min(26rem, 92vw); }
+.duty-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+.duty-dialog select, .duty-dialog input { width: 100%; }
+.duty-people-list { list-style: none; margin: 0; padding: 0; }
+.duty-person { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem .8rem;
+  padding: .5rem 0; border-bottom: 1px solid var(--line); }
+.duty-person:last-child { border-bottom: 0; }
+.duty-person-name { display: flex; flex-direction: column; min-width: 10rem; }
+.duty-person-form { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin: 0; }
+.duty-person-form select { width: auto; min-width: 12rem; }
+.duty-person-form input { width: 9rem; }
+@media (max-width: 640px) { .duty-person-form, .duty-person-form select { width: 100%; } .duty-person-form input { flex: 1; } }

@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% load foto %}
 {% block title %}{{ heading }}{% endblock %}
 {% block content %}
 <h1>{{ heading }}</h1>
 <p class="sub">{{ subtitle }} Jangan menuliskan diagnosis atau catatan medis.</p>
 
 <div class="card" style="max-width:680px">
-  <form method="post" id="issue-form">
+  <form method="post" id="issue-form" enctype="multipart/form-data">
     {% csrf_token %}
 
     {% for field in form %}
@@ -25,6 +26,7 @@
       </div>
     {% endfor %}
 
+    {% foto_input "Foto (opsional)" "foto" "Misalnya kerusakan alat atau kondisi ruangan. Jangan memotret wajah atau data pasien." %}
     <p class="help">Tanda * berarti wajib diisi.</p>
     <button class="btn" type="submit">Simpan catatan</button>
     <a class="btn secondary" href="{% url 'issues:list' %}{% if initial_type %}?tipe={{ initial_type }}{% endif %}">Batal</a>

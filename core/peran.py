@@ -67,6 +67,7 @@ OWNER_ALLOWED = COMMON | {
     "direktur:decision_detail",
     "jadwal:roster",
     "stok:index",  # Stok Apotek, baca saja; unggah dan parameter tetap ditolak
+    "core:attachment",  # foto permintaan/temuan; izin per lampiran diperiksa di view
 }
 
 # Admin sistem: daftar yang BOLEH. Tidak mengisi checklist, kas, atau data operasional.

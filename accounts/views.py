@@ -320,3 +320,24 @@ def role_reset(request):
             "default_password": DEFAULT_PASSWORD,
         },
     )
+
+
+@login_required
+@require_POST
+def switch_clinic(request):
+    """Pengalih cabang di kanan atas: berlaku untuk hari ini, hanya cabang yang dapat diakses."""
+    from core.models import local_today
+    from core.permissions import user_clinic_queryset
+    from core.services import CLINIC_SESSION_KEY
+
+    clinic = user_clinic_queryset(request.user).filter(pk=request.POST.get("cabang") or 0).first()
+    if clinic is None:
+        messages.error(request, "Cabang tidak tersedia untuk akun Anda.")
+    else:
+        request.session[CLINIC_SESSION_KEY] = {"id": clinic.pk, "date": local_today().isoformat()}
+        messages.success(request, f"Bekerja di {clinic.name} untuk hari ini.")
+    nxt = request.POST.get("next", "")
+    if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()},
+                                               require_https=request.is_secure()):
+        return redirect(nxt)
+    return redirect("home")

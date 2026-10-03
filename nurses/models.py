@@ -210,6 +210,12 @@ class NurseActionTally(models.Model):
     tally = models.PositiveIntegerField("jumlah", default=1)
     entered_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="nurse_tallies_entered")
     created_at = models.DateTimeField(auto_now_add=True)
+    # Koreksi oleh Koordinator Shift / Direktur Operasional (riwayat lengkap ada di audit log).
+    corrected_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    corrected_at = models.DateTimeField(null=True, blank=True)
+    correction_reason = models.CharField("alasan koreksi", max_length=250, blank=True)
 
     class Meta:
         ordering = ("-created_at", "-id")

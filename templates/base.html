@@ -14,6 +14,18 @@
 <header class="topbar">
   <button type="button" class="nav-toggle" aria-controls="main-nav" aria-expanded="false" aria-label="Buka menu">&#9776;</button>
   <a class="brand" href="{% url 'home' %}">JoDerma Staff Ops</a>
+  {% if nav_clinic_choices %}
+  <form method="post" action="{% url 'accounts:switch_clinic' %}" class="clinic-switch" data-no-guard="1">
+    {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <label class="visually-hidden" for="pilih-cabang">Cabang</label>
+    <select id="pilih-cabang" name="cabang" onchange="this.form.submit()">
+      {% for c in nav_clinic_choices %}<option value="{{ c.pk }}"{% if nav_clinic and c.pk == nav_clinic.pk %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+    <noscript><button class="btn small secondary" type="submit">Ganti</button></noscript>
+  </form>
+  {% elif nav_clinic and nav_persona != "OWNER" %}
+  <span class="clinic-name">{{ nav_clinic.name }}</span>
+  {% endif %}
   <span class="spacer"></span>
   <a class="bell" href="{% url 'notifications:list' %}" title="Notifikasi"
      aria-label="Notifikasi{% if unread_notifications %}, {{ unread_notifications }} belum dibaca{% endif %}">
@@ -123,6 +135,43 @@ document.querySelectorAll('input[type="password"]').forEach(function (input) {
     button.setAttribute('aria-label', visible ? 'Tampilkan kata sandi' : 'Sembunyikan kata sandi');
   });
   wrapper.appendChild(button);
+});
+// Foto dari kamera HP dikecilkan di browser sebelum diunggah (server tetap mengompres ulang).
+document.querySelectorAll('input[type=file][data-photo]').forEach(function (input) {
+  var preview = document.createElement('div');
+  preview.className = 'photo-preview';
+  input.insertAdjacentElement('afterend', preview);
+  input.addEventListener('change', function () {
+    var file = input.files && input.files[0];
+    preview.textContent = '';
+    if (!file || !/^image\//.test(file.type)) return;
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      var max = 1600, w = img.naturalWidth, h = img.naturalHeight, k = Math.min(1, max / Math.max(w, h));
+      var thumb = document.createElement('img');
+      thumb.src = url; thumb.alt = 'Pratinjau foto';
+      preview.appendChild(thumb);
+      if (k === 1 && file.size < 800 * 1024) return;
+      if (typeof DataTransfer === 'undefined') return;
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(w * k); canvas.height = Math.round(h * k);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(function (blob) {
+        if (!blob || blob.size >= file.size) return;
+        try {
+          var dt = new DataTransfer();
+          dt.items.add(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
+          input.files = dt.files;
+          var note = document.createElement('span');
+          note.className = 'meta';
+          note.textContent = ' ' + Math.round(file.size / 1024) + ' KB → ' + Math.round(blob.size / 1024) + ' KB';
+          preview.appendChild(note);
+        } catch (e) {}
+      }, 'image/jpeg', 0.8);
+    };
+    img.src = url;
+  });
 });
 document.addEventListener('submit', function (e) {
   var form = e.target;

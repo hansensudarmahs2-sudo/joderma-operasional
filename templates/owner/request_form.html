@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% load foto %}
 {% block title %}Permintaan baru{% endblock %}
 {% block content %}
 <p><a href="{% url 'owner:dashboard' %}">← Dashboard</a></p>
 <h1>Permintaan baru</h1>
 <p class="sub">Dikirim ke Direktur Operasional. Ia memecahnya menjadi task; progresnya tampil di dashboard Anda.</p>
-<form method="post" class="card">
+<form method="post" class="card" enctype="multipart/form-data">
   {% csrf_token %}
   <label for="judul">Apa yang diminta</label>
   <input id="judul" name="judul" maxlength="200" required value="{{ form.judul }}" placeholder="Mis. Rapikan alur pendaftaran pasien baru">
@@ -12,6 +13,7 @@
   <textarea id="rincian" name="rincian" rows="5" placeholder="Latar belakang, hasil yang diharapkan">{{ form.rincian }}</textarea>
   <label for="target">Target selesai</label>
   <input id="target" type="date" name="target" required min="{{ today|date:'Y-m-d' }}" value="{{ form.target }}" style="max-width:14rem">
+  {% foto_input "Foto temuan (opsional)" "foto" "Misalnya kondisi di klinik yang perlu dibereskan." %}
   <p class="help">Bila target perlu diubah atau tidak terpenuhi, Direktur membicarakannya langsung dengan Anda atau menulis catatan pada permintaan ini.</p>
   <p><button class="btn" type="submit">Kirim permintaan</button></p>
 </form>

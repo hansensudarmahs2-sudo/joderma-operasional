@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -23,6 +24,7 @@ from core.permissions import (
     is_supervisor,
     require,
 )
+from core.photos import save_optional_photo, save_photo
 from core.services import active_clinic
 
 from .forms import AttachmentForm, IssueForm
@@ -106,26 +108,29 @@ def create(request):
     if request.method == "POST" and form.is_valid():
         data = form.cleaned_data
         try:
-            issue = create_issue(
-                clinic=clinic,
-                issue_type=data["issue_type"],
-                title=data["title"],
-                user=request.user,
-                description=data.get("description", ""),
-                severity=data.get("severity") or Priority.SEDANG,
-                category=data.get("category", ""),
-                is_restricted=data.get("is_restricted", False),
-                is_anonymous=data.get("is_anonymous", False),
-                reporter_source=data.get("reporter_source", ""),
-                reporter_contact=data.get("reporter_contact", ""),
-                channel=data.get("channel", ""),
-                occurred_at=data.get("occurred_at"),
-                followup_preference=data.get("followup_preference", ""),
-                benefit=data.get("benefit", ""),
-                location=data.get("location", ""),
-                asset=data.get("asset"),
-                impact=data.get("impact", ""),
-            )
+            with transaction.atomic():
+                issue = create_issue(
+                    clinic=clinic,
+                    issue_type=data["issue_type"],
+                    title=data["title"],
+                    user=request.user,
+                    description=data.get("description", ""),
+                    severity=data.get("severity") or Priority.SEDANG,
+                    category=data.get("category", ""),
+                    is_restricted=data.get("is_restricted", False),
+                    is_anonymous=data.get("is_anonymous", False),
+                    reporter_source=data.get("reporter_source", ""),
+                    reporter_contact=data.get("reporter_contact", ""),
+                    channel=data.get("channel", ""),
+                    occurred_at=data.get("occurred_at"),
+                    followup_preference=data.get("followup_preference", ""),
+                    benefit=data.get("benefit", ""),
+                    location=data.get("location", ""),
+                    asset=data.get("asset"),
+                    impact=data.get("impact", ""),
+                )
+                save_optional_photo(request, entity_type="issue", entity_id=issue.pk,
+                                    sensitive=issue.is_restricted)
             messages.success(request, f"Catatan {issue.number} dibuat.")
             return redirect("issues:detail", pk=issue.pk)
         except ValidationError as exc:
@@ -167,6 +172,7 @@ def detail(request, pk: int):
             "issue": issue,
             "updates": issue.updates.select_related("author"),
             "attachments": attachments,
+            "photos": [a for a in attachments if (a.mime_type or "").startswith("image/")],
             "next_statuses": sorted(
                 (s, dict(IssueStatus.choices).get(s, s)) for s in issue.allowed_next_statuses()
             ),
@@ -272,7 +278,15 @@ def upload_attachment(request, pk: int):
     form = AttachmentForm(request.POST, request.FILES)
     if form.is_valid():
         upload = form.cleaned_data["file"]
-        if upload.size > settings.ATTACHMENT_MAX_BYTES:
+        if (upload.content_type or "").startswith("image/"):
+            # Foto: dikompres (maks. 20 MB sebelum kompresi), EXIF/GPS dibuang.
+            try:
+                save_photo(upload, entity_type="issue", entity_id=issue.pk, user=request.user,
+                           sensitive=issue.is_restricted)
+                messages.success(request, "Foto diunggah.")
+            except ValidationError as exc:
+                messages.error(request, " ".join(exc.messages))
+        elif upload.size > settings.ATTACHMENT_MAX_BYTES:
             messages.error(request, "Ukuran berkas melebihi batas 5 MB.")
         elif upload.content_type not in settings.ATTACHMENT_ALLOWED_MIME:
             messages.error(request, "Format berkas harus JPG, PNG, atau PDF.")

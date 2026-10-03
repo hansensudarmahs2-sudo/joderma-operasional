@@ -85,6 +85,7 @@ dari perannya. Setiap pemberian tercatat di audit log sebagai `PERMISSION_CHANGE
 | `user.manage` | mengelola pengguna tanpa menjadikan akun tersebut admin teknis |
 | `audit.view` | membaca audit log |
 | `report.export` | mengunduh laporan CSV |
+| `tally.correct` | mengoreksi tally perawat di cabang yang dapat diakses, tanpa peran Koordinator Shift; tidak ikut hilang saat Reset peran (diberikan untuk Regitta, 3 Okt 2026) |
 | `admin.full_access` | seluruh data bisnis sekaligus (lihat bagian berikut) |
 
 ## Kapabilitas `admin.full_access`
@@ -137,7 +138,9 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Pengaturan klinik (nama, alamat, nomor HP, jam, DPJ, APJ): ubah | admin, AOM, superuser bootstrap | — |
 | Pengaturan klinik: baca | (owner dahulu; sejak fase 3 ditolak tampilan Owner) | — |
 | Jadwal jaga dan pembagian tugas: baca | semua pengguna dengan akses cabang | — |
-| Jadwal jaga: ubah; pembagian tugas: susun ulang satu bulan | AOM, admin, superuser bootstrap | — |
+| Jadwal jaga: ubah (harian dan bulanan) | AOM, admin, superuser bootstrap; supervisor (Koordinator Shift) untuk staf yang cabang asalnya cabangnya (keputusan 3 Okt 2026) | — |
+| Pembagian tugas: susun ulang satu bulan | AOM, admin, superuser bootstrap | — |
+| Pembagian tugas: ganti pelaksana satu porsi | AOM, admin, supervisor cabang itu | — |
 | Pembagian tugas: ganti pelaksana satu porsi | AOM, admin, supervisor cabang itu | — |
 | Mengisi butir checklist porsinya walau tidak memegang peran pelaksana (delegasi) | yang ditugaskan pada pembagian tugas hari itu | — |
 | Menggeser urutan papan giliran, menyerahkan pasien ke perawat | supervisor, AOM | — |
@@ -151,6 +154,9 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Mengirim summary harian ke Owner | AOM | — |
 | Stok Apotek: membuka | apoteker, asisten apoteker, AOM, owner | — |
 | Stok Apotek: unggah ekspor Omnicare, ubah parameter | apoteker, asisten apoteker, AOM (keputusan 1 Okt 2026) | — |
+| Mengoreksi tally (jumlah, perawat, tindakan; alasan wajib) | supervisor (Koordinator Shift) cabang itu, AOM (keputusan 3 Okt 2026) | `tally.correct` |
+| Menutup hari sesudah kas akhir diajukan (verifikasi menyusul) | supervisor, AOM | — |
+| Melihat nominal, memverifikasi, mengoreksi kas | front desk (penghitung kedua), supervisor, AOM | — |
 
 ## Fungsi PIC
 
@@ -168,7 +174,20 @@ URL langsung tetap diperiksa server-side: objek issue, action item, lampiran,
 dan aset dari cabang lain harus menghasilkan 403 untuk pengguna tanpa scope.
 
 Staf yang bertugas di dua cabang (perbantuan) memegang peran di keduanya. Cabang
-aktifnya pada hari itu mengikuti jadwal jaga, bukan urutan daftar perannya.
+aktifnya pada hari itu: pilihan di pengalih cabang kanan atas (berlaku hari itu saja)
+→ cabang tugas di jadwal jaga → cabang asal (jadwal terdekat atau satu-satunya cabang
+fungsi PIC) → cabang pertama. Kode cabang dibaca lewat `core.services.clinic_key`
+(Citraland di mini PC berkode `JC`).
+
+## Foto lampiran
+
+Foto (butir checklist bermasalah, Komplain/Masukan/Kerusakan, temuan Direktur dan
+Owner, bukti task) disimpan di luar folder publik dan hanya terbuka lewat
+`core:attachment`, yang memeriksa izin entitas induknya (`core.photos.can_view_attachment`):
+catatan issue mengikuti akses catatannya; butir checklist mengikuti akses run-nya;
+bukti task untuk penerima, pemberi task, AOM, owner, dan supervisor cabang; temuan
+Direktur dan permintaan Owner untuk AOM, owner, dan penerima task tindak lanjutnya.
+Jenis lain hanya AOM. Foto dikompres dan metadata EXIF (termasuk GPS) dibuang.
 
 ## Task dan delegasi
 

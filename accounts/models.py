@@ -178,6 +178,7 @@ class Capability(models.TextChoices):
     USER_MANAGE = "user.manage", "Mengelola pengguna"
     AUDIT_VIEW = "audit.view", "Membaca audit log"
     REPORT_EXPORT = "report.export", "Mengekspor laporan"
+    TALLY_CORRECT = "tally.correct", "Mengoreksi tally perawat (cabang yang dapat diakses)"
     ADMIN_FULL_ACCESS = (
         "admin.full_access",
         "Admin akses penuh (kas, pasien, komplain terbatas, audit)",

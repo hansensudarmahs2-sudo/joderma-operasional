@@ -20,7 +20,8 @@ ada di menu Owner dan ditolak bila alamatnya dibuka langsung.
 ## Permintaan Owner
 
 1. Di Dashboard, tekan **+ Permintaan baru**. Tulis apa yang diminta, rinciannya bila perlu, dan
-   **tanggal target**. Tekan **Kirim permintaan**.
+   **tanggal target**. Temuan di klinik bisa dilampiri **foto** (opsional, dikecilkan otomatis).
+   Tekan **Kirim permintaan**.
 2. Direktur Operasional menerima notifikasi. Ia memecah permintaan menjadi satu atau beberapa task.
 3. Di Dashboard setiap permintaan menampilkan status dan progres dari task-tasknya:
    - **Menunggu Direktur**: belum dipecah menjadi task.
@@ -29,7 +30,8 @@ ada di menu Owner dan ditolak bila alamatnya dibuka langsung.
    - **Lewat target**: target sudah lewat dan belum selesai. Permintaan ini tampil paling atas.
 4. Buka permintaan untuk melihat task-tasknya dan **catatan**. Bila target perlu diubah atau
    tidak terpenuhi, Direktur membicarakannya langsung (WhatsApp) atau menulis catatan di sini.
-   Owner juga dapat menulis catatan. Setiap catatan memberi notifikasi ke pihak lain.
+   Owner juga dapat menulis catatan, juga dengan foto. Setiap catatan memberi notifikasi ke pihak
+   lain. Foto permintaan ikut terlihat oleh penerima task yang dibuat darinya.
 
 Tidak ada tombol tolak atau kembalikan; permintaan hanya dibaca progresnya.
 

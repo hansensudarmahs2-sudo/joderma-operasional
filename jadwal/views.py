@@ -16,7 +16,7 @@ from core.permissions import can_access_clinic, user_clinic_queryset
 from core.services import active_clinic
 
 from . import services
-from .models import DutyPortion, DutyStatus
+from .models import DutyPortion, DutyRoster, DutyStatus
 
 MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September",
           "Oktober", "November", "Desember"]
@@ -52,29 +52,76 @@ def _nav(year: int, month: int) -> dict:
     }
 
 
+def _save_duty(request, clinic) -> None:
+    """Simpan perubahan jadwal satu orang dari form (bulanan atau harian), dengan pesan."""
+    user = get_object_or_404(User, pk=request.POST.get("orang") or 0)
+    try:
+        day = dt.date.fromisoformat(request.POST.get("tanggal", ""))
+    except ValueError:
+        messages.error(request, "Tanggal tidak valid.")
+        return
+    status = request.POST.get("status", "")
+    target = None
+    if ":" in status:  # pilihan gabungan di halaman harian, mis. "PERBANTUAN:2"
+        status, _, target_pk = status.partition(":")
+        target = Clinic.objects.filter(pk=target_pk if target_pk.isdigit() else 0).first()
+    else:
+        target = Clinic.objects.filter(pk=request.POST.get("tujuan") or 0).first()
+    home = services.home_clinic_for(user, day, default=clinic)
+    current = DutyRoster.objects.filter(user=user, date=day).first()
+    wanted_clinic = home if status == DutyStatus.MASUK else (target if status == DutyStatus.PERBANTUAN else None)
+    if current and current.status == status and current.clinic_id == getattr(wanted_clinic, "pk", None) \
+            and not request.POST.get("catatan", "").strip():
+        messages.info(request, f"Jadwal {user} {day:%d/%m} tidak berubah.")
+        return
+    try:
+        row = services.set_duty(user=user, day=day, status=status, home_clinic=home, clinic=target,
+                                actor=request.user, note=request.POST.get("catatan", ""))
+    except PermissionDenied as exc:
+        messages.error(request, str(exc))
+        return
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+        return
+    text = f"Jadwal {user} {day:%d/%m}: {row.get_status_display()}"
+    if row.clinic_id and row.clinic_id != row.home_clinic_id:
+        text += f" ke {row.clinic.name}"
+    sync = getattr(row, "sync", {}) or {}
+    if sync.get("released"):
+        text += f". Porsi dilepas: {', '.join(sync['released'])}"
+    if sync.get("filled"):
+        text += f". Diisi: {'; '.join(sync['filled'])}"
+    messages.success(request, text + ".")
+
+
+def _editable_ids(actor, people, day_or_none=None) -> set[int]:
+    """Orang di daftar yang jadwalnya boleh diubah `actor`."""
+    if services.can_edit_roster(actor):
+        return {p["user"].pk for p in people}
+    out = set()
+    for p in people:
+        home = p.get("home_clinic")
+        if home is not None and services.can_edit_duty(actor, home):
+            out.add(p["user"].pk)
+    return out
+
+
 @login_required
 def roster(request):
     clinic = _clinic(request)
     year, month = _month(request)
     if request.method == "POST":
-        if not services.can_edit_roster(request.user):
-            raise PermissionDenied("Jadwal jaga hanya diubah Direktur Operasional atau Admin.")
-        user = get_object_or_404(User, pk=request.POST.get("orang"))
-        try:
-            day = dt.date.fromisoformat(request.POST.get("tanggal", ""))
-            status = request.POST.get("status", "")
-            target = Clinic.objects.filter(pk=request.POST.get("tujuan") or 0).first()
-            services.set_duty(
-                user=user, day=day, status=status, home_clinic=clinic, clinic=target,
-                actor=request.user, note=request.POST.get("catatan", ""),
-            )
-            messages.success(request, f"Jadwal {user} {day:%d/%m} disimpan.")
-        except ValueError:
-            messages.error(request, "Tanggal tidak valid.")
-        except ValidationError as exc:
-            messages.error(request, " ".join(exc.messages))
+        if not services.can_edit_duty(request.user, clinic):
+            raise PermissionDenied(
+                "Jadwal jaga diubah Direktur Operasional, Admin, atau Koordinator Shift cabang ini.")
+        _save_duty(request, clinic)
         return redirect(f"{reverse('jadwal:roster')}?cabang={clinic.pk}&bulan={year:04d}-{month:02d}")
     grid = services.roster_grid(clinic, year, month)
+    for p in grid["people"]:
+        p["home_clinic"] = clinic if p["home"] else services.home_clinic_for(p["user"], dt.date(year, month, 1))
+    editable = _editable_ids(request.user, grid["people"])
+    for p in grid["people"]:
+        p["editable"] = p["user"].pk in editable
     return render(
         request,
         "jadwal/roster.html",
@@ -83,12 +130,69 @@ def roster(request):
             "clinics": user_clinic_queryset(request.user),
             "grid": grid,
             "month": _nav(year, month),
-            "can_edit": services.can_edit_roster(request.user),
+            "can_edit": services.can_edit_duty(request.user, clinic),
             "statuses": DutyStatus.choices,
             "other_clinics": Clinic.objects.filter(active=True).exclude(pk=clinic.pk),
             "today": local_today(),
         },
     )
+
+
+def _row_cell(row, clinic) -> dict:
+    """Status satu baris jadwal dilihat dari cabang `clinic`."""
+    if row.status == DutyStatus.MASUK:
+        return {"code": "M", "label": "Masuk" if row.clinic_id == clinic.pk else f"Masuk di {row.clinic.name}"}
+    if row.status == DutyStatus.PERBANTUAN:
+        if row.clinic_id == clinic.pk:
+            return {"code": "B", "label": f"Perbantuan dari {row.home_clinic.name}"}
+        return {"code": "P", "label": f"Perbantuan ke {row.clinic.name}"}
+    if row.status == DutyStatus.CUTI:
+        return {"code": "C", "label": "Cuti"}
+    return {"code": "O", "label": "Off"}
+
+
+def _day_people(clinic, the_day: dt.date) -> list[dict]:
+    """Semua orang yang terkait cabang ini pada tanggal itu, dengan status dan cabang asalnya."""
+    from accounts.models import Role
+
+    grid = services.roster_grid(clinic, the_day.year, the_day.month)
+    index = (the_day - grid["days"][0]).days
+    rows = {r.user_id: r for r in DutyRoster.objects.filter(date=the_day).select_related(
+        "clinic", "home_clinic")}
+    people, seen = [], set()
+    for p in grid["people"]:
+        seen.add(p["user"].pk)
+        row = rows.get(p["user"].pk)
+        home = row.home_clinic if row else (clinic if p["home"] else services.home_clinic_for(p["user"], the_day))
+        people.append({"user": p["user"], "cell": p["row"][index], "row": row, "home_clinic": home})
+    others = (
+        User.objects.filter(is_active=True, user_roles__clinic=clinic)
+        .exclude(pk__in=seen)
+        .exclude(user_roles__role__in=[Role.AOM, Role.OWNER])
+        .distinct()
+    )
+    for u in others:
+        if not (u.role_codes() - {Role.ADMIN}):
+            continue
+        home = services.home_clinic_for(u, the_day, default=clinic)
+        if home != clinic:
+            # Punya jadwal di cabang lain dan tidak ke sini bulan ini (mis. peran lama yang
+            # tertinggal di cabang ini): bukan staf cabang ini, jangan ditampilkan.
+            continue
+        people.append({"user": u, "cell": {"code": "", "label": "Belum diisi"}, "row": rows.get(u.pk),
+                       "home_clinic": home})
+    for p in people:
+        row = p["row"]
+        if row is not None:
+            p["cell"] = _row_cell(row, clinic)
+        if row is None:
+            p["value"] = ""
+        elif row.status == DutyStatus.PERBANTUAN:
+            p["value"] = f"PERBANTUAN:{row.clinic_id}"
+        else:
+            p["value"] = row.status
+    people.sort(key=lambda p: (p["home_clinic"] != clinic, str(p["user"]).lower()))
+    return people
 
 
 @login_required
@@ -124,6 +228,9 @@ def day(request, date: str):
     except ValueError:
         raise PermissionDenied("Tanggal tidak valid.")
     can_swap = services.can_swap_duties(request.user, clinic)
+    if request.method == "POST" and request.POST.get("aksi") == "jadwal":
+        _save_duty(request, clinic)
+        return redirect(f"{reverse('jadwal:day', args=[the_day.isoformat()])}?cabang={clinic.pk}#bertugas")
     if request.method == "POST":
         portion = get_object_or_404(DutyPortion, pk=request.POST.get("porsi"), clinic=clinic)
         users = list(User.objects.filter(pk__in=request.POST.getlist("orang")))
@@ -138,6 +245,7 @@ def day(request, date: str):
                 messages.error(request, " ".join(exc.messages))
         return redirect(f"{reverse('jadwal:day', args=[the_day.isoformat()])}?cabang={clinic.pk}")
     staff = services.staff_on_duty(clinic, the_day)
+    all_clinics = list(Clinic.objects.filter(active=True).order_by("id"))
     assigned = services.assignments_by_portion(clinic, the_day)
     rows = []
     for portion in DutyPortion.objects.filter(clinic=clinic, active=True).order_by("sort_order"):
@@ -157,12 +265,27 @@ def day(request, date: str):
     order = ["OPENING", "KAS", "KEBERSIHAN", "LIMBAH", "APOTEK", "CLOSING"]
     rows.sort(key=lambda r: (order.index(r["portion"].group) if r["portion"].group in order else 99,
                              r["portion"].sort_order))
+    people = _day_people(clinic, the_day)
+    editable = _editable_ids(request.user, people)
+    for p in people:
+        p["editable"] = p["user"].pk in editable
+        p["choices"] = [
+            ("MASUK", f"Masuk di {p['home_clinic'].name}" if p["home_clinic"] else "Masuk"),
+            *[(f"PERBANTUAN:{c.pk}", f"Perbantuan ke {c.name}") for c in all_clinics
+              if not p["home_clinic"] or c.pk != p["home_clinic"].pk],
+            ("OFF", "Off"),
+            ("CUTI", "Cuti"),
+        ]
     return render(
         request,
         "jadwal/day.html",
         {
             "clinic": clinic,
             "day": the_day,
+            "people": people,
+            "can_edit_any": any(p["editable"] for p in people),
+            "is_past": the_day < local_today(),
+            "today": local_today(),
             "rows": rows,
             "staff": staff,
             "can_swap": can_swap,

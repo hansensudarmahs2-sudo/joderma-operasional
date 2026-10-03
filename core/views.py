@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.db.models import Q
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -31,6 +32,7 @@ from .models import (
     TaskAssignmentStatus,
     local_today,
 )
+from .photos import save_optional_photo, task_photos
 from .permissions import (
     can_access_clinic,
     can_close_day,
@@ -103,12 +105,15 @@ def dashboard(request):
 
     from .task_services import my_tasks
 
+    tasks_mine = my_tasks(user)
+
     context = {
         "clinic": clinic,
         "day": day,
         "today": local_today(),
         # Tugas saya tampil walau sesi hari operasional belum dibuat.
-        "my_tasks": my_tasks(user),
+        "my_tasks": tasks_mine,
+        "task_photos": task_photos([t["item"] for t in tasks_mine]),
         "my_issues": user.issue_assignments.filter(active=True).select_related("issue")[:10],
         "can_view_cash": can_view_cash_amounts(user),
         "can_close": can_close_day(user),
@@ -137,6 +142,9 @@ def dashboard(request):
         context["aom_masukan_pending_count"] = Masukan.objects.filter(
             archived_at__isnull=True
         ).count()
+        from cash.services import pending_verification
+
+        context["aom_pending_cash"] = pending_verification(user, limit=10)
 
     if is_pic(user):
         from .models import TaskAssignmentStatus as _TAS
@@ -282,7 +290,8 @@ def action_items(request):
     return render(
         request,
         "core/action_items.html",
-        {"rows": rows, "status": status, "statuses": ActionItemStatus.choices},
+        {"rows": rows, "status": status, "statuses": ActionItemStatus.choices,
+         "task_photos": task_photos([r["item"] for r in rows])},
     )
 
 
@@ -347,7 +356,9 @@ def assignment_submit(request, pk: int):
     if not can_access_clinic(request.user, assignment.action_item.clinic):
         raise PermissionDenied("Anda tidak memiliki akses ke task cabang ini.")
     try:
-        submit_assignment(assignment, user=request.user, note=request.POST.get("catatan", ""))
+        with transaction.atomic():
+            submit_assignment(assignment, user=request.user, note=request.POST.get("catatan", ""))
+            save_optional_photo(request, entity_type="taskassignment", entity_id=assignment.pk)
         messages.success(request, "Task diajukan selesai, menunggu konfirmasi.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
@@ -403,17 +414,9 @@ def assignment_cancel(request, pk: int):
 def attachment_download(request, pk: int):
     """Lampiran selalu melewati pemeriksaan izin aplikasi (PRD 9.3, 20.7)."""
     attachment = get_object_or_404(Attachment, pk=pk)
+    from .photos import assert_can_view
 
-    if attachment.entity_type == "issue":
-        from issues.models import Issue
-
-        issue = Issue.objects.filter(pk=attachment.entity_id).first()
-        if issue is None:
-            raise Http404
-        from .permissions import can_view_restricted_issue
-
-        if not can_view_restricted_issue(request.user, issue):
-            raise PermissionDenied("Anda tidak memiliki akses ke lampiran catatan terbatas ini.")
+    assert_can_view(request.user, attachment)
 
     log_event(
         action=AuditAction.DOWNLOAD_ATTACHMENT,
@@ -424,12 +427,17 @@ def attachment_download(request, pk: int):
         request=request,
     )
     content_type = attachment.mime_type or mimetypes.guess_type(attachment.original_name)[0]
-    return FileResponse(
+    # Foto dibuka langsung di browser (?lihat=1); berkas lain selalu diunduh.
+    inline = request.GET.get("lihat") == "1" and (content_type or "").startswith("image/")
+    response = FileResponse(
         attachment.file.open("rb"),
-        as_attachment=True,
+        as_attachment=not inline,
         filename=attachment.original_name,
         content_type=content_type or "application/octet-stream",
     )
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Cache-Control"] = "private, max-age=3600"
+    return response
 
 
 @login_required
