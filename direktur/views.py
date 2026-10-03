@@ -433,24 +433,28 @@ def note_convert(request, pk: int):
 @login_required
 @require(is_aom)
 def task_new(request):
-    clinic, clinics = _clinic_from(request, request.POST.get("cabang") or request.GET.get("cabang"))
+    clinics = user_clinic_queryset(request.user).order_by("id")
     ref = request.POST.get("keputusan") or request.GET.get("keputusan") or ""
     decision = (
         get_object_or_404(dashboard.decisions_for(request.user), pk=int(ref)) if ref.isdigit() else None
     )
+    branch = branch_context(request, clinics, default=decision.clinic_id if decision else None)
     if request.method == "POST":
         try:
-            services.create_manual_task(
-                actor=request.user,
-                clinic=clinic,
-                title=request.POST.get("judul", ""),
-                description=request.POST.get("uraian", ""),
-                target=request.POST.get("penerima", ""),
-                priority=request.POST.get("prioritas") or Priority.SEDANG,
-                due_at=services.parse_due(request.POST.get("batas", "")),
-                decision=decision,
-            )
-            messages.success(request, "Task dikirim.")
+            pairs = branch_targets(request.POST, clinics)
+            with transaction.atomic():
+                for clinic, target in pairs:
+                    services.create_manual_task(
+                        actor=request.user,
+                        clinic=clinic,
+                        title=request.POST.get("judul", ""),
+                        description=request.POST.get("uraian", ""),
+                        target=target,
+                        priority=request.POST.get("prioritas") or Priority.SEDANG,
+                        due_at=services.parse_due(request.POST.get("batas", "")),
+                        decision=decision,
+                    )
+            messages.success(request, "Task dikirim." if len(pairs) == 1 else f"Task dikirim ke {len(pairs)} cabang.")
             if decision:
                 return redirect("direktur:decision_detail", pk=decision.pk)
             return redirect("direktur:team")
@@ -465,11 +469,9 @@ def task_new(request):
         request,
         "direktur/task_form.html",
         {
+            **branch,
             "note": None,
             "decision": decision,
-            "clinic": clinic,
-            "clinics": clinics,
-            "targets": services.target_choices(clinic) if clinic else [],
             "priorities": Priority.choices,
             "title": title,
             "description": description,
@@ -740,3 +742,36 @@ def meeting_page(request):
             "is_director": is_aom(request.user),
         },
     )
+
+
+# --- Pilihan cabang untuk task baru: satu cabang atau semua cabang -------------------
+
+ALL_BRANCHES = "semua"
+
+
+def branch_context(request, clinics, default=None) -> dict:
+    """Konteks formulir "Cabang + PIC" (templates/direktur/_branch_pic.html).
+
+    Pilihan "Semua cabang" menampilkan satu pilihan PIC per cabang; hasilnya satu task per cabang
+    (untuk hal yang berlaku di kedua cabang, keputusan product owner 3 Okt 2026).
+    """
+    raw = request.POST.get("cabang") or request.GET.get("cabang") or (str(default) if default else "")
+    clinics = list(clinics)
+    if raw == ALL_BRANCHES and len(clinics) > 1:
+        return {"all_branches": True, "clinic": None, "clinics": clinics,
+                "per_clinic": [(c, services.target_choices(c)) for c in clinics], "targets": []}
+    clinic = next((c for c in clinics if raw.isdigit() and c.pk == int(raw)), clinics[0] if clinics else None)
+    return {"all_branches": False, "clinic": clinic, "clinics": clinics, "per_clinic": [],
+            "targets": services.target_choices(clinic) if clinic else []}
+
+
+def branch_targets(post, clinics) -> list[tuple]:
+    """[(cabang, penerima), ...] dari formulir _branch_pic. Validasi isi dilakukan service."""
+    clinics = list(clinics)
+    raw = post.get("cabang", "")
+    if raw == ALL_BRANCHES:
+        return [(c, post.get(f"penerima_{c.pk}", "")) for c in clinics]
+    clinic = next((c for c in clinics if raw.isdigit() and c.pk == int(raw)), None)
+    if clinic is None:
+        raise ValidationError("Cabang tidak valid.")
+    return [(clinic, post.get("penerima", ""))]

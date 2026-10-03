@@ -10,11 +10,11 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
 | | |
 |---|---|
-| Produksi (mini PC, ops.joderma.id) | Commit `a1155a1` (dideploy 3 Oktober): tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
+| Produksi (mini PC, ops.joderma.id) | Commit `3056c3d` (dideploy 3 Oktober): tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | **Paket D tahap 2**: halaman Bahan Rapat mingguan; tanpa migrasi (3 Okt, lihat Riwayat) |
-| Test | 699 (698 lulus, 1 dilewati) per 3 Okt: 678 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
+| Belum dideploy | **Paket E tahap 3**: jejak kehadiran (IP, perangkat, lokasi sesaat); migrasi `core 0007`, `core 0008` (data: koordinat Google Maps kedua cabang, hanya bila kosong), `jejak 0001` (3 Okt, lihat Riwayat) |
+| Test | 713 (712 lulus, 1 dilewati) per 3 Okt: 692 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -66,7 +66,7 @@ Rencana disetujui product owner 3 Okt, dikerjakan per paket dengan persetujuan d
 | A | Pelapor di task (butir 4), Daftar Task (5), agenda keputusan bersama + task menunggu keputusan (6, K-015) | `3830f6f`, dideploy 3 Okt |
 | B | Inbox satu pintu dengan pilah sesuai matriks wewenang (putuskan/tugaskan, teruskan, bawa ke rapat, tidak ditindaklanjuti) + temuan Owner (digabung ke form Permintaan Owner, target opsional) | `6273c6d`, dideploy 3 Okt |
 | C | Kolom Pemeriksa (task PIC Direktur Operasional diperiksa Owner/Dirut), Owner dapat konfirmasi/minta revisi task yang ia periksa, linimasa progres PIC; bukti: catatan wajib, foto opsional. Dirut = akun `jean` (peran Owner, sama dengan `yohanes`) | `a1155a1`, dideploy 3 Okt |
-| D | Halaman Bahan Rapat mingguan (Kamis lalu–Rabu) | dibuat 3 Okt, belum di-commit |
+| D | Halaman Bahan Rapat mingguan (Kamis lalu–Rabu) | `3056c3d`, dideploy 3 Okt |
 
 Keputusan bawaan yang dipakai: halaman utama K-015 = Ringkasan Direktur dan Dashboard Owner;
 tenggat task yang menunggu keputusan dibekukan. Pertanyaan Owner yang masih terbuka: lama dan ukuran
@@ -151,7 +151,35 @@ metrik kedisiplinan (tepat waktu, kelengkapan) per staf.
 
 # Riwayat
 
-## Paket D tahap 2: bahan rapat mingguan (3 Oktober 2026) — belum di-commit
+## Paket E tahap 3: jejak kehadiran (3 Oktober 2026) — belum di-commit
+
+- Keputusan product owner: target akurasi > 60%, IP tetap dicatat walau tidak statis untuk dibaca
+  polanya; Tailscale hanya untuk perangkat milik klinik (paket gratis maks. 6 user).
+- App baru `jejak`: `PresenceStamp` (user, cabang, kejadian, IP, kelompok IP, jaringan, perangkat,
+  lokasi dibulatkan, jarak, label Kuat/Sedang/Lemah + alasan) dan `KnownDevice` (IP tetap perangkat).
+  `jejak.services.stamp()` dipanggil sesudah aksi berhasil: login, buka/tutup hari, simpan butir
+  checklist, simpan/ajukan kas, lapor progres, ajukan selesai; tidak pernah menggagalkan aksi.
+- Lokasi: formulir bertanda `data-jejak` meminta lokasi sesaat saat dikirim (base.html; batas 7 detik,
+  cache 2 menit di sessionStorage, tombol pengirim tetap terbawa). `Clinic.latitude/longitude/radius_m`
+  (migrasi `core 0007`) diisi di Pengaturan Klinik.
+- Label: Kuat = perangkat klinik terdaftar atau lokasi ≤ radius (akurasi ≤ 500 m); Sedang = lokasi
+  ≤ radius + akurasi, atau kelompok IP publik dengan ≥ 3 jejak Kuat di cabang itu dalam 60 hari;
+  Lemah = selain itu. IP lokal/Tailscale tidak dipelajari sebagai pola.
+- `audit.middleware.client_ip` mengutamakan `CF-Connecting-IP` (X-Forwarded-For bisa dipalsukan).
+- Halaman `/jejak/` (ringkasan per staf, daftar jejak) dan `/jejak/perangkat/` (perangkat dikenal,
+  IP Tailscale belum bernama, IP lazim per cabang). Direktur; Owner baca (menu "Jejak" di keduanya).
+  Staf dan Koordinator Shift tidak dapat membuka.
+- Data migration `core 0008`: koordinat Google Maps dari product owner — Jemur −7.328501473018559,
+  112.73942547126828; Citraland −7.286664559388001, 112.65556494440818 (disimpan 6 desimal). Hanya
+  mengisi cabang yang koordinatnya kosong.
+- Test: `jejak/tests/test_jejak.py` (11).
+- Ikut di commit yang sama: pilihan cabang **Semua cabang** saat memilah (Tugaskan), Task baru,
+  tindak lanjut keputusan, dan Tambah task permintaan Owner → satu task per cabang, PIC dipilih per
+  cabang (`direktur.views.branch_context` / `branch_targets`, partial `_branch_pic*.html`). Bawa ke
+  rapat dapat diberi cakupan cabang lain atau semua cabang. Test di `reports/tests/test_inbox_pilah.py` (+3). Diuji juga di browser (izin diberikan → Kuat 16 m;
+  ditolak → Lemah "izin lokasi ditolak"; tombol Uncheck tetap terkirim).
+
+## Paket D tahap 2: bahan rapat mingguan (3 Oktober 2026) — `3056c3d`, dideploy 3 Okt
 
 - `/direktur/rapat/` (`direktur:meeting`, modul `direktur/meeting.py`), Direktur dan Owner (baca).
   Periode Kamis lalu s.d. Rabu sebelum rapat (`period_for`); `?tanggal=` dibulatkan ke Kamis.

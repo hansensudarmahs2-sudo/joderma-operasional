@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Perangkat dan IP lazim{% endblock %}
+{% block content %}
+<p><a href="{% url 'jejak:index' %}">← Jejak kehadiran</a></p>
+<h1>Perangkat dan IP lazim</h1>
+<p class="sub">Perangkat klinik (PC/tablet yang terpasang Tailscale) punya IP tetap 100.x. Daftarkan di sini agar jejak darinya berlabel Kuat. HP staf tidak perlu Tailscale.</p>
+
+<h2>Perangkat dikenal</h2>
+<table class="responsive">
+  <thead><tr><th>Nama</th><th>IP</th><th>Cabang</th><th>Perangkat klinik</th>{% if can_edit %}<th></th>{% endif %}</tr></thead>
+  <tbody>{% for d in known %}
+  <tr><td data-label="Nama"><span><strong>{{ d.name }}</strong>{% if d.note %}<div class="meta">{{ d.note }}</div>{% endif %}</span></td><td data-label="IP">{{ d.ip_address }}</td>
+    <td data-label="Cabang">{{ d.clinic.name|default:"—" }}</td><td data-label="Perangkat klinik">{% if d.is_clinic_device %}<span class="tag ok">Ya</span>{% else %}Tidak{% endif %}</td>
+    {% if can_edit %}<td data-label=""><form method="post" class="inline">{% csrf_token %}<input type="hidden" name="aksi" value="hapus"><input type="hidden" name="id" value="{{ d.pk }}"><button class="btn small secondary" type="submit">Hapus</button></form></td>{% endif %}</tr>
+  {% empty %}<tr><td colspan="5" class="meta">Belum ada perangkat terdaftar.</td></tr>{% endfor %}</tbody>
+</table>
+
+{% if can_edit %}
+<details class="card" {% if not known %}open{% endif %}>
+  <summary><strong>Tambah atau ubah perangkat</strong></summary>
+  <form method="post">{% csrf_token %}
+    <div class="inline">
+      <div><label for="ip">Alamat IP</label><input id="ip" name="ip" required placeholder="100.90.94.23"></div>
+      <div><label for="nama">Nama</label><input id="nama" name="nama" required maxlength="80" placeholder="PC kasir Jemur"></div>
+      <div><label for="cabang">Cabang</label><select id="cabang" name="cabang"><option value="">—</option>{% for c in clinics %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
+    </div>
+    <label><input type="checkbox" name="klinik" value="1" style="width:auto" checked> Perangkat milik klinik (jejak berlabel Kuat)</label>
+    <label for="catatan">Catatan</label><input id="catatan" name="catatan" maxlength="200">
+    <p><button class="btn" type="submit">Simpan</button></p>
+    <p class="help">IP yang sudah terdaftar akan diperbarui.</p>
+  </form>
+</details>
+{% endif %}
+
+{% if candidates %}
+<h2>IP Tailscale yang belum diberi nama</h2>
+<table class="responsive">
+  <thead><tr><th>IP</th><th>Perangkat</th><th>Dipakai</th><th>Terakhir</th></tr></thead>
+  <tbody>{% for c in candidates %}<tr><td data-label="IP">{{ c.ip_address }}</td><td data-label="Perangkat">{{ c.device_kind|default:"—" }}</td><td data-label="Dipakai"><span>{{ c.n }} jejak<div class="meta">{{ c.users|join:", " }}</div></span></td><td data-label="Terakhir">{{ c.last|date:"d/m H.i" }}</td></tr>{% endfor %}</tbody>
+</table>
+{% endif %}
+
+<h2>IP lazim per cabang</h2>
+<p class="meta">Dipelajari dari jejak Kuat {{ learn_days }} hari terakhir. Kelompok IP (IPv4 /24, IPv6 /64) dengan minimal {{ learn_min }} jejak Kuat dianggap lazim; jejak lain dari kelompok itu berlabel Sedang.</p>
+{% if prefixes %}
+<table class="responsive">
+  <thead><tr><th>Cabang</th><th>Kelompok IP</th><th>Jejak Kuat</th><th>Status</th></tr></thead>
+  <tbody>{% for p in prefixes %}<tr><td data-label="Cabang">{{ p.clinic__name }}</td><td data-label="Kelompok IP">{{ p.ip_prefix }}</td><td data-label="Jejak Kuat">{{ p.n }}</td><td data-label="Status">{% if p.usual %}<span class="tag ok">Lazim</span>{% else %}<span class="meta">belajar</span>{% endif %}</td></tr>{% endfor %}</tbody>
+</table>
+{% else %}<p class="meta">Belum ada. Isi koordinat cabang di Pengaturan Klinik agar jejak dengan lokasi bisa berlabel Kuat dan sistem mulai belajar.</p>{% endif %}
+{% endblock %}

@@ -75,6 +75,11 @@ def login_view(request):
                 entity_label=str(user),
                 actor=user,
             )
+            from core.services import active_clinic
+            from jejak.models import Event
+            from jejak.services import stamp
+
+            stamp(request, Event.LOGIN, clinic=active_clinic(user), user=user)
             if user.must_change_password:
                 messages.info(request, "Silakan ganti kata sandi Anda.")
                 return redirect("accounts:change_password")

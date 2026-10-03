@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Jejak kehadiran{% endblock %}
+{% block content %}
+<div class="checklist-heading">
+  <h1 style="margin:0">Jejak kehadiran</h1>
+  <a class="btn small secondary" href="{% url 'jejak:devices' %}">Perangkat & IP lazim</a>
+</div>
+<p class="sub">Setiap login, buka/tutup hari, isi checklist, kas, lapor progres, dan ajukan selesai meninggalkan jejak: IP, perangkat, dan lokasi sesaat bila diizinkan. Tidak ada yang diblokir; label hanya petunjuk pola. <strong>Kuat</strong>: perangkat klinik atau lokasi di dalam radius. <strong>Sedang</strong>: lokasi dekat tetapi kurang akurat, atau IP yang lazim di cabang itu. <strong>Lemah</strong>: selain itu.</p>
+
+<form method="get" class="card task-filters">
+  <div class="inline">
+    <div><label for="cabang">Cabang</label><select id="cabang" name="cabang"><option value="">Semua</option>{% for c in clinics %}<option value="{{ c.pk }}"{% if clinic and c.pk == clinic.pk %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+    <div><label for="staf">Staf</label><select id="staf" name="staf"><option value="">Semua</option>{% for u in staff %}<option value="{{ u.pk }}"{% if u.pk == staff_id %} selected{% endif %}>{{ u }}</option>{% endfor %}</select></div>
+    <div><label for="kejadian">Kejadian</label><select id="kejadian" name="kejadian"><option value="">Semua</option>{% for v, l in events %}<option value="{{ v }}"{% if v == event %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div><label for="label">Label</label><select id="label" name="label"><option value="">Semua</option>{% for v, l in labels %}<option value="{{ v }}"{% if v == label %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div><label for="dari">Dari</label><input id="dari" type="date" name="dari" value="{{ start|date:'Y-m-d' }}"></div>
+    <div><label for="sampai">Sampai</label><input id="sampai" type="date" name="sampai" value="{{ end|date:'Y-m-d' }}"></div>
+  </div>
+  <p class="inline-actions"><button class="btn" type="submit">Terapkan</button></p>
+</form>
+
+<h2>Per staf</h2>
+{% if summary %}
+<table class="responsive">
+  <thead><tr><th>Staf</th><th>Jejak</th><th>Kuat</th><th>Sedang</th><th>Lemah</th><th>Kuat + sedang</th></tr></thead>
+  <tbody>{% for r in summary %}
+  <tr><td data-label="Staf"><a href="?staf={{ r.id }}&dari={{ start|date:'Y-m-d' }}&sampai={{ end|date:'Y-m-d' }}{% if clinic %}&cabang={{ clinic.pk }}{% endif %}">{{ r.name }}</a></td>
+    <td data-label="Jejak">{{ r.total }}</td><td data-label="Kuat">{{ r.kuat }}</td><td data-label="Sedang">{{ r.sedang }}</td><td data-label="Lemah">{{ r.lemah }}</td>
+    <td data-label="Kuat + sedang"><span class="tag {% if r.percent >= 60 %}ok{% elif r.percent >= 30 %}warn{% else %}err{% endif %}">{{ r.percent }}%</span></td></tr>
+  {% endfor %}</tbody>
+</table>
+{% else %}<p class="meta">Belum ada jejak pada saringan ini.</p>{% endif %}
+
+<h2>Jejak ({{ total }})</h2>
+<table class="responsive">
+  <thead><tr><th>Waktu</th><th>Staf</th><th>Kejadian</th><th>Label</th><th>Jaringan</th><th>Lokasi</th></tr></thead>
+  <tbody>{% for s in page %}
+  <tr>
+    <td data-label="Waktu" class="nowrap">{{ s.created_at|date:"d/m H.i" }}</td>
+    <td data-label="Staf">{{ s.user }}</td>
+    <td data-label="Kejadian"><span>{{ s.get_event_display }}<div class="meta">{{ s.clinic.name|default:"—" }}</div></span></td>
+    <td data-label="Label"><span><span class="tag {% if s.confidence == 'KUAT' %}ok{% elif s.confidence == 'SEDANG' %}warn{% else %}muted{% endif %}">{{ s.get_confidence_display }}</span><div class="meta">{{ s.reason }}</div></span></td>
+    <td data-label="Jaringan"><span>{% if s.device %}<strong>{{ s.device.name }}</strong>{% else %}{{ s.get_network_display|default:"—" }}{% endif %}<div class="meta">{{ s.ip_address|default:"" }}{% if s.device_kind %} · {{ s.device_kind }}{% endif %}</div></span></td>
+    <td data-label="Lokasi"><span>{% if s.distance_m is not None %}{{ s.distance_m }} m{% if s.accuracy_m %} <span class="meta">±{{ s.accuracy_m }} m</span>{% endif %}{% else %}{{ s.get_geo_status_display|default:"—" }}{% endif %}</span></td>
+  </tr>
+  {% empty %}<tr><td colspan="6" class="meta">Belum ada jejak.</td></tr>{% endfor %}</tbody>
+</table>
+{% if page.paginator.num_pages > 1 %}
+<p class="pager">{% if page.has_previous %}<a class="btn small secondary" href="?{{ base_query }}&hal={{ page.previous_page_number }}">← Sebelumnya</a>{% endif %}
+{% if page.has_next %}<a class="btn small secondary" href="?{{ base_query }}&hal={{ page.next_page_number }}">Berikutnya →</a>{% endif %}</p>
+{% endif %}
+{% endblock %}

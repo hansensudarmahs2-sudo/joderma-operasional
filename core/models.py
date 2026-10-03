@@ -26,6 +26,12 @@ class Clinic(models.Model):
         "apoteker penanggung jawab (APJ)", max_length=160, blank=True,
         help_text="Nama lengkap beserta gelar.",
     )
+    latitude = models.DecimalField("lintang", max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField("bujur", max_digits=9, decimal_places=6, null=True, blank=True)
+    radius_m = models.PositiveIntegerField(
+        "radius klinik (m)", default=150,
+        help_text="Jejak dengan lokasi di dalam radius ini berlabel Kuat (tahap 3 paket E).",
+    )
     active = models.BooleanField("aktif", default=True)
 
     class Meta:

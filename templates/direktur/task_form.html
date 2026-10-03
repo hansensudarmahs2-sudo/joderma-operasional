@@ -4,19 +4,13 @@
 <h1>{% if note %}Jadikan catatan sebagai task{% elif decision %}Tindak lanjut keputusan{% else %}Task baru{% endif %}</h1>
 {% if decision %}<p class="sub">Dari keputusan <a href="{% url 'direktur:decision_detail' decision.pk %}">{{ decision }}</a> ({{ decision.clinic.name|default:"lintas cabang" }}).</p>{% endif %}
 
-<form method="get" class="inline card">
-  <div><label for="cabang-pilih">Cabang</label>
-    <select id="cabang-pilih" name="cabang">
-      {% for c in clinics %}<option value="{{ c.pk }}" {% if clinic and c.pk == clinic.pk %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
-    </select></div>
-  {% if decision %}<input type="hidden" name="keputusan" value="{{ decision.pk }}">{% endif %}
-  <button class="btn secondary" type="submit">Ganti cabang</button>
-  <p class="help">Daftar penerima mengikuti cabang yang dipilih.</p>
-</form>
+<div class="card">
+{% include "direktur/_branch_pic.html" with no_all=note %}
+<p class="help">Daftar PIC mengikuti cabang yang dipilih.{% if not note %} "Semua cabang" membuat satu task per cabang.{% endif %}</p>
+</div>
 
 <form method="post" class="card">
   {% csrf_token %}
-  <input type="hidden" name="cabang" value="{{ clinic.pk }}">
   {% if decision %}<input type="hidden" name="keputusan" value="{{ decision.pk }}">{% endif %}
   <label for="judul">Judul</label>
   <input id="judul" name="judul" value="{{ title }}" required maxlength="200">
@@ -28,11 +22,7 @@
     <textarea id="uraian" name="uraian" rows="4">{{ description }}</textarea>
   {% endif %}
   <div class="inline">
-    <div><label for="penerima">Penerima</label>
-      <select id="penerima" name="penerima" required>
-        <option value="">Pilih penerima…</option>
-        {% for value, label in targets %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
-      </select></div>
+    {% include "direktur/_branch_pic_fields.html" %}
     <div><label for="batas">Batas waktu</label><input id="batas" type="date" name="batas"></div>
     <div><label for="prioritas">Prioritas</label>
       <select id="prioritas" name="prioritas">{% for value, label in priorities %}<option value="{{ value }}" {% if value == 'SEDANG' %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>

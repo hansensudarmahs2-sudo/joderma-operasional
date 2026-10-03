@@ -166,6 +166,9 @@ def save_response(request, pk: int):
     try:
         with transaction.atomic():
             _record_with_photo(request, response)
+        from jejak.services import stamp
+
+        stamp(request, "CHECKLIST", clinic=response.run.operational_day.clinic, entity=response)
         messages.success(request, f"{response.label} disimpan.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))

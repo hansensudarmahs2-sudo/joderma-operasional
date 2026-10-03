@@ -1,0 +1,10 @@
+{# Pilihan cabang + PIC. Konteks dari direktur.views.branch_context: all_branches, clinic, clinics, per_clinic, targets. #}
+<form method="get" class="inline">
+  {% for k, v in request.GET.items %}{% if k != "cabang" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+  <div><label for="cabang-pilih">Cabang</label>
+    <select id="cabang-pilih" name="cabang" onchange="this.form.submit()">
+      {% for c in clinics %}<option value="{{ c.pk }}"{% if not all_branches and clinic and c.pk == clinic.pk %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+      {% if clinics|length > 1 and not no_all %}<option value="semua"{% if all_branches %} selected{% endif %}>Semua cabang (satu task per cabang)</option>{% endif %}
+    </select></div>
+  <noscript><button class="btn small secondary" type="submit">Ganti cabang</button></noscript>
+</form>

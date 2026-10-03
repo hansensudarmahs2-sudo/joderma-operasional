@@ -173,6 +173,53 @@ document.querySelectorAll('input[type=file][data-photo]').forEach(function (inpu
     img.src = url;
   });
 });
+// Jejak kehadiran (tahap 3 paket E): formulir bertanda data-jejak mengirim lokasi sesaat bila diizinkan.
+// Tidak ada pelacakan: lokasi hanya diminta saat formulir dikirim. Ditolak/gagal tetap terkirim.
+(function () {
+  var CACHE_KEY = 'jejak-geo', CACHE_MS = 120000;
+  function field(form, name, value) {
+    var el = form.querySelector('input[name="' + name + '"]');
+    if (!el) { el = document.createElement('input'); el.type = 'hidden'; el.name = name; form.appendChild(el); }
+    el.value = value;
+  }
+  function fill(form, g) {
+    field(form, 'geo_status', g.status);
+    field(form, 'geo_lat', g.lat || ''); field(form, 'geo_lng', g.lng || ''); field(form, 'geo_acc', g.acc || '');
+  }
+  function cached() {
+    try { var c = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null'); if (c && Date.now() - c.t < CACHE_MS) return c; } catch (e) {}
+    return null;
+  }
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form.hasAttribute || !form.hasAttribute('data-jejak') || form.dataset.geoDone) return;
+    if (form.dataset.geoPending) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+    var c = cached();
+    if (c) { fill(form, c); return; }
+    if (!navigator.geolocation || !window.isSecureContext) { fill(form, { status: 'TIDAK_TERSEDIA' }); return; }
+    e.preventDefault(); e.stopImmediatePropagation();
+    var submitter = e.submitter, done = false, label = submitter ? submitter.textContent : '';
+    form.dataset.geoPending = '1';
+    if (submitter) { submitter.disabled = true; submitter.textContent = 'Mengambil lokasi...'; }
+    function finish(g) {
+      if (done) return; done = true;
+      if (submitter) { submitter.disabled = false; submitter.textContent = label; }
+      fill(form, g); form.dataset.geoDone = '1'; delete form.dataset.geoPending;
+      if (g.status === 'OK') { try { g.t = Date.now(); sessionStorage.setItem(CACHE_KEY, JSON.stringify(g)); } catch (err) {} }
+      if (form.requestSubmit) { form.requestSubmit(submitter || undefined); return; }
+      if (submitter && submitter.name) field(form, submitter.name, submitter.value);
+      form.submit();
+    }
+    var timer = setTimeout(function () { finish({ status: 'TIDAK_TERSEDIA' }); }, 7000);
+    navigator.geolocation.getCurrentPosition(function (p) {
+      clearTimeout(timer);
+      finish({ status: 'OK', lat: p.coords.latitude.toFixed(5), lng: p.coords.longitude.toFixed(5), acc: Math.round(p.coords.accuracy) });
+    }, function (err) {
+      clearTimeout(timer);
+      finish({ status: err && err.code === 1 ? 'DITOLAK' : 'TIDAK_TERSEDIA' });
+    }, { enableHighAccuracy: true, timeout: 6000, maximumAge: CACHE_MS });
+  }, true);
+})();
 document.addEventListener('submit', function (e) {
   var form = e.target;
   if (form.dataset.noGuard) return;

@@ -116,14 +116,13 @@ def request_detail(request, pk: int):
     notes = list(req.notes.select_related("author"))
     task_form = {}
     if is_aom(request.user):
-        from direktur import services as direktur
-        from direktur.views import _clinic_from
+        from direktur.views import branch_context
 
         from core.models import Priority
+        from core.permissions import user_clinic_queryset
 
-        clinic, clinics = _clinic_from(request, request.GET.get("cabang") or (req.clinic_id or None))
-        task_form = {"clinic": clinic, "clinics": clinics, "priorities": Priority.choices,
-                     "targets": direktur.target_choices(clinic) if clinic else []}
+        task_form = {**branch_context(request, user_clinic_queryset(request.user).order_by("id"),
+                                      default=req.clinic_id), "priorities": Priority.choices}
     from reports.models import InboxTriage
 
     triage = InboxTriage.objects.filter(source_type="permintaan_owner", source_id=req.pk).select_related(
@@ -144,25 +143,30 @@ def request_detail(request, pk: int):
 
 
 def _request_task(request, req):
-    """Direktur menambah task untuk permintaan/temuan ini (langkah kedua dan seterusnya)."""
+    """Direktur menambah task untuk permintaan/temuan ini (langkah kedua dst., atau semua cabang)."""
     from direktur import services as direktur
-    from direktur.views import _clinic_from
+    from direktur.views import branch_targets
+
+    from core.permissions import user_clinic_queryset
 
     if not is_aom(request.user):
         raise PermissionDenied("Hanya Direktur Operasional yang memecah permintaan menjadi task.")
-    clinic, _ = _clinic_from(request, request.POST.get("cabang"))
     try:
-        if clinic is None or str(clinic.pk) != request.POST.get("cabang"):
-            raise ValidationError("Cabang tidak valid.")
-        item = direktur.create_task_from_source(
-            actor=request.user, clinic=clinic, title=request.POST.get("judul", ""),
-            target=request.POST.get("penerima", ""), description=request.POST.get("uraian", ""),
-            priority=request.POST.get("prioritas", "SEDANG"),
-            due_at=direktur.parse_due(request.POST.get("batas", "")),
-            source_type="permintaan_owner", source_id=req.pk,
-            source_label=f"{req.get_kind_display()} P-{req.pk}",
-        )
-        messages.success(request, f"Task ditambahkan: {item.title}.")
+        pairs = branch_targets(request.POST, user_clinic_queryset(request.user).order_by("id"))
+        with transaction.atomic():
+            items = [
+                direktur.create_task_from_source(
+                    actor=request.user, clinic=clinic, title=request.POST.get("judul", ""), target=who,
+                    description=request.POST.get("uraian", ""),
+                    priority=request.POST.get("prioritas", "SEDANG"),
+                    due_at=direktur.parse_due(request.POST.get("batas", "")),
+                    source_type="permintaan_owner", source_id=req.pk,
+                    source_label=f"{req.get_kind_display()} P-{req.pk}",
+                )
+                for clinic, who in pairs
+            ]
+        where = f" untuk {len(items)} cabang" if len(items) > 1 else ""
+        messages.success(request, f"Task ditambahkan{where}: {items[0].title}.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
     return redirect("owner:request_detail", pk=req.pk)

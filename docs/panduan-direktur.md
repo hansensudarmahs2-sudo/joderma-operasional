@@ -71,14 +71,16 @@ sudah dijadikan task dihitung sudah dipilah.
 Tombol **Pilah** membuka halaman satu item dengan empat pilihan, sesuai matriks wewenang:
 
 - **Putuskan dan tugaskan** — bidang Anda (operasional harian, SDM ringan, kas ≤ Rp1 juta): judul,
-  PIC, prioritas, target → menjadi task bersumber item itu (pelapornya ikut tercatat, judul sumber
+  PIC, prioritas, target → menjadi task bersumber item itu. Untuk hal yang berlaku di kedua cabang,
+  pilih cabang **Semua cabang**: muncul satu pilihan PIC per cabang dan dibuat satu task per cabang
+  (pilihan yang sama ada di Task baru, tindak lanjut keputusan, dan Tambah task permintaan Owner) (pelapornya ikut tercatat, judul sumber
   di detail task bisa diketuk). Permintaan/temuan Owner yang perlu beberapa langkah: task berikutnya
   ditambah dari halaman permintaan (**Tambah task**).
 - **Teruskan dan pantau** — di luar bidang Anda (apotek/stok/harga obat → Apoteker, Omnicare,
   keuangan di atas batas, medis, strategis/SP → Dirut). Item tetap di tab **Dipantau** sampai
   selesai.
 - **Bawa ke rapat Kamis** — menjadi perkara di Keputusan (pemutus Rapat bersama) dan tampil di
-  Agenda rapat Kamis.
+  Agenda rapat Kamis. Pilih **Berlaku untuk**: cabang asal, cabang lain, atau semua cabang.
 - **Tidak ditindaklanjuti** — alasan wajib.
 
 Pada komplain/masukan/kerusakan, pilah juga ditulis di riwayat catatan supaya cabang tahu, dan
@@ -212,6 +214,20 @@ permintaan dan temuan Owner yang baru atau masih berjalan, task selesai dan terv
 lewat target, yang menunggu verifikasi, serta Inbox yang masuk per cabang. Panah di atas
 berpindah ke rapat minggu sebelum/sesudahnya. **Cetak** mencetak halaman tanpa menu; **Salin untuk
 WhatsApp** menyalin ringkasan teks untuk ditempel di grup. Halaman ini hanya membaca.
+
+**Jejak kehadiran (tahap 3 paket E).** Menu **Jejak** mencatat setiap login, buka/tutup hari,
+isi checklist, hitung/ajukan kas, lapor progres, dan ajukan selesai: IP, jenis jaringan, perangkat,
+dan lokasi sesaat bila staf mengizinkan (browser menanyakan izin sekali; lokasi hanya diambil saat
+tombol ditekan, tidak dilacak). Setiap jejak berlabel **Kuat** (perangkat klinik terdaftar, atau
+lokasi di dalam radius cabang), **Sedang** (lokasi dekat tetapi kurang akurat, atau IP yang lazim di
+cabang itu), atau **Lemah**. Tidak ada yang diblokir; targetnya pola yang benar lebih dari 60%.
+Ringkasan per staf menampilkan persentase Kuat + Sedang. Siapkan dua hal:
+
+- **Koordinat cabang** di Pengaturan Klinik. Sudah terisi otomatis saat deploy dari titik Google
+  Maps (Jemur −7.328501, 112.739425; Citraland −7.286665, 112.655565); ubah di sana bila perlu
+  (tombol *Isi dari lokasi saya sekarang* saat berada di dalam klinik). Radius bawaan 150 m.
+- **Perangkat klinik** di Jejak → *Perangkat & IP lazim*: IP Tailscale 100.x perangkat milik klinik
+  (daftar IP Tailscale yang pernah tercatat tampil di sana). HP staf tidak perlu Tailscale.
 
 **Pelapor.** Kartu task (Kanban, Prioritas), detail task, dan Daftar Task menampilkan pelapor
 asal: staf yang mengisi butir checklist, pemeriksa temuan Direktur, Owner untuk permintaan

@@ -73,27 +73,43 @@ def _save(row, *, actor, action, note="", forwarded_to="", task=None, decision=N
 
 
 @transaction.atomic
-def assign(row, *, actor, clinic, title, target, description="", priority="SEDANG", due_at=None) -> InboxTriage:
+def assign(row, *, actor, title, clinic=None, target="", targets=None, description="", priority="SEDANG",
+           due_at=None) -> InboxTriage:
+    """Jadikan task. `targets` = [(cabang, penerima), ...] untuk hal yang berlaku di beberapa cabang:
+    satu task per cabang, semuanya bersumber item yang sama."""
     from direktur import services as direktur
 
     _assert(actor)
-    if row["source_type"] == inbox.SOURCE_NOTE:
-        from direktur.models import DirectorNote
+    pairs = list(targets) if targets else [(clinic, target)]
+    if not pairs or any(c is None for c, _ in pairs):
+        raise ValidationError("Pilih cabang.")
+    if any(not (t or "").strip() for _, t in pairs):
+        raise ValidationError("Pilih PIC untuk setiap cabang.")
+    tasks = []
+    for n, (branch, who) in enumerate(pairs):
+        if row["source_type"] == inbox.SOURCE_NOTE and n == 0:
+            from direktur.models import DirectorNote
 
-        note = DirectorNote.objects.get(pk=row["source_id"])
-        task = direktur.convert_note(note, user=actor, clinic=clinic, title=title, target=target,
-                                     priority=priority, due_at=due_at)
-    else:
-        task = direktur.create_task_from_source(
-            actor=actor, clinic=clinic, title=title, target=target,
-            description=description or row["description"], priority=priority, due_at=due_at,
-            source_type=row["source_type"], source_id=row["source_id"],
-            source_label=f"{row['kind_label']} {row['ref']}",
-        )
-    triage = _save(row, actor=actor, action=TriageAction.TUGASKAN, task=task)
-    names = ", ".join(str(a.assignee) for a in task.task_assignments.all()) or "belum ada penerima"
+            note = DirectorNote.objects.get(pk=row["source_id"])
+            task = direktur.convert_note(note, user=actor, clinic=branch, title=title, target=who,
+                                         priority=priority, due_at=due_at)
+        else:
+            task = direktur.create_task_from_source(
+                actor=actor, clinic=branch, title=title, target=who,
+                description=description or row["description"], priority=priority, due_at=due_at,
+                source_type=row["source_type"], source_id=row["source_id"],
+                source_label=f"{row['kind_label']} {row['ref']}",
+            )
+        tasks.append(task)
+    multi = len(tasks) > 1
+    note_text = f"Berlaku untuk {len(tasks)} cabang: " + ", ".join(t.clinic.name for t in tasks) if multi else ""
+    triage = _save(row, actor=actor, action=TriageAction.TUGASKAN, task=tasks[0], note=note_text)
+    parts = []
+    for task in tasks:
+        names = ", ".join(str(a.assignee) for a in task.task_assignments.all()) or "belum ada penerima"
+        parts.append(f"{names} ({task.clinic.name})" if multi else names)
     _issue_followup(row, actor=actor, action=TriageAction.TUGASKAN,
-                    text=f"Dipilah Direktur Operasional: dijadikan task \"{task.title}\" untuk {names}.")
+                    text=f"Dipilah Direktur Operasional: dijadikan task \"{tasks[0].title}\" untuk {'; '.join(parts)}.")
     return triage
 
 
@@ -112,13 +128,16 @@ def forward(row, *, actor, to: str, note: str = "") -> InboxTriage:
 
 
 @transaction.atomic
-def to_meeting(row, *, actor, title: str = "", background: str = "", needed_by=None) -> InboxTriage:
+def to_meeting(row, *, actor, title: str = "", background: str = "", needed_by=None,
+               clinic="asal") -> InboxTriage:
+    """Bawa ke rapat. `clinic`: "asal" = cabang item; None = lintas cabang; atau cabang tertentu."""
     from direktur import services as direktur
     from direktur.models import Decider
 
     _assert(actor)
     decision = direktur.create_decision(
-        actor=actor, title=(title or row["title"])[:200], decider=Decider.RAPAT_BERSAMA, clinic=row["clinic"],
+        actor=actor, title=(title or row["title"])[:200], decider=Decider.RAPAT_BERSAMA,
+        clinic=row["clinic"] if clinic == "asal" else clinic,
         reference=row["ref"][:30], background=background or row["description"], needed_by=needed_by,
     )
     triage = _save(row, actor=actor, action=TriageAction.RAPAT, decision=decision)

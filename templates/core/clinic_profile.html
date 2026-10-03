@@ -16,6 +16,11 @@
     <div><label for="tutup-{{ c.pk }}">Jam tutup</label><input id="tutup-{{ c.pk }}" name="tutup" type="time" value="{{ c.close_time|time:'H:i' }}" required></div>
     <div><label for="dpj-{{ c.pk }}">Dokter penanggung jawab (DPJ)</label><input id="dpj-{{ c.pk }}" name="dpj" value="{{ c.dpj_name }}"></div>
     <div><label for="apj-{{ c.pk }}">Apoteker penanggung jawab (APJ)</label><input id="apj-{{ c.pk }}" name="apj" value="{{ c.apj_name }}"></div>
+    <div><label for="lintang-{{ c.pk }}">Lintang (latitude)</label><input id="lintang-{{ c.pk }}" name="lintang" value="{{ c.latitude|default_if_none:''|stringformat:'s' }}" inputmode="decimal" placeholder="-7.312345"></div>
+    <div><label for="bujur-{{ c.pk }}">Bujur (longitude)</label><input id="bujur-{{ c.pk }}" name="bujur" value="{{ c.longitude|default_if_none:''|stringformat:'s' }}" inputmode="decimal" placeholder="112.745678"></div>
+    <div><label for="radius-{{ c.pk }}">Radius klinik (meter)</label><input id="radius-{{ c.pk }}" name="radius" type="number" min="30" max="2000" value="{{ c.radius_m }}"></div>
+    <div><label>&nbsp;</label><button class="btn secondary" type="button" data-geo-fill="{{ c.pk }}">Isi dari lokasi saya sekarang</button></div>
+    <p class="help span-2">Koordinat dipakai untuk label jejak kehadiran: lokasi di dalam radius berlabel Kuat. Tekan "Isi dari lokasi saya sekarang" saat berada di dalam klinik, atau salin dari Google Maps (klik kanan pada titik klinik).</p>
     <div class="span-2"><button class="btn" type="submit">Simpan {{ c.name }}</button></div>
   </form>
   {% else %}
@@ -25,8 +30,23 @@
     <dt>Jam</dt><dd>{{ c.open_time|time:"H.i" }}–{{ c.close_time|time:"H.i" }}</dd>
     <dt>DPJ</dt><dd>{{ c.dpj_name|default:"—" }}</dd>
     <dt>APJ</dt><dd>{{ c.apj_name|default:"—" }}</dd>
+    <dt>Koordinat</dt><dd>{% if c.latitude is not None %}{{ c.latitude }}, {{ c.longitude }} · radius {{ c.radius_m }} m{% else %}belum diisi{% endif %}</dd>
   </dl>
   {% endif %}
 </div>
 {% endfor %}
+<script>
+document.querySelectorAll('[data-geo-fill]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var id = btn.getAttribute('data-geo-fill'), label = btn.textContent;
+    if (!navigator.geolocation) { btn.textContent = 'Lokasi tidak tersedia'; return; }
+    btn.textContent = 'Mengambil lokasi...';
+    navigator.geolocation.getCurrentPosition(function (p) {
+      document.getElementById('lintang-' + id).value = p.coords.latitude.toFixed(6);
+      document.getElementById('bujur-' + id).value = p.coords.longitude.toFixed(6);
+      btn.textContent = label + ' (±' + Math.round(p.coords.accuracy) + ' m)';
+    }, function () { btn.textContent = 'Lokasi gagal / ditolak'; }, { enableHighAccuracy: true, timeout: 15000 });
+  });
+});
+</script>
 {% endblock %}

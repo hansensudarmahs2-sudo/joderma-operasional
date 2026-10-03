@@ -22,7 +22,7 @@
     <div class="checklist-item-status">{% if r.result == 'OK' %}✓{% elif r.is_problem %}!{% else %}·{% endif %}</div>
     <div class="checklist-item-main"><strong>{{ r.label }}</strong>{% if r.assignees %}<small class="assignee{% if r.is_mine %} mine{% endif %}">Pelaksana: {% for u in r.assignees %}{{ u }}{% if not forloop.last %}, {% endif %}{% endfor %}</small>{% endif %}{% if r.checked_by %}<small>{{ r.checked_by }} · {{ r.checked_at|date:"H:i" }}{% if r.selection %} · {{ r.selection }}{% endif %}</small>{% endif %}{% if r.item_snapshot.help_text %}<small class="meta">{{ r.item_snapshot.help_text }}</small>{% endif %}</div>
     <div class="checklist-item-state">{% if r.result == 'OK' %}<span class="tag ok">OK</span>{% elif r.is_problem %}<span class="tag err">Perlu tindak lanjut</span>{% else %}<span class="tag info">Belum</span>{% endif %}</div>
-    <form class="checklist-quick-form" method="post" action="{% url 'checklists:save_response' r.pk %}">
+    <form class="checklist-quick-form" method="post" data-jejak action="{% url 'checklists:save_response' r.pk %}">
       {% csrf_token %}<input type="hidden" name="versi" value="{{ r.version }}"><input type="hidden" name="hasil" value="OK">
       {% if r.input_type == 'KUANTITAS' %}<input class="checklist-qty" name="jumlah" type="number" min="0" value="{{ r.quantity|default_if_none:'' }}" placeholder="Jumlah">{% endif %}
       {% if r.input_type == 'JAM' %}<input class="checklist-qty" name="pilihan" type="time" value="{{ r.selection }}" required>{% endif %}
@@ -35,7 +35,7 @@
     {% with fotos=photos|ambil:r.pk %}{% if fotos %}<div class="checklist-photos">{% foto_thumbs fotos %}</div>{% endif %}{% endwith %}
     <details class="checklist-problem"{% if r.is_problem %} open{% endif %}>
       <summary>{% if r.is_problem %}Ubah catatan masalah / tambah foto{% else %}Ada masalah?{% endif %}</summary>
-      <form method="post" action="{% url 'checklists:save_response' r.pk %}" enctype="multipart/form-data" class="stack-form">
+      <form method="post" data-jejak action="{% url 'checklists:save_response' r.pk %}" enctype="multipart/form-data" class="stack-form">
         {% csrf_token %}<input type="hidden" name="versi" value="{{ r.version }}">
         <label for="hasil-{{ r.pk }}">Hasil</label>
         <select id="hasil-{{ r.pk }}" name="hasil" required>

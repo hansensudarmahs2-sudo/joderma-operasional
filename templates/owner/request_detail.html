@@ -29,25 +29,22 @@
 {% if is_director %}
 <details class="card"{% if not row.tasks %} open{% endif %}>
   <summary><strong>{% if row.tasks %}Tambah task{% else %}Pecah menjadi task{% endif %}</strong></summary>
-  <form method="get" class="inline">
-    <div><label for="cabang-pilih">Cabang</label>
-      <select id="cabang-pilih" name="cabang">{% for c in task_form.clinics %}<option value="{{ c.pk }}"{% if task_form.clinic and c.pk == task_form.clinic.pk %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
-    <button class="btn small secondary" type="submit">Ganti cabang</button>
-  </form>
-  <form method="post">{% csrf_token %}<input type="hidden" name="aksi" value="task"><input type="hidden" name="cabang" value="{{ task_form.clinic.pk }}">
+  {% with all_branches=task_form.all_branches clinic=task_form.clinic clinics=task_form.clinics per_clinic=task_form.per_clinic targets=task_form.targets %}
+  {% include "direktur/_branch_pic.html" %}
+  <form method="post">{% csrf_token %}<input type="hidden" name="aksi" value="task">
     <label for="judul">Judul task</label>
     <input id="judul" name="judul" maxlength="200" required value="{% if not row.tasks %}{{ row.request.title }}{% endif %}">
     <label for="uraian">Uraian</label>
     <textarea id="uraian" name="uraian" rows="2"></textarea>
     <div class="inline">
-      <div><label for="penerima">PIC</label>
-        <select id="penerima" name="penerima" required><option value="">Pilih PIC…</option>{% for v, l in task_form.targets %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+      {% include "direktur/_branch_pic_fields.html" %}
       <div><label for="prioritas">Prioritas</label>
         <select id="prioritas" name="prioritas">{% for v, l in task_form.priorities %}<option value="{{ v }}"{% if v == 'TINGGI' and row.request.urgent or v == 'SEDANG' and not row.request.urgent %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
       <div><label for="batas">Target</label><input id="batas" type="date" name="batas" value="{{ row.request.target_date|date:'Y-m-d' }}"></div>
     </div>
     <p><button class="btn small" type="submit">Kirim task</button></p>
   </form>
+  {% endwith %}
 </details>
 {% endif %}
 

@@ -8,7 +8,7 @@
   <div class="msg warning">Sesi sudah diverifikasi. Koreksi hanya lewat supervisor dengan alasan di halaman review.</div>
 {% endif %}
 
-<form method="post" action="{% url 'cash:save' session.pk %}">
+<form method="post" data-jejak action="{% url 'cash:save' session.pk %}">
   {% csrf_token %}
   <input type="hidden" name="versi" value="{{ session.version }}">
   <div class="card">
@@ -46,7 +46,7 @@
 </form>
 
 {% if not session.is_verified %}
-<form method="post" action="{% url 'cash:submit' session.pk %}">
+<form method="post" data-jejak action="{% url 'cash:submit' session.pk %}">
   {% csrf_token %}
   <button class="btn secondary" type="submit">Ajukan verifikasi</button>
 </form>

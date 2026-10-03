@@ -22,6 +22,7 @@ urlpatterns = [
     path("stok-apotek/", include(("stok.urls", "stok"), namespace="stok")),
     path("owner/", include(("owner.urls", "owner"), namespace="owner")),
     path("audit/", include(("audit.urls", "audit"), namespace="audit")),
+    path("jejak/", include(("jejak.urls", "jejak"), namespace="jejak")),
     path("health/", core_views.health, name="health"),
     path("django-admin/", admin.site.urls),
 ]

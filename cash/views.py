@@ -105,6 +105,9 @@ def save(request, pk: int):
             note=request.POST.get("catatan", ""),
             expected_version=int(request.POST.get("versi") or session.version),
         )
+        from jejak.services import stamp
+
+        stamp(request, "KAS", clinic=clinic, entity=session)
         messages.success(request, "Hitungan kas disimpan.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
@@ -120,6 +123,9 @@ def submit(request, pk: int):
     session = _session(request, pk)
     try:
         submit_for_verification(session, request.user)
+        from jejak.services import stamp
+
+        stamp(request, "KAS_AJUKAN", clinic=session.operational_day.clinic, entity=session)
         messages.success(request, "Kas diajukan untuk verifikasi.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))

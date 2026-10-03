@@ -18,6 +18,12 @@ def set_request_context(**kwargs) -> None:
 
 
 def client_ip(request) -> str | None:
+    """IP pengguna. Lewat ops.joderma.id, Cloudflare mengisi CF-Connecting-IP yang tidak bisa
+    dipalsukan pengirim (X-Forwarded-For bisa diisi sendiri lalu hanya ditambah Cloudflare).
+    Lewat Tailscale Serve, X-Forwarded-For berisi IP perangkat tailnet (100.x)."""
+    cf = request.META.get("HTTP_CF_CONNECTING_IP", "").strip()
+    if cf:
+        return cf
     forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
     if forwarded:
         return forwarded.split(",")[0].strip()

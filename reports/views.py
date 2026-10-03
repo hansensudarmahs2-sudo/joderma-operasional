@@ -598,7 +598,7 @@ def inbox_triage(request, sumber: str, pk: int):
     from core.models import Priority
     from core.permissions import user_clinic_queryset
     from direktur import services as direktur
-    from direktur.views import _clinic_from
+    from direktur.views import branch_context, branch_targets
 
     from . import triage
     from .inbox import can_triage, find_row
@@ -609,28 +609,32 @@ def inbox_triage(request, sumber: str, pk: int):
     row = find_row(request.user, sumber, pk)
     if row is None:
         raise Http404("Item Inbox tidak ditemukan.")
+    clinics = list(user_clinic_queryset(request.user).order_by("id"))
     default_clinic = row["clinic"].pk if row["clinic"] else None
-    clinic, clinics = _clinic_from(request, request.POST.get("cabang") or request.GET.get("cabang") or default_clinic)
+    branch = branch_context(request, clinics, default=default_clinic)
     if request.method == "POST":
         aksi = request.POST.get("aksi", "")
         try:
             if aksi == "tugaskan":
-                if clinic is None or str(clinic.pk) != request.POST.get("cabang"):
-                    raise ValidationError("Cabang tidak valid.")
-                t = triage.assign(row, actor=request.user, clinic=clinic, title=request.POST.get("judul", ""),
-                                  target=request.POST.get("penerima", ""),
+                t = triage.assign(row, actor=request.user, title=request.POST.get("judul", ""),
+                                  targets=branch_targets(request.POST, clinics),
                                   description=request.POST.get("uraian", ""),
                                   priority=request.POST.get("prioritas") or Priority.SEDANG,
                                   due_at=direktur.parse_due(request.POST.get("batas", "")))
-                messages.success(request, f"Dijadikan task: {t.task.title}.")
+                extra = f" ({t.note})" if t.note else ""
+                messages.success(request, f"Dijadikan task: {t.task.title}{extra}.")
             elif aksi == "teruskan":
                 triage.forward(row, actor=request.user, to=request.POST.get("ke", ""),
                                note=request.POST.get("catatan", ""))
                 messages.success(request, "Dicatat sebagai diteruskan; tetap dipantau di tab Dipantau.")
             elif aksi == "rapat":
+                raw = request.POST.get("cabang_rapat", "asal")
+                meeting_clinic = "asal" if raw == "asal" else next(
+                    (c for c in clinics if raw.isdigit() and c.pk == int(raw)), None)
                 t = triage.to_meeting(row, actor=request.user, title=request.POST.get("perkara", ""),
                                       background=request.POST.get("latar", ""),
-                                      needed_by=direktur.parse_date(request.POST.get("tenggat", ""), "Tenggat"))
+                                      needed_by=direktur.parse_date(request.POST.get("tenggat", ""), "Tenggat"),
+                                      clinic=meeting_clinic)
                 messages.success(request, f"Dibawa ke rapat Kamis: {t.decision}.")
             elif aksi == "tidak":
                 triage.dismiss(row, actor=request.user, reason=request.POST.get("alasan", ""))
@@ -642,9 +646,7 @@ def inbox_triage(request, sumber: str, pk: int):
             messages.error(request, " ".join(exc.messages))
     return render(request, "reports/inbox_triage.html", {
         "row": row,
-        "clinic": clinic,
-        "clinics": clinics,
-        "targets": direktur.target_choices(clinic) if clinic else [],
+        **branch,
         "priorities": Priority.choices,
         "forward_choices": ForwardTo.choices,
         "default_priority": "TINGGI" if row["critical"] else "SEDANG",

@@ -36,6 +36,10 @@ cabang tugas di jadwal jaga hari ini, atau cabang asal bila Anda sedang off.
 
 ## Sepanjang hari
 
+- **Izin lokasi:** saat login, buka/tutup hari, mengisi checklist, kas, lapor progres, atau ajukan
+  selesai, browser dapat menanyakan izin lokasi. Lokasi hanya diambil sesaat ketika tombol ditekan
+  (tidak dilacak terus) untuk mencatat bahwa pekerjaan dilakukan di klinik. Bila ditolak, pekerjaan
+  tetap tersimpan.
 - **Tugas saya** (paling atas di **Hari Ini**): task yang dikirim Direktur atau PIC kepada Anda,
   dari cabang mana pun, termasuk task yang dikirim ke beberapa orang atau ke satu peran. Tampil
   walau sesi hari operasional belum dibuat. Yang lewat target bertanda merah dan berada paling

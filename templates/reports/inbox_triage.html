@@ -18,20 +18,15 @@
   <details class="card" open>
     <summary><strong>Putuskan dan tugaskan</strong></summary>
     <p class="help">Bidang Direktur Operasional: operasional harian (jadwal, PIC, alur layanan, fasilitas, limbah), SDM ringan (izin, tukar jaga, teguran lisan, pelatihan), refund/kas sampai Rp1 juta.</p>
-    <form method="get" class="inline">
-      <div><label for="cabang-pilih">Cabang</label>
-        <select id="cabang-pilih" name="cabang">{% for c in clinics %}<option value="{{ c.pk }}"{% if clinic and c.pk == clinic.pk %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
-      <button class="btn small secondary" type="submit">Ganti cabang</button>
-    </form>
+    {% include "direktur/_branch_pic.html" %}
     <form method="post">{% csrf_token %}
-      <input type="hidden" name="aksi" value="tugaskan"><input type="hidden" name="cabang" value="{{ clinic.pk }}">
+      <input type="hidden" name="aksi" value="tugaskan">
       <label for="judul">Judul task</label>
       <input id="judul" name="judul" maxlength="200" required value="{{ row.title }}">
       {% if row.source_type != 'catatan_direktur' %}<label for="uraian">Uraian</label>
       <textarea id="uraian" name="uraian" rows="3">{{ row.description }}</textarea>{% endif %}
       <div class="inline">
-        <div><label for="penerima">PIC</label>
-          <select id="penerima" name="penerima" required><option value="">Pilih PIC…</option>{% for v, l in targets %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+        {% include "direktur/_branch_pic_fields.html" %}
         <div><label for="prioritas">Prioritas</label>
           <select id="prioritas" name="prioritas">{% for v, l in priorities %}<option value="{{ v }}"{% if v == default_priority %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
         <div><label for="batas">Target</label><input id="batas" type="date" name="batas" value="{{ default_due|date:'Y-m-d' }}"></div>
@@ -61,7 +56,15 @@
       <input id="perkara" name="perkara" maxlength="200" required value="{{ row.title }}">
       <label for="latar">Yang perlu diputuskan</label>
       <textarea id="latar" name="latar" rows="2">{{ row.description }}</textarea>
-      <div class="inline"><div><label for="tenggat">Perlu diputuskan sebelum</label><input id="tenggat" type="date" name="tenggat"></div></div>
+      <div class="inline">
+        <div><label for="cabang-rapat">Berlaku untuk</label>
+          <select id="cabang-rapat" name="cabang_rapat">
+            <option value="asal">{{ row.clinic.name|default:"Lintas cabang" }} (cabang asal)</option>
+            {% for c in clinics %}{% if c != row.clinic %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endif %}{% endfor %}
+            {% if row.clinic %}<option value="">Semua cabang</option>{% endif %}
+          </select></div>
+        <div><label for="tenggat">Perlu diputuskan sebelum</label><input id="tenggat" type="date" name="tenggat"></div>
+      </div>
       <p><button class="btn secondary" type="submit">Bawa ke rapat</button></p>
     </form>
   </details>

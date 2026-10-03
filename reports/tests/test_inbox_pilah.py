@@ -228,3 +228,60 @@ def test_triage_page_and_permissions(client, people, jemur):
     client.force_login(people["yohanes"])
     page = client.get(reverse("reports:inbox"), {"pilah": "semua"}).content.decode()
     assert "AC ruang tindakan bocor" in page and "Catatan Direktur" not in page and url not in page
+
+
+# --- Berlaku untuk kedua cabang (3 Okt 2026) -----------------------------------------------
+
+def test_assign_to_all_branches_creates_one_task_per_branch(client, people, jemur, citraland):
+    h = people["hansen"]
+    finding = create_request(actor=people["yohanes"], kind=RequestKind.TEMUAN, title="Seragam staf belum seragam")
+    url = reverse("reports:inbox_triage", args=["permintaan_owner", finding.pk])
+    client.force_login(h)
+    page = client.get(url, {"cabang": "semua"}).content.decode()
+    assert "Semua cabang (satu task per cabang)" in page
+    assert f'name="penerima_{jemur.pk}"' in page and f'name="penerima_{citraland.pk}"' in page
+    # PIC satu cabang kosong: ditolak, tidak ada task setengah jadi.
+    client.post(url, {"aksi": "tugaskan", "cabang": "semua", "judul": "Rapikan seragam",
+                      f"penerima_{jemur.pk}": f"user:{people['heni'].pk}", f"penerima_{citraland.pk}": ""})
+    assert not ActionItem.objects.filter(title="Rapikan seragam").exists()
+    client.post(url, {"aksi": "tugaskan", "cabang": "semua", "judul": "Rapikan seragam", "prioritas": "SEDANG",
+                      f"penerima_{jemur.pk}": f"user:{people['heni'].pk}",
+                      f"penerima_{citraland.pk}": f"user:{people['regita'].pk}"})
+    tasks = ActionItem.objects.filter(title="Rapikan seragam").order_by("clinic_id")
+    assert [t.clinic for t in tasks] == [jemur, citraland]
+    assert all(t.source_type == "permintaan_owner" and t.source_id == finding.pk for t in tasks)
+    t = InboxTriage.objects.get(source_type="permintaan_owner", source_id=finding.pk)
+    assert t.note.startswith("Berlaku untuk 2 cabang") and progress(finding)["total"] == 2
+
+
+def test_issue_for_all_branches_and_cross_branch_meeting(people, jemur, citraland):
+    from direktur.views import branch_targets
+
+    h = people["hansen"]
+    issue = create_issue(clinic=jemur, issue_type=IssueType.MASUKAN, title="Musik ruang tunggu", user=people["heni"])
+    pairs = branch_targets({"cabang": "semua", f"penerima_{jemur.pk}": f"user:{people['heni'].pk}",
+                            f"penerima_{citraland.pk}": f"user:{people['regita'].pk}"}, [jemur, citraland])
+    triage.assign(find_row(h, "issue", issue.pk), actor=h, title="Pasang musik", targets=pairs)
+    assert ActionItem.objects.filter(source_type="issue", source_id=issue.pk).count() == 2
+    assert IssueUpdate.objects.filter(issue=issue, note__contains="(Joderma Citraland)").exists()
+    other = create_issue(clinic=jemur, issue_type=IssueType.MASUKAN, title="Jam istirahat", user=people["heni"])
+    t = triage.to_meeting(find_row(h, "issue", other.pk), actor=h, clinic=None)
+    assert t.decision.clinic is None  # lintas cabang
+    with pytest.raises(ValidationError):
+        branch_targets({"cabang": "99"}, [jemur, citraland])
+
+
+def test_owner_request_page_and_task_form_all_branches(client, people, jemur, citraland):
+    h = people["hansen"]
+    req = create_request(actor=people["yohanes"], title="Pelatihan layanan", target_date=dt.date.today() + dt.timedelta(days=5))
+    client.force_login(h)
+    client.post(reverse("owner:request_detail", args=[req.pk]), {
+        "aksi": "task", "cabang": "semua", "judul": "Jadwalkan pelatihan", "prioritas": "SEDANG",
+        f"penerima_{jemur.pk}": f"user:{people['heni'].pk}", f"penerima_{citraland.pk}": f"user:{people['regita'].pk}"})
+    assert progress(req)["total"] == 2
+    form = client.get(reverse("direktur:task_new"), {"cabang": "semua"}).content.decode()
+    assert f'name="penerima_{citraland.pk}"' in form
+    client.post(reverse("direktur:task_new"), {
+        "cabang": "semua", "judul": "Cek APAR semua cabang", "prioritas": "SEDANG",
+        f"penerima_{jemur.pk}": f"user:{people['heni'].pk}", f"penerima_{citraland.pk}": f"user:{people['regita'].pk}"})
+    assert ActionItem.objects.filter(title="Cek APAR semua cabang").count() == 2

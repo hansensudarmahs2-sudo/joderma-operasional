@@ -25,6 +25,22 @@ dicatat agar tidak lupa, bukan blocker. Diberlakukan oleh product owner sesudah 
   luar mini PC) dan arahkan `BACKUP_SECOND_COPY_DIR` ke diska atau perangkat lain. Uji pemulihan
   mengikuti [`runbook.md`](runbook.md).
 
+## Jejak kehadiran (tahap 3 paket E)
+
+- Target akurasi > 60% (keputusan 3 Okt): jejak hanya diberi label, tidak memblokir. IP berganti
+  (Telkomsel CGNAT 182.8.x dipakai bersama banyak pelanggan) tetap dicatat; pola dipelajari per
+  kelompok IP (IPv4 /24, IPv6 /64) dari jejak yang lokasinya di dalam radius.
+- Lokasi disimpan dibulatkan 4 desimal (~11 m) dan hanya diambil saat formulir dikirim. Belum ada
+  aturan retensi; tentukan sebelum KPI dipakai formal (usul: 12 bulan).
+- `client_ip` kini mengutamakan `CF-Connecting-IP`. Lewat Tailscale, header itu bisa diisi sendiri
+  oleh perangkat tailnet; perangkat tailnet dianggap tepercaya.
+- Tailscale paket gratis membatasi 6 **user** (perangkat milik user tidak dibatasi, 50 perangkat
+  bertag). Jangan pasang Tailscale di HP staf; cukup perangkat milik klinik (di akun pengelola atau
+  bertag), lalu daftarkan IP 100.x-nya di **Jejak → Perangkat & IP lazim**.
+- Tailnet saat ini (3 Okt): `desktop-4bq5lkv` 100.90.94.23 (PC Windows, pernah dipakai Heni di
+  Jemur), `laptop-2p49srt5` 100.101.197.21 (laptop Windows, pernah dipakai Heni/Alya),
+  `joderma-jemur` 100.84.175.7 (mini PC). Tandai yang memang perangkat klinik.
+
 ## Lain-lain selama uji coba
 
 - Hak "Melihat detail pasien" masih terpasang di hampir semua staf (dipasang manual); tinjau saat

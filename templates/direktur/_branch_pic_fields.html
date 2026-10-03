@@ -1,0 +1,11 @@
+{# Isian di dalam formulir POST: cabang tersembunyi + PIC (satu, atau satu per cabang). #}
+<input type="hidden" name="cabang" value="{% if all_branches %}semua{% else %}{{ clinic.pk }}{% endif %}">
+{% if all_branches %}
+  {% for c, choices in per_clinic %}
+  <div><label for="penerima-{{ c.pk }}">PIC {{ c.name }}</label>
+    <select id="penerima-{{ c.pk }}" name="penerima_{{ c.pk }}" required><option value="">Pilih PIC…</option>{% for v, l in choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+  {% endfor %}
+{% else %}
+  <div><label for="penerima">PIC</label>
+    <select id="penerima" name="penerima" required><option value="">Pilih PIC…</option>{% for v, l in targets %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+{% endif %}

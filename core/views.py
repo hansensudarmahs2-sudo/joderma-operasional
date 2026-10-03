@@ -209,6 +209,7 @@ def day_action(request, pk: int):
             messages.warning(request, "Hari ditandai siap dengan catatan.")
         elif action == "open":
             open_day(day, user)
+            _stamp(request, "BUKA_HARI", clinic=day.clinic, entity=day)
             messages.success(request, "Klinik dibuka.")
         elif action == "closing":
             if not can_close_day(user):
@@ -219,6 +220,7 @@ def day_action(request, pk: int):
             if not can_close_day(user):
                 raise PermissionDenied("Hanya supervisor yang dapat menutup hari.")
             close_day(day, user, override_reason=reason)
+            _stamp(request, "TUTUP_HARI", clinic=day.clinic, entity=day)
             messages.success(request, "Hari operasional ditutup.")
         elif action == "reopen":
             if not can_close_day(user):
@@ -316,6 +318,13 @@ def action_item_update(request, pk: int):
     return redirect("core:action_items")
 
 
+def _stamp(request, event: str, **kwargs):
+    """Jejak kehadiran (tahap 3 paket E); tidak pernah menggagalkan aksi."""
+    from jejak.services import stamp
+
+    return stamp(request, event, **kwargs)
+
+
 def _back(request, default: str):
     """Kembali ke halaman asal (mis. Hari Ini) bila `next` aman; selain itu ke `default`."""
     from django.utils.http import url_has_allowed_host_and_scheme
@@ -363,6 +372,7 @@ def assignment_submit(request, pk: int):
         with transaction.atomic():
             submit_assignment(assignment, user=request.user, note=note)
             save_optional_photo(request, entity_type="taskassignment", entity_id=assignment.pk)
+        _stamp(request, "AJUKAN", clinic=assignment.action_item.clinic, entity=assignment)
         who = "Direktur Utama / Owner" if assignment.action_item.reviewed_by_dirut else "pemeriksa"
         messages.success(request, f"Task diajukan selesai, menunggu konfirmasi {who}.")
     except ValidationError as exc:
@@ -383,6 +393,7 @@ def assignment_progress(request, pk: int):
         with transaction.atomic():
             event = report_progress(assignment, user=request.user, note=request.POST.get("catatan", ""))
             save_optional_photo(request, entity_type="taskevent", entity_id=event.pk)
+        _stamp(request, "PROGRES", clinic=assignment.action_item.clinic, entity=assignment)
         messages.success(request, "Progres dicatat.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
@@ -506,7 +517,8 @@ def config_page(request):
     return render(request, "core/config.html", {"rows": rows, "clinic": clinic})
 
 
-CLINIC_PROFILE_FIELDS = ("name", "address", "phone", "open_time", "close_time", "dpj_name", "apj_name")
+CLINIC_PROFILE_FIELDS = ("name", "address", "phone", "open_time", "close_time", "dpj_name", "apj_name",
+                         "latitude", "longitude", "radius_m")
 
 
 def _parse_clinic_form(post) -> dict:
@@ -528,7 +540,32 @@ def _parse_clinic_form(post) -> dict:
         raise ValidationError("Jam buka dan jam tutup wajib diisi (JJ:MM).")
     if data["close_time"] <= data["open_time"]:
         raise ValidationError("Jam tutup harus sesudah jam buka.")
+    data.update(_parse_coordinates(post))
     return data
+
+
+def _parse_coordinates(post) -> dict:
+    """Lintang/bujur cabang untuk jejak kehadiran; boleh kosong (belum diisi)."""
+    from decimal import Decimal, InvalidOperation
+
+    raw_lat, raw_lng = post.get("lintang", "").strip(), post.get("bujur", "").strip()
+    if not raw_lat and not raw_lng:
+        lat = lng = None
+    else:
+        try:
+            lat, lng = Decimal(raw_lat.replace(",", ".")), Decimal(raw_lng.replace(",", "."))
+        except (InvalidOperation, ValueError):
+            raise ValidationError("Lintang dan bujur harus angka desimal, mis. -7.312345 dan 112.745678.")
+        if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+            raise ValidationError("Lintang harus -90..90 dan bujur -180..180.")
+        lat, lng = lat.quantize(Decimal("0.000001")), lng.quantize(Decimal("0.000001"))
+    try:
+        radius = int(post.get("radius") or 150)
+    except ValueError:
+        raise ValidationError("Radius harus angka meter.")
+    if not 30 <= radius <= 2000:
+        raise ValidationError("Radius antara 30 dan 2000 meter.")
+    return {"latitude": lat, "longitude": lng, "radius_m": radius}
 
 
 @login_required
