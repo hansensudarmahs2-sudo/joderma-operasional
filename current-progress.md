@@ -13,8 +13,8 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 | Produksi (mini PC, ops.joderma.id) | Commit `43f49eb` (dideploy 3 Oktober 18.02): Laporan Masuk lintas cabang di atas `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Backup terakhir sebelum deploy: `joderma-ops-20261003-180210.tar.gz` (tidak terenkripsi) |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | Tidak ada kode yang tertunda. Perapian peran 3 Okt dijalankan lewat `rapikan_peran.sh` (data, bukan kode) |
-| Test | 661 (660 lulus, 1 dilewati) per 3 Okt: 640 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
+| Belum dideploy | **Ekspor audit CSV** (3 Okt, lihat Riwayat) |
+| Test | 665 (664 lulus, 1 dilewati) per 3 Okt: 644 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -138,6 +138,19 @@ metrik kedisiplinan (tepat waktu, kelengkapan) per staf.
 ---
 
 # Riwayat
+
+## Ekspor audit CSV (3 Oktober 2026) — belum di-commit
+
+Halaman Audit mendapat tombol **Unduh CSV** (`audit:export`, `/audit/ekspor/`) yang mengunduh persis
+isi saringan di layar (pengguna, aksi, data, rentang tanggal): waktu WIB, pengguna dan username,
+aksi, jenis/ID/nama data, alasan, nilai sebelum dan sesudah (JSON), alamat IP, perangkat, ID
+permintaan. UTF-8 dengan BOM agar terbuka rapi di Excel; nilai yang diawali `= + - @` dinetralkan
+(tidak dijalankan sebagai rumus); dialirkan per 500 baris sehingga ekspor besar tidak membebani.
+Hanya Direktur Operasional dan admin berakses penuh (`audit.views.can_export_audit`); Koordinator
+Shift tetap membaca di layar tanpa mengunduh. Setiap unduhan tercatat di audit (EXPORT, beserta
+saringan dan jumlah baris). Juga: saringan "Data" ikut mencari nama data, saringan pengguna mencari
+nama tampilan, navigasi halaman tidak lagi membuang saringan, dan menu Admin (superadmin) mendapat
+Audit. Test `audit/test_ekspor.py` (4).
 
 ## Perapian peran dan hak akun (3 Oktober 2026) — data, lewat `rapikan_peran.sh`
 

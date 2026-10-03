@@ -6,4 +6,5 @@ app_name = "audit"
 
 urlpatterns = [
     path("", views.log_view, name="log"),
+    path("ekspor/", views.export_view, name="export"),
 ]

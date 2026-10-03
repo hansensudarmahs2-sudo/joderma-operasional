@@ -64,6 +64,13 @@ jenis, atau kata kunci (judul, nomor, lokasi, nama pelapor); centang "Tampilkan 
 untuk riwayat. Setiap catatan baru dari cabang mana pun juga masuk ke lonceng notifikasi. Kotak
 **Laporan Masuk** di Ringkasan menunjukkan jumlah yang masih terbuka per cabang.
 
+## Ekspor audit
+
+Menu **Audit**: saring per pengguna, aksi, data (mis. `cashsession`, `nurseactiontally`, nama
+pasien atau nomor catatan), dan rentang tanggal, lalu tekan **Unduh CSV**. Berkas berisi persis
+yang tersaring, termasuk nilai sebelum dan sesudah setiap perubahan, dan terbuka langsung di Excel.
+Unduhan itu sendiri tercatat di audit. Koordinator Shift hanya bisa membaca audit di layar.
+
 ## Kas dan tally cabang
 
 - **Verifikasi kas.** Koordinator Shift boleh menutup hari begitu kas akhir diajukan. Sesi yang

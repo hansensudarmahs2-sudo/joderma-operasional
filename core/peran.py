@@ -219,6 +219,8 @@ def nav_sections(user) -> list[NavSection]:
             admin.add("Konfigurasi", "core:config")
         admin.add("Template Checklist", "checklists:templates")
         admin.add("Pengaturan Klinik", "core:clinic_profile")
+        if flags["audit"]:
+            admin.add("Audit", "audit:log")
         jadwal = NavSection("Jadwal")
         jadwal.add("Jadwal Jaga", "jadwal:roster")
         jadwal.add("Pembagian Tugas", "jadwal:plan")

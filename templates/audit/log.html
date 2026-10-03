@@ -8,11 +8,12 @@
   <div><label for="aksi">Aksi</label>
     <select id="aksi" name="aksi"><option value="">Semua</option>
       {% for v, l in actions %}<option value="{{ v }}" {% if filters.aksi == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
-  <div><label for="entitas">Entitas</label><input id="entitas" name="entitas" value="{{ filters.entitas }}"></div>
+  <div><label for="entitas">Data</label><input id="entitas" name="entitas" value="{{ filters.entitas }}" placeholder="mis. issue, cashsession, nama"></div>
   <div><label for="dari">Dari</label><input id="dari" name="dari" type="date" value="{{ filters.dari }}"></div>
   <div><label for="sampai">Sampai</label><input id="sampai" name="sampai" type="date" value="{{ filters.sampai }}"></div>
   <button class="btn" type="submit">Terapkan</button>
 </form>
+<p class="meta">{{ total }} kejadian sesuai saringan.{% if can_export %} <a class="btn small secondary" href="{% url 'audit:export' %}{% if query %}?{{ query }}{% endif %}">Unduh CSV</a> <span>Isi persis seperti saringan di atas, termasuk nilai sebelum/sesudah. Unduhan ini sendiri tercatat di audit.</span>{% endif %}</p>
 
 <table class="responsive">
   <thead><tr><th>Waktu</th><th>Aktor</th><th>Aksi</th><th>Entitas</th><th>Perubahan</th><th>Alasan</th></tr></thead>
@@ -35,8 +36,8 @@
 </table>
 
 <p>
-  {% if page.has_previous %}<a class="btn small secondary" href="?hal={{ page.previous_page_number }}">Sebelumnya</a>{% endif %}
+  {% if page.has_previous %}<a class="btn small secondary" href="?{% if query %}{{ query }}&{% endif %}hal={{ page.previous_page_number }}">Sebelumnya</a>{% endif %}
   <span class="meta">Halaman {{ page.number }} dari {{ page.paginator.num_pages }}</span>
-  {% if page.has_next %}<a class="btn small secondary" href="?hal={{ page.next_page_number }}">Berikutnya</a>{% endif %}
+  {% if page.has_next %}<a class="btn small secondary" href="?{% if query %}{{ query }}&{% endif %}hal={{ page.next_page_number }}">Berikutnya</a>{% endif %}
 </p>
 {% endblock %}
