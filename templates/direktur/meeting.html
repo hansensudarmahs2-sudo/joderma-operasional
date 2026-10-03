@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Bahan Rapat {{ meeting|date:"d/m" }}{% endblock %}
+{% block content %}
+<div class="checklist-heading no-print">
+  <p class="meeting-nav" style="margin:0"><a href="?tanggal={{ prev|date:'Y-m-d' }}">← Kamis {{ prev|date:"d/m" }}</a> · <a href="?tanggal={{ next|date:'Y-m-d' }}">Kamis {{ next|date:"d/m" }} →</a></p>
+  <span class="inline-actions"><button class="btn small secondary" type="button" onclick="window.print()">Cetak</button><button class="btn small" type="button" id="salin-teks">Salin untuk WhatsApp</button></span>
+</div>
+<h1>Bahan rapat Kamis, {{ meeting|date:"j F Y" }}</h1>
+<p class="sub">Periode {{ start|date:"j M" }} – {{ end|date:"j M Y" }} (Kamis lalu s.d. Rabu) · dibuat {{ generated_at|date:"d/m/Y H.i" }} · semua cabang</p>
+
+<div class="tile-row meeting-tiles">
+  <div class="card"><span class="tile-num">{{ agenda_rapat|length }}</span><strong>Agenda keputusan</strong></div>
+  <div class="card"><span class="tile-num">{{ done|length }}</span><strong>Selesai terverifikasi</strong></div>
+  <div class="card"><span class="tile-num">{{ overdue|length }}</span><strong>Lewat target</strong></div>
+  <div class="card"><span class="tile-num">{{ inbox_total }}</span><strong>Inbox masuk</strong><div class="meta">{{ open_untriaged }} belum dipilah</div></div>
+</div>
+
+<section class="meeting-section">
+  <h2>1. Agenda keputusan bersama</h2>
+  {% if agenda_rapat %}
+  <ol class="agenda-list">
+    {% for r in agenda_rapat %}
+    <li><a href="{% url 'direktur:decision_detail' r.decision.pk %}"><strong>{{ r.decision.title }}</strong></a>
+      <div class="meta">{{ r.decision.clinic.name|default:"Lintas cabang" }}{% if r.decision.reference %} · {{ r.decision.reference }}{% endif %} · dicatat {{ r.age_days }} hari lalu{% if r.decision.needed_by %} · {% if r.late %}<span class="tag err">lewat tenggat {{ r.decision.needed_by|date:"d/m" }}</span>{% else %}sebelum {{ r.decision.needed_by|date:"d/m" }}{% endif %}{% endif %}</div>
+      {% if r.decision.background %}<div class="meta" style="white-space:pre-wrap">{{ r.decision.background|truncatechars:300 }}</div>{% endif %}
+      {% if r.tasks %}<div class="meta">Task tertahan: {% for t in r.tasks %}{{ t.title }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}<p class="meta">Tidak ada perkara untuk rapat bersama.</p>{% endif %}
+  {% if agenda_lain %}<p class="meta">Menunggu pemutus lain: {% for r in agenda_lain %}{{ r.decision.title }} ({{ r.decision.get_decider_display }}){% if not forloop.last %}; {% endif %}{% endfor %}</p>{% endif %}
+  {% if decided %}
+  <h3>Ditetapkan dalam periode ini</h3>
+  <ul class="agenda-list">{% for d in decided %}<li><strong>{{ d.title }}</strong> <span class="meta">· {{ d.decided_on|date:"d/m" }}{% if d.is_policy %} · kebijakan berlaku{% endif %}</span><div class="meta">{{ d.decision_text|truncatechars:240 }}</div></li>{% endfor %}</ul>
+  {% endif %}
+</section>
+
+<section class="meeting-section">
+  <h2>2. Permintaan dan temuan Owner</h2>
+  {% if requests %}
+  <table class="responsive">
+    <thead><tr><th>Permintaan / temuan</th><th>Progres</th><th>Target</th></tr></thead>
+    <tbody>{% for r in requests %}
+      <tr><td data-label="Permintaan"><div><a href="{% url 'owner:request_detail' r.request.pk %}"><strong>{{ r.request.title }}</strong></a>{% if r.new %} <span class="tag info">Baru</span>{% endif %}
+        <div class="meta">{{ r.request.get_kind_display }} · {{ r.request.clinic.name|default:"Lintas cabang" }}</div></div></td>
+        <td data-label="Progres"><span>{{ r.label }}{% if r.total %} · {{ r.done }}/{{ r.total }} task{% endif %}</span></td>
+        <td data-label="Target"><span>{% if r.request.target_date %}{{ r.request.target_date|date:"d/m" }}{% else %}—{% endif %}{% if r.late %} <span class="tag err">Lewat</span>{% endif %}</span></td></tr>
+    {% endfor %}</tbody>
+  </table>
+  {% else %}<p class="meta">Tidak ada permintaan atau temuan yang berjalan.</p>{% endif %}
+</section>
+
+<section class="meeting-section">
+  <h2>3. Selesai dan terverifikasi ({{ done|length }})</h2>
+  {% if done %}
+  <ul class="agenda-list">{% for x in done %}<li><a href="{% url 'direktur:task_detail' x.item.pk %}">{{ x.item.title }}</a> <span class="meta">· {{ x.item.clinic.name }}{% if x.people %} · {{ x.people }}{% endif %}{% if x.reviewers %} · diverifikasi {{ x.reviewers }}{% endif %} · {{ x.item.updated_at|date:"d/m" }}</span></li>{% endfor %}</ul>
+  {% else %}<p class="meta">Belum ada task selesai dalam periode ini.</p>{% endif %}
+  <p class="meta">Task baru dibuat dalam periode ini: {{ new_tasks }}.</p>
+</section>
+
+<section class="meeting-section">
+  <h2>4. Lewat target ({{ overdue|length }})</h2>
+  {% if overdue %}
+  <ul class="agenda-list">{% for x in overdue %}<li><a href="{% url 'direktur:task_detail' x.item.pk %}">{{ x.item.title }}</a> <span class="meta">· {{ x.item.clinic.name }} · {{ x.people|default:"tanpa PIC" }} · target {{ x.item.due_at|date:"d/m" }}, lewat {{ x.days }} hari</span></li>{% endfor %}</ul>
+  {% else %}<p class="meta">Tidak ada task lewat target.</p>{% endif %}
+  {% if waiting %}<p class="meta">Menunggu verifikasi: {{ waiting|length }} task{% if verify_dirut %}, {{ verify_dirut|length }} di antaranya oleh Direktur Utama / Owner{% endif %}.</p>{% endif %}
+</section>
+
+<section class="meeting-section">
+  <h2>5. Inbox minggu ini</h2>
+  {% if inbox %}
+  <table class="responsive">
+    <thead><tr><th>Cabang</th><th>Masuk</th><th>Rincian</th><th>Belum dipilah</th></tr></thead>
+    <tbody>{% for name, c in inbox.items %}
+      <tr><td data-label="Cabang">{{ name }}</td><td data-label="Masuk">{{ c.total }}</td>
+        <td data-label="Rincian"><span>{% for k, v in c.kinds.items %}{{ k }} {{ v }}{% if not forloop.last %} · {% endif %}{% endfor %}{% for r in c.critical %}<br><span class="tag err">Kritis</span> <a href="{{ r.url }}">{{ r.title }}</a>{% endfor %}</span></td>
+        <td data-label="Belum dipilah">{{ c.untriaged }}</td></tr>
+    {% endfor %}</tbody>
+  </table>
+  {% else %}<p class="meta">Tidak ada yang masuk dalam periode ini.</p>{% endif %}
+</section>
+
+<details class="card no-print" id="teks-wa">
+  <summary>Teks untuk WhatsApp</summary>
+  <textarea id="teks-rapat" rows="14" readonly>{{ text }}</textarea>
+</details>
+<script>
+(function () {
+  var btn = document.getElementById("salin-teks"), box = document.getElementById("teks-rapat");
+  if (!btn || !box) return;
+  btn.addEventListener("click", function () {
+    var done = function () { btn.textContent = "Tersalin"; setTimeout(function () { btn.textContent = "Salin untuk WhatsApp"; }, 2000); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(box.value).then(done, function () { document.getElementById("teks-wa").open = true; box.select(); });
+    } else { document.getElementById("teks-wa").open = true; box.select(); document.execCommand && document.execCommand("copy"); done(); }
+  });
+})();
+</script>
+{% endblock %}

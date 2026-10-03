@@ -205,6 +205,14 @@ yang tertahan karenanya; perkara dengan pemutus lain (Owner, Dirut, …) dilipat
 - Keputusan yang sudah ditetapkan punya tombol **Buat task tindak lanjut**; task itu bersumber
   "Keputusan" dan tercantum di halaman keputusan.
 
+**Bahan rapat (tahap 2 paket D).** Menu **Bahan Rapat** (juga tautan "Bahan rapat →" di Agenda
+rapat Kamis) menyusun otomatis bahan rapat Kamis untuk periode Kamis lalu s.d. Rabu: agenda
+keputusan bersama dan perkara yang menunggu pemutus lain, keputusan yang ditetapkan dalam periode,
+permintaan dan temuan Owner yang baru atau masih berjalan, task selesai dan terverifikasi, task
+lewat target, yang menunggu verifikasi, serta Inbox yang masuk per cabang. Panah di atas
+berpindah ke rapat minggu sebelum/sesudahnya. **Cetak** mencetak halaman tanpa menu; **Salin untuk
+WhatsApp** menyalin ringkasan teks untuk ditempel di grup. Halaman ini hanya membaca.
+
 **Pelapor.** Kartu task (Kanban, Prioritas), detail task, dan Daftar Task menampilkan pelapor
 asal: staf yang mengisi butir checklist, pemeriksa temuan Direktur, Owner untuk permintaan
 Owner, penulis catatan; selain itu pembuat task.

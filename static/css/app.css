@@ -535,3 +535,17 @@ tr.row-late td:first-child { box-shadow: inset 3px 0 0 var(--err); }
 .triage-grid { display: grid; gap: .6rem; }
 .triage-grid details > summary { cursor: pointer; }
 .task-actions-row { display: flex; flex-wrap: wrap; gap: .4rem; align-items: flex-start; }
+
+/* Bahan rapat mingguan (Paket D) */
+.meeting-tiles .card { margin: 0; }
+.meeting-section { margin-top: 1.2rem; }
+.meeting-section h3 { font-size: 1rem; margin: .8rem 0 .3rem; }
+#teks-rapat { width: 100%; font-family: inherit; }
+@media print {
+  .topbar, nav.main, .no-print, .messages { display: none !important; }
+  body, main { background: #fff; }
+  main { margin: 0 !important; padding: 0 !important; }
+  .card { box-shadow: none; break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+  .meeting-section { break-inside: avoid-page; }
+}

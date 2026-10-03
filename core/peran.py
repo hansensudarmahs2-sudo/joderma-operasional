@@ -60,6 +60,7 @@ OWNER_ALLOWED = COMMON | {
     "owner:*",
     "direktur:team",
     "direktur:tasks",  # Daftar Task, baca saja (unduh CSV lewat GET)
+    "direktur:meeting",  # Bahan rapat Kamis, baca saja
     "direktur:kanban",
     "direktur:matrix",
     "direktur:gantt",
@@ -208,6 +209,7 @@ def nav_sections(user) -> list[NavSection]:
         main.add("Inbox", "reports:inbox")
         main.add("Daftar Task", "direktur:tasks")
         main.add("Keputusan", "direktur:decisions")
+        main.add("Bahan Rapat", "direktur:meeting")
         main.add("Summary Harian", "owner:summary")
         main.add("Jadwal", "owner:jadwal")
         main.add("Stok Apotek", "stok:index")
@@ -238,6 +240,7 @@ def nav_sections(user) -> list[NavSection]:
         overview.add("Prioritas", "direktur:matrix")
         overview.add("Jadwal Task", "direktur:gantt")
         overview.add("Keputusan", "direktur:decisions")
+        overview.add("Bahan Rapat", "direktur:meeting")
         mine = NavSection("Direktur")
         mine.add("Checklist Direktur", "direktur:checklist")
         mine.add("Summary Harian", "owner:summary")

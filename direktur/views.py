@@ -715,3 +715,28 @@ def _task_csv(request, rows, f):
     response = StreamingHttpResponse(lines(), content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = f'attachment; filename="daftar_task_{stamp}.csv"'
     return response
+
+
+# --- Bahan rapat mingguan ------------------------------------------------------------
+
+@login_required
+@require(dashboard.can_view_overview)
+def meeting_page(request):
+    """Bahan rapat Kamis: periode Kamis lalu s.d. Rabu, bisa dicetak atau disalin ke WhatsApp."""
+    import datetime as dt
+
+    from . import meeting
+
+    day = meeting.parse_meeting(request.GET.get("tanggal"))
+    data = meeting.compose(request.user, day)
+    return render(
+        request,
+        "direktur/meeting.html",
+        {
+            **data,
+            "text": meeting.as_text(data),
+            "prev": day - dt.timedelta(days=7),
+            "next": day + dt.timedelta(days=7),
+            "is_director": is_aom(request.user),
+        },
+    )

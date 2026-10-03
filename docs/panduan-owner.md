@@ -13,6 +13,7 @@ Sesudah login, Owner langsung masuk ke **Dashboard**. Menunya:
 | **Inbox** | Semua yang masuk ke Direktur Operasional (komplain, masukan, kerusakan, laporan staf, permintaan dan temuan Anda) beserta hasil pilahnya, hanya baca (lihat di bawah) |
 | **Daftar Task** | Semua task kedua cabang dalam satu tabel: cari, saring, urutkan, unduh CSV. Hanya baca |
 | **Keputusan** | Register keputusan dan kebijakan, hanya baca |
+| **Bahan Rapat** | Bahan rapat Kamis yang tersusun otomatis (Kamis lalu s.d. Rabu): agenda keputusan, permintaan dan temuan, task selesai, task lewat target, Inbox per cabang. Bisa dicetak atau disalin ke WhatsApp |
 | **Summary Harian** | Summary of the day dari Direktur Operasional, pilih per tanggal |
 | **Jadwal** | Pilih cabang, lihat siapa yang bertugas hari itu dan siapa yang libur, cuti, atau sedang di cabang lain. Tombol **Lihat jadwal penuh** membuka grid bulanan (hanya baca) |
 

@@ -9,7 +9,7 @@
 <section class="card agenda" id="agenda-rapat">
   <div class="checklist-heading" style="margin:0 0 .4rem">
     <h2 style="margin:0">Agenda rapat Kamis, {{ agenda.date|date:"j M" }}</h2>
-    <a class="meta" href="{% url 'direktur:decisions' %}">Semua keputusan →</a>
+    <span class="meta"><a href="{% url 'direktur:meeting' %}">Bahan rapat →</a> · <a href="{% url 'direktur:decisions' %}">Semua keputusan →</a></span>
   </div>
   {% if agenda.rapat %}
   <ol class="agenda-list">

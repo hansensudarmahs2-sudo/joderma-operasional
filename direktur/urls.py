@@ -11,6 +11,7 @@ urlpatterns = [
     path("kanban/", views.kanban_page, name="kanban"),
     path("prioritas/", views.matrix_page, name="matrix"),
     path("jadwal/", views.gantt_page, name="gantt"),
+    path("rapat/", views.meeting_page, name="meeting"),
     path("keputusan/", views.decisions, name="decisions"),
     path("keputusan/<int:pk>/", views.decision_detail, name="decision_detail"),
     path("checklist/", views.checklist, name="checklist"),

@@ -54,7 +54,7 @@ yang ditentukan dari perannya, dengan urutan: Direktur Operasional (`AOM`) → O
 | Tampilan | Halaman pertama | Menu | Halaman yang boleh dibuka |
 |---|---|---|---|
 | Direktur Operasional | Ringkasan | semua, dikelompokkan: ringkasan, Direktur, Operasional, Laporan, Pengaturan | semua (izin per view tetap berlaku) |
-| Owner / Direktur Utama | Dashboard Owner | Dashboard, Inbox, Daftar Task, Keputusan, Summary Harian, Jadwal, Stok Apotek | **hanya**: halaman Owner (`/owner/`: Dashboard, Permintaan dan temuan, Summary Harian, Jadwal), Inbox (baca), Tim, Daftar Task (baca + CSV), Kanban, Prioritas, Jadwal Task, Detail task (baca), Keputusan, Jadwal Jaga (baca), Stok Apotek (baca), Notifikasi, Ganti password. Selain itu 403 |
+| Owner / Direktur Utama | Dashboard Owner | Dashboard, Inbox, Daftar Task, Keputusan, Bahan Rapat, Summary Harian, Jadwal, Stok Apotek | **hanya**: halaman Owner (`/owner/`: Dashboard, Permintaan dan temuan, Summary Harian, Jadwal), Inbox (baca), Tim, Daftar Task (baca + CSV), Bahan Rapat (baca), Kanban, Prioritas, Jadwal Task, Detail task (baca), Keputusan, Jadwal Jaga (baca), Stok Apotek (baca), Notifikasi, Ganti password. Selain itu 403 |
 | PIC / Koordinator | Hari Ini | Hari Ini, Checklist Saya, Kas/Order/Stok Apotek bila perannya, Jadwal (termasuk Pembagian Tugas), Lapor, Laporan Operasional | semua kecuali yang ditolak izin per view |
 | Staf | Hari Ini | Hari Ini, Checklist Saya, Kas/Order/Stok Apotek bila perannya, Jadwal Jaga, Jadwal Istirahat, Giliran Perawat (perawat), Lapor | semua **kecuali** Pembagian Tugas tim (bulanan dan harian), Laporan Operasional dan ekspor, halaman Direktur dan Owner, Audit |
 | Admin sistem | Pengguna | Pengguna, Reset peran, Konfigurasi, Template Checklist, Pengaturan Klinik, Jadwal Jaga, Pembagian Tugas | **hanya** halaman akun, konfigurasi, template, pengaturan klinik, jadwal. Admin dengan `admin.full_access` tidak dibatasi |
@@ -133,7 +133,7 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Menutup hari operasional | supervisor | — |
 | Membaca audit log | supervisor, AOM, owner | `audit.view`, `admin.full_access` |
 | Mengekspor laporan | supervisor, AOM, owner | `report.export`, `admin.full_access` |
-| Ringkasan, Daftar Task, Kanban, Prioritas, Jadwal Task, Keputusan, Tim, Detail task (baca) | AOM, owner | — |
+| Ringkasan, Daftar Task, Bahan Rapat, Kanban, Prioritas, Jadwal Task, Keputusan, Tim, Detail task (baca) | AOM, owner | — |
 | Tahan task menunggu keputusan, bawa ke rapat, buat task tindak lanjut keputusan | AOM | — |
 | Detail task: ubah status/target, tandai selesai, batalkan, keluarkan penerima | AOM, pembuat task | — |
 | Pengaturan klinik (nama, alamat, nomor HP, jam, DPJ, APJ): ubah | admin, AOM, superuser bootstrap | — |
