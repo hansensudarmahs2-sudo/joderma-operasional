@@ -101,6 +101,10 @@ cabang tugas di jadwal jaga hari ini, atau cabang asal bila Anda sedang off.
    **diajukan**; verifikasi oleh Direktur Operasional boleh menyusul, juga sesudah hari
    ditutup. Bila kas akhir belum diajukan atau ada catatan kritis belum ditriase, penutupan
    hanya dapat dilakukan dengan alasan.
+3. Tidak ada batas jam penutupan. Bila menunggu pasien terakhir sampai lewat tengah malam, tetap
+   tutup seperti biasa: sampai pukul 06.00, aplikasi masih menampilkan hari kemarin yang belum
+   ditutup (checklist penutupan, kas akhir, tally, Tutup hari). Jangan menekan *Buat sesi hari ini*
+   untuk menutup hari kemarin.
 4. Hari tertutup bersifat read-only. Koreksi hanya lewat *Buka kembali* oleh
    supervisor disertai alasan.
 

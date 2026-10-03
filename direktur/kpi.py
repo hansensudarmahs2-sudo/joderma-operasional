@@ -13,7 +13,8 @@ Definisi:
   yang terisi. "Diambil alih" = terisi oleh orang yang tidak ditugaskan di porsi itu hari itu.
   Hari ini baru dihitung bila hari operasionalnya sudah ditutup.
 - **Pembukaan tepat waktu**: butir sesi Pembukaan yang ia isi sendiri, selesai sebelum jam buka
-  cabang + toleransi.
+  cabang + toleransi. Penutupan sengaja tanpa batas jam: tutup bisa molor menunggu pasien terakhir
+  (keputusan product owner 4 Okt 2026). Jangan menambah tenggat penutupan tanpa keputusan baru.
 - **Jejak di klinik**: persentase jejak Kuat + Sedang dari seluruh jejaknya.
 - **Task**: task individual (atau task bersama yang ia ambil) dengan target pada bulan itu yang
   sudah lewat: diajukan sebelum target, terlambat, atau belum diajukan; plus jumlah diminta revisi

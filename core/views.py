@@ -205,9 +205,11 @@ def today(request):
 
     from .task_services import my_tasks
 
+    from .models import operational_date
+
     user = request.user
     clinic = active_clinic(user)
-    date = local_today()
+    date = operational_date(clinic) if clinic else local_today()
     day = OperationalDay.today_for(clinic) if clinic else None
     if day is None and clinic and request.GET.get("buat") == "1":
         get_or_create_day(clinic, user=user)

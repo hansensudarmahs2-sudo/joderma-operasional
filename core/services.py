@@ -123,8 +123,13 @@ def _transition(day: OperationalDay, new_status: str):
 
 @transaction.atomic
 def get_or_create_day(clinic: Clinic, date=None, user=None) -> tuple[OperationalDay, bool]:
-    """Satu sesi aktif per cabang dan tanggal (PRD 7)."""
-    date = date or local_today()
+    """Satu sesi aktif per cabang dan tanggal (PRD 7).
+
+    Tanpa tanggal: hari operasional yang sedang berjalan (`operational_date`), yaitu hari kemarin bila
+    penutupannya molor lewat tengah malam."""
+    from .models import operational_date
+
+    date = date or operational_date(clinic)
     day, created = OperationalDay.objects.get_or_create(
         clinic=clinic, date=date, defaults={"created_by": user}
     )

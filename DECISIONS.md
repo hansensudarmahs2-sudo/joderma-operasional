@@ -115,7 +115,8 @@ kembali, ditandai sebagai entri susulan dengan alasan. Runbook: `docs/runbook.md
 |---|---|---|
 | Cakupan instalasi | Satu cabang, satu `OperationalDay` per tanggal | PROVISIONAL |
 | Zona waktu | Asia/Jakarta | CONFIRMED (PRD 5) |
-| Jam operasional | 12.00–21.00 | PROVISIONAL (dari website joderma.id) |
+| Jam operasional | Jemur Andayani 14.00–22.00, Citraland 12.00–21.00 (Pengaturan Klinik) | CONFIRMED (product owner, 4 Okt 2026) |
+| Batas jam penutupan | Tidak ada: tutup boleh molor menunggu pasien terakhir, juga lewat tengah malam; hari kemarin yang belum ditutup tetap hari berjalan sampai 06.00 (`day.late_close_cutoff_hour`) | CONFIRMED (product owner, 4 Okt 2026) |
 | Override | Hanya supervisor, selalu wajib alasan | PROVISIONAL |
 | Hard-delete komplain/kerusakan | Tidak pernah | PROVISIONAL |
 | Session idle / absolute timeout | 30 menit / 12 jam | PROVISIONAL |
@@ -124,6 +125,7 @@ kembali, ditandai sebagai entri susulan dengan alasan. Runbook: `docs/runbook.md
 | Database | SQLite WAL (migrasi ke PostgreSQL sesuai PRD 16.2) | PROVISIONAL |
 
 ## Catatan perubahan
+- 2026-10-04 — Jam operasional per cabang dan penutupan tanpa batas jam dikonfirmasi product owner.
 - 2026-09-11 — Dokumen dibuat dari PRD v1.0 Bagian 29. Seluruh entri `PROVISIONAL`.
 - 2026-09-11 — Persiapan UAT pilot: ditambahkan rujukan ke `OWNER_DECISION_REVIEW.md`;
   koreksi penamaan field kas pada D1 agar sesuai implementasi (`expected_total`);

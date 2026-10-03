@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import date as date_cls
+from datetime import timedelta
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -91,6 +92,9 @@ DEFAULT_CONFIG: dict[str, object] = {
     "opening.reminder_minutes_before_open": 30,
     # Ringkasan/dashboard: task dianggap "mendesak" bila targetnya <= N jam lagi
     "dashboard.urgent_hours": 48,
+    # Hari operasional: tutup boleh molor lewat tengah malam (menunggu pasien terakhir). Sebelum jam ini,
+    # hari kemarin yang belum ditutup masih dianggap hari yang berjalan.
+    "day.late_close_cutoff_hour": 6,
     # KPI per staf (uji coba): butir Pembukaan dianggap tepat waktu bila selesai sebelum jam buka + N menit;
     # tanda "centang massal" bila >= N butir dicentang dalam N detik (hanya tanda, bukan pengurang).
     "kpi.open_tolerance_minutes": 15,
@@ -219,11 +223,35 @@ class OperationalDay(models.Model):
 
     @classmethod
     def today_for(cls, clinic: Clinic) -> "OperationalDay | None":
-        return cls.objects.filter(clinic=clinic, date=local_today()).first()
+        return cls.objects.filter(clinic=clinic, date=operational_date(clinic)).first()
 
 
 def local_today() -> date_cls:
     return timezone.localtime(timezone.now()).date()
+
+
+def late_close_cutoff_hour(clinic) -> int:
+    try:
+        return int(ClinicConfig.get(clinic, "day.late_close_cutoff_hour", 6))
+    except (TypeError, ValueError):
+        return 6
+
+
+def operational_date(clinic, now=None) -> date_cls:
+    """Tanggal hari operasional yang sedang berjalan di cabang ini.
+
+    Penutupan tidak punya batas jam: tutup bisa molor melewati tengah malam karena menunggu pasien
+    terakhir (keputusan 4 Okt 2026). Selama hari kemarin belum ditutup dan jam sekarang sebelum batas
+    (`day.late_close_cutoff_hour`, bawaan 06.00), yang berjalan masih hari kemarin, sehingga checklist
+    penutupan, kas akhir, tally, dan tutup hari tetap masuk ke tanggal yang benar.
+    """
+    moment = timezone.localtime(now or timezone.now())
+    today = moment.date()
+    if clinic is not None and moment.hour < late_close_cutoff_hour(clinic):
+        yesterday = today - timedelta(days=1)
+        if OperationalDay.objects.filter(clinic=clinic, date=yesterday).exclude(status=DayStatus.CLOSED).exists():
+            return yesterday
+    return today
 
 
 class Priority(models.TextChoices):

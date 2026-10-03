@@ -601,12 +601,21 @@ def month_plan(clinic, year: int, month: int) -> dict:
 
 
 def cashier_assignments(user, day: dt.date | None = None):
-    """Porsi kelompok Kas (mis. "Kasir hari ini") yang ditugaskan kepada pengguna pada tanggal itu."""
-    from core.models import local_today
+    """Porsi kelompok Kas (mis. "Kasir hari ini") yang ditugaskan kepada pengguna pada tanggal itu.
 
-    return DutyAssignment.objects.filter(
-        user=user, date=day or local_today(), portion__group="KAS", portion__active=True
-    ).select_related("portion", "clinic")
+    Tanpa tanggal: tanggal hari operasional yang berjalan di cabang porsi itu, sehingga kasir yang
+    menutup kas lewat tengah malam (hari kemarin belum ditutup) tetap dianggap kasir.
+    """
+    from core.models import local_today, operational_date
+
+    qs = DutyAssignment.objects.filter(user=user, portion__group="KAS", portion__active=True).select_related(
+        "portion", "clinic")
+    if day is not None:
+        return qs.filter(date=day)
+    today = local_today()
+    rows = list(qs.filter(date__in=[today, today - dt.timedelta(days=1)]))
+    keep = [a.pk for a in rows if a.date == operational_date(a.clinic)]
+    return qs.filter(pk__in=keep)
 
 
 def is_cashier_today(user, day: dt.date | None = None) -> bool:

@@ -67,6 +67,12 @@ def setup(month):
     resp(opening, "Lampu", people["ani"], _at(day, 12, 20))  # lewat 12.15
     resp(opening, "AC", people["budi"], _at(day, 11, 55))  # diambil alih budi
     resp(opening, "Kursi")  # belum dicek
+    # Penutupan tidak punya batas jam (menunggu pasien terakhir, keputusan 4 Okt): butir penutupan
+    # yang diisi lewat tengah malam tidak memengaruhi angka tepat waktu.
+    tpl3 = ChecklistTemplate.objects.create(clinic=jemur, name="Tutup", area=ChecklistArea.KEBERSIHAN, version=1)
+    closing = ChecklistRun.objects.create(operational_day=op, template=tpl3, area=tpl3.area,
+                                          session=ChecklistSession.CLOSING, template_snapshot={})
+    resp(closing, "Kunci pintu", people["ani"], _at(day + dt.timedelta(days=1), 0, 40), portion_code="")
     for i in range(5):  # budi: 5 butir dalam 40 detik -> satu tanda centang massal
         resp(anytime, f"Rak {i}", people["budi"], _at(day, 14, 0, i * 10), portion_code="")
 

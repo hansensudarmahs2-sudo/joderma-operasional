@@ -88,6 +88,9 @@ wajib alasan.
 
 ## Sore
 
+Tidak ada batas jam penutupan: tutup boleh molor menunggu pasien terakhir, juga lewat tengah malam.
+Sampai pukul 06.00 hari kemarin yang belum ditutup tetap tampil di Hari Ini, Kas, dan checklist.
+
 **1. Pastikan kas akhir diajukan.** Front desk menghitung kas akhir dan menekan
 **Ajukan verifikasi**. Bila terdapat selisih, catatan wajib diisi — jangan
 dibulatkan diam-diam. Verifikasinya dilakukan Direktur Operasional, boleh
