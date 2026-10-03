@@ -147,7 +147,7 @@ muncul, dan hanya diterima server, untuk Direktur.
 |---|---|---|---|
 | **Ringkasan** | Halaman utama yang sengaja ringkas: **Agenda rapat Kamis** (perkara keputusan bersama dan task yang tertahan), empat kotak kuadran prioritas (gabungan kedua cabang), empat kotak angka (keputusan menggantung, kebijakan baru, menunggu konfirmasi, jadwal task), lalu infografik per cabang. Setiap kotak dapat diketuk untuk membuka detailnya | baca | baca |
 | **Prioritas** | Matriks Eisenhower seluruh task yang belum selesai, dengan penyaring cabang dan sumber; dari Ringkasan terbuka satu kuadran saja | baca | baca |
-| **Jadwal Task** | Gantt: setiap bar dari task dibuat sampai targetnya, 7 hari ke belakang s.d. 21 hari ke depan. Task lewat target berwarna merah dan memanjang sampai hari ini; task tanpa target bergaris | baca | baca |
+| **Jadwal Task** | Gantt: setiap bar dari task dibuat sampai targetnya, 7 hari ke belakang s.d. 21 hari ke depan. Task lewat target berwarna merah dan memanjang sampai hari ini; task tanpa target bergaris. **Permintaan Owner** tampil paling atas: satu baris per permintaan (dari diminta sampai target Owner, garis putus-putus oranye = target) dengan task turunannya di bawahnya (↳), atau "belum dipecah menjadi task"; task lain per cabang | baca | baca |
 | **Daftar Task** | Semua task dalam satu tabel: cari, saring (status, cabang, PIC, prioritas, sumber, tanggal dibuat), urutkan dengan mengetuk judul kolom, unduh CSV | baca + unduh | baca + unduh |
 | **Kanban** | Baru · Dikerjakan · Menunggu konfirmasi · Selesai 7 hari | baca | baca |
 | **Keputusan** | Register perkara: menunggu, ditetapkan, kebijakan berlaku, dibatalkan | baca | catat, tetapkan, batalkan |

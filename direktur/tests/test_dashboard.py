@@ -351,3 +351,50 @@ def test_gantt_positions_are_not_localized(client, jemur, director, staf, owner)
     body = client.get(reverse("direktur:gantt")).content.decode()
     assert not re.search(r"(left|width):\d+,\d", body)
     assert re.search(r"left:\d+(\.\d+)?%;width:\d+(\.\d+)?%", body)
+
+
+def test_gantt_groups_tasks_under_owner_request(client, jemur, citraland, director, staf, owner):
+    """Fase 6: satu baris per Permintaan Owner beserta task turunannya; target Owner ditandai."""
+    import re
+
+    from owner.models import SOURCE_TYPE
+    from owner.services import create_request
+
+    today = timezone.localdate()
+    now = timezone.now()
+    req = create_request(actor=owner, title="Ganti tirai ruang facial", target_date=today + dt.timedelta(days=5),
+                         clinic=jemur)
+    empty = create_request(actor=owner, title="Cek CCTV", target_date=today + dt.timedelta(days=2))
+    late = create_request(actor=owner, title="Rapikan gudang", target_date=today, clinic=jemur)
+    type(late).objects.filter(pk=late.pk).update(target_date=today - dt.timedelta(days=1),
+                                                 created_at=now - dt.timedelta(days=4))
+    child = _task(jemur, director, staf, "Pesan tirai", due_at=now + dt.timedelta(days=3),
+                  source_type=SOURCE_TYPE, source_id=req.pk)
+    UserRole.objects.create(user=staf, clinic=citraland, role=Role.STAF)
+    _task(citraland, director, staf, "Tirai Citraland", due_at=now + dt.timedelta(days=4),
+          source_type=SOURCE_TYPE, source_id=req.pk)
+    _task(jemur, director, staf, "Task biasa", due_at=now + dt.timedelta(days=1))
+
+    chart = dashboard.gantt(director)
+    groups = {g["request"].title: g for g in chart["requests"]}
+    assert set(groups) == {"Ganti tirai ruang facial", "Cek CCTV", "Rapikan gudang"}
+    assert [g["request"].title for g in chart["requests"]][0] == "Rapikan gudang"  # lewat target paling atas
+    assert groups["Rapikan gudang"]["state"] == "late" and groups["Cek CCTV"]["children"] == []
+    tirai = groups["Ganti tirai ruang facial"]
+    assert {r["item"].title for r in tirai["children"]} == {"Pesan tirai", "Tirai Citraland"}
+    assert tirai["target_left"] is not None and tirai["state"] == "open"
+    # Task turunan tidak digambar dua kali di kelompok cabang.
+    assert [r["item"].title for r in chart["rows"]] == ["Task biasa"]
+
+    # Saringan cabang: task turunan cabang lain disembunyikan; sumber lain: tanpa kelompok permintaan.
+    jemur_only = dashboard.gantt(director, clinic_id=jemur.pk)
+    tirai = next(g for g in jemur_only["requests"] if g["request"].pk == req.pk)
+    assert [r["item"].pk for r in tirai["children"]] == [child.pk]
+    assert dashboard.gantt(director, source="manual")["requests"] == []
+
+    client.force_login(owner)
+    body = client.get(reverse("direktur:gantt") + "?sumber=permintaan_owner").content.decode()
+    assert "Permintaan Owner" in body and "↳ Pesan tirai" in body and "belum dipecah menjadi task" in body
+    assert "Task biasa" not in body and re.search(r'class="gantt-target" style="left:\d+(\.\d+)?%"', body)
+    dash = client.get(reverse("owner:dashboard")).content.decode()
+    assert "?sumber=permintaan_owner" in dash

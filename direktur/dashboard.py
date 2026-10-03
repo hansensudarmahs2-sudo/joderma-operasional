@@ -431,7 +431,14 @@ def gantt(user, *, clinic_id=None, source="", days_back: int = 7, days_ahead: in
 
     Posisi bar dihitung sebagai persen jendela agar dapat digambar dengan CSS saja.
     Task tanpa target dan task yang lewat target digambar sampai hari ini.
+
+    Fase 6: Permintaan Owner tampil paling atas, satu baris per permintaan (dari dibuat sampai target
+    Owner, dengan penanda target) beserta task turunannya di bawahnya. Task lain dikelompokkan per cabang.
     """
+    from owner.models import SOURCE_TYPE as REQUEST_SOURCE
+    from owner.models import OwnerRequest
+    from owner.services import progress as request_progress
+
     assert_overview(user)
     now = timezone.now()
     today = timezone.localtime(now).date()
@@ -444,15 +451,14 @@ def gantt(user, *, clinic_id=None, source="", days_back: int = 7, days_ahead: in
         moment = min(max(moment, start), end)
         return round((moment - start).total_seconds() / span * 100, 2)
 
-    rows = []
-    for item in _items(user, clinic_id=clinic_id, source=source):
+    def bar(item):
         card = _card(item, now)
         done = item.status == ActionItemStatus.SELESAI
         # Task lewat target digambar sampai hari ini: bar merah yang memanjang
         # menunjukkan berapa lama ia sudah menggantung.
         finish = item.updated_at if done else (now if item.is_overdue or not item.due_at else item.due_at)
         if finish < start or item.created_at > end:
-            continue
+            return None
         left = pct(item.created_at)
         width = max(pct(finish) - left, 1.2)
         if done:
@@ -463,9 +469,54 @@ def gantt(user, *, clinic_id=None, source="", days_back: int = 7, days_ahead: in
             state, label = "nodue", "Tanpa target"
         else:
             state, label = "open", "Berjalan"
-        rows.append({**card, "left": left, "width": min(width, 100 - left), "state": state, "state_label": label})
+        return {**card, "left": left, "width": min(width, 100 - left), "state": state, "state_label": label}
+
     order = {"late": 0, "open": 1, "nodue": 2, "done": 3}
     far = dt.datetime.max.replace(tzinfo=dt.timezone.utc)
+    items = _items(user, clinic_id=clinic_id, source=source)
+    by_request: dict = {}
+    for item in items:
+        if item.source_type == REQUEST_SOURCE and item.source_id:
+            by_request.setdefault(item.source_id, []).append(item)
+
+    requests = []
+    if source in ("", REQUEST_SOURCE):
+        clinics = list(user_clinic_queryset(user).values_list("pk", flat=True))
+        since = now - dt.timedelta(days=RECENT_DONE_DAYS)
+        qs = OwnerRequest.objects.filter(Q(clinic__isnull=True) | Q(clinic_id__in=clinics)).select_related("clinic")
+        if clinic_id:
+            qs = qs.filter(Q(clinic_id=clinic_id) | Q(clinic__isnull=True) | Q(pk__in=list(by_request)))
+        for req in qs.order_by("target_date", "created_at"):
+            info = request_progress(req, today)
+            tasks = [t for t in info["tasks"] if t.pk in {i.pk for i in by_request.get(req.pk, [])}] \
+                if clinic_id else info["tasks"]
+            if info["state"] == "done":
+                last = max((t.updated_at for t in info["tasks"]), default=req.updated_at)
+                if last < since:
+                    continue
+                finish = last
+            elif req.target_date and not info["late"]:
+                finish = timezone.make_aware(dt.datetime.combine(req.target_date, dt.time.max), tz)
+            else:
+                finish = now
+            if finish < start or req.created_at > end:
+                continue
+            left = pct(req.created_at)
+            state = "done" if info["state"] == "done" else ("late" if info["late"] else
+                                                            ("open" if req.target_date else "nodue"))
+            children = [r for r in (bar(t) for t in tasks) if r]
+            children.sort(key=lambda r: (order[r["state"]], r["item"].due_at or far))
+            target_at = (timezone.make_aware(dt.datetime.combine(req.target_date, dt.time.max), tz)
+                         if req.target_date else None)
+            requests.append({
+                "request": req, "info": info, "left": left, "width": min(max(pct(finish) - left, 1.2), 100 - left),
+                "state": state, "children": children,
+                "target_left": pct(target_at) if target_at and start <= target_at <= end else None,
+            })
+        requests.sort(key=lambda g: (order[g["state"]], g["request"].target_date or dt.date.max))
+
+    in_groups = {r["item"].pk for g in requests for r in g["children"]}
+    rows = [r for r in (bar(i) for i in items if i.pk not in in_groups) if r]
     rows.sort(key=lambda r: (r["item"].clinic_id, order[r["state"]], r["item"].due_at or far))
     ticks = []
     day = today - dt.timedelta(days=days_back)
@@ -474,6 +525,7 @@ def gantt(user, *, clinic_id=None, source="", days_back: int = 7, days_ahead: in
         ticks.append({"left": pct(moment), "label": day.strftime("%d/%m"), "monday": day.weekday() == 0})
         day += dt.timedelta(days=1)
     return {
+        "requests": requests,
         "rows": rows,
         "ticks": [t for t in ticks if t["monday"]],
         "today_left": pct(now),

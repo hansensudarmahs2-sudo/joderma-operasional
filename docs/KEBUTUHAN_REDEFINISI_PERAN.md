@@ -147,7 +147,8 @@ Akun: `superadmin`. Pengguna, konfigurasi, template, ditambah:
 5. **Direktur:** tombol simpan dan kirim summary, dan riwayat summary per hari. *Selesai 30 September
    2026:* `direktur/summary.py`, kartu di bawah Checklist Direktur, menu Summary Harian untuk
    Direktur, lonceng notifikasi dengan bulatan merah (keputusan no. 2).
-6. **Permintaan Owner** dari ujung ke ujung, termasuk baris Gantt.
+6. **Permintaan Owner** dari ujung ke ujung, termasuk baris Gantt. *Selesai 4 Oktober 2026:* memecah
+   permintaan lewat Inbox (Paket B); baris Gantt per permintaan, lihat `current-progress.md` ▸ Fase 6.
 7. **Staf:** Tugas hari ini, Jadwal saya, Istirahat saya, Tindakan saya. *Selesai di kode 4 Oktober
    2026:* lihat `current-progress.md` ▸ Riwayat ▸ Fase 7.
 8. **PIC:** lihat dan atur tim sesuai jawaban pertanyaan no. 3.

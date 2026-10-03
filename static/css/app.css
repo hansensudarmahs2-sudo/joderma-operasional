@@ -326,6 +326,12 @@ details > summary { cursor: pointer; padding: 0.5rem 0; font-weight: 600; min-he
 .bar-late, .lg-late { background: var(--err); }
 .bar-done, .lg-done { background: var(--ok); }
 .bar-nodue, .lg-nodue { background: repeating-linear-gradient(135deg, #9fb3b5 0 4px, #d5dfe0 4px 8px); }
+/* Fase 6: Permintaan Owner di Jadwal Task */
+.gantt-request .gantt-bar.bar-request { height: 12px; top: 7px; }
+.gantt-target { position: absolute; top: -2px; bottom: -2px; width: 0; border-left: 2px dashed var(--warn); z-index: 3; }
+.gantt-child .gantt-label { padding-left: 1rem; }
+.gantt-child .gantt-label a { font-weight: 500; }
+.lg-target { display: inline-block; width: 0; height: 12px; border-left: 2px dashed var(--warn); margin-right: .35rem; vertical-align: middle; }
 
 /* Label status di sebelah judul tidak dipatah ke dua baris. */
 .checklist-heading > .tag { white-space: nowrap; flex-shrink: 0; }

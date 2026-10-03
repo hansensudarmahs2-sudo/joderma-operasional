@@ -16,6 +16,7 @@ Sesudah login, Owner langsung masuk ke **Dashboard**. Menunya:
 | **Bahan Rapat** | Bahan rapat Kamis yang tersusun otomatis (Kamis lalu s.d. Rabu): agenda keputusan, permintaan dan temuan, task selesai, task lewat target, Inbox per cabang. Bisa dicetak atau disalin ke WhatsApp |
 | **Jejak** | Jejak kehadiran staf (IP, perangkat, lokasi sesaat) dengan label Kuat/Sedang/Lemah, hanya baca |
 | **KPI** | Angka per staf per bulan: kelengkapan porsi checklist, pembukaan tepat waktu, jejak di klinik, task tepat target, dan tanda centang massal. Tanpa skor gabungan dan tanpa peringkat selama uji coba; ketuk nama staf untuk rincian per hari; unduh CSV. Staf belum melihat halaman ini |
+| **Jadwal Task** (dari Dashboard: *Lihat di Jadwal Task*) | Satu baris per permintaan/temuan Anda dari tanggal diminta sampai target (garis putus-putus oranye), dengan task turunan yang dibuat Direktur di bawahnya. Yang belum dipecah ditandai |
 | **Summary Harian** | Summary of the day dari Direktur Operasional, pilih per tanggal |
 | **Jadwal** | Pilih cabang, lihat siapa yang bertugas hari itu dan siapa yang libur, cuti, atau sedang di cabang lain. Tombol **Lihat jadwal penuh** membuka grid bulanan (hanya baca) |
 

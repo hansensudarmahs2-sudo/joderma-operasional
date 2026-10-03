@@ -28,6 +28,7 @@
     </li>
     {% endfor %}
   </ul>
+  <p class="meta" style="margin:.5rem 0 0"><a href="{% url 'direktur:gantt' %}?sumber=permintaan_owner">Lihat di Jadwal Task: permintaan beserta task turunannya ›</a></p>
   {% else %}
   <p class="meta">Belum ada permintaan atau temuan yang berjalan. Catat temuan atau tulis permintaan; keduanya masuk Inbox Direktur Operasional, yang memilahnya menjadi task, meneruskannya, atau membawanya ke rapat. Progresnya tampil di sini.</p>
   {% endif %}
