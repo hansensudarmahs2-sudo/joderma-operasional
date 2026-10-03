@@ -234,6 +234,11 @@ class TaskAssignmentMode(models.TextChoices):
     BERSAMA = "BERSAMA", "Bersama"
 
 
+class ReviewBy(models.TextChoices):
+    DIREKTUR = "DIREKTUR", "Direktur Operasional"
+    DIRUT = "DIRUT", "Direktur Utama / Owner"
+
+
 class ActionItem(models.Model):
     """Tindak lanjut lintas modul (PRD 9.1)."""
 
@@ -259,6 +264,11 @@ class ActionItem(models.Model):
     )
     due_at = models.DateTimeField("target waktu", null=True, blank=True)
     progress_note = models.TextField("catatan progres", blank=True)
+    review_by = models.CharField(
+        "pemeriksa", max_length=10, choices=ReviewBy.choices, default=ReviewBy.DIREKTUR,
+        help_text="Siapa yang memverifikasi. Task yang dikerjakan Direktur Operasional sendiri selalu "
+        "diperiksa Direktur Utama / Owner (lihat effective_review_by).",
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -284,6 +294,27 @@ class ActionItem(models.Model):
 
     def __str__(self) -> str:
         return self.title
+
+    @property
+    def effective_review_by(self) -> str:
+        """Pemeriksa yang berlaku: Dirut/Owner bila salah satu penerima aktif adalah Direktur Operasional.
+
+        Aturan tambahan matriks wewenang (Okt 2026): pekerjaan Direktur Operasional sendiri
+        diverifikasi Direktur Utama. Dihitung, bukan disimpan, supaya data lama tidak perlu diubah.
+        """
+        if self.review_by == ReviewBy.DIRUT:
+            return ReviewBy.DIRUT
+        from accounts.models import Role, UserRole
+
+        active = [a for a in self.task_assignments.all() if a.status != TaskAssignmentStatus.CANCELLED]
+        ids = {a.assignee_id for a in active} | {a.claimed_by_id for a in active if a.claimed_by_id}
+        if ids and UserRole.objects.filter(user_id__in=ids, role=Role.AOM).exists():
+            return ReviewBy.DIRUT
+        return ReviewBy.DIREKTUR
+
+    @property
+    def reviewed_by_dirut(self) -> bool:
+        return self.effective_review_by == ReviewBy.DIRUT
 
     @property
     def on_hold(self) -> bool:
@@ -401,6 +432,7 @@ class TaskEventType(models.TextChoices):
     REVISION_REQUESTED = "REVISION_REQUESTED", "Diminta revisi"
     CANCELLED = "CANCELLED", "Dibatalkan"
     COMMENT = "COMMENT", "Komentar"
+    PROGRESS = "PROGRESS", "Laporan progres"
 
 
 class TaskEvent(models.Model):

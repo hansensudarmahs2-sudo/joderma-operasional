@@ -534,3 +534,4 @@ tr.row-late td:first-child { box-shadow: inset 3px 0 0 var(--err); }
 .triage-cell { display: flex; flex-direction: column; gap: .15rem; align-items: flex-start; }
 .triage-grid { display: grid; gap: .6rem; }
 .triage-grid details > summary { cursor: pointer; }
+.task-actions-row { display: flex; flex-wrap: wrap; gap: .4rem; align-items: flex-start; }

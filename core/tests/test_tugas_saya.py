@@ -129,8 +129,12 @@ def test_submit_from_hari_ini_returns_there(client, jemur, hansen, desy):
     item = _task(hansen, jemur, "Pengolahan limbah", users=[desy])
     assignment = item.task_assignments.get()
     client.force_login(desy)
+    # Catatan bukti wajib (paket C): tanpa catatan, belum diajukan.
+    client.post(reverse("core:assignment_submit", args=[assignment.pk]), {"next": reverse("core:dashboard")})
+    assignment.refresh_from_db()
+    assert assignment.status == TaskAssignmentStatus.OPEN
     response = client.post(reverse("core:assignment_submit", args=[assignment.pk]),
-                           {"next": reverse("core:dashboard")})
+                           {"next": reverse("core:dashboard"), "catatan": "Limbah 2,4 kg sudah dijemput"})
     assert response["Location"] == reverse("core:dashboard")
     assignment.refresh_from_db()
     assert assignment.status == TaskAssignmentStatus.SUBMITTED
@@ -139,7 +143,7 @@ def test_submit_from_hari_ini_returns_there(client, jemur, hansen, desy):
     # `next` ke luar aplikasi diabaikan.
     item2 = _task(hansen, jemur, "Lain", users=[desy])
     response = client.post(reverse("core:assignment_submit", args=[item2.task_assignments.get().pk]),
-                           {"next": "https://contoh.invalid/"})
+                           {"next": "https://contoh.invalid/", "catatan": "beres"})
     assert response["Location"] == reverse("core:action_items")
 
 

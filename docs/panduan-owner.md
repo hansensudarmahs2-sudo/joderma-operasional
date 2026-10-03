@@ -40,6 +40,17 @@ ada di menu Owner dan ditolak bila alamatnya dibuka langsung.
 
 Tidak ada tombol tolak atau kembalikan; permintaan hanya dibaca progresnya.
 
+## Verifikasi pekerjaan Direktur Operasional
+
+Pekerjaan yang dikerjakan sendiri oleh Direktur Operasional diverifikasi Direktur Utama / Owner.
+Bila ia mengajukan selesai, Anda mendapat notifikasi dan bagian **Menunggu verifikasi Anda**
+muncul di atas Dashboard, lengkap dengan catatan buktinya. Buka task, periksa bukti (dan foto bila
+ada), lalu tekan **Konfirmasi selesai** atau **Minta revisi** (catatan wajib). Anda juga dapat
+menambah catatan di riwayat task itu. Akun jean dan yohanes sama-sama dapat memverifikasi.
+
+Di bagian bawah Dashboard, **Capaian 7 hari terakhir** memuat task yang selesai dan terverifikasi,
+siapa yang mengerjakan, dan siapa yang memverifikasi.
+
 ## Inbox
 
 Menu **Inbox** memuat semua yang masuk ke Direktur Operasional dari kedua cabang: Komplain, Masukan,

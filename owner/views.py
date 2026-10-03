@@ -57,6 +57,8 @@ def dashboard_page(request):
             "counts": dashboard.headline_counts(user),
             "agenda": dashboard.meeting_agenda(user),
             "requests": services.request_rows(user),
+            "verify": services.verification_queue(user),
+            "achievements": services.recent_achievements(user),
             "can_create": services.can_create_request(user),
             "today": local_today(),
         },

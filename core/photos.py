@@ -172,6 +172,11 @@ def can_view_attachment(user, attachment: Attachment) -> bool:
 
         a = TaskAssignment.objects.select_related("action_item__clinic").filter(pk=pk).first()
         return bool(a and (a.assignee_id == user.pk or _can_view_task(user, a.action_item)))
+    if kind == "taskevent":
+        from .models import TaskEvent
+
+        e = TaskEvent.objects.select_related("action_item__clinic").filter(pk=pk).first()
+        return bool(e and (e.actor_id == user.pk or _can_view_task(user, e.action_item)))
     if kind in ("auditcheck", "ownerrequest"):
         return is_aom(user) or is_owner(user) or _visible_through_task(user, kind, pk)
     if kind == "ownerrequestnote":

@@ -13,8 +13,16 @@ from django.utils import timezone
 
 from core import task_services
 from core.photos import SOURCE_PHOTO_ENTITY, photos_for, save_optional_photo
-from core.models import ActionItem, ActionItemStatus, Priority, TaskAssignment, TaskAssignmentStatus, local_today
-from core.permissions import is_aom, require, user_clinic_queryset
+from core.models import (
+    ActionItem,
+    ActionItemStatus,
+    Priority,
+    ReviewBy,
+    TaskAssignment,
+    TaskAssignmentStatus,
+    local_today,
+)
+from core.permissions import is_aom, is_owner, require, user_clinic_queryset
 
 from . import dashboard, services
 from . import summary as daily_summary
@@ -549,6 +557,7 @@ def task_detail(request, pk: int):
                     priority=request.POST.get("prioritas", item.priority),
                     due_at=_due_from_form(item, request.POST.get("batas", "")),
                     progress_note=request.POST.get("progres", ""),
+                    review_by=request.POST.get("pemeriksa") or None,
                 )
                 messages.success(request, "Task diperbarui.")
             elif aksi == "selesai":
@@ -575,6 +584,7 @@ def task_detail(request, pk: int):
     ]
     is_open = item.status not in (ActionItemStatus.SELESAI, ActionItemStatus.BATAL)
     entity = SOURCE_PHOTO_ENTITY.get(item.source_type)
+    events = list(item.task_events.select_related("actor", "assignment__assignee"))
     waiting_on = list(item.waiting_decisions.all())
     held_ids = {d.pk for d in waiting_on}
     hold_choices = []
@@ -592,7 +602,10 @@ def task_detail(request, pk: int):
             "source_photos": photos_for(entity, [item.source_id]).get(item.source_id, [])
             if entity and item.source_id else [],
             "evidence_photos": photos_for("taskassignment", [a.pk for a in assignments]),
-            "events": item.task_events.select_related("actor", "assignment__assignee"),
+            "events": events,
+            "event_photos": photos_for("taskevent", [e.pk for e in events]),
+            "dirut_review": item.reviewed_by_dirut,
+            "review_choices": ReviewBy.choices,
             "source": dict(dashboard.SOURCE_CHOICES).get(dashboard.source_group(item), "Modul lain"),
             "column": dict(dashboard.COLUMNS).get(dashboard.kanban_column(item, assignments)),
             "can_manage": can_manage,
@@ -601,12 +614,15 @@ def task_detail(request, pk: int):
             "waiting_on": waiting_on,
             "hold_choices": hold_choices,
             "is_director": is_aom(request.user),
-            "can_comment": can_manage or any(a.assignee_id == request.user.pk for a in assignments),
+            "can_comment": can_manage or any(a.assignee_id == request.user.pk for a in assignments)
+            or (is_owner(request.user) and item.reviewed_by_dirut),
             "is_open": is_open,
             "priorities": Priority.choices,
             "statuses": [(ActionItemStatus.BARU, "Baru"), (ActionItemStatus.DIKERJAKAN, "Dikerjakan")],
             "due_value": timezone.localtime(item.due_at).date().isoformat() if item.due_at else "",
-            "back": _BACK.get(request.GET.get("dari", ""), _BACK["kanban"]),
+            "back": _BACK.get(request.GET.get("dari", ""))
+            or (("owner:dashboard", "Dashboard") if is_owner(request.user) and not is_aom(request.user)
+                else _BACK["kanban"]),
         },
     )
 

@@ -194,3 +194,57 @@ def duty_today(clinic, day: dt.date) -> dict:
             label = row.get_status_display()
         away.append({"user": row.user, "label": label})
     return {"working": working, "away": away, "filled": has_roster(clinic, day)}
+
+
+# --- Verifikasi oleh Direktur Utama / Owner (tahap 2 paket C) ------------------------
+
+def verification_queue(user) -> list:
+    """Penerima yang sudah mengajukan selesai pada task yang diperiksa Dirut/Owner."""
+    from core.models import TaskAssignment, TaskAssignmentStatus
+    from core.permissions import user_clinic_queryset
+    from core.task_services import can_review_assignment
+
+    if not is_owner(user):
+        return []
+    qs = (
+        TaskAssignment.objects.filter(
+            status=TaskAssignmentStatus.SUBMITTED, action_item__clinic__in=user_clinic_queryset(user),
+            action_item__status__in=[ActionItemStatus.BARU, ActionItemStatus.DIKERJAKAN],
+        )
+        .select_related("action_item", "action_item__clinic", "assignee")
+        .order_by("submitted_at")
+    )
+    rows = []
+    for a in qs:
+        if not a.action_item.reviewed_by_dirut or not can_review_assignment(a, user):
+            continue
+        last = a.events.filter(event_type="SUBMITTED").order_by("-created_at").first()
+        rows.append({"assignment": a, "item": a.action_item, "note": last.note if last else ""})
+    return rows
+
+
+def recent_achievements(user, days: int = 7) -> list:
+    """Task yang selesai dan terverifikasi dalam `days` hari terakhir: laporan capaian ke Dirut."""
+    from django.utils import timezone
+
+    from core.models import ActionItem, TaskAssignmentStatus
+    from core.permissions import user_clinic_queryset
+
+    since = timezone.now() - dt.timedelta(days=days)
+    items = (
+        ActionItem.objects.filter(
+            clinic__in=user_clinic_queryset(user), status=ActionItemStatus.SELESAI, updated_at__gte=since,
+        )
+        .select_related("clinic")
+        .prefetch_related("task_assignments__assignee", "task_assignments__reviewer")
+        .order_by("-updated_at")
+    )
+    rows = []
+    for item in items:
+        done = [a for a in item.task_assignments.all() if a.status == TaskAssignmentStatus.CONFIRMED]
+        rows.append({
+            "item": item,
+            "people": ", ".join(sorted({str(a.assignee) for a in done})),
+            "reviewers": ", ".join(sorted({str(a.reviewer) for a in done if a.reviewer})),
+        })
+    return rows

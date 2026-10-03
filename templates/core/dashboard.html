@@ -18,18 +18,32 @@
         <span class="meta">{% if t.item.created_by %}dari {{ t.item.created_by }} · {% endif %}{{ t.item.clinic.name }}{% if t.item.due_at %} · target {{ t.item.due_at|date:"d/m H.i" }}{% endif %}</span>
         {% if t.item.description %}<span class="meta">{{ t.item.description|truncatechars:160 }}</span>{% endif %}
         {% if t.revision and t.assignment.revision_note %}<span class="meta">Catatan revisi: {{ t.assignment.revision_note }}</span>{% endif %}
+        {% if t.last_progress %}<span class="meta">Progres terakhir {{ t.last_progress.created_at|date:"d/m H.i" }}: {{ t.last_progress.note|truncatechars:120 }}</span>{% endif %}
+        {% if t.dirut %}<span class="meta">Diverifikasi Direktur Utama / Owner.</span>{% endif %}
         {% foto_thumbs task_photos|ambil:t.item.pk %}
         {% if t.can_submit %}
+        <span class="task-actions-row">
+        <details class="task-submit">
+          <summary class="btn small secondary">Lapor progres</summary>
+          <form method="post" action="{% url 'core:assignment_progress' t.assignment.pk %}" enctype="multipart/form-data" class="stack-form">
+            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <label for="progres-task-{{ t.assignment.pk }}">Kemajuan</label>
+            <input id="progres-task-{{ t.assignment.pk }}" name="catatan" required placeholder="Mis. vendor dihubungi, datang Senin">
+            {% foto_input "Foto (opsional)" "foto" %}
+            <button class="btn small" type="submit">Simpan progres</button>
+          </form>
+        </details>
         <details class="task-submit">
           <summary class="btn small">Ajukan selesai</summary>
           <form method="post" action="{% url 'core:assignment_submit' t.assignment.pk %}" enctype="multipart/form-data" class="stack-form">
             {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <label for="catatan-task-{{ t.assignment.pk }}">Catatan (opsional)</label>
-            <input id="catatan-task-{{ t.assignment.pk }}" name="catatan" placeholder="Mis. limbah sudah ditimbang 2,4 kg">
+            <label for="catatan-task-{{ t.assignment.pk }}">Catatan bukti</label>
+            <input id="catatan-task-{{ t.assignment.pk }}" name="catatan" required placeholder="Mis. limbah sudah ditimbang 2,4 kg">
             {% foto_input "Foto bukti (opsional)" "foto" %}
             <button class="btn small" type="submit">Kirim</button>
           </form>
         </details>
+        </span>
         {% endif %}
       </span>
       <span class="request-state">

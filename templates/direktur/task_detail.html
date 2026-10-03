@@ -9,6 +9,7 @@
   <span class="tag {% if item.status == 'SELESAI' %}ok{% elif item.status == 'BATAL' %}muted{% elif item.is_overdue %}err{% else %}info{% endif %}">{% if is_open and column %}{{ column }}{% else %}{{ item.get_status_display }}{% endif %}</span>
   <span class="tag {% if item.priority == 'TINGGI' or item.priority == 'KRITIS' %}warn{% else %}muted{% endif %}">Prioritas {{ item.get_priority_display }}</span>
   {% if waiting_on %}{% for d in waiting_on %}{% if d.status == 'MENUNGGU' %}<span class="tag info">Menunggu keputusan</span>{% endif %}{% endfor %}{% endif %}
+  <span class="tag {% if dirut_review %}info{% else %}muted{% endif %}">Pemeriksa: {% if dirut_review %}Direktur Utama / Owner{% else %}Direktur Operasional{% endif %}</span>
   {% if item.due_at %}<span class="tag {% if item.is_overdue %}err{% else %}muted{% endif %}">Target {{ item.due_at|date:"d/m/Y H:i" }}{% if item.is_overdue %} · lewat{% endif %}</span>{% else %}<span class="tag muted">Tanpa target</span>{% endif %}
 </p>
 
@@ -97,16 +98,20 @@
   <label>Status<select name="status">{% for v, l in statuses %}<option value="{{ v }}"{% if item.status == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
   <label>Prioritas<select name="prioritas">{% for v, l in priorities %}<option value="{{ v }}"{% if item.priority == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
   <label>Target<input type="date" name="batas" value="{{ due_value }}"></label>
+  <label>Pemeriksa<select name="pemeriksa">{% for v, l in review_choices %}<option value="{{ v }}"{% if item.review_by == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
   <label style="flex:1 1 16rem">Catatan progres<input name="progres" value="{{ item.progress_note }}" placeholder="mis. menunggu jadwal vendor limbah"></label>
   <button class="btn small" type="submit">Simpan</button>
 </form>
+{% if dirut_review and item.review_by != 'DIRUT' %}<p class="help">Salah satu penerima adalah Direktur Operasional, jadi task ini tetap diperiksa Direktur Utama / Owner.</p>{% endif %}
 
 <div class="card" style="margin-top:.6rem">
+  {% if not dirut_review %}
   <form method="post" class="inline">{% csrf_token %}
     <input type="hidden" name="aksi" value="selesai">
     <label style="flex:1 1 16rem">Tandai selesai tanpa menunggu penerima<input name="catatan" required placeholder="Catatan penutupan (wajib)"></label>
     <button class="btn small" type="submit">Tandai selesai</button>
   </form>
+  {% else %}<p class="meta" style="margin:0">Task ini ditutup lewat ajukan selesai oleh penerima, lalu konfirmasi Direktur Utama / Owner.</p>{% endif %}
   <details style="margin-top:.5rem"><summary class="meta">Batalkan task</summary>
     <form method="post" class="inline">{% csrf_token %}
       <input type="hidden" name="aksi" value="batal">
@@ -122,7 +127,7 @@
   {% for e in events %}
   <li><strong>{{ e.get_event_type_display }}</strong>{% if e.assignment %} · {{ e.assignment.assignee }}{% endif %}
     <span class="meta">· {{ e.created_at|date:"d/m/Y H:i" }}{% if e.actor %} · {{ e.actor }}{% endif %}</span>
-    {% if e.note %}<div style="white-space:pre-wrap">{{ e.note }}</div>{% endif %}</li>
+    {% if e.note %}<div style="white-space:pre-wrap">{{ e.note }}</div>{% endif %}{% foto_thumbs event_photos|ambil:e.pk %}</li>
   {% empty %}<li class="meta">Belum ada riwayat.</li>{% endfor %}
 </ul>
 {% if can_comment %}

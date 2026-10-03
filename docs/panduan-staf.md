@@ -39,10 +39,13 @@ cabang tugas di jadwal jaga hari ini, atau cabang asal bila Anda sedang off.
 - **Tugas saya** (paling atas di **Hari Ini**): task yang dikirim Direktur atau PIC kepada Anda,
   dari cabang mana pun, termasuk task yang dikirim ke beberapa orang atau ke satu peran. Tampil
   walau sesi hari operasional belum dibuat. Yang lewat target bertanda merah dan berada paling
-  atas. Bila sudah dikerjakan, tekan **Ajukan selesai**, tulis catatan singkat dan lampirkan
-  **foto bukti** bila ada (opsional), lalu **Kirim**; task tetap tampil dengan tanda
-  **Menunggu konfirmasi** sampai pemberi task mengonfirmasi. Task bersama harus **Ambil task**
-  dulu. Daftar lengkap ada di **Semua task saya**.
+  atas. Selama dikerjakan, tekan **Lapor progres** untuk mencatat kemajuan (teks wajib, foto
+  opsional); progres terakhir tampil di bawah judul task dan di riwayat task. Bila sudah selesai,
+  tekan **Ajukan selesai**, tulis **catatan bukti** (wajib: apa yang sudah dikerjakan) dan
+  lampirkan **foto bukti** bila ada (opsional), lalu **Kirim**; task tetap tampil dengan tanda
+  **Menunggu konfirmasi** sampai pemeriksa mengonfirmasi atau meminta revisi (Anda mendapat
+  notifikasi keduanya). Task bersama harus **Ambil task** dulu. Daftar lengkap ada di **Semua
+  task saya**.
 - **Antrean**: tambah pasien, ubah status (check-in → menunggu → dipanggil →
   dilayani → selesai). Pembatalan dan no-show wajib alasan. Ubah status pembayaran
   saat pasien membayar — nomor antrean dipertahankan bila **Sudah bayar** atau

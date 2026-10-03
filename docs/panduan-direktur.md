@@ -173,6 +173,18 @@ memuat uraian, penerima dengan statusnya, dan riwayat. Direktur (atau pembuat ta
 Semua perubahan tercatat di riwayat task dan audit log. Owner membuka halaman yang sama tanpa
 tombol.
 
+**Pemeriksa dan verifikasi Dirut (tahap 2 paket C).** Setiap task menampilkan **Pemeriksa**.
+Bawaannya Direktur Operasional. Bila salah satu penerima task adalah Direktur Operasional sendiri,
+pemeriksanya otomatis **Direktur Utama / Owner** (akun Owner, mis. jean dan yohanes): hanya mereka
+yang dapat Konfirmasi selesai / Minta revisi, notifikasi "Menunggu verifikasi" dikirim ke mereka,
+dan tombol **Tandai selesai** tidak tersedia. Direktur juga dapat memilih pemeriksa Dirut untuk
+task lain lewat **Ubah task**. Owner dapat menulis catatan di task yang ia periksa, tetapi tidak
+dapat mengubah atau menutupnya.
+
+Penerima melaporkan kemajuan lewat **Lapor progres** (tampil di riwayat sebagai *Laporan progres*,
+dengan foto bila ada) dan wajib menulis **catatan bukti** saat Ajukan selesai. Penerima mendapat
+notifikasi saat dikonfirmasi atau diminta revisi; pemeriksa mendapat notifikasi saat diajukan.
+
 **Keputusan.** Direktur mencatat perkara yang perlu diputuskan (siapa pemutusnya, tenggatnya),
 lalu menetapkannya setelah diputuskan — oleh Owner, Direktur Utama, atau Direktur sendiri.
 Centang *Kebijakan berlaku* bila keputusan itu menjadi aturan bagi staf. Perkara tidak dihapus;

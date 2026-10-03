@@ -158,6 +158,8 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Inbox (dulu Laporan Masuk): semua komplain, masukan, kerusakan, laporan, masukan staf lintas cabang, permintaan/temuan Owner; catatan Direktur hanya untuk penulisnya | AOM (tindak lanjut), owner (baca saja) | `admin.full_access` |
 | Pilah item Inbox (tugaskan, teruskan, bawa ke rapat, tidak ditindaklanjuti); tambah task dari permintaan Owner | AOM | — |
 | Catat temuan Owner (target opsional) dan permintaan | owner | — |
+| Konfirmasi selesai / minta revisi task yang pemeriksanya Direktur Utama / Owner (otomatis bila penerimanya Direktur Operasional), dan menulis catatan di task itu | owner | — |
+| Lapor progres task sendiri; catatan bukti wajib saat ajukan selesai | penerima task | — |
 | Mengunduh audit (CSV, sesuai saringan; tercatat sebagai EXPORT) | AOM | `admin.full_access` |
 | Mengoreksi tally (jumlah, perawat, tindakan; alasan wajib) | supervisor (Koordinator Shift) cabang itu, AOM (keputusan 3 Okt 2026) | `tally.correct` |
 | Menutup hari sesudah kas akhir diajukan (verifikasi menyusul) | supervisor, AOM | — |

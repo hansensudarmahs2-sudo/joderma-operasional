@@ -20,7 +20,7 @@ from .models import (
     TaskEvent,
     TaskEventType,
 )
-from .permissions import can_access_clinic, is_aom, is_pic
+from .permissions import can_access_clinic, is_aom, is_owner, is_pic
 
 
 def _recipient_payload(user: User) -> dict:
@@ -228,7 +228,56 @@ def submit_assignment(assignment: TaskAssignment, *, user, note: str = "") -> Ta
         actor=user,
         note=note.strip(),
     )
+    _notify_reviewers(assignment, actor=user, note=note)
     return assignment
+
+
+def reviewers_for(item: ActionItem) -> list[User]:
+    """Orang yang diberi tahu saat task diajukan selesai."""
+    if item.reviewed_by_dirut:
+        return list(User.objects.filter(is_active=True, user_roles__role=Role.OWNER).distinct())
+    people = list(User.objects.filter(is_active=True, user_roles__role=Role.AOM).distinct())
+    if item.created_by and item.created_by.is_active and item.created_by not in people:
+        people.append(item.created_by)
+    return people
+
+
+def _notify_reviewers(assignment: TaskAssignment, *, actor, note: str) -> None:
+    item = assignment.action_item
+    url = "direktur:task_detail"
+    for person in reviewers_for(item):
+        if person.pk in {actor.pk, assignment.assignee_id}:
+            continue
+        notify_user(
+            person,
+            type_code="TASK_SUBMITTED",
+            title=f"Menunggu verifikasi: {item.title}",
+            body=f"{actor} mengajukan selesai. {note.strip()[:200]}".strip(),
+            entity_ref=f"actionitem#{item.pk}",
+            url_name=url,
+            url_args=[item.pk],
+        )
+
+
+@transaction.atomic
+def report_progress(assignment: TaskAssignment, *, user, note: str) -> TaskEvent:
+    """PIC melaporkan kemajuan (teks; foto ditambahkan view). Status penerima menjadi Dikerjakan."""
+    if assignment.assignee_id != user.pk and assignment.claimed_by_id != user.pk:
+        raise PermissionDenied("Anda bukan penerima task ini.")
+    if assignment.status not in (
+        TaskAssignmentStatus.OPEN, TaskAssignmentStatus.IN_PROGRESS, TaskAssignmentStatus.REVISION_REQUIRED
+    ):
+        raise ValidationError("Task ini sudah diajukan selesai, dikonfirmasi, atau dibatalkan.")
+    note = (note or "").strip()
+    if not note:
+        raise ValidationError("Tulis kemajuannya.")
+    if assignment.status == TaskAssignmentStatus.OPEN:
+        assignment.status = TaskAssignmentStatus.IN_PROGRESS
+        assignment.save(update_fields=["status", "updated_at"])
+    return TaskEvent.objects.create(
+        action_item=assignment.action_item, assignment=assignment, event_type=TaskEventType.PROGRESS,
+        actor=user, note=note,
+    )
 
 
 def can_review_assignment(assignment: TaskAssignment, reviewer) -> bool:
@@ -242,6 +291,10 @@ def can_review_assignment(assignment: TaskAssignment, reviewer) -> bool:
     item = assignment.action_item
     if reviewer.pk in {assignment.assignee_id, assignment.claimed_by_id}:
         return False
+    if item.reviewed_by_dirut:
+        # Pekerjaan Direktur Operasional sendiri (atau task yang pemeriksanya ditetapkan Dirut):
+        # hanya Direktur Utama / Owner yang memverifikasi.
+        return is_owner(reviewer)
     if item.created_by_id == reviewer.pk:
         return True
     if is_aom(reviewer):
@@ -270,6 +323,11 @@ def confirm_assignment(assignment: TaskAssignment, *, reviewer, note: str = "") 
         actor=reviewer,
         note=note.strip(),
     )
+    notify_user(
+        assignment.assignee, type_code="TASK_CONFIRMED", title=f"Dikonfirmasi selesai: {assignment.action_item.title}",
+        body=f"oleh {reviewer}" + (f" — {note.strip()[:200]}" if note.strip() else ""),
+        entity_ref=f"actionitem#{assignment.action_item_id}", url_name="core:action_items",
+    )
     if not assignment.action_item.task_assignments.exclude(
         status=TaskAssignmentStatus.CONFIRMED
     ).exists():
@@ -295,6 +353,11 @@ def request_revision(assignment: TaskAssignment, *, reviewer, note: str) -> Task
         event_type=TaskEventType.REVISION_REQUESTED,
         actor=reviewer,
         note=note.strip(),
+    )
+    notify_user(
+        assignment.assignee, type_code="TASK_REVISION", title=f"Perlu revisi: {assignment.action_item.title}",
+        body=f"{reviewer}: {note.strip()[:250]}", entity_ref=f"actionitem#{assignment.action_item_id}",
+        url_name="core:action_items",
     )
     return assignment
 
@@ -345,8 +408,12 @@ def _assert_open(item: ActionItem) -> None:
 
 
 @transaction.atomic
-def update_task(item: ActionItem, *, actor, status: str, priority: str, due_at, progress_note: str) -> ActionItem:
-    """Ubah status berjalan (Baru/Dikerjakan), prioritas, target, dan catatan progres."""
+def update_task(
+    item: ActionItem, *, actor, status: str, priority: str, due_at, progress_note: str, review_by: str | None = None,
+) -> ActionItem:
+    """Ubah status berjalan (Baru/Dikerjakan), prioritas, target, catatan progres, dan pemeriksa."""
+    from .models import ReviewBy
+
     from audit.services import log_update, snapshot
 
     _assert_manage(item, actor)
@@ -360,7 +427,11 @@ def update_task(item: ActionItem, *, actor, status: str, priority: str, due_at, 
     item.priority = priority
     item.due_at = due_at
     item.progress_note = (progress_note or "").strip()
-    item.save(update_fields=["status", "priority", "due_at", "progress_note", "updated_at"])
+    if review_by is not None:
+        if review_by not in dict(ReviewBy.choices):
+            raise ValidationError("Pemeriksa tidak dikenali.")
+        item.review_by = review_by
+    item.save(update_fields=["status", "priority", "due_at", "progress_note", "review_by", "updated_at"])
     log_update(item, before, actor=actor)
     return item
 
@@ -377,6 +448,10 @@ def close_task(item: ActionItem, *, actor, note: str) -> ActionItem:
 
     _assert_manage(item, actor)
     _assert_open(item)
+    if item.reviewed_by_dirut:
+        raise ValidationError(
+            "Task ini diverifikasi Direktur Utama / Owner: penerima mengajukan selesai, lalu Dirut mengonfirmasi."
+        )
     note = (note or "").strip()
     if not note:
         raise ValidationError("Tuliskan catatan penutupan.")
@@ -424,7 +499,8 @@ def add_task_comment(item: ActionItem, *, actor, note: str) -> TaskEvent:
     if not note:
         raise ValidationError("Catatan kosong.")
     is_recipient = item.task_assignments.filter(assignee=actor).exists()
-    if not (can_manage_task(item, actor) or is_recipient):
+    is_dirut_reviewer = is_owner(actor) and item.reviewed_by_dirut
+    if not (can_manage_task(item, actor) or is_recipient or is_dirut_reviewer):
         raise PermissionDenied("Anda tidak terlibat di task ini.")
     return TaskEvent.objects.create(action_item=item, event_type=TaskEventType.COMMENT, actor=actor, note=note)
 
@@ -458,6 +534,8 @@ def _my_task_row(item: ActionItem, assignment: TaskAssignment | None, user, now)
         "can_claim": bool(assignment and shared and assignment.claimed_by_id is None
                           and status == TaskAssignmentStatus.OPEN),
         "can_submit": bool(assignment and workable and (not shared or assignment.claimed_by_id == user.pk)),
+        "last_progress": item.task_events.filter(event_type=TaskEventType.PROGRESS).order_by("-created_at").first(),
+        "dirut": item.reviewed_by_dirut,
     }
 
 

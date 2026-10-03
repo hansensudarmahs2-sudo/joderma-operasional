@@ -253,7 +253,7 @@ def test_bad_evidence_photo_keeps_task_open(client, clinic, director, perawat):
     assignment = item.task_assignments.get()
     client.force_login(perawat)
     client.post(reverse("core:assignment_submit", args=[assignment.pk]),
-                {"foto": SimpleUploadedFile("x.jpg", b"xx", content_type="image/jpeg")})
+                {"catatan": "sudah dicek", "foto": SimpleUploadedFile("x.jpg", b"xx", content_type="image/jpeg")})
     assignment.refresh_from_db()
     assert assignment.status == TaskAssignmentStatus.OPEN
     assert not ActionItem.objects.filter(pk=item.pk, status="SELESAI").exists()

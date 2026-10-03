@@ -10,11 +10,11 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
 | | |
 |---|---|
-| Produksi (mini PC, ops.joderma.id) | Commit `3830f6f` (dideploy 3 Oktober): tahap 2 paket A (pelapor di task, Daftar Task, agenda keputusan bersama; migrasi `direktur 0005`), di atas `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
+| Produksi (mini PC, ops.joderma.id) | Commit `6273c6d` (dideploy 3 Oktober): tahap 2 paket B (Inbox pilah, temuan Owner; migrasi `owner 0002`, `reports 0003`), di atas `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | **Paket B tahap 2**: Inbox satu pintu dengan pilah, temuan Owner, tambah task dari permintaan Owner; migrasi `owner 0002`, `reports 0003` (3 Okt, lihat Riwayat) |
-| Test | 691 (690 lulus, 1 dilewati) per 3 Okt: 670 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
+| Belum dideploy | **Paket C tahap 2**: pemeriksa task (Dirut/Owner memverifikasi pekerjaan Direktur Operasional), lapor progres, catatan bukti wajib; migrasi `core 0006` (3 Okt, lihat Riwayat) |
+| Test | 696 (695 lulus, 1 dilewati) per 3 Okt: 675 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -64,9 +64,9 @@ Rencana disetujui product owner 3 Okt, dikerjakan per paket dengan persetujuan d
 | Paket | Isi | Status |
 |---|---|---|
 | A | Pelapor di task (butir 4), Daftar Task (5), agenda keputusan bersama + task menunggu keputusan (6, K-015) | `3830f6f`, dideploy 3 Okt |
-| B | Inbox satu pintu dengan pilah sesuai matriks wewenang (putuskan/tugaskan, teruskan, bawa ke rapat, tidak ditindaklanjuti) + temuan Owner (digabung ke form Permintaan Owner, target opsional) | dibuat 3 Okt, belum di-commit |
-| C | Kolom Pemeriksa (task PIC Direktur Operasional diperiksa Owner/Dirut), Owner dapat konfirmasi/minta revisi task yang ia periksa, linimasa progres PIC; bukti: catatan wajib, foto opsional | berikutnya; menunggu jawaban: pemeriksa = akun Owner atau akun Dirut sendiri |
-| D | Halaman Bahan Rapat mingguan (Kamis lalu–Rabu) | — |
+| B | Inbox satu pintu dengan pilah sesuai matriks wewenang (putuskan/tugaskan, teruskan, bawa ke rapat, tidak ditindaklanjuti) + temuan Owner (digabung ke form Permintaan Owner, target opsional) | `6273c6d`, dideploy 3 Okt |
+| C | Kolom Pemeriksa (task PIC Direktur Operasional diperiksa Owner/Dirut), Owner dapat konfirmasi/minta revisi task yang ia periksa, linimasa progres PIC; bukti: catatan wajib, foto opsional. Dirut = akun `jean` (peran Owner, sama dengan `yohanes`) | dibuat 3 Okt, belum di-commit |
+| D | Halaman Bahan Rapat mingguan (Kamis lalu–Rabu) | berikutnya |
 
 Keputusan bawaan yang dipakai: halaman utama K-015 = Ringkasan Direktur dan Dashboard Owner;
 tenggat task yang menunggu keputusan dibekukan. Pertanyaan Owner yang masih terbuka: lama dan ukuran
@@ -151,7 +151,24 @@ metrik kedisiplinan (tepat waktu, kelengkapan) per staf.
 
 # Riwayat
 
-## Paket B tahap 2: Inbox pilah dan temuan Owner (3 Oktober 2026) — belum di-commit
+## Paket C tahap 2: pemeriksa, verifikasi Dirut, lapor progres (3 Oktober 2026) — belum di-commit
+
+- `ActionItem.review_by` (DIREKTUR/DIRUT, migrasi `core 0006`) dan `effective_review_by`: Dirut
+  bila salah satu penerima aktif berperan AOM (dihitung, data lama tidak diubah). Dirut dan Owner
+  sama-sama peran OWNER (akun `jean`, `yohanes`).
+- `can_review_assignment`: task Dirut hanya diverifikasi peran OWNER; `close_task` ditolak untuk
+  task Dirut; Owner boleh menulis catatan di task yang ia periksa (`add_task_comment`). Pemeriksa
+  dapat diubah Direktur di **Ubah task**.
+- Notifikasi: ajukan selesai → pemeriksa (`TASK_SUBMITTED`; Owner untuk task Dirut, Direktur dan
+  pembuat untuk lainnya); konfirmasi → penerima (`TASK_CONFIRMED`); revisi → penerima (`TASK_REVISION`).
+- Lapor progres: `report_progress` + rute `core:assignment_progress` (teks wajib, foto opsional,
+  lampiran `taskevent`); event baru `PROGRESS`. Tampil di Hari Ini (progres terakhir), Semua task
+  saya, dan riwayat detail task. Catatan bukti wajib saat ajukan selesai (view).
+- Dashboard Owner: **Menunggu verifikasi Anda** dan **Capaian 7 hari terakhir**
+  (`owner.services.verification_queue`, `recent_achievements`).
+- Test: `direktur/tests/test_paket_c.py` (5); test lama disesuaikan untuk catatan bukti wajib.
+
+## Paket B tahap 2: Inbox pilah dan temuan Owner (3 Oktober 2026) — `6273c6d`, dideploy 3 Okt
 
 - Menu **Laporan Masuk** berganti nama **Inbox** (alamat tetap `/laporan/masuk/`). Isinya ditambah
   Permintaan/Temuan Owner dan Catatan Direktur milik penulisnya (`reports/inbox.py`). Tab: Belum
