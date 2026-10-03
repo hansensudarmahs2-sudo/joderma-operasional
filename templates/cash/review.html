@@ -17,7 +17,8 @@
   <div class="card">
     <div class="stat-label">Selisih</div>
     <div class="stat">Rp {{ session.variance|intcomma }}</div>
-    {% if session.variance != 0 %}<span class="tag err">Selisih</span>{% else %}<span class="tag ok">Sesuai</span>{% endif %}
+    {% if session.status == "DISETUJUI_DENGAN_CATATAN" %}<span class="tag ok">Disetujui dengan catatan</span>
+    {% elif session.variance != 0 %}<span class="tag err">Selisih</span>{% else %}<span class="tag ok">Sesuai</span>{% endif %}
   </div>
 </div>
 
@@ -35,11 +36,14 @@
   {% if session.correction_reason %}<p class="meta">Koreksi terakhir: {{ session.correction_reason }} (oleh {{ session.corrected_by }})</p>{% endif %}
 </div>
 
-{% if can_verify %}
+{% if can_verify and session.status == "MENUNGGU_VERIFIKASI" %}
 <div class="card">
   <h3>Verifikasi kedua</h3>
   <form method="post" action="{% url 'cash:verify' session.pk %}">
     {% csrf_token %}
+    {% if session.variance != 0 and can_close_admin %}
+    <p class="help">Ada selisih Rp {{ session.variance|intcomma }}. Bila uang di laci benar dan yang keliru hanya pencatatan (misalnya kolom Diharapkan tidak diisi), tekan <strong>Setujui: kekeliruan administratif</strong>. Kas menjadi terverifikasi dengan catatan dan perkara selisih ditutup. Catatan di bawah boleh dikosongkan.</p>
+    {% endif %}
     <div class="inline">
       <div><label for="hitung_ulang">Total hitung ulang (Rp)</label>
         <input id="hitung_ulang" name="hitung_ulang" type="number" min="0" placeholder="Opsional"></div>
@@ -51,8 +55,23 @@
     <textarea id="catatan" name="catatan" rows="2"></textarea>
     <p></p>
     <button class="btn" type="submit">Simpan verifikasi</button>
+    {% if session.variance != 0 and can_close_admin %}<button class="btn secondary" type="submit" name="aksi" value="administratif">Setujui: kekeliruan administratif</button>{% endif %}
   </form>
 </div>
+{% elif can_close_admin and session.status == "SELISIH" %}
+<div class="card">
+  <h3>Tutup perkara selisih</h3>
+  <p class="help">Kas ini sudah diverifikasi dengan hasil Selisih Rp {{ session.variance|intcomma }}. Bila setelah dicek uangnya benar dan yang keliru hanya pencatatan, tutup sebagai kekeliruan administratif. Angka selisih tetap tersimpan di riwayat dan audit.</p>
+  <form method="post" action="{% url 'cash:verify' session.pk %}">
+    {% csrf_token %}
+    <label for="catatan-adm">Keterangan (opsional)</label>
+    <textarea id="catatan-adm" name="catatan" rows="2" placeholder="Mis. kolom Diharapkan tidak diisi kasir"></textarea>
+    <p><button class="btn" type="submit" name="aksi" value="administratif">Setujui: kekeliruan administratif</button></p>
+  </form>
+</div>
+{% endif %}
+
+{% if can_verify %}
 
 {% if can_correct %}
 <div class="card">

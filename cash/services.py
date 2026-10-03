@@ -145,7 +145,12 @@ def verify(
     hasil dan memindahkan tanggung jawab selisih ke verifikator.
     """
 
-    if session.status != CashStatus.MENUNGGU_VERIFIKASI:
+    note = (note or "").strip()
+    # Sesi yang sudah berstatus Selisih boleh ditutup sekali lagi sebagai "Disetujui dengan catatan"
+    # (mis. kekeliruan administratif) tanpa koreksi dulu (keputusan product owner 3 Okt 2026).
+    closing_variance = (session.status == CashStatus.SELISIH
+                        and result == VerificationResult.DISETUJUI_DENGAN_CATATAN)
+    if session.status != CashStatus.MENUNGGU_VERIFIKASI and not closing_variance:
         raise ValidationError("Sesi kas tidak dalam status menunggu verifikasi.")
 
     if dual_control_enabled(session.operational_day.clinic):
@@ -161,9 +166,15 @@ def verify(
             .replace(",", ".")
         )
 
-    note = (note or "").strip()
     if result is None:
         result = VerificationResult.SESUAI if session.variance == 0 else VerificationResult.SELISIH
+    if result == VerificationResult.SESUAI and session.variance != 0:
+        raise ValidationError(
+            f"Hitungan berbeda Rp {int(session.variance):,} dari yang diharapkan, jadi tidak bisa "
+            "disimpan sebagai Sesuai. Bila uangnya benar dan yang keliru pencatatan, pilih "
+            "\"Setujui: kekeliruan administratif\"; bila uangnya memang kurang/lebih, pilih Selisih."
+            .replace(",", ".")
+        )
     if result in {VerificationResult.SELISIH, VerificationResult.DISETUJUI_DENGAN_CATATAN, VerificationResult.DITOLAK} and not note:
         raise ValidationError("Catatan wajib diisi untuk hasil verifikasi ini.")
 
@@ -231,7 +242,7 @@ def cash_summary(day) -> dict:
         "closing": closing,
         "opening_status": opening.get_status_display() if opening else "Belum dicatat",
         "closing_status": closing.get_status_display() if closing else "Belum dicatat",
-        "has_variance": any(s.variance != 0 for s in sessions.values()),
+        "has_variance": any(s.variance_open for s in sessions.values()),
         "pending_verification": any(
             s.status == CashStatus.MENUNGGU_VERIFIKASI for s in sessions.values()
         ),

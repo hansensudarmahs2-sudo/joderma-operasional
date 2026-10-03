@@ -11,7 +11,7 @@
     {% if summary.opening %}
       <p class="meta">Diharapkan Rp {{ summary.opening.expected_total|intcomma }} ·
         Aktual Rp {{ summary.opening.actual_total|intcomma }} ·
-        Selisih Rp {{ summary.opening.variance|intcomma }}</p>
+        Selisih Rp {{ summary.opening.variance|intcomma }}{% if summary.opening.variance and not summary.opening.variance_open %} (perkara ditutup){% endif %}</p>
       <a class="btn small secondary" href="{% url 'cash:review' summary.opening.pk %}">Review/verifikasi</a>
     {% endif %}
     {% if can_edit %}<a class="btn small" href="{% url 'cash:form' 'OPENING' %}">Hitung kas awal</a>{% endif %}
@@ -22,7 +22,7 @@
     {% if summary.closing %}
       <p class="meta">Diharapkan Rp {{ summary.closing.expected_total|intcomma }} ·
         Aktual Rp {{ summary.closing.actual_total|intcomma }} ·
-        Selisih Rp {{ summary.closing.variance|intcomma }}</p>
+        Selisih Rp {{ summary.closing.variance|intcomma }}{% if summary.closing.variance and not summary.closing.variance_open %} (perkara ditutup){% endif %}</p>
       <a class="btn small secondary" href="{% url 'cash:review' summary.closing.pk %}">Review/verifikasi</a>
     {% endif %}
     {% if can_edit %}<a class="btn small" href="{% url 'cash:form' 'CLOSING' %}">Hitung kas akhir</a>{% endif %}

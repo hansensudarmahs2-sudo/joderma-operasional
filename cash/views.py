@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from core.permissions import (
+    is_aom,
     can_correct_cash,
     can_edit_cash,
     can_verify_cash,
@@ -147,11 +148,15 @@ def review(request, pk: int):
             "session": session,
             "rows": rows,
             "can_verify": can_verify_cash(request.user),
+            "can_close_admin": is_aom(request.user),
             "can_correct": can_correct_cash(request.user),
             "results": VerificationResult.choices,
             "verifications": session.verifications.select_related("verifier"),
         },
     )
+
+
+ADMIN_ERROR_NOTE = "Kekeliruan administratif"
 
 
 @login_required
@@ -161,14 +166,23 @@ def verify_action(request, pk: int):
     session = _session(request, pk)
     try:
         recounted = request.POST.get("hitung_ulang")
+        result = request.POST.get("hasil") or None
+        note = request.POST.get("catatan", "").strip()
+        if request.POST.get("aksi") == "administratif":
+            if not is_aom(request.user):
+                raise PermissionDenied("Menutup selisih sebagai kekeliruan administratif hanya untuk Direktur Operasional.")
+            # Uang benar, pencatatan keliru (mis. Diharapkan tidak diisi): perkara ditutup.
+            result = VerificationResult.DISETUJUI_DENGAN_CATATAN
+            note = ADMIN_ERROR_NOTE + (f": {note}" if note else "")
         verify(
             session,
             verifier=request.user,
             recounted_total=int(recounted) if recounted else None,
-            result=request.POST.get("hasil") or None,
-            note=request.POST.get("catatan", ""),
+            result=result,
+            note=note,
         )
-        messages.success(request, "Verifikasi kas tersimpan.")
+        messages.success(request, "Verifikasi kas tersimpan." if result != VerificationResult.DISETUJUI_DENGAN_CATATAN
+                         else "Kas terverifikasi dengan catatan; perkara selisih ditutup.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
     except ValueError:

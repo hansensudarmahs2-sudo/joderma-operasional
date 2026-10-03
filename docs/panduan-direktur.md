@@ -101,6 +101,13 @@ Unduhan itu sendiri tercatat di audit. Koordinator Shift hanya bisa membaca audi
   menunggu verifikasi dari kedua cabang tampil di **Kas ▸ Menunggu verifikasi** dan di Hari Ini.
   Verifikasi boleh dilakukan sesudah hari ditutup; sejak itu selisih menjadi tanggung jawab Anda
   sebagai verifikator. Dual-control tetap berlaku: penghitung tidak memverifikasi hitungannya sendiri.
+- **Selisih karena kekeliruan administratif.** Selisih = Aktual − Diharapkan. Bila kasir tidak mengisi
+  **Diharapkan**, seluruh uang tampak sebagai selisih. Bila uangnya benar dan yang keliru hanya
+  pencatatan, tekan **Setujui: kekeliruan administratif** saat verifikasi (keterangan boleh kosong).
+  Kas menjadi *Disetujui dengan catatan*, tanda "Ada selisih" hilang, perkara ditutup; angka selisih tetap
+  tersimpan di riwayat dan audit. Kas yang sudah berstatus Selisih dapat ditutup dengan tombol yang
+  sama di bagian **Tutup perkara selisih**, tanpa koreksi. Tombol ini hanya untuk Direktur Operasional.
+  Memilih hasil **Sesuai** padahal angkanya berbeda ditolak dengan penjelasan.
 - **Koreksi tally.** Seperti Koordinator Shift, Anda dapat mengoreksi tally di kedua cabang lewat
   **Giliran Perawat ▸ Koreksi tally per tanggal** (alasan wajib, tercatat di audit).
 - **Cabang aktif.** Pilih cabang di kanan atas; pilihan berlaku untuk hari ini.

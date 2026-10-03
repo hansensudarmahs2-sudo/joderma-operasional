@@ -10,11 +10,11 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
 | | |
 |---|---|
-| Produksi (mini PC, ops.joderma.id) | Commit `c224394` (dideploy 3 Oktober): banner saran (password awal, izin lokasi), di atas `f0fabf8` (dideploy 3 Oktober 21.50): Unduh CSV di Jejak, di atas `8c48cde` (dideploy 3 Oktober 21.33): tahap 3 paket E (jejak kehadiran, koordinat cabang terisi, Semua cabang saat memilah), di atas `3056c3d`: tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
+| Produksi (mini PC, ops.joderma.id) | Commit `56fc3ba` (dideploy 3 Oktober): tahap 3 paket F, KPI per staf, di atas `c224394` (dideploy 3 Oktober): banner saran (password awal, izin lokasi), di atas `f0fabf8` (dideploy 3 Oktober 21.50): Unduh CSV di Jejak, di atas `8c48cde` (dideploy 3 Oktober 21.33): tahap 3 paket E (jejak kehadiran, koordinat cabang terisi, Semua cabang saat memilah), di atas `3056c3d`: tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | Tahap 3 paket F: KPI per staf (3 Okt); tanpa migrasi |
-| Test | 721 (720 lulus, 1 dilewati) per 3 Okt: 700 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
+| Belum dideploy | Kas: tutup selisih sebagai kekeliruan administratif (4 Okt); tanpa migrasi |
+| Test | 725 (724 lulus, 1 dilewati) per 4 Okt: 704 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -73,7 +73,7 @@ tenggat task yang menunggu keputusan dibekukan. Pertanyaan Owner yang masih terb
 berhasil uji coba task management.
 
 **Tahap 3 — KPI (K-016).** Paket E (jejak kehadiran: IP, perangkat, lokasi sesaat) `8c48cde`, dideploy
-3 Okt. Paket F (KPI per staf, menu **KPI**) selesai di kode 3 Okt, belum di-commit: angka per metrik
+3 Okt. Paket F (KPI per staf, menu **KPI**) `56fc3ba`, dideploy 3 Okt: angka per metrik
 tanpa skor gabungan, hanya Direktur dan Owner. Skor gabungan dan "KPI saya" untuk staf ditinjau
 sesudah 1–2 bulan data.
 
@@ -153,7 +153,26 @@ sesudah 1–2 bulan data.
 
 # Riwayat
 
-## Paket F tahap 3: KPI per staf (3 Oktober 2026) — belum di-commit
+## Kas: selisih karena kekeliruan administratif (4 Oktober 2026) — belum di-commit
+
+Masalah nyata 3 Okt (Citraland): kasir tidak mengisi **Diharapkan** (Rp 0) di kas awal dan kas akhir,
+sehingga seluruh uang (Rp 683.800 dan Rp 653.800) tercatat sebagai selisih. Verifikasi Direktur dengan
+hasil "Sesuai" diterima tetapi status tetap Selisih karena status diputuskan dari angka selisih. Keputusan
+product owner: saat Direktur memverifikasi, perkara selesai dan kas terverifikasi dengan catatan
+kekeliruan administratif; Omnicare belum dilibatkan.
+
+- `cash/views.verify_action`: `aksi=administratif` → hasil `DISETUJUI_DENGAN_CATATAN`, catatan
+  "Kekeliruan administratif[: keterangan]". Hanya AOM (403 untuk lainnya).
+- `cash/services.verify`: sesi berstatus SELISIH boleh diverifikasi sekali lagi khusus sebagai
+  Disetujui dengan catatan (tanpa koreksi); hasil SESUAI dengan selisih ≠ 0 ditolak dengan penjelasan.
+- `CashSession.variance_open` (selisih ≠ 0 dan belum disetujui dengan catatan) dipakai
+  `cash_summary.has_variance` (tanda "Ada selisih" di Hari Ini) dan halaman Kas ("perkara ditutup").
+  Angka selisih tidak diubah.
+- `templates/cash/review.html`: tombol **Setujui: kekeliruan administratif** di Verifikasi kedua bila ada
+  selisih; bagian **Tutup perkara selisih** untuk sesi berstatus Selisih.
+- Test `cash/test_kekeliruan_kas.py` (+4).
+
+## Paket F tahap 3: KPI per staf (3 Oktober 2026) — `56fc3ba`, dideploy 3 Okt
 
 Keputusan product owner 3 Okt: empat metrik, angka per metrik tanpa skor gabungan dan tanpa peringkat,
 hanya Direktur Operasional dan Owner, toleransi jam buka 15 menit, periode bulanan, tanda centang massal

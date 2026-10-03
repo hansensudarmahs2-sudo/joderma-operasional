@@ -80,6 +80,12 @@ class CashSession(models.Model):
         }
 
     @property
+    def variance_open(self) -> bool:
+        """Selisih yang masih jadi perkara. Disetujui dengan catatan (mis. kekeliruan administratif)
+        menutup perkaranya; angka selisih tetap tersimpan apa adanya untuk audit."""
+        return self.variance != 0 and self.status != CashStatus.DISETUJUI_DENGAN_CATATAN
+
+    @property
     def is_editable_by_counter(self) -> bool:
         return self.status in {CashStatus.DRAFT, CashStatus.MENUNGGU_VERIFIKASI}
 
