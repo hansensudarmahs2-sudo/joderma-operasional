@@ -20,10 +20,12 @@ from core.permissions import (
     can_access_clinic,
     can_assign_issue,
     can_view_restricted_issue,
+    is_aom,
     is_owner,
     is_supervisor,
     require,
 )
+from core.peran import OWNER, persona
 from core.photos import save_optional_photo, save_photo
 from core.services import active_clinic
 
@@ -53,7 +55,7 @@ TYPE_LABELS = {
 def _visible_issues(user, clinic):
     """Catatan terbatas hanya terlihat pembuat, assignee, supervisor, owner."""
     qs = Issue.objects.filter(clinic=clinic).select_related("created_by", "asset")
-    if is_supervisor(user) or is_owner(user):
+    if is_supervisor(user) or is_owner(user) or is_aom(user):
         return qs
     return qs.filter(
         Q(is_restricted=False)
@@ -96,6 +98,7 @@ def list_view(request):
             "heading": heading,
             "subtitle": subtitle,
             "active_type": issue_type,
+            "see_reporter": is_supervisor(request.user) or is_owner(request.user) or is_aom(request.user),
         },
     )
 
@@ -172,6 +175,8 @@ def detail(request, pk: int):
             "issue": issue,
             "updates": issue.updates.select_related("author"),
             "attachments": attachments,
+            "read_only": persona(request.user) == OWNER,
+            "see_reporter": is_supervisor(request.user) or is_owner(request.user) or is_aom(request.user),
             "photos": [a for a in attachments if (a.mime_type or "").startswith("image/")],
             "next_statuses": sorted(
                 (s, dict(IssueStatus.choices).get(s, s)) for s in issue.allowed_next_statuses()

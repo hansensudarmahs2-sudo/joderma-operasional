@@ -40,13 +40,14 @@
 </details>
 
 <table class="responsive">
-  <thead><tr><th>Nomor</th><th>Judul</th><th>Tingkat</th><th>Status</th><th>Target</th><th>PJ</th></tr></thead>
+  <thead><tr><th>Nomor</th><th>Judul</th><th>Pelapor</th><th>Tingkat</th><th>Status</th><th>Target</th><th>PJ</th></tr></thead>
   <tbody>
   {% for i in issues %}
   <tr>
     <td data-label="Nomor"><a href="{% url 'issues:detail' i.pk %}">{{ i.number }}</a>
       {% if i.is_restricted %}<span class="tag muted">Terbatas</span>{% endif %}</td>
     <td data-label="Judul">{{ i.title }}<div class="meta">{{ i.get_issue_type_display }}{% if i.location %} · {{ i.location }}{% endif %}</div></td>
+    <td data-label="Pelapor">{% if see_reporter or not i.is_anonymous %}{{ i.created_by|default:"—" }}{% else %}<span class="meta">Anonim</span>{% endif %}</td>
     <td data-label="Tingkat">
       {% if i.severity == 'KRITIS' %}<span class="tag err">Kritis</span>
       {% elif i.severity == 'TINGGI' %}<span class="tag warn">Tinggi</span>
@@ -55,7 +56,7 @@
     <td data-label="Target">{{ i.due_at|date:"d/m H:i"|default:"—" }}{% if i.is_overdue %} <span class="tag err">Lewat</span>{% endif %}</td>
     <td data-label="PJ">{{ i.current_assignee|default:"—" }}</td>
   </tr>
-  {% empty %}<tr><td colspan="6" class="meta">Tidak ada catatan sesuai filter.</td></tr>{% endfor %}
+  {% empty %}<tr><td colspan="7" class="meta">Tidak ada catatan sesuai filter.</td></tr>{% endfor %}
   </tbody>
 </table>
 {% endblock %}

@@ -37,6 +37,12 @@ def _day_label(day: dt.date) -> str:
     return f"{DAYS[day.weekday()]}, {day:%d/%m/%Y}"
 
 
+def _inbox_counts(user):
+    from reports.inbox import can_view_inbox, open_counts
+
+    return open_counts(user) if can_view_inbox(user) else None
+
+
 @login_required
 @require(dashboard.can_view_overview)
 def dashboard_page(request):
@@ -45,6 +51,7 @@ def dashboard_page(request):
         request,
         "owner/dashboard.html",
         {
+            "inbox": _inbox_counts(request.user),
             "bird": dashboard.bird_view(user),
             "matrix": dashboard.eisenhower(user, limit=1),
             "counts": dashboard.headline_counts(user),

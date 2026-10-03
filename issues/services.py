@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Max
 from django.utils import timezone
 
@@ -29,13 +29,18 @@ RESOLUTION_REQUIRED_TYPES = {IssueType.KOMPLAIN, IssueType.KERUSAKAN}
 
 
 def generate_number(clinic, issue_type: str, when=None) -> str:
-    """Nomor mudah dibaca: DMG-20260911-004 (PRD 12.2)."""
+    """Nomor mudah dibaca: DMG-20260911-004 (PRD 12.2).
+
+    Urutan dihitung lintas cabang karena nomor unik di seluruh aplikasi. Sebelumnya dihitung per
+    cabang, sehingga catatan kedua cabang pada hari yang sama bisa mendapat nomor yang sama dan
+    gagal tersimpan (ditemukan 3 Okt 2026). Cabang tampil terpisah di halaman, tidak di nomor.
+    """
     when = when or timezone.localtime(timezone.now())
     prefix = NUMBER_PREFIX[issue_type]
     day_part = when.strftime("%Y%m%d")
     stem = f"{prefix}-{day_part}-"
     last = (
-        Issue.objects.filter(clinic=clinic, number__startswith=stem)
+        Issue.objects.filter(number__startswith=stem)
         .aggregate(m=Max("number"))["m"]
     )
     seq = int(last.split("-")[-1]) + 1 if last else 1
@@ -74,10 +79,9 @@ def create_issue(
     allowed = {f.name for f in Issue._meta.fields}
     payload = {k: v for k, v in extra.items() if k in allowed and v not in (None, "")}
 
-    issue = Issue.objects.create(
+    fields = dict(
         clinic=clinic,
         issue_type=issue_type,
-        number=generate_number(clinic, issue_type, local_now),
         title=title,
         description=(description or "").strip(),
         severity=severity,
@@ -89,13 +93,33 @@ def create_issue(
         created_by=user,
         **payload,
     )
+    for attempt in range(5):
+        try:
+            # Savepoint: bila dua orang menyimpan bersamaan dan nomornya bentrok, coba nomor berikutnya.
+            with transaction.atomic():
+                issue = Issue.objects.create(number=generate_number(clinic, issue_type, local_now), **fields)
+            break
+        except IntegrityError:
+            if attempt == 4:
+                raise
     IssueUpdate.objects.create(
         issue=issue, author=user, status=IssueStatus.BARU, note="Catatan dibuat."
     )
     log_create(issue, actor=user, label=issue.number)
 
-    from notifications.services import notify_role
+    from notifications.services import notify_leaders, notify_role
 
+    # Direktur Operasional selalu diberi tahu, dari cabang mana pun; Owner untuk yang kritis.
+    notify_leaders(
+        owners=severity == Priority.KRITIS,
+        type_code="ISSUE_CRITICAL" if severity == Priority.KRITIS else "ISSUE_NEW",
+        title=f"{'KRITIS: ' if severity == Priority.KRITIS else ''}{issue.get_issue_type_display()} "
+              f"{clinic.name}: {issue.number}",
+        body=f"{title} · dicatat {user}" if not is_anonymous else title,
+        entity_ref=f"issue#{issue.pk}",
+        url_name="issues:detail",
+        url_args=[issue.pk],
+    )
     if severity == Priority.KRITIS:
         notify_role(
             clinic,

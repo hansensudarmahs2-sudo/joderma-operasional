@@ -56,6 +56,14 @@ antrian tidak masuk checklist ini karena pencatatannya sudah dipegang Finance.
 5. Temuan ditutup dari halaman Tim dengan **Tandai selesai** beserta catatan penutupan, atau
    lewat alur konfirmasi task biasa bila penerimanya mengajukan selesai.
 
+## Laporan Masuk
+
+Menu **Laporan Masuk** (di bawah Ringkasan) memuat semua Komplain, Masukan, Kerusakan, Laporan
+staf, dan Masukan staf dari kedua cabang, terbaru di atas, dengan nama pelapor. Saring per cabang,
+jenis, atau kata kunci (judul, nomor, lokasi, nama pelapor); centang "Tampilkan yang sudah selesai"
+untuk riwayat. Setiap catatan baru dari cabang mana pun juga masuk ke lonceng notifikasi. Kotak
+**Laporan Masuk** di Ringkasan menunjukkan jumlah yang masih terbuka per cabang.
+
 ## Kas dan tally cabang
 
 - **Verifikasi kas.** Koordinator Shift boleh menutup hari begitu kas akhir diajukan. Sesi yang

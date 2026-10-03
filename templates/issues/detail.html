@@ -3,13 +3,14 @@
 {% block title %}{{ issue.number }}{% endblock %}
 {% block content %}
 <h1>{{ issue.number }}</h1>
-<p class="sub">{{ issue.get_issue_type_display }} · dibuat {{ issue.created_at|date:"d/m/Y H:i" }}
+<p class="sub">{{ issue.get_issue_type_display }} · {{ issue.clinic.name }} · dibuat {{ issue.created_at|date:"d/m/Y H:i" }}{% if see_reporter or not issue.is_anonymous %} oleh <strong>{{ issue.created_by|default:"—" }}</strong>{% endif %}
   {% if issue.is_anonymous %}<span class="tag muted">Anonim</span>{% endif %}
   {% if issue.is_restricted %}<span class="tag muted">Terbatas</span>{% endif %}</p>
 
 {% if issue.severity == 'KRITIS' %}<div class="msg error">Catatan kritis — perlu penanganan segera.</div>{% endif %}
 {% if issue.is_overdue %}<div class="msg warning">Target waktu terlewati.</div>{% endif %}
 
+{% if read_only %}<p class="meta">Tampilan baca saja. Tindak lanjut dilakukan Direktur Operasional atau Koordinator Shift cabang.</p>{% endif %}
 <div class="card">
   <h3>{{ issue.title }}</h3>
   <p>{{ issue.description|linebreaksbr }}</p>
@@ -28,6 +29,7 @@
   {% if issue.closed_reason %}<p class="meta">Alasan penutupan/penolakan: {{ issue.closed_reason }}</p>{% endif %}
 </div>
 
+{% if not read_only %}
 <div class="card">
   <h3>Ubah status</h3>
   {% if next_statuses %}
@@ -81,6 +83,8 @@
 </div>
 {% endif %}
 
+{% endif %}
+
 <div class="card">
   <h3>Lampiran</h3>
   {% foto_thumbs photos %}
@@ -90,13 +94,13 @@
         <div class="meta">{{ a.size_display }} · {{ a.uploaded_by }} · {{ a.uploaded_at|date:"d/m H:i" }}</div></li>
     {% empty %}<li class="meta">Belum ada lampiran.</li>{% endfor %}
   </ul>
-  <form method="post" action="{% url 'issues:upload' issue.pk %}" enctype="multipart/form-data">
+  {% if not read_only %}<form method="post" action="{% url 'issues:upload' issue.pk %}" enctype="multipart/form-data">
     {% csrf_token %}
     <label for="file">Unggah foto atau PDF (foto dikecilkan otomatis · PDF maks 5 MB)</label>
     <input id="file" type="file" name="file" accept="image/*,.pdf" required data-photo="1">
     <p></p>
     <button class="btn secondary" type="submit">Unggah</button>
-  </form>
+  </form>{% endif %}
 </div>
 
 <div class="card">
@@ -108,12 +112,12 @@
         <div class="meta">{{ u.author|default:"sistem" }} · {{ u.created_at|date:"d/m H:i" }}</div></li>
     {% endfor %}
   </ul>
-  <form method="post" action="{% url 'issues:note' issue.pk %}">
+  {% if not read_only %}<form method="post" action="{% url 'issues:note' issue.pk %}">
     {% csrf_token %}
     <label for="catatan2">Tambah catatan</label>
     <textarea id="catatan2" name="catatan" rows="2"></textarea>
     <p></p>
     <button class="btn secondary" type="submit">Simpan catatan</button>
-  </form>
+  </form>{% endif %}
 </div>
 {% endblock %}

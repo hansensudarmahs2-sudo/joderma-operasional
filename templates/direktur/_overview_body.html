@@ -1,4 +1,10 @@
 {# Isi Ringkasan: dipakai Ringkasan Direktur dan Dashboard Owner. #}
+{% if inbox %}
+<a class="card inbox-alert tile-link" href="{% url 'reports:inbox' %}" id="laporan-masuk">
+  <span><strong>Laporan Masuk</strong> · {{ inbox.total }} terbuka{% if inbox.critical %} · <span class="tag err">{{ inbox.critical }} kritis</span>{% endif %}</span>
+  <span class="meta">{% for c, n in inbox.by_clinic.items %}{{ c.name }} {{ n.total }}{% if not forloop.last %} · {% endif %}{% empty %}Semua sudah ditangani{% endfor %} →</span>
+</a>
+{% endif %}
 <h2>Yang belum selesai</h2>
 <p class="meta">{{ counts.open }} task terbuka{% if counts.overdue %} · <span class="tag err">{{ counts.overdue }} lewat target</span>{% endif %}. Ketuk kotak untuk melihat isinya.</p>
 <div class="matrix quad-tiles">

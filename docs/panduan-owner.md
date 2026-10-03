@@ -35,6 +35,13 @@ ada di menu Owner dan ditolak bila alamatnya dibuka langsung.
 
 Tidak ada tombol tolak atau kembalikan; permintaan hanya dibaca progresnya.
 
+## Laporan Masuk
+
+Menu **Laporan Masuk** memuat semua Komplain, Masukan, Kerusakan, Laporan staf, dan Masukan staf
+dari kedua cabang beserta nama pelapor, bisa disaring per cabang dan jenis. Owner membuka isinya
+**baca saja**; tindak lanjut dilakukan Direktur Operasional atau Koordinator Shift cabang. Catatan
+kritis juga muncul di lonceng notifikasi Owner.
+
 ## Summary Harian
 
 Direktur Operasional mengirim summary dari Checklist Direktur. Isinya: hasil checklist Direktur

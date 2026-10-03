@@ -154,6 +154,7 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Mengirim summary harian ke Owner | AOM | — |
 | Stok Apotek: membuka | apoteker, asisten apoteker, AOM, owner | — |
 | Stok Apotek: unggah ekspor Omnicare, ubah parameter | apoteker, asisten apoteker, AOM (keputusan 1 Okt 2026) | — |
+| Laporan Masuk: semua komplain, masukan, kerusakan, laporan, dan masukan staf lintas cabang | AOM (tindak lanjut), owner (baca saja) | `admin.full_access` |
 | Mengoreksi tally (jumlah, perawat, tindakan; alasan wajib) | supervisor (Koordinator Shift) cabang itu, AOM (keputusan 3 Okt 2026) | `tally.correct` |
 | Menutup hari sesudah kas akhir diajukan (verifikasi menyusul) | supervisor, AOM | — |
 | Melihat nominal, memverifikasi, mengoreksi kas | front desk (penghitung kedua), supervisor, AOM | — |

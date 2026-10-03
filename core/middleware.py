@@ -21,7 +21,7 @@ class PersonaAccessMiddleware:
         if not user or not user.is_authenticated or match is None or not match.url_name:
             return None
         route = f"{match.namespace}:{match.url_name}"
-        if not route_allowed(user, route):
+        if not route_allowed(user, route, request.method):
             raise PermissionDenied("Halaman ini bukan bagian dari tampilan peran Anda.")
         return None
 

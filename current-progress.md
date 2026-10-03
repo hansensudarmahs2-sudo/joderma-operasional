@@ -10,11 +10,11 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
 | | |
 |---|---|
-| Produksi (mini PC, ops.joderma.id) | Commit `e966da7` (dideploy 1 Oktober): Stok Apotek fase 1 dan redefinisi peran fase 2–5. Health ok, semua migrasi jalan (`stok 0001`), `xlrd 2.0.2` terpasang. Backup sebelum deploy: `joderma-ops-20261001-105543.tar.gz` (tidak terenkripsi) |
+| Produksi (mini PC, ops.joderma.id) | Commit `523ca4d` (dideploy 3 Oktober 17.39): dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005` dan `accounts 0009`; peran tertinggal di Jemur dicabut, porsi Jemur 4–31 Okt disusun ulang, Regita diberi hak koreksi tally. Backup sebelum deploy: `joderma-ops-20261003-173911.tar.gz` (tidak terenkripsi) |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | `eee0b2e` (Tugas saya, dkk.) bila `deploy_joderma.sh` 1 Okt belum dijalankan, dan **Dua cabang + foto** (3 Okt, lihat Riwayat; migrasi `nurses 0005`) |
-| Test | 652 (651 lulus, 1 dilewati) per 3 Okt: 631 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
+| Belum dideploy | **Laporan Masuk** lintas cabang dan perbaikan nomor catatan (3 Okt, lihat Riwayat) |
+| Test | 661 (660 lulus, 1 dilewati) per 3 Okt: 640 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -138,6 +138,31 @@ metrik kedisiplinan (tepat waktu, kelengkapan) per staf.
 ---
 
 # Riwayat
+
+## Laporan Masuk lintas cabang untuk Direktur dan Owner (3 Oktober 2026) — belum di-commit
+
+Temuan product owner sesudah deploy `523ca4d`: laporan kerusakan dan masukan Regitta (Citraland)
+tidak terlihat dari akun Direktur. Sebabnya: (1) daftar Komplain/Masukan/Kerusakan dan Laporan/
+Masukan staf hanya menampilkan cabang aktif, sedangkan Direktur terdaftar di Jemur; (2) menu Direktur
+tidak memuat Komplain/Masukan/Kerusakan dan Owner ditolak sama sekali; (3) notifikasi catatan baru
+hanya ke Koordinator Shift cabang itu, dan notifikasi masukan/laporan rahasia ke pemegang peran AOM
+*di cabang pengirim* (tidak ada di Citraland). Ditemukan juga: nomor catatan dihitung per cabang
+padahal unik di seluruh aplikasi, sehingga catatan kedua cabang pada hari yang sama bisa bentrok
+nomor dan gagal tersimpan.
+
+- Halaman **Laporan Masuk** (`reports:inbox`, `/laporan/masuk/`, `reports/inbox.py`): Komplain,
+  Masukan, Kerusakan, Laporan staf, dan Masukan staf dari semua cabang; saring cabang, jenis,
+  status (terbuka/semua), kata kunci termasuk nama pelapor; jumlah terbuka per cabang. Menu Direktur
+  (di bawah Ringkasan) dan Owner (di bawah Dashboard); kotak ringkas di Ringkasan dan Dashboard Owner.
+- Owner membuka detail catatan, laporan, dan masukan **baca saja** (`OWNER_READ_ONLY`: POST 403,
+  tombol tindakan disembunyikan).
+- `notifications.services.notify_leaders`: setiap catatan, laporan, dan masukan baru memberi tahu
+  semua Direktur Operasional dari cabang mana pun (Owner untuk yang kritis). Notifikasi laporan
+  rahasia tidak menyebut isi atau pelapor.
+- Nama pelapor tampil di detail dan daftar catatan (kecuali catatan anonim bagi staf biasa);
+  Direktur melihat catatan terbatas di daftar cabang.
+- `issues.services.generate_number`: urutan lintas cabang + coba ulang bila bentrok.
+- Test `reports/tests/test_laporan_masuk.py` (10).
 
 ## Penelusuran jadwal jaga Oktober dan penempatan staf (3 Oktober 2026)
 

@@ -68,7 +68,15 @@ OWNER_ALLOWED = COMMON | {
     "jadwal:roster",
     "stok:index",  # Stok Apotek, baca saja; unggah dan parameter tetap ditolak
     "core:attachment",  # foto permintaan/temuan; izin per lampiran diperiksa di view
+    # Laporan Masuk lintas cabang (3 Okt 2026) dan detailnya, baca saja (lihat OWNER_READ_ONLY).
+    "reports:inbox",
+    "issues:detail",
+    "reports:laporan_page_detail",
+    "reports:masukan_page_detail",
 }
+
+# Halaman yang boleh dibuka Owner tetapi tidak boleh dikirimi perubahan (POST ditolak 403).
+OWNER_READ_ONLY = {"issues:detail", "reports:laporan_page_detail", "reports:masukan_page_detail"}
 
 # Admin sistem: daftar yang BOLEH. Tidak mengisi checklist, kas, atau data operasional.
 ADMIN_ALLOWED = COMMON | {
@@ -119,10 +127,12 @@ def _matches(route: str, patterns: set[str]) -> bool:
     return route in patterns or f"{namespace}:*" in patterns
 
 
-def route_allowed(user, route: str) -> bool:
-    """Apakah tampilan pengguna ini boleh membuka rute `namespace:nama`."""
+def route_allowed(user, route: str, method: str = "GET") -> bool:
+    """Apakah tampilan pengguna ini boleh membuka rute `namespace:nama` dengan metode itu."""
     who = persona(user)
     if who == OWNER:
+        if route in OWNER_READ_ONLY and method not in ("GET", "HEAD"):
+            return False
         return _matches(route, OWNER_ALLOWED)
     if who == ADMIN:
         from core.permissions import has_admin_full_access
@@ -194,6 +204,7 @@ def nav_sections(user) -> list[NavSection]:
     if who == OWNER:
         main = NavSection()
         main.add("Dashboard", "owner:dashboard")
+        main.add("Laporan Masuk", "reports:inbox")
         main.add("Keputusan", "direktur:decisions")
         main.add("Summary Harian", "owner:summary")
         main.add("Jadwal", "owner:jadwal")
@@ -216,6 +227,7 @@ def nav_sections(user) -> list[NavSection]:
     if who == DIREKTUR:
         overview = NavSection()
         overview.add("Ringkasan", "direktur:overview")
+        overview.add("Laporan Masuk", "reports:inbox")
         overview.add("Tim", "direktur:team")
         overview.add("Kanban", "direktur:kanban")
         overview.add("Prioritas", "direktur:matrix")

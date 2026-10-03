@@ -82,3 +82,22 @@ def mark_read(user, notification_id: int | None = None) -> int:
     if notification_id:
         qs = qs.filter(pk=notification_id)
     return qs.update(read_at=timezone.now())
+
+
+def notify_leaders(*, owners: bool = False, **kwargs) -> list[Notification]:
+    """Kirim ke semua Direktur Operasional (peran AOM di cabang mana pun), dan Owner bila diminta.
+
+    `notify_role(clinic, "AOM")` hanya sampai bila Direktur memegang peran AOM di cabang pengirim;
+    Direktur biasanya hanya terdaftar di satu cabang, sehingga laporan dari cabang lain tidak sampai
+    (kasus Citraland 3 Okt 2026). Fungsi ini lintas cabang.
+    """
+    from accounts.models import Role, User
+
+    roles = [Role.AOM] + ([Role.OWNER] if owners else [])
+    recipients = User.objects.filter(is_active=True, user_roles__role__in=roles).distinct()
+    created = []
+    for user in recipients:
+        notif = notify_user(user, **kwargs)
+        if notif:
+            created.append(notif)
+    return created

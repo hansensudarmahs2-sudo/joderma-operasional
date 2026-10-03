@@ -452,6 +452,13 @@ def laporan_page(request):
     )
 
 
+def _owner_view(user) -> bool:
+    """Owner membuka detail laporan dan masukan baca saja (POST ditolak di core/peran.py)."""
+    from core.peran import OWNER, persona
+
+    return persona(user) == OWNER
+
+
 @login_required
 def laporan_page_detail(request, pk: int):
     """Direct URL access selalu diperiksa server-side, bukan hanya disembunyikan di UI."""
@@ -482,8 +489,8 @@ def laporan_page_detail(request, pk: int):
         "reports/laporan_detail.html",
         {
             "laporan": laporan,
-            "can_archive": can_archive_laporan(request.user),
-            "allowed_next": laporan.allowed_next_statuses(),
+            "can_archive": can_archive_laporan(request.user) and not _owner_view(request.user),
+            "allowed_next": [] if _owner_view(request.user) else laporan.allowed_next_statuses(),
         },
     )
 
@@ -547,8 +554,33 @@ def masukan_page_detail(request, pk: int):
         "reports/masukan_detail.html",
         {
             "masukan": masukan,
-            "can_publish": can_publish_masukan(request.user),
-            "can_archive": can_archive_masukan(request.user),
+            "can_publish": can_publish_masukan(request.user) and not _owner_view(request.user),
+            "can_archive": can_archive_masukan(request.user) and not _owner_view(request.user),
             "clinics": Clinic.objects.filter(active=True),
         },
     )
+
+
+@login_required
+def inbox(request):
+    """Laporan Masuk lintas cabang untuk Direktur Operasional dan Owner (reports/inbox.py)."""
+    from core.permissions import user_clinic_queryset
+
+    from .inbox import KINDS, can_view_inbox, inbox_rows, open_counts
+
+    if not can_view_inbox(request.user):
+        raise PermissionDenied("Laporan Masuk untuk Direktur Operasional dan Owner.")
+    clinics = list(user_clinic_queryset(request.user).order_by("id"))
+    raw = request.GET.get("cabang", "")
+    clinic = next((c for c in clinics if raw.isdigit() and c.pk == int(raw)), None)
+    kind = request.GET.get("jenis", "")
+    if kind not in dict(KINDS):
+        kind = ""
+    only_open = request.GET.get("semua") != "1"
+    q = request.GET.get("q", "")[:100]
+    return render(request, "reports/inbox.html", {
+        "rows": inbox_rows(request.user, clinic=clinic, kind=kind, only_open=only_open, q=q),
+        "counts": open_counts(request.user),
+        "clinics": clinics, "clinic": clinic, "kind": kind, "kinds": KINDS,
+        "only_open": only_open, "q": q,
+    })

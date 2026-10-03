@@ -63,20 +63,20 @@ def create_laporan(
     )
     log_create(laporan, actor=user, label=f"Laporan#{laporan.pk}")
 
-    # Notifikasi laporan rahasia hanya boleh dikirim ke AOM, tidak boleh
-    # membocorkan isi/identitas ke staf lain di cabang yang sama (plan 9.1).
-    if visibility == ReportVisibility.RAHASIA_AOM:
-        from accounts.models import Role
-        from notifications.services import notify_role
+    # Notifikasi ke Direktur Operasional (lintas cabang). Laporan rahasia tidak menyebut isi atau
+    # pelapor di notifikasi agar tidak bocor (plan 9.1); isinya dibuka dari halaman detail.
+    from notifications.services import notify_leaders
 
-        notify_role(
-            clinic,
-            Role.AOM,
-            type_code="REPORT_CONFIDENTIAL_NEW",
-            title="Laporan rahasia baru",
-            body="Laporan rahasia baru memerlukan tinjauan Direktur Operasional.",
-            entity_ref=f"laporan#{laporan.pk}",
-        )
+    secret = visibility == ReportVisibility.RAHASIA_AOM
+    notify_leaders(
+        type_code="REPORT_CONFIDENTIAL_NEW" if secret else "REPORT_NEW",
+        title=f"Laporan {'rahasia ' if secret else ''}baru dari {clinic.name}",
+        body="Laporan rahasia baru memerlukan tinjauan Direktur Operasional." if secret
+        else f"{laporan.title} · dari {user}",
+        entity_ref=f"laporan#{laporan.pk}",
+        url_name="reports:laporan_page_detail",
+        url_args=[laporan.pk],
+    )
     return laporan
 
 
@@ -179,16 +179,15 @@ def create_masukan(*, clinic, user, title: str, description: str = "") -> Masuka
     )
     log_create(masukan, actor=user, label=f"Masukan#{masukan.pk}")
 
-    from accounts.models import Role
-    from notifications.services import notify_role
+    from notifications.services import notify_leaders
 
-    notify_role(
-        clinic,
-        Role.AOM,
+    notify_leaders(
         type_code="MASUKAN_NEW",
-        title="Masukan baru",
-        body="Masukan baru menunggu tinjauan Direktur Operasional.",
+        title=f"Masukan baru dari {clinic.name}",
+        body=f"{masukan.title} · dari {user}",
         entity_ref=f"masukan#{masukan.pk}",
+        url_name="reports:masukan_page_detail",
+        url_args=[masukan.pk],
     )
     return masukan
 

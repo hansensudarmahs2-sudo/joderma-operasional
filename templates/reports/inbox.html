@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Laporan Masuk{% endblock %}
+{% block content %}
+<h1>Laporan Masuk</h1>
+<p class="sub">Komplain, masukan, kerusakan, laporan staf, dan masukan staf dari {% if clinic %}{{ clinic.name }}{% else %}semua cabang{% endif %}. Nama pelapor adalah akun yang mencatat.</p>
+
+<div class="inbox-counts">
+  {% for c, n in counts.by_clinic.items %}<a class="card" href="?cabang={{ c.pk }}&jenis={{ kind }}{% if not only_open %}&semua=1{% endif %}"><span class="meta">{{ c.name }}</span><span class="stat">{{ n.total }}</span><span class="meta">terbuka{% if n.critical %} · <strong class="err-text">{{ n.critical }} kritis</strong>{% endif %}</span></a>
+  {% empty %}<p class="meta">Tidak ada laporan terbuka di semua cabang.</p>{% endfor %}
+</div>
+
+<form method="get" class="inline card">
+  <div><label for="cabang">Cabang</label>
+    <select id="cabang" name="cabang"><option value="">Semua cabang</option>{% for c in clinics %}<option value="{{ c.pk }}"{% if clinic and c.pk == clinic.pk %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+  <div><label for="jenis">Jenis</label>
+    <select id="jenis" name="jenis"><option value="">Semua jenis</option>{% for v, l in kinds %}<option value="{{ v }}"{% if v == kind %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div><label for="q">Cari</label><input id="q" name="q" value="{{ q }}" placeholder="Judul, nomor, lokasi, nama pelapor"></div>
+  <div><label><input type="checkbox" name="semua" value="1"{% if not only_open %} checked{% endif %} style="width:auto"> Tampilkan yang sudah selesai</label></div>
+  <button class="btn" type="submit">Terapkan</button>
+</form>
+
+<table class="responsive">
+  <thead><tr><th>Masuk</th><th>Cabang</th><th>Jenis</th><th>Judul</th><th>Pelapor</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <td data-label="Masuk" class="nowrap">{{ r.created_at|date:"d/m/Y H.i" }}</td>
+    <td data-label="Cabang">{{ r.clinic.name }}</td>
+    <td data-label="Jenis">{{ r.kind_label }}{% if r.critical %} <span class="tag err">Kritis</span>{% endif %}{% if r.restricted %} <span class="tag muted" title="Terbatas: hanya pelapor dan pimpinan">Terbatas</span>{% endif %}</td>
+    <td data-label="Judul"><a href="{{ r.url }}"><strong>{{ r.title }}</strong></a><div class="meta">{{ r.ref }}</div></td>
+    <td data-label="Pelapor">{{ r.reporter }}</td>
+    <td data-label="Status"><span class="tag {% if r.open %}warn{% else %}ok{% endif %}">{{ r.status }}</span></td>
+  </tr>
+  {% empty %}<tr><td colspan="6" class="meta">Tidak ada yang cocok dengan saringan ini.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

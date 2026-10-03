@@ -46,6 +46,12 @@ def _errors(request, exc: ValidationError) -> None:
     messages.error(request, " ".join(exc.messages))
 
 
+def _inbox_counts(user):
+    from reports.inbox import can_view_inbox, open_counts
+
+    return open_counts(user) if can_view_inbox(user) else None
+
+
 @login_required
 @require(dashboard.can_view_overview)
 def team(request):
@@ -86,6 +92,7 @@ def overview(request):
         request,
         "direktur/overview.html",
         {
+            "inbox": _inbox_counts(request.user),
             "bird": dashboard.bird_view(user),
             "matrix": dashboard.eisenhower(user, limit=1),
             "counts": dashboard.headline_counts(user),
