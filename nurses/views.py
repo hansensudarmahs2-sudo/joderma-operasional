@@ -4,10 +4,12 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from accounts.models import Role, User
+from audit.services import log_create
 from core.permissions import can_manage_roster, is_aom, is_supervisor, require
 from core.services import active_clinic, get_or_create_day, rm_prefix
 from queueing.models import QueueEntry
@@ -91,8 +93,12 @@ def create_tally(request):
         tally.rm_number = normalize_rm_number(clinic, tally.rm_number)
         tally.operational_day = day
         tally.entered_by = request.user
-        tally.save()
-        after_tally(day, tally.nurse_id, amount=tally.tally, user=request.user)
+        with transaction.atomic():
+            tally.save()
+            # Tally baru tercatat di audit (3 Okt 2026): siapa mencatat, untuk perawat siapa, kapan.
+            log_create(tally, actor=request.user, request=request,
+                       label=f"{tally.rm_number} · {tally.action_name} · {tally.tally}x · {tally.nurse} ({clinic.name})")
+            after_tally(day, tally.nurse_id, amount=tally.tally, user=request.user)
         messages.success(request, "Tally tindakan disimpan.")
     else:
         messages.error(request, "Data tally belum lengkap atau tidak valid.")

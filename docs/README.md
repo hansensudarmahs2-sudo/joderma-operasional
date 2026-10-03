@@ -32,6 +32,7 @@ Selain itu, mulai dari peran Anda.
 | Memahami bentuk sistem dan alasan keputusannya | [`arsitektur.md`](arsitektur.md) |
 | Tahu siapa boleh apa | [`peran-dan-akses.md`](peran-dan-akses.md) |
 | Menjalankan dan menguji secara lokal | [`../README.md`](../README.md) |
+| Melihat hal yang sengaja ditunda selama uji coba (password, backup) | [`catatan-developer.md`](catatan-developer.md) |
 | Melanjutkan rencana integrasi AOM | [`AOM_MODULE_INTEGRATION_PLAN.md`](AOM_MODULE_INTEGRATION_PLAN.md) |
 | Melihat kontrak ekspor legacy AOM standalone (Fase 6) | [`AOM_LEGACY_EXPORT_SCHEMA.md`](AOM_LEGACY_EXPORT_SCHEMA.md) |
 

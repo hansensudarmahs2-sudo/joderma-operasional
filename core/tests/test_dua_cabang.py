@@ -322,3 +322,22 @@ def test_tally_capability_grants_correction_in_accessible_branch(tally_day, nurs
     call_command("beri_hak", "regita", "tally.correct", "--cabut", stdout=open("/dev/null", "w"))
     assert not UserCapability.objects.filter(user=regita, capability=Capability.TALLY_CORRECT).exists()
     assert not can_correct_tally(User.objects.get(pk=regita.pk), citraland)
+
+
+def test_new_tally_is_audited(client, regita, tally_day, nurses, citraland):
+    """Tally baru masuk audit (3 Okt 2026): sebelumnya hanya koreksinya yang tercatat."""
+    vivi, _ = nurses
+    DutyRoster.objects.create(user=regita, date=local_today(), home_clinic=citraland, clinic=citraland,
+                              status=DutyStatus.MASUK)
+    DutyRoster.objects.create(user=vivi, date=local_today(), home_clinic=citraland, clinic=citraland,
+                              status=DutyStatus.MASUK)
+    from nurses.services import sync_roster_with_duty
+
+    sync_roster_with_duty(tally_day)
+    client.force_login(regita)
+    client.post(reverse("nurses:tally_create"), {"nurse": vivi.pk, "rm_number": "0108", "patient_name": "Pasien A",
+                                                 "action_name": "Sculptra", "tally": 1})
+    t = NurseActionTally.objects.get()
+    ev = AuditEvent.objects.get(action=AuditAction.CREATE, entity_type="nurseactiontally", entity_id=str(t.pk))
+    assert ev.actor == regita and "JC-0108" in ev.entity_label and "Sculptra" in ev.entity_label
+    assert ev.after_json["tally"] == 1 and "Citraland" in ev.entity_label

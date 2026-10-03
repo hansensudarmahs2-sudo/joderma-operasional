@@ -10,11 +10,11 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
 | | |
 |---|---|
-| Produksi (mini PC, ops.joderma.id) | Commit `43f49eb` (dideploy 3 Oktober 18.02): Laporan Masuk lintas cabang di atas `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Backup terakhir sebelum deploy: `joderma-ops-20261003-180210.tar.gz` (tidak terenkripsi) |
+| Produksi (mini PC, ops.joderma.id) | Commit `bdec50a` (dideploy 3 Oktober): ekspor audit CSV, di atas `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | **Ekspor audit CSV** (3 Okt, lihat Riwayat) |
-| Test | 665 (664 lulus, 1 dilewati) per 3 Okt: 644 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
+| Belum dideploy | **Tally baru masuk audit** dan catatan developer (3 Okt, lihat Riwayat) |
+| Test | 669 (668 lulus, 1 dilewati) per 3 Okt: 648 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -90,10 +90,9 @@ metrik kedisiplinan (tepat waktu, kelengkapan) per staf.
 
 ### Catatan operasional (dikerjakan product owner, belakangan)
 
-- **Password:** ganti password `hansen1` dan `superadmin` (masih `klinik123`). Ditunda atas keputusan
-  product owner 3 Okt.
-- **Backup:** arsip harian di mini PC belum terenkripsi (`BACKUP_PASSPHRASE` kosong) dan belum ada
-  salinan di perangkat kedua (`BACKUP_SECOND_COPY_DIR`). Dicatat sebagai celah, bukan blocker.
+- **Password dan backup:** ditunda selama fase uji coba; rinciannya di
+  [`docs/catatan-developer.md`](docs/catatan-developer.md) (password awal belum dikunci untuk
+  diganti, backup belum terenkripsi dan belum ada salinan kedua).
 - **Reset peran ke default** tidak perlu dijalankan: peran sudah dirapikan per orang (3 Okt, lihat
   Riwayat). Bila suatu saat dijalankan, periksa pratinjaunya, karena akan mencabut Front Desk
   heni/lia/yani yang dipasang manual.
@@ -139,7 +138,21 @@ metrik kedisiplinan (tepat waktu, kelengkapan) per staf.
 
 # Riwayat
 
-## Ekspor audit CSV (3 Oktober 2026) — belum di-commit
+## Audit kegiatan staf dan tally baru masuk audit (3 Oktober 2026) — belum di-commit
+
+Product owner mengaudit kegiatan staf dari ekspor audit pertama (663 kejadian, 11 Sep–3 Okt).
+Temuan utama: password awal `klinik123` masih dipakai sebagian besar akun dan pernah dipakai login
+bergantian dari satu perangkat (sehingga pelaku di audit belum pasti); Jemur belum memakai checklist
+dan kas di Oktober; Citraland mengisi sekitar 23–29 dari ~50 butir checklist per hari, semuanya OK
+(laporan kerusakan lampu dibuat terpisah); kas Citraland yang tercatat bernilai Rp 0; Regitta
+menandai Naya off 3 Okt padahal PDF menyebut masuk (kemungkinan tukar libur). Keputusan: password dan
+backup ditunda sampai uji coba lancar ([`docs/catatan-developer.md`](docs/catatan-developer.md)).
+
+Celah yang ditutup: tally baru kini tercatat di audit (`nurses.views.create_tally` →
+`log_create`, label RM · tindakan · jumlah · perawat · cabang); sebelumnya hanya koreksinya.
+Test di `core/tests/test_dua_cabang.py`.
+
+## Ekspor audit CSV (3 Oktober 2026) — `bdec50a`, dideploy 3 Okt
 
 Halaman Audit mendapat tombol **Unduh CSV** (`audit:export`, `/audit/ekspor/`) yang mengunduh persis
 isi saringan di layar (pengguna, aksi, data, rentang tanggal): waktu WIB, pengguna dan username,
