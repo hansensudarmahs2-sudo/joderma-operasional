@@ -1,8 +1,8 @@
 # Current Progress
 
-Status per **3 Oktober 2026** (Asia/Jakarta). Keputusan product owner 3 Okt: **perbaiki masalah
-Citraland dulu** (tahap 1, selesai di kode, menunggu commit dan deploy), lalu task management
-GTD dan daftar task (tahap 2), lalu catatan KPI (tahap 3). Fase 6–9 redefinisi peran menyusul.
+Status per **4 Oktober 2026** (Asia/Jakarta). Tahap 1 (masalah Citraland), tahap 2 (task management),
+tahap 3 (jejak kehadiran dan KPI), dan fase 6–8 redefinisi peran sudah dideploy. Yang berjalan: **uji
+coba fase 9 oleh staf secara langsung**; menunggu masukan mereka (daftar uji di Task yang belum selesai).
 Bagian atas dokumen ini adalah posisi terakhir, sisa pekerjaan, dan roadmap. Bagian **Riwayat**
 di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
@@ -10,10 +10,10 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
 | | |
 |---|---|
-| Produksi (mini PC, ops.joderma.id) | Commit `6b0b589` (dideploy 4 Oktober): kas, daftar Selisih belum ditutup, di atas `e9735d2` (dideploy 4 Oktober): fase 6 Permintaan Owner di Jadwal Task, di atas `e0f53c5` (dideploy 4 Oktober): fase 7 tampilan staf sederhana, di atas `410e069` (dideploy 4 Oktober): kas, tutup selisih sebagai kekeliruan administratif, di atas `56fc3ba` (dideploy 3 Oktober): tahap 3 paket F, KPI per staf, di atas `c224394` (dideploy 3 Oktober): banner saran (password awal, izin lokasi), di atas `f0fabf8` (dideploy 3 Oktober 21.50): Unduh CSV di Jejak, di atas `8c48cde` (dideploy 3 Oktober 21.33): tahap 3 paket E (jejak kehadiran, koordinat cabang terisi, Semua cabang saat memilah), di atas `3056c3d`: tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
+| Produksi (mini PC, ops.joderma.id) | Commit `9552fbb` (dideploy 4 Oktober): fase 8 PIC sesuai porsi fungsinya, di atas `6b0b589` (dideploy 4 Oktober): kas, daftar Selisih belum ditutup, di atas `e9735d2` (dideploy 4 Oktober): fase 6 Permintaan Owner di Jadwal Task, di atas `e0f53c5` (dideploy 4 Oktober): fase 7 tampilan staf sederhana, di atas `410e069` (dideploy 4 Oktober): kas, tutup selisih sebagai kekeliruan administratif, di atas `56fc3ba` (dideploy 3 Oktober): tahap 3 paket F, KPI per staf, di atas `c224394` (dideploy 3 Oktober): banner saran (password awal, izin lokasi), di atas `f0fabf8` (dideploy 3 Oktober 21.50): Unduh CSV di Jejak, di atas `8c48cde` (dideploy 3 Oktober 21.33): tahap 3 paket E (jejak kehadiran, koordinat cabang terisi, Semua cabang saat memilah), di atas `3056c3d`: tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | Fase 8: PIC sesuai porsi fungsinya (4 Okt); tanpa migrasi |
+| Belum dideploy | — (semua sudah dideploy per 4 Okt). Berjalan: **uji coba fase 9 oleh staf**, lihat Task yang belum selesai ▸ Fase 9 |
 | Test | 734 (733 lulus, 1 dilewati) per 4 Okt: 713 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
@@ -104,8 +104,26 @@ sesudah 1–2 bulan data.
    PIC mengganti pelaksana, giliran perawat, istirahat, dan roster hanya untuk porsi fungsinya di
    cabangnya. Saat ini hanya Koordinator Shift (SUPERVISOR) yang boleh mengganti pelaksana.
    *Selesai di kode 4 Okt (Riwayat ▸ Fase 8).*
-4. **Fase 9 — Uji tampilan** per peran di desktop dan HP bersama product owner, lalu commit dan
-   deploy fase 6–9 sebagai satu paket.
+4. **Fase 9 — Uji coba langsung per peran** (desktop dan HP) di ops.joderma.id. Fase 6–8 sudah
+   dideploy satu per satu (4 Okt), jadi fase 9 hanya uji dan perbaikan temuan. **Dilakukan staf secara
+   langsung saat shift; menunggu masukan mereka.** Temuan: akun + halaman + apa yang aneh (tangkapan
+   layar bila ada), dicatat di `UAT_ISSUE_REGISTER.md`, diperbaiki per kelompok.
+   - [x] Owner (`yohanes`): menu, Dashboard, Jadwal Task permintaan, penolakan halaman staf — sesuai (4 Okt).
+   - [x] Direktur (`hansen1`): tampilan dan peran sesuai (4 Okt).
+   - [x] Banner saran (password awal, izin lokasi) — sesuai (4 Okt).
+   - [ ] Direktur Utama (`jean`): sama dengan Owner.
+   - [ ] Koordinator Shift (`heni`, `regitta`): menu tetap; ganti pelaksana semua porsi cabangnya; atur
+     istirahat dan giliran tetap jalan.
+   - [ ] PIC non-koordinator (`desy`, `elvira`, `ayu`): Ganti pelaksana hanya di porsi fungsinya (Desy: Kas;
+     Elvira: Apotek, Kebersihan, Limbah; Ayu: Apotek).
+   - [ ] Perawat (mis. `alya`, `naya`, `silvi`): login → Tugas hari ini; tombol porsi membuka butir miliknya;
+     Tindakan saya (giliran, tally hari ini/bulan ini, Catat tally saya, Saya istirahat); Jadwal saya dan
+     Istirahat saya hanya dirinya; menu tanpa Jadwal Jaga tim, Giliran Perawat, Kas.
+   - [ ] Kasir/front desk staf (`nanda`, `arsi`, `luki`): hari kasir → menu Kas dan kotak Kas di Tugas hari
+     ini; bukan hari kasir → Kas tidak ada dan `/kas/` 403; kasir berganti mendadak → Desy (Jemur) atau
+     Regitta (Citraland) memindahkan porsi Kas, pengganti langsung bisa membuka Kas.
+   - [ ] Semua peran: tampilan HP tidak terpotong; tidak ada tautan menu yang berujung 403.
+   - [ ] Direktur: tutup kas awal 3 Okt Citraland lewat Kas ▸ Selisih belum ditutup.
 
 ### Catatan operasional (dikerjakan product owner, belakangan)
 
@@ -141,12 +159,10 @@ sesudah 1–2 bulan data.
 
 | Kapan | Apa |
 |---|---|
-| Sekarang | Commit dan deploy tahap 1 (dua cabang + foto); Regitta mencoba koreksi tally, tutup hari, dan foto di Citraland |
-| Berikutnya | Tahap 2: task management GTD, List View task, keputusan bersama di halaman utama, nama pelapor (permintaan dr. Yohanes) |
-| Sesudah tahap 2 | Tahap 3: catatan KPI (ID staf, geolokasi, IP Wi-Fi) dan metrik kedisiplinan |
+| Sekarang | Uji coba fase 9 oleh staf (menunggu masukan); perbaiki temuan per kelompok. Tahap 1–3 dan fase 6–8 sudah dideploy (4 Okt) |
+| Berikutnya | Analisis KPI dan jejak sesudah data 1–2 minggu; tinjau skor gabungan dan "KPI saya" sesudah 1–2 bulan |
 | Paralel | Stok Apotek fase 1 dipakai apoteker dengan data produksi; keputusan A5–A9; lalu fase 2 |
-| Sesudah itu | Fase 6 (Permintaan Owner sisi Direktur), fase 7 (staf sederhana), fase 8 (PIC), fase 9 (uji tampilan bersama product owner) |
-| Sesudah fase 9 | Commit, backup, deploy; perkenalan tampilan baru ke Owner, Direktur Utama, PIC, dan staf |
+| Sesudah fase 9 | Perkenalan tampilan baru ke Direktur Utama, PIC, dan staf (panduan di `docs/panduan-*.md`) |
 | Oktober 2026 | Uji coba jadwal jaga, pembagian tugas, dan giliran tally bulanan; catat masalah di `UAT_ISSUE_REGISTER.md`; aturan tally ditweak sesudah uji coba (ketetapan 30 Sep) |
 | Akhir Oktober | Jadwal jaga November: siapkan JSON dari PDF, `import_jadwal_jaga`, `seed_tugas_harian --susun 2026-11` |
 | Belum dijadwalkan | Pengingat summary harian; perapihan predikat owner di `core/permissions.py`; lampiran laporan/masukan; rehearsal migrasi data AOM legacy (fase 6–8 rencana integrasi AOM, perlu persetujuan terpisah) |
@@ -155,7 +171,7 @@ sesudah 1–2 bulan data.
 
 # Riwayat
 
-## Fase 8: PIC sesuai porsi fungsinya (4 Oktober 2026) — belum di-commit
+## Fase 8: PIC sesuai porsi fungsinya (4 Oktober 2026) — `9552fbb`, dideploy 4 Okt
 
 Keputusan no. 3: PIC mengatur sesuai porsi fungsinya. Tafsiran yang dipakai: mengganti pelaksana
 porsi Pembagian Tugas mengikuti fungsi PIC; giliran perawat, jadwal istirahat, dan jadwal jaga adalah
