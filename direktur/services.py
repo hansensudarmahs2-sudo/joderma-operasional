@@ -31,6 +31,7 @@ from .models import (
 
 FINDING_SOURCE = "audit_direktur"
 NOTE_SOURCE = "catatan_direktur"
+DECISION_SOURCE = "keputusan"
 
 
 def assert_director(user) -> None:
@@ -125,14 +126,20 @@ def _create_task_or_record(
 
 
 def create_manual_task(
-    *, actor, clinic, title, description="", target="", priority=Priority.SEDANG, due_at=None
+    *, actor, clinic, title, description="", target="", priority=Priority.SEDANG, due_at=None, decision=None
 ) -> ActionItem:
+    """Task dari Direktur. Dengan `decision`, task tercatat sebagai tindak lanjut keputusan itu."""
     assert_director(actor)
     _assert_clinic(actor, clinic)
     if not (title or "").strip():
         raise ValidationError("Judul task wajib diisi.")
     if not (target or "").strip():
         raise ValidationError("Pilih penerima task.")
+    if decision is not None:
+        if decision.status != DecisionStatus.DITETAPKAN:
+            raise ValidationError("Tindak lanjut hanya untuk keputusan yang sudah ditetapkan.")
+        if decision.clinic_id not in (None, clinic.pk):
+            raise ValidationError("Keputusan ini untuk cabang lain.")
     return _create_task_or_record(
         clinic=clinic,
         actor=actor,
@@ -141,9 +148,9 @@ def create_manual_task(
         target=target,
         priority=priority,
         due_at=due_at,
-        source_type="manual",
-        source_id=None,
-        source_label="Task Direktur",
+        source_type=DECISION_SOURCE if decision else "manual",
+        source_id=decision.pk if decision else None,
+        source_label=(decision.reference or "Keputusan") if decision else "Task Direktur",
     )
 
 
@@ -570,6 +577,7 @@ def settle_decision(
     decision.decided_on = decided_on or local_today()
     decision.save()
     log_update(decision, before, actor=actor, action=AuditAction.APPROVE)
+    _release_waiting(decision, actor=actor, verb="ditetapkan")
     return decision
 
 
@@ -585,4 +593,96 @@ def cancel_decision(decision: Decision, *, actor, reason: str) -> Decision:
     decision.decision_text = reason.strip()
     decision.save()
     log_update(decision, before, actor=actor, action=AuditAction.CANCEL, reason=reason.strip())
+    _release_waiting(decision, actor=actor, verb="dibatalkan")
     return decision
+
+
+# --- Task yang menunggu keputusan (K-015) ----------------------------------------
+
+def _task_event(item: ActionItem, *, actor, note: str, **metadata) -> None:
+    from core.models import TaskEvent, TaskEventType
+
+    TaskEvent.objects.create(
+        action_item=item, event_type=TaskEventType.COMMENT, actor=actor, note=note, metadata=metadata
+    )
+
+
+def _check_hold(actor, item: ActionItem, decision: Decision) -> None:
+    assert_director(actor)
+    _assert_clinic(actor, item.clinic)
+    if decision.clinic_id not in (None, item.clinic_id):
+        raise ValidationError("Keputusan ini untuk cabang lain.")
+
+
+@transaction.atomic
+def hold_task(item: ActionItem, decision: Decision, *, actor) -> None:
+    """Tandai task menunggu keputusan: tenggatnya tidak dihitung terlambat sampai keputusan diambil."""
+    _check_hold(actor, item, decision)
+    if decision.status != DecisionStatus.MENUNGGU:
+        raise ValidationError("Keputusan ini sudah tidak menunggu.")
+    if item.status not in (ActionItemStatus.BARU, ActionItemStatus.DIKERJAKAN):
+        raise ValidationError("Task ini sudah selesai atau dibatalkan.")
+    if decision.waiting_tasks.filter(pk=item.pk).exists():
+        return
+    decision.waiting_tasks.add(item)
+    _task_event(item, actor=actor, note=f"Ditahan menunggu keputusan: {decision}", decision=decision.pk,
+                hold=True)
+    log_event(action=AuditAction.UPDATE, entity_type="decision", entity_id=decision.pk,
+              entity_label=f"{decision} · tahan task #{item.pk}", actor=actor,
+              after={"waiting_task": item.pk})
+
+
+@transaction.atomic
+def release_task(item: ActionItem, decision: Decision, *, actor) -> None:
+    _check_hold(actor, item, decision)
+    if not decision.waiting_tasks.filter(pk=item.pk).exists():
+        return
+    decision.waiting_tasks.remove(item)
+    _task_event(item, actor=actor, note=f"Tidak lagi menunggu keputusan: {decision}", decision=decision.pk,
+                hold=False)
+    log_event(action=AuditAction.UPDATE, entity_type="decision", entity_id=decision.pk,
+              entity_label=f"{decision} · lepas task #{item.pk}", actor=actor,
+              before={"waiting_task": item.pk})
+
+
+@transaction.atomic
+def bring_to_meeting(item: ActionItem, *, actor, title: str = "", background: str = "", needed_by=None) -> Decision:
+    """Dari detail task: catat perkara untuk rapat bersama lalu tahan task-nya."""
+    decision = create_decision(
+        actor=actor,
+        title=title or item.title,
+        decider=Decider.RAPAT_BERSAMA,
+        clinic=item.clinic,
+        background=background,
+        needed_by=needed_by,
+    )
+    hold_task(item, decision, actor=actor)
+    return decision
+
+
+def _release_waiting(decision: Decision, *, actor, verb: str) -> None:
+    """Keputusan diambil/dibatalkan: task yang menunggu aktif kembali dan PIC-nya diberi tahu."""
+    from core.models import TaskAssignmentStatus
+    from notifications.services import notify_user
+
+    open_states = (ActionItemStatus.BARU, ActionItemStatus.DIKERJAKAN)
+    for item in decision.waiting_tasks.filter(status__in=open_states).select_related("created_by"):
+        note = f"Keputusan {verb}: {decision}"
+        if decision.decision_text:
+            note += f" — {decision.decision_text[:200]}"
+        if _task_event_exists(item, decision, verb):
+            continue
+        _task_event(item, actor=actor, note=note, decision=decision.pk, released=verb)
+        people = {
+            a.assignee
+            for a in item.task_assignments.exclude(status=TaskAssignmentStatus.CANCELLED).select_related("assignee")
+        }
+        for person in people:
+            notify_user(person, type_code="TASK_DECISION", title=f"Keputusan {verb}: {item.title}",
+                        body=decision.decision_text[:300], entity_ref=f"actionitem#{item.pk}",
+                        url_name="core:action_items")
+
+
+def _task_event_exists(item: ActionItem, decision: Decision, verb: str) -> bool:
+    """Isi keputusan boleh diperbarui; pemberitahuan cukup sekali per keputusan per task."""
+    return item.task_events.filter(metadata__decision=decision.pk, metadata__released=verb).exists()

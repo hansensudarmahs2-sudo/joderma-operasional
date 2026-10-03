@@ -4,16 +4,52 @@
 {% block content %}
 <p><a href="{% url back.0 %}">← {{ back.1 }}</a></p>
 <h1>{{ item.title }}</h1>
-<p class="sub">{{ item.clinic.name }} · {{ source }}{% if item.source_label %} ({{ item.source_label }}){% endif %} · dibuat {{ item.created_at|date:"d/m/Y H:i" }}{% if item.created_by %} oleh {{ item.created_by }}{% endif %}</p>
+<p class="sub">{{ item.clinic.name }} · {{ source }}{% if item.source_label %} ({{ item.source_label }}){% endif %} · dibuat {{ item.created_at|date:"d/m/Y H:i" }}{% if item.created_by %} oleh {{ item.created_by }}{% endif %}{% if reporter and reporter != item.created_by %} · pelapor <strong>{{ reporter }}</strong>{% endif %}</p>
 <p>
   <span class="tag {% if item.status == 'SELESAI' %}ok{% elif item.status == 'BATAL' %}muted{% elif item.is_overdue %}err{% else %}info{% endif %}">{% if is_open and column %}{{ column }}{% else %}{{ item.get_status_display }}{% endif %}</span>
   <span class="tag {% if item.priority == 'TINGGI' or item.priority == 'KRITIS' %}warn{% else %}muted{% endif %}">Prioritas {{ item.get_priority_display }}</span>
+  {% if waiting_on %}{% for d in waiting_on %}{% if d.status == 'MENUNGGU' %}<span class="tag info">Menunggu keputusan</span>{% endif %}{% endfor %}{% endif %}
   {% if item.due_at %}<span class="tag {% if item.is_overdue %}err{% else %}muted{% endif %}">Target {{ item.due_at|date:"d/m/Y H:i" }}{% if item.is_overdue %} · lewat{% endif %}</span>{% else %}<span class="tag muted">Tanpa target</span>{% endif %}
 </p>
 
 {% if item.description %}<div class="card" style="white-space:pre-wrap">{{ item.description }}</div>{% endif %}
 {% if source_photos %}<p class="meta" style="margin-bottom:0">Foto dari sumber temuan:</p>{% foto_thumbs source_photos %}{% endif %}
 {% if item.progress_note %}<p class="meta" style="white-space:pre-wrap">Catatan progres: {{ item.progress_note }}</p>{% endif %}
+
+{% if waiting_on or hold_choices or is_director and is_open %}
+<h2>Keputusan</h2>
+{% for d in waiting_on %}
+<div class="card hold-row">
+  <span>{% if d.status == 'MENUNGGU' %}Menunggu{% else %}Pernah menunggu{% endif %} keputusan <a href="{% url 'direktur:decision_detail' d.pk %}"><strong>{{ d }}</strong></a>
+    <span class="meta">· {{ d.get_decider_display }} · {% if d.status == 'MENUNGGU' %}tenggat task dibekukan{% else %}{{ d.get_status_display|lower }}{% if d.decided_on %} {{ d.decided_on|date:"d/m/Y" }}{% endif %}{% endif %}</span></span>
+  {% if is_director and d.status == 'MENUNGGU' %}
+  <form method="post" class="inline">{% csrf_token %}<input type="hidden" name="aksi" value="lepas"><input type="hidden" name="keputusan" value="{{ d.pk }}">
+    <button class="btn small secondary" type="submit">Lepas</button></form>
+  {% endif %}
+</div>
+{% endfor %}
+{% if is_director and is_open %}
+<details class="card">
+  <summary>Tahan task ini sampai ada keputusan</summary>
+  {% if hold_choices %}
+  <form method="post" class="inline">{% csrf_token %}<input type="hidden" name="aksi" value="tahan">
+    <div><label for="keputusan">Perkara yang sudah tercatat</label>
+      <select id="keputusan" name="keputusan" required>{% for d in hold_choices %}<option value="{{ d.pk }}">{{ d }} ({{ d.get_decider_display }})</option>{% endfor %}</select></div>
+    <button class="btn small" type="submit">Tahan</button>
+  </form>
+  {% endif %}
+  <form method="post">{% csrf_token %}<input type="hidden" name="aksi" value="rapat">
+    <label for="perkara">{% if hold_choices %}Atau catat perkara baru{% else %}Catat perkara{% endif %} untuk rapat bersama Kamis</label>
+    <input id="perkara" name="perkara" maxlength="200" value="{{ item.title }}" required>
+    <label for="latar">Yang perlu diputuskan</label>
+    <textarea id="latar" name="latar" rows="2" placeholder="Pertanyaan untuk rapat"></textarea>
+    <div class="inline"><div><label for="tenggat">Perlu diputuskan sebelum</label><input id="tenggat" type="date" name="tenggat"></div></div>
+    <p><button class="btn small" type="submit">Bawa ke rapat dan tahan task</button></p>
+  </form>
+  <p class="help">Selama menunggu, task tidak dihitung lewat target. Saat keputusan ditetapkan atau dibatalkan, penerima task diberi tahu.</p>
+</details>
+{% endif %}
+{% endif %}
 
 <h2>Penerima</h2>
 <table class="responsive">

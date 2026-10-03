@@ -1,13 +1,15 @@
 {% extends "base.html" %}
 {% block title %}{% if note %}Jadikan task{% else %}Task baru{% endif %}{% endblock %}
 {% block content %}
-<h1>{% if note %}Jadikan catatan sebagai task{% else %}Task baru{% endif %}</h1>
+<h1>{% if note %}Jadikan catatan sebagai task{% elif decision %}Tindak lanjut keputusan{% else %}Task baru{% endif %}</h1>
+{% if decision %}<p class="sub">Dari keputusan <a href="{% url 'direktur:decision_detail' decision.pk %}">{{ decision }}</a> ({{ decision.clinic.name|default:"lintas cabang" }}).</p>{% endif %}
 
 <form method="get" class="inline card">
   <div><label for="cabang-pilih">Cabang</label>
     <select id="cabang-pilih" name="cabang">
       {% for c in clinics %}<option value="{{ c.pk }}" {% if clinic and c.pk == clinic.pk %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
     </select></div>
+  {% if decision %}<input type="hidden" name="keputusan" value="{{ decision.pk }}">{% endif %}
   <button class="btn secondary" type="submit">Ganti cabang</button>
   <p class="help">Daftar penerima mengikuti cabang yang dipilih.</p>
 </form>
@@ -15,6 +17,7 @@
 <form method="post" class="card">
   {% csrf_token %}
   <input type="hidden" name="cabang" value="{{ clinic.pk }}">
+  {% if decision %}<input type="hidden" name="keputusan" value="{{ decision.pk }}">{% endif %}
   <label for="judul">Judul</label>
   <input id="judul" name="judul" value="{{ title }}" required maxlength="200">
   {% if note %}
@@ -36,6 +39,6 @@
   </div>
   <p class="help">Pilih "PIC …" untuk mengirim ke pemegang fungsi PIC cabang ini, atau satu nama staf.</p>
   <p><button class="btn" type="submit">Kirim task</button>
-     <a class="btn secondary" href="{% if note %}{% url 'direktur:notes' %}{% else %}{% url 'direktur:team' %}{% endif %}">Batal</a></p>
+     <a class="btn secondary" href="{% if note %}{% url 'direktur:notes' %}{% elif decision %}{% url 'direktur:decision_detail' decision.pk %}{% else %}{% url 'direktur:team' %}{% endif %}">Batal</a></p>
 </form>
 {% endblock %}

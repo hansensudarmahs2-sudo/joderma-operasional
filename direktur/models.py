@@ -211,6 +211,7 @@ class DecisionStatus(models.TextChoices):
 
 
 class Decider(models.TextChoices):
+    RAPAT_BERSAMA = "RAPAT_BERSAMA", "Rapat bersama (Kamis)"
     OWNER = "OWNER", "Owner"
     DIRUT = "DIRUT", "Direktur Utama"
     DIREKTUR_OPERASIONAL = "DIREKTUR_OPERASIONAL", "Direktur Operasional"
@@ -244,6 +245,13 @@ class Decision(models.Model):
         "kebijakan berlaku", default=False, help_text="Keputusan ini menjadi aturan yang berlaku bagi staf."
     )
     decided_on = models.DateField("tanggal ditetapkan", null=True, blank=True)
+    waiting_tasks = models.ManyToManyField(
+        "core.ActionItem",
+        blank=True,
+        related_name="waiting_decisions",
+        verbose_name="task yang menunggu keputusan ini",
+        help_text="Tenggat task ini dibekukan selama keputusan belum diambil (K-015).",
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="director_decisions"
     )

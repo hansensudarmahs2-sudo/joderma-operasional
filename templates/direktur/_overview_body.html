@@ -5,6 +5,36 @@
   <span class="meta">{% for c, n in inbox.by_clinic.items %}{{ c.name }} {{ n.total }}{% if not forloop.last %} · {% endif %}{% empty %}Semua sudah ditangani{% endfor %} →</span>
 </a>
 {% endif %}
+{% if agenda %}
+<section class="card agenda" id="agenda-rapat">
+  <div class="checklist-heading" style="margin:0 0 .4rem">
+    <h2 style="margin:0">Agenda rapat Kamis, {{ agenda.date|date:"j M" }}</h2>
+    <a class="meta" href="{% url 'direktur:decisions' %}">Semua keputusan →</a>
+  </div>
+  {% if agenda.rapat %}
+  <ol class="agenda-list">
+  {% for r in agenda.rapat %}
+    <li>
+      <a href="{% url 'direktur:decision_detail' r.decision.pk %}"><strong>{{ r.decision }}</strong></a>
+      <div class="meta">{{ r.decision.clinic.name|default:"Lintas cabang" }} · dicatat {{ r.age_days }} hari lalu{% if r.decision.needed_by %} · {% if r.late %}<span class="tag err">lewat tenggat {{ r.decision.needed_by|date:"d/m" }}</span>{% else %}sebelum {{ r.decision.needed_by|date:"d/m" }}{% endif %}{% endif %}</div>
+      {% if r.tasks %}<div class="meta">Task tertahan: {% for t in r.tasks %}<a href="{% url 'direktur:task_detail' t.pk %}">{{ t.title }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</div>{% endif %}
+    </li>
+  {% endfor %}
+  </ol>
+  {% else %}
+  <p class="meta">Belum ada perkara untuk rapat bersama. Direktur Operasional mencatatnya di halaman Keputusan (pemutus "Rapat bersama") atau dari detail task.</p>
+  {% endif %}
+  {% if agenda.lain %}
+  <details><summary class="meta">{{ agenda.lain|length }} perkara lain menunggu pemutus lain</summary>
+    <ul class="agenda-list">
+    {% for r in agenda.lain %}
+      <li><a href="{% url 'direktur:decision_detail' r.decision.pk %}">{{ r.decision }}</a> <span class="meta">· {{ r.decision.get_decider_display }}{% if r.late %} · <span class="tag err">lewat tenggat</span>{% endif %}{% if r.tasks %} · {{ r.tasks|length }} task tertahan{% endif %}</span></li>
+    {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</section>
+{% endif %}
 <h2>Yang belum selesai</h2>
 <p class="meta">{{ counts.open }} task terbuka{% if counts.overdue %} · <span class="tag err">{{ counts.overdue }} lewat target</span>{% endif %}. Ketuk kotak untuk melihat isinya.</p>
 <div class="matrix quad-tiles">

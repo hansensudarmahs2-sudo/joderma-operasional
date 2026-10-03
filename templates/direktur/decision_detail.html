@@ -12,6 +12,24 @@
 {% if decision.decision_text %}<div class="card" style="margin-top:.6rem"><strong>{% if decision.status == 'DIBATALKAN' %}Alasan pembatalan{% else %}Isi keputusan{% endif %}</strong><div style="white-space:pre-wrap">{{ decision.decision_text }}</div></div>{% endif %}
 <p class="meta">Dicatat {{ decision.created_at|date:"d/m/Y H:i" }} oleh {{ decision.created_by|default:"—" }}.</p>
 
+{% if waiting %}
+<h2>Task yang menunggu keputusan ini</h2>
+<p class="meta">{% if decision.status == 'MENUNGGU' %}Tenggat task ini tidak dihitung terlambat sampai keputusan diambil.{% else %}Penerima task sudah diberi tahu saat keputusan {{ decision.get_status_display|lower }}.{% endif %}</p>
+<ul class="agenda-list">
+{% for t in waiting %}<li><a href="{% url 'direktur:task_detail' t.pk %}">{{ t.title }}</a> <span class="meta">· {{ t.clinic.name }} · {{ t.get_status_display }}</span></li>{% endfor %}
+</ul>
+{% endif %}
+
+{% if decision.status == 'DITETAPKAN' %}
+<h2>Tindak lanjut</h2>
+{% if followups %}
+<ul class="agenda-list">
+{% for t in followups %}<li><a href="{% url 'direktur:task_detail' t.pk %}">{{ t.title }}</a> <span class="meta">· {{ t.clinic.name }} · {{ t.get_status_display }}</span></li>{% endfor %}
+</ul>
+{% else %}<p class="meta">Belum ada task tindak lanjut.</p>{% endif %}
+{% if is_director %}<p><a class="btn small" href="{% url 'direktur:task_new' %}?keputusan={{ decision.pk }}{% if decision.clinic_id %}&cabang={{ decision.clinic_id }}{% endif %}">Buat task tindak lanjut</a></p>{% endif %}
+{% endif %}
+
 {% if is_director and decision.status != 'DIBATALKAN' %}
 <div class="card">
   <strong>{% if decision.status == 'MENUNGGU' %}Catat keputusan{% else %}Perbarui isi keputusan{% endif %}</strong>

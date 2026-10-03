@@ -10,11 +10,11 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
 | | |
 |---|---|
-| Produksi (mini PC, ops.joderma.id) | Commit `bdec50a` (dideploy 3 Oktober): ekspor audit CSV, di atas `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
+| Produksi (mini PC, ops.joderma.id) | Commit `4e3864e` (dideploy 3 Oktober): tally baru masuk audit dan catatan developer, di atas `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | **Tally baru masuk audit** dan catatan developer (3 Okt, lihat Riwayat) |
-| Test | 669 (668 lulus, 1 dilewati) per 3 Okt: 648 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
+| Belum dideploy | **Paket A tahap 2**: pelapor di task, Daftar Task, agenda keputusan bersama (K-015), migrasi `direktur 0005` (3 Okt, lihat Riwayat) |
+| Test | 681 (680 lulus, 1 dilewati) per 3 Okt: 660 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -58,6 +58,19 @@ Direktur Utama. Bila Hansen sendiri PIC, verifikatornya dr. Yohanes. Juga: temua
 di aplikasi; nama/ID pelapor tercantum di setiap laporan; **List View** semua task dengan sort,
 filter, dan pencarian; butir yang perlu diputuskan bersama tampil di halaman utama untuk rapat
 mingguan (K-015). Foto bukti dan foto temuan sudah tersedia (tahap 1) dan dipakai alur ini.
+
+Rencana disetujui product owner 3 Okt, dikerjakan per paket dengan persetujuan di akhir tiap paket:
+
+| Paket | Isi | Status |
+|---|---|---|
+| A | Pelapor di task (butir 4), Daftar Task (5), agenda keputusan bersama + task menunggu keputusan (6, K-015) | dibuat 3 Okt, belum di-commit |
+| B | Inbox satu pintu dengan pilah sesuai matriks wewenang (putuskan/tugaskan, teruskan, bawa ke rapat, tidak ditindaklanjuti) + temuan Owner (digabung ke form Permintaan Owner, target opsional) | berikutnya |
+| C | Kolom Pemeriksa (task PIC Direktur Operasional diperiksa Owner/Dirut), Owner dapat konfirmasi/minta revisi task yang ia periksa, linimasa progres PIC; bukti: catatan wajib, foto opsional | — |
+| D | Halaman Bahan Rapat mingguan (Kamis lalu–Rabu) | — |
+
+Keputusan bawaan yang dipakai: halaman utama K-015 = Ringkasan Direktur dan Dashboard Owner;
+tenggat task yang menunggu keputusan dibekukan. Pertanyaan Owner yang masih terbuka: lama dan ukuran
+berhasil uji coba task management.
 
 **Tahap 3 — KPI (K-016).** Setiap checklist mencatat ID staf, geolokasi, dan IP Wi-Fi klinik;
 metrik kedisiplinan (tepat waktu, kelengkapan) per staf.
@@ -138,7 +151,24 @@ metrik kedisiplinan (tepat waktu, kelengkapan) per staf.
 
 # Riwayat
 
-## Audit kegiatan staf dan tally baru masuk audit (3 Oktober 2026) — belum di-commit
+## Paket A tahap 2: pelapor, Daftar Task, keputusan bersama (3 Oktober 2026) — belum di-commit
+
+- **Pelapor di task**: `direktur.dashboard.reporters()` mencari pelapor asal per sumber (checklist →
+  pengisi butir, temuan Direktur → pemeriksa, permintaan Owner → Owner, catatan → penulis; selain itu
+  pembuat). Tampil di kartu Kanban/Prioritas, detail task, Daftar Task, CSV.
+- **Daftar Task** `/direktur/daftar/` (`direktur:tasks`, modul `direktur/task_list.py`): cari, saring
+  status (termasuk lewat target, menunggu konfirmasi, menunggu keputusan, belum ada penerima),
+  cabang, PIC, prioritas, sumber, tanggal dibuat; urut per kolom; 50 per halaman; unduh CSV (tercatat
+  EXPORT di audit). Owner baca saja; menu Owner dan Direktur.
+- **Keputusan bersama (K-015)**: pemutus baru *Rapat bersama (Kamis)*; `Decision.waiting_tasks`
+  (M2M, migrasi `direktur 0005`). Agenda rapat Kamis di atas Ringkasan Direktur dan Dashboard Owner.
+  Detail task: tahan dengan perkara yang ada atau *Bawa ke rapat* (perkara baru), lepas. Selama
+  ditahan `ActionItem.is_overdue` = False. Saat ditetapkan/dibatalkan: catatan di riwayat task +
+  notifikasi `TASK_DECISION` ke penerima (sekali). Keputusan ditetapkan → *Buat task tindak lanjut*
+  (sumber `keputusan`).
+- Test: `direktur/tests/test_paket_a.py` (12).
+
+## Audit kegiatan staf dan tally baru masuk audit (3 Oktober 2026) — `4e3864e`, dideploy 3 Okt
 
 Product owner mengaudit kegiatan staf dari ekspor audit pertama (663 kejadian, 11 Sep–3 Okt).
 Temuan utama: password awal `klinik123` masih dipakai sebagian besar akun dan pernah dipakai login

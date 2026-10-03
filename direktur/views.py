@@ -96,6 +96,7 @@ def overview(request):
             "bird": dashboard.bird_view(user),
             "matrix": dashboard.eisenhower(user, limit=1),
             "counts": dashboard.headline_counts(user),
+            "agenda": dashboard.meeting_agenda(user),
             "is_director": is_aom(user),
             "today": local_today(),
         },
@@ -217,7 +218,15 @@ def decision_detail(request, pk: int):
     return render(
         request,
         "direktur/decision_detail.html",
-        {"decision": decision, "is_director": is_aom(request.user), "today": local_today()},
+        {
+            "decision": decision,
+            "is_director": is_aom(request.user),
+            "today": local_today(),
+            "waiting": decision.waiting_tasks.select_related("clinic").order_by("status", "due_at"),
+            "followups": ActionItem.objects.filter(
+                source_type=services.DECISION_SOURCE, source_id=decision.pk
+            ).select_related("clinic").order_by("created_at"),
+        },
     )
 
 
@@ -417,6 +426,10 @@ def note_convert(request, pk: int):
 @require(is_aom)
 def task_new(request):
     clinic, clinics = _clinic_from(request, request.POST.get("cabang") or request.GET.get("cabang"))
+    ref = request.POST.get("keputusan") or request.GET.get("keputusan") or ""
+    decision = (
+        get_object_or_404(dashboard.decisions_for(request.user), pk=int(ref)) if ref.isdigit() else None
+    )
     if request.method == "POST":
         try:
             services.create_manual_task(
@@ -427,22 +440,31 @@ def task_new(request):
                 target=request.POST.get("penerima", ""),
                 priority=request.POST.get("prioritas") or Priority.SEDANG,
                 due_at=services.parse_due(request.POST.get("batas", "")),
+                decision=decision,
             )
             messages.success(request, "Task dikirim.")
+            if decision:
+                return redirect("direktur:decision_detail", pk=decision.pk)
             return redirect("direktur:team")
         except ValidationError as exc:
             _errors(request, exc)
+    title = request.POST.get("judul", "")
+    description = request.POST.get("uraian", "")
+    if decision and request.method != "POST":
+        title = f"Tindak lanjut: {decision.title}"[:200]
+        description = decision.decision_text
     return render(
         request,
         "direktur/task_form.html",
         {
             "note": None,
+            "decision": decision,
             "clinic": clinic,
             "clinics": clinics,
             "targets": services.target_choices(clinic) if clinic else [],
             "priorities": Priority.choices,
-            "title": request.POST.get("judul", ""),
-            "description": request.POST.get("uraian", ""),
+            "title": title,
+            "description": description,
         },
     )
 
@@ -450,6 +472,7 @@ def task_new(request):
 # --- Detail task -------------------------------------------------------------------
 
 _BACK = {
+    "daftar": ("direktur:tasks", "Daftar Task"),
     "gantt": ("direktur:gantt", "Jadwal Task"),
     "kanban": ("direktur:kanban", "Kanban"),
     "prioritas": ("direktur:matrix", "Prioritas"),
@@ -498,6 +521,24 @@ def task_detail(request, pk: int):
             elif aksi == "catatan":
                 task_services.add_task_comment(item, actor=request.user, note=request.POST.get("catatan", ""))
                 messages.success(request, "Catatan ditambahkan.")
+            elif aksi in {"tahan", "lepas"}:
+                ref = request.POST.get("keputusan", "")
+                decision = get_object_or_404(dashboard.decisions_for(request.user), pk=int(ref) if ref.isdigit() else 0)
+                if aksi == "tahan":
+                    services.hold_task(item, decision, actor=request.user)
+                    messages.success(request, f"Task ditahan menunggu keputusan: {decision}.")
+                else:
+                    services.release_task(item, decision, actor=request.user)
+                    messages.success(request, "Task tidak lagi menunggu keputusan.")
+            elif aksi == "rapat":
+                decision = services.bring_to_meeting(
+                    item,
+                    actor=request.user,
+                    title=request.POST.get("perkara", ""),
+                    background=request.POST.get("latar", ""),
+                    needed_by=services.parse_date(request.POST.get("tenggat", ""), "Tenggat"),
+                )
+                messages.success(request, f"Perkara dicatat untuk rapat Kamis: {decision}.")
             elif not can_manage:
                 raise PermissionDenied("Hanya pemberi tugas atau Direktur Operasional yang dapat mengubah task ini.")
             elif aksi == "ubah":
@@ -534,6 +575,14 @@ def task_detail(request, pk: int):
     ]
     is_open = item.status not in (ActionItemStatus.SELESAI, ActionItemStatus.BATAL)
     entity = SOURCE_PHOTO_ENTITY.get(item.source_type)
+    waiting_on = list(item.waiting_decisions.all())
+    held_ids = {d.pk for d in waiting_on}
+    hold_choices = []
+    if is_aom(request.user) and is_open:
+        hold_choices = [
+            d for d in dashboard.pending_decisions(request.user) if d.clinic_id in (None, item.clinic_id)
+            and d.pk not in held_ids
+        ]
     return render(
         request,
         "direktur/task_detail.html",
@@ -547,6 +596,10 @@ def task_detail(request, pk: int):
             "source": dict(dashboard.SOURCE_CHOICES).get(dashboard.source_group(item), "Modul lain"),
             "column": dict(dashboard.COLUMNS).get(dashboard.kanban_column(item, assignments)),
             "can_manage": can_manage,
+            "reporter": dashboard.reporters([item]).get(item.pk),
+            "waiting_on": waiting_on,
+            "hold_choices": hold_choices,
+            "is_director": is_aom(request.user),
             "can_comment": can_manage or any(a.assignee_id == request.user.pk for a in assignments),
             "is_open": is_open,
             "priorities": Priority.choices,
@@ -555,3 +608,93 @@ def task_detail(request, pk: int):
             "back": _BACK.get(request.GET.get("dari", ""), _BACK["kanban"]),
         },
     )
+
+
+# --- Daftar task -------------------------------------------------------------------
+
+@login_required
+@require(dashboard.can_view_overview)
+def task_list(request):
+    """Semua task dalam satu tabel: saring, cari, urutkan, unduh CSV. Owner hanya membaca."""
+    from django.core.paginator import Paginator
+
+    from . import task_list as tl
+
+    f = tl.parse_filters(request.GET)
+    rows = tl.rows(request.user, f)
+    if request.GET.get("unduh") == "csv":
+        return _task_csv(request, rows, f)
+    page = Paginator(rows, tl.PAGE_SIZE).get_page(request.GET.get("hal"))
+    params = request.GET.copy()
+    params.pop("hal", None)
+    params.pop("unduh", None)
+
+    def link(**changes):
+        q = params.copy()
+        for k, v in changes.items():
+            q[k] = v
+        return q.urlencode()
+
+    current = f["urut"]
+    headers = []
+    for key, label in tl.SORTS.items():
+        active = current.lstrip("-") == key
+        next_sort = f"-{key}" if current == key else key
+        headers.append({"key": key, "label": label, "query": link(urut=next_sort), "active": active,
+                        "desc": active and current.startswith("-")})
+    return render(
+        request,
+        "direktur/task_list.html",
+        {
+            "page": page,
+            "total": len(rows),
+            "f": f,
+            "columns": [h for h in headers if h["key"] not in ("cabang", "dibuat")],
+            "base_query": params.urlencode(),
+            "csv_query": link(unduh="csv"),
+            "clinics": user_clinic_queryset(request.user).order_by("id"),
+            "statuses": tl.STATUS_FILTERS,
+            "priorities": Priority.choices,
+            "sources": dashboard.SOURCE_CHOICES,
+            "pics": tl.pic_choices(request.user),
+            "is_director": is_aom(request.user),
+            "filtered": any(f[k] for k in ("q", "cabang", "pic", "prioritas", "sumber", "dari", "sampai"))
+            or f["status"] != "terbuka",
+        },
+    )
+
+
+def _task_csv(request, rows, f):
+    import csv
+
+    from django.http import StreamingHttpResponse
+
+    from audit.models import AuditAction
+    from audit.services import log_event
+    from audit.views import _cell, _Echo
+
+    log_event(action=AuditAction.EXPORT, entity_type="actionitem", entity_label=f"Ekspor daftar task {len(rows)} baris",
+              actor=request.user, after={"filter": {k: str(v) for k, v in f.items() if v}, "rows": len(rows)},
+              request=request)
+    writer = csv.writer(_Echo())
+
+    def fmt(moment):
+        return timezone.localtime(moment).strftime("%Y-%m-%d %H:%M") if moment else ""
+
+    def lines():
+        yield "﻿"
+        yield writer.writerow(["ID", "Task", "Cabang", "Sumber", "Pelapor", "Dibuat oleh", "PIC", "Prioritas",
+                               "Status", "Menunggu keputusan", "Lewat target", "Target", "Dibuat", "Diperbarui"])
+        for r in rows:
+            i = r["item"]
+            yield writer.writerow([
+                i.pk, _cell(i.title), _cell(i.clinic.name), _cell(r["source"]), _cell(r["reporter"] or ""),
+                _cell(i.created_by or ""), _cell(r["pic_names"]), i.get_priority_display(), r["status"],
+                "ya" if r["on_hold"] else "", "ya" if r["overdue"] else "", fmt(i.due_at), fmt(i.created_at),
+                fmt(i.updated_at),
+            ])
+
+    stamp = timezone.localtime().strftime("%Y%m%d-%H%M")
+    response = StreamingHttpResponse(lines(), content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="daftar_task_{stamp}.csv"'
+    return response

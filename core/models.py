@@ -286,11 +286,23 @@ class ActionItem(models.Model):
         return self.title
 
     @property
+    def on_hold(self) -> bool:
+        """Ditahan karena menunggu keputusan (Keputusan.waiting_tasks) yang belum diambil (K-015)."""
+        if not self.pk:
+            return False
+        cached = getattr(self, "_prefetched_objects_cache", {}).get("waiting_decisions")
+        if cached is not None:
+            return any(d.status == "MENUNGGU" for d in cached)
+        return self.waiting_decisions.filter(status="MENUNGGU").exists()
+
+    @property
     def is_overdue(self) -> bool:
+        # Tenggat dibekukan selama task menunggu keputusan bersama.
         return bool(
             self.due_at
             and self.status in {ActionItemStatus.BARU, ActionItemStatus.DIKERJAKAN}
             and self.due_at < timezone.now()
+            and not self.on_hold
         )
 
 

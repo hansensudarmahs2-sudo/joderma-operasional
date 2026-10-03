@@ -5,11 +5,13 @@ tampilan yang sama. Owner **membaca** keadaan klinik; satu-satunya yang ia buat 
 **Permintaan Owner**. Rancangan lengkapnya ada di
 [`KEBUTUHAN_REDEFINISI_PERAN.md`](KEBUTUHAN_REDEFINISI_PERAN.md).
 
-Sesudah login, Owner langsung masuk ke **Dashboard**. Menunya empat:
+Sesudah login, Owner langsung masuk ke **Dashboard**. Menunya:
 
 | Menu | Isi |
 |---|---|
-| **Dashboard** | Permintaan Owner di atas, lalu ringkasan yang sama dengan Ringkasan Direktur: kuadran prioritas gabungan dua cabang, keputusan menggantung, kebijakan baru, menunggu konfirmasi, jadwal task, dan kartu per cabang. Setiap kotak dapat diketuk untuk membuka Prioritas, Kanban, Jadwal Task, Keputusan, atau Tim |
+| **Dashboard** | Permintaan Owner di atas, lalu **Agenda rapat Kamis** (perkara yang menunggu keputusan bersama dan task yang tertahan karenanya), lalu ringkasan yang sama dengan Ringkasan Direktur: kuadran prioritas gabungan dua cabang, keputusan menggantung, kebijakan baru, menunggu konfirmasi, jadwal task, dan kartu per cabang. Setiap kotak dapat diketuk untuk membuka Prioritas, Kanban, Jadwal Task, Keputusan, atau Tim |
+| **Laporan Masuk** | Komplain, masukan, kerusakan, dan laporan staf dari kedua cabang, hanya baca (lihat di bawah) |
+| **Daftar Task** | Semua task kedua cabang dalam satu tabel: cari, saring, urutkan, unduh CSV. Hanya baca |
 | **Keputusan** | Register keputusan dan kebijakan, hanya baca |
 | **Summary Harian** | Summary of the day dari Direktur Operasional, pilih per tanggal |
 | **Jadwal** | Pilih cabang, lihat siapa yang bertugas hari itu dan siapa yang libur, cuti, atau sedang di cabang lain. Tombol **Lihat jadwal penuh** membuka grid bulanan (hanya baca) |

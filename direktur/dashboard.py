@@ -34,6 +34,8 @@ SOURCE_LABELS = {
     "audit_direktur": "Temuan Direktur",
     "catatan_direktur": "Catatan Direktur",
     "manual": "Task manual",
+    "permintaan_owner": "Permintaan Owner",
+    "keputusan": "Keputusan",
 }
 
 
@@ -58,9 +60,42 @@ SOURCE_CHOICES = [
     ("audit_direktur", "Temuan Direktur"),
     ("catatan_direktur", "Catatan Direktur"),
     ("manual", "Task manual"),
+    ("permintaan_owner", "Permintaan Owner"),
+    ("keputusan", "Keputusan"),
     ("checklist", "Checklist staf"),
     ("lain", "Modul lain"),
 ]
+
+
+def reporters(items) -> dict[int, object]:
+    """Pelapor asal tiap task: orang yang pertama kali melihat/menulis masalahnya.
+
+    Task dari checklist -> staf yang mengisi butir; temuan Direktur -> pemeriksa; permintaan
+    Owner -> Owner; catatan -> penulis catatan. Selain itu (task manual, keputusan) pembuat task.
+    Satu query per jenis sumber, bukan per task.
+    """
+    from checklists.models import ChecklistResponse
+    from owner.models import OwnerRequest
+
+    from .models import AuditCheck, DirectorNote
+
+    items = list(items)
+    lookups = {
+        "checklistresponse": (ChecklistResponse, "checked_by"),
+        "audit_direktur": (AuditCheck, "checked_by"),
+        "permintaan_owner": (OwnerRequest, "created_by"),
+        "catatan_direktur": (DirectorNote, "author"),
+    }
+    found: dict[tuple[str, int], object] = {}
+    for source, (model, field) in lookups.items():
+        ids = {i.source_id for i in items if i.source_type == source and i.source_id}
+        if ids:
+            for obj in model.objects.filter(pk__in=ids).select_related(field):
+                found[(source, obj.pk)] = getattr(obj, field)
+    return {
+        i.pk: found.get((i.source_type, i.source_id)) or i.created_by
+        for i in items
+    }
 
 
 # --- Kanban --------------------------------------------------------------------
@@ -112,8 +147,8 @@ def _items(user, *, clinic_id=None, source=""):
     qs = (
         ActionItem.objects.filter(clinic__in=clinics)
         .filter(Q(status__in=OPEN_ITEM) | Q(status=ActionItemStatus.SELESAI, updated_at__gte=since))
-        .select_related("clinic", "owner")
-        .prefetch_related("task_assignments__assignee")
+        .select_related("clinic", "owner", "created_by")
+        .prefetch_related("task_assignments__assignee", "waiting_decisions")
     )
     if clinic_id:
         qs = qs.filter(clinic_id=clinic_id)
@@ -123,16 +158,18 @@ def _items(user, *, clinic_id=None, source=""):
     return items
 
 
-def _card(item: ActionItem, now) -> dict:
+def _card(item: ActionItem, now, reporter=None) -> dict:
     assignments = list(item.task_assignments.all())
     names = [str(a.assignee) for a in assignments if a.status != TaskAssignmentStatus.CANCELLED]
     return {
         "item": item,
         "column": kanban_column(item, assignments),
         "recipients": names,
+        "reporter": reporter,
         "source": dict(SOURCE_CHOICES).get(source_group(item), "Modul lain"),
         "age_days": (now - item.created_at).days,
         "overdue": item.is_overdue,
+        "on_hold": item.on_hold,
     }
 
 
@@ -140,8 +177,10 @@ def kanban(user, *, clinic_id=None, source="", limit: int | None = None) -> list
     assert_overview(user)
     now = timezone.now()
     board = {key: [] for key, _ in COLUMNS}
-    for item in _items(user, clinic_id=clinic_id, source=source):
-        card = _card(item, now)
+    items = _items(user, clinic_id=clinic_id, source=source)
+    who = reporters(items)
+    for item in items:
+        card = _card(item, now, who.get(item.pk))
         if card["column"]:
             board[card["column"]].append(card)
     far = dt.datetime.max.replace(tzinfo=dt.timezone.utc)
@@ -188,11 +227,11 @@ def eisenhower(user, *, clinic_id=None, source="", limit: int | None = None) -> 
     now = timezone.now()
     hours_by_clinic: dict[int, int] = {}
     buckets = {key: [] for key, _, _ in QUADRANTS}
-    for item in _items(user, clinic_id=clinic_id, source=source):
-        if item.status not in OPEN_ITEM:
-            continue
+    items = [i for i in _items(user, clinic_id=clinic_id, source=source) if i.status in OPEN_ITEM]
+    who = reporters(items)
+    for item in items:
         hours = hours_by_clinic.setdefault(item.clinic_id, urgent_hours(item.clinic))
-        buckets[quadrant(item, now, hours)].append(_card(item, now))
+        buckets[quadrant(item, now, hours)].append(_card(item, now, who.get(item.pk)))
     far = dt.datetime.max.replace(tzinfo=dt.timezone.utc)
     out = []
     for key, title, subtitle in QUADRANTS:
@@ -214,6 +253,38 @@ def decisions_for(user):
 
 def pending_decisions(user):
     return decisions_for(user).filter(status=DecisionStatus.MENUNGGU).order_by("needed_by", "created_at")
+
+
+MEETING_WEEKDAY = 3  # Kamis
+
+
+def next_meeting(today: dt.date) -> dt.date:
+    """Rapat mingguan hari Kamis; pada hari Kamis, rapatnya hari itu juga."""
+    return today + dt.timedelta(days=(MEETING_WEEKDAY - today.weekday()) % 7)
+
+
+def meeting_agenda(user, today: dt.date | None = None) -> dict:
+    """Perkara yang menunggu keputusan untuk halaman utama (K-015).
+
+    `rapat`: dibahas di rapat bersama Kamis; `lain`: menunggu pemutus lain (Owner, Dirut, dst.).
+    Tiap baris membawa task yang tertahan menunggu perkara itu.
+    """
+    from django.db.models import Prefetch
+
+    today = today or local_today()
+    open_tasks = ActionItem.objects.filter(status__in=OPEN_ITEM).select_related("clinic")
+    rows = []
+    for d in pending_decisions(user).prefetch_related(Prefetch("waiting_tasks", queryset=open_tasks)):
+        rows.append({"decision": d, "tasks": list(d.waiting_tasks.all()), "late": d.is_overdue(today),
+                     "age_days": (today - timezone.localtime(d.created_at).date()).days})
+    from .models import Decider
+
+    return {
+        "date": next_meeting(today),
+        "rapat": [r for r in rows if r["decision"].decider == Decider.RAPAT_BERSAMA],
+        "lain": [r for r in rows if r["decision"].decider != Decider.RAPAT_BERSAMA],
+        "held": sum(len(r["tasks"]) for r in rows),
+    }
 
 
 def recent_policies(user, today: dt.date | None = None):

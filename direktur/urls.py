@@ -7,6 +7,7 @@ app_name = "direktur"
 urlpatterns = [
     path("", views.team, name="team"),
     path("ringkasan/", views.overview, name="overview"),
+    path("daftar/", views.task_list, name="tasks"),
     path("kanban/", views.kanban_page, name="kanban"),
     path("prioritas/", views.matrix_page, name="matrix"),
     path("jadwal/", views.gantt_page, name="gantt"),

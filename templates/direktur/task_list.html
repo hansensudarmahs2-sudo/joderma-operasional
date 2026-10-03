@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Daftar Task{% endblock %}
+{% block content %}
+<div class="checklist-heading">
+  <h1 style="margin:0">Daftar Task</h1>
+  {% if is_director %}<a class="btn small" href="{% url 'direktur:task_new' %}">+ Task baru</a>{% endif %}
+</div>
+<p class="sub">Semua task di semua cabang. Saring, cari, lalu ketuk judul kolom untuk mengurutkan.{% if not is_director %} Tampilan baca saja.{% endif %}</p>
+
+<form method="get" class="card task-filters">
+  <div class="filter-search">
+    <label for="q">Cari</label>
+    <input id="q" name="q" type="search" value="{{ f.q }}" placeholder="Judul, uraian, nama PIC atau pelapor">
+  </div>
+  <details class="filter-more" id="filter-more"{% if filtered %} open{% endif %}>
+  <summary class="meta">Saringan{% if filtered %} (aktif){% endif %}</summary>
+  <div class="inline">
+    <div><label for="status">Status</label>
+      <select id="status" name="status">{% for v, l in statuses %}<option value="{{ v }}" {% if v == f.status %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div><label for="cabang">Cabang</label>
+      <select id="cabang" name="cabang"><option value="">Semua cabang</option>{% for c in clinics %}<option value="{{ c.pk }}" {% if c.pk == f.cabang %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+    <div><label for="pic">PIC</label>
+      <select id="pic" name="pic"><option value="">Semua orang</option>{% for u in pics %}<option value="{{ u.pk }}" {% if u.pk == f.pic %}selected{% endif %}>{{ u }}</option>{% endfor %}</select></div>
+    <div><label for="prioritas">Prioritas</label>
+      <select id="prioritas" name="prioritas"><option value="">Semua</option>{% for v, l in priorities %}<option value="{{ v }}" {% if v == f.prioritas %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div><label for="sumber">Sumber</label>
+      <select id="sumber" name="sumber"><option value="">Semua sumber</option>{% for v, l in sources %}<option value="{{ v }}" {% if v == f.sumber %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div><label for="dari">Dibuat dari</label><input id="dari" type="date" name="dari" value="{{ f.dari|date:'Y-m-d' }}"></div>
+    <div><label for="sampai">sampai</label><input id="sampai" type="date" name="sampai" value="{{ f.sampai|date:'Y-m-d' }}"></div>
+  </div>
+  </details>
+  <script>(function(){var d=document.getElementById("filter-more");try{if(window.matchMedia("(min-width: 700px)").matches)d.open=true;}catch(e){}})();</script>
+  <input type="hidden" name="urut" value="{{ f.urut }}">
+  <p class="inline-actions"><button class="btn" type="submit">Terapkan</button>
+    {% if filtered %}<a class="btn secondary" href="{% url 'direktur:tasks' %}">Hapus saringan</a>{% endif %}
+    <a class="btn secondary" href="?{{ csv_query }}">Unduh CSV</a></p>
+</form>
+
+<p class="meta">{{ total }} task{% if page.paginator.num_pages > 1 %} · halaman {{ page.number }} dari {{ page.paginator.num_pages }}{% endif %}</p>
+
+<table class="responsive task-table">
+  <thead><tr>
+    {% for h in columns %}<th><a href="?{{ h.query }}" class="sort{% if h.active %} on{% endif %}">{{ h.label }}{% if h.active %} {% if h.desc %}↓{% else %}↑{% endif %}{% endif %}</a></th>{% endfor %}
+  </tr></thead>
+  <tbody>
+  {% for r in page %}
+    <tr class="{% if r.overdue %}row-late{% endif %}">
+      <td data-label="Task"><div><a href="{% url 'direktur:task_detail' r.item.pk %}?dari=daftar"><strong>{{ r.item.title }}</strong></a>
+        <div class="meta">{{ r.item.clinic.name }} · {{ r.source }}</div></div></td>
+      <td data-label="Pelapor">{{ r.reporter|default:"—" }}</td>
+      <td data-label="PIC">{% if r.pics %}{{ r.pic_names }}{% else %}<span class="tag warn">belum ada</span>{% endif %}</td>
+      <td data-label="Prioritas"><span class="tag {% if r.item.priority == 'KRITIS' %}err{% elif r.item.priority == 'TINGGI' %}warn{% else %}muted{% endif %}">{{ r.item.get_priority_display }}</span></td>
+      <td data-label="Status"><span><span class="tag {% if r.status == 'Selesai' %}ok{% elif r.status == 'Dibatalkan' %}muted{% elif r.status == 'Menunggu konfirmasi' %}info{% endif %}">{{ r.status }}</span>{% if r.on_hold %} <span class="tag info">Menunggu keputusan</span>{% endif %}</span></td>
+      <td data-label="Target"><span>{% if r.item.due_at %}{{ r.item.due_at|date:"d/m/Y" }}{% if r.overdue %} <span class="tag err">Lewat</span>{% endif %}{% else %}<span class="meta">—</span>{% endif %}</span></td>
+      <td data-label="Diperbarui" class="meta">{{ r.item.updated_at|date:"d/m H:i" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="7" class="meta">Tidak ada task untuk saringan ini.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+{% if page.paginator.num_pages > 1 %}
+<p class="pager">
+  {% if page.has_previous %}<a class="btn small secondary" href="?{{ base_query }}&hal={{ page.previous_page_number }}">← Sebelumnya</a>{% endif %}
+  {% if page.has_next %}<a class="btn small secondary" href="?{{ base_query }}&hal={{ page.next_page_number }}">Berikutnya →</a>{% endif %}
+</p>
+{% endif %}
+{% endblock %}

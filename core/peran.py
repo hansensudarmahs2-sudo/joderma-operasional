@@ -59,6 +59,7 @@ COMMON = {
 OWNER_ALLOWED = COMMON | {
     "owner:*",
     "direktur:team",
+    "direktur:tasks",  # Daftar Task, baca saja (unduh CSV lewat GET)
     "direktur:kanban",
     "direktur:matrix",
     "direktur:gantt",
@@ -205,6 +206,7 @@ def nav_sections(user) -> list[NavSection]:
         main = NavSection()
         main.add("Dashboard", "owner:dashboard")
         main.add("Laporan Masuk", "reports:inbox")
+        main.add("Daftar Task", "direktur:tasks")
         main.add("Keputusan", "direktur:decisions")
         main.add("Summary Harian", "owner:summary")
         main.add("Jadwal", "owner:jadwal")
@@ -230,6 +232,7 @@ def nav_sections(user) -> list[NavSection]:
         overview = NavSection()
         overview.add("Ringkasan", "direktur:overview")
         overview.add("Laporan Masuk", "reports:inbox")
+        overview.add("Daftar Task", "direktur:tasks")
         overview.add("Tim", "direktur:team")
         overview.add("Kanban", "direktur:kanban")
         overview.add("Prioritas", "direktur:matrix")

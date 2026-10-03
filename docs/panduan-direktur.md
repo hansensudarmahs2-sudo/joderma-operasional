@@ -114,9 +114,10 @@ muncul, dan hanya diterima server, untuk Direktur.
 
 | Menu | Isi | Owner | Direktur |
 |---|---|---|---|
-| **Ringkasan** | Halaman utama yang sengaja ringkas: empat kotak kuadran prioritas (gabungan kedua cabang), empat kotak angka (keputusan menggantung, kebijakan baru, menunggu konfirmasi, jadwal task), lalu infografik per cabang. Setiap kotak dapat diketuk untuk membuka detailnya | baca | baca |
+| **Ringkasan** | Halaman utama yang sengaja ringkas: **Agenda rapat Kamis** (perkara keputusan bersama dan task yang tertahan), empat kotak kuadran prioritas (gabungan kedua cabang), empat kotak angka (keputusan menggantung, kebijakan baru, menunggu konfirmasi, jadwal task), lalu infografik per cabang. Setiap kotak dapat diketuk untuk membuka detailnya | baca | baca |
 | **Prioritas** | Matriks Eisenhower seluruh task yang belum selesai, dengan penyaring cabang dan sumber; dari Ringkasan terbuka satu kuadran saja | baca | baca |
 | **Jadwal Task** | Gantt: setiap bar dari task dibuat sampai targetnya, 7 hari ke belakang s.d. 21 hari ke depan. Task lewat target berwarna merah dan memanjang sampai hari ini; task tanpa target bergaris | baca | baca |
+| **Daftar Task** | Semua task dalam satu tabel: cari, saring (status, cabang, PIC, prioritas, sumber, tanggal dibuat), urutkan dengan mengetuk judul kolom, unduh CSV | baca + unduh | baca + unduh |
 | **Kanban** | Baru · Dikerjakan · Menunggu konfirmasi · Selesai 7 hari | baca | baca |
 | **Keputusan** | Register perkara: menunggu, ditetapkan, kebijakan berlaku, dibatalkan | baca | catat, tetapkan, batalkan |
 | **Tim** | Detail per orang dan per checklist | baca | baca + tutup temuan |
@@ -154,3 +155,22 @@ tombol.
 lalu menetapkannya setelah diputuskan — oleh Owner, Direktur Utama, atau Direktur sendiri.
 Centang *Kebijakan berlaku* bila keputusan itu menjadi aturan bagi staf. Perkara tidak dihapus;
 yang tidak jadi diputuskan dibatalkan dengan alasan.
+
+**Keputusan bersama dan rapat Kamis (K-015, ditambahkan Oktober 2026).** Pilih pemutus
+*Rapat bersama (Kamis)* untuk perkara yang dibahas di rapat mingguan. Perkara ini tampil di
+bagian **Agenda rapat Kamis** paling atas Ringkasan Direktur dan Dashboard Owner, bersama task
+yang tertahan karenanya; perkara dengan pemutus lain (Owner, Dirut, …) dilipat di bawahnya.
+
+- Di detail task, bagian **Keputusan** → *Tahan task ini sampai ada keputusan*: pilih perkara
+  yang sudah tercatat, atau tulis perkara baru (**Bawa ke rapat dan tahan task**). Selama
+  ditahan, task bertanda *Menunggu keputusan* dan tenggatnya **tidak dihitung lewat target**
+  (tidak membuat kartu cabang merah). Tombol **Lepas** mengakhiri penahanan.
+- Saat keputusan ditetapkan atau dibatalkan, task yang menunggu aktif kembali (tenggat lama
+  berlaku lagi — ubah targetnya bila perlu), riwayat task mendapat catatan isi keputusan, dan
+  penerimanya mendapat notifikasi satu kali.
+- Keputusan yang sudah ditetapkan punya tombol **Buat task tindak lanjut**; task itu bersumber
+  "Keputusan" dan tercantum di halaman keputusan.
+
+**Pelapor.** Kartu task (Kanban, Prioritas), detail task, dan Daftar Task menampilkan pelapor
+asal: staf yang mengisi butir checklist, pemeriksa temuan Direktur, Owner untuk permintaan
+Owner, penulis catatan; selain itu pembuat task.

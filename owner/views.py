@@ -55,6 +55,7 @@ def dashboard_page(request):
             "bird": dashboard.bird_view(user),
             "matrix": dashboard.eisenhower(user, limit=1),
             "counts": dashboard.headline_counts(user),
+            "agenda": dashboard.meeting_agenda(user),
             "requests": services.request_rows(user),
             "can_create": services.can_create_request(user),
             "today": local_today(),
