@@ -19,37 +19,20 @@ def _role_user(clinic, username, *roles):
 @pytest.mark.parametrize(
     ("username", "roles", "visible", "hidden"),
     [
-        (
-            "nav_kasir",
-            (Role.FRONT_DESK, Role.STAF),
-            ("Kas",),
-            ("Giliran Perawat",),
-        ),
-        (
-            "nav_perawat",
-            (Role.PERAWAT, Role.STAF),
-            ("Giliran Perawat",),
-            ("Kas",),
-        ),
-        (
-            "nav_apoteker",
-            (Role.APOTEKER, Role.STAF),
-            ("Checklist Saya", "Order Produk Online"),
-            ("Kas", "Giliran Perawat"),
-        ),
-        (
-            "nav_online",
-            (Role.ONLINE, Role.STAF),
-            ("Order Produk Online", "Checklist Saya"),
-            ("Kas", "Giliran Perawat"),
-        ),
+        # Fase 7: Kas untuk staf hanya pada hari ia kasir (lihat test_tampilan_staf.py).
+        ("nav_kasir", (Role.FRONT_DESK, Role.STAF), ("Tugas hari ini",), ("Kas", "Giliran Perawat", "Tindakan saya")),
+        ("nav_perawat", (Role.PERAWAT, Role.STAF), ("Tindakan saya",), ("Kas", "Giliran Perawat")),
+        ("nav_apoteker", (Role.APOTEKER, Role.STAF), ("Tugas hari ini", "Order Produk Online"),
+         ("Kas", "Tindakan saya", "Checklist Saya")),
+        ("nav_online", (Role.ONLINE, Role.STAF), ("Order Produk Online", "Tugas hari ini"),
+         ("Kas", "Tindakan saya")),
     ],
 )
 def test_role_navigation_is_scoped(client, clinic, username, roles, visible, hidden):
     user = _role_user(clinic, username, *roles)
     assert client.login(username=user.username, password="TestPassword123!")
 
-    response = client.get(reverse("core:dashboard"))
+    response = client.get(reverse("core:today"))
     body = response.content.decode()
     for label in visible:
         assert label in body

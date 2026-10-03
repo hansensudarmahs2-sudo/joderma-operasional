@@ -242,8 +242,10 @@ def test_pages_render_and_permissions(client, tim, cabang, direktur):
     jmr, ctl = cabang
     plan_month(jmr, 2026, 10)
     client.force_login(tim["alya"])
-    body = client.get(reverse("jadwal:roster") + f"?cabang={jmr.pk}&bulan=2026-10").content.decode()
-    assert "Heni" in body and "Ubah satu tanggal" not in body
+    # Fase 7: staf tidak membuka grid tim; jadwalnya sendiri ada di Jadwal saya.
+    assert client.get(reverse("jadwal:roster") + f"?cabang={jmr.pk}&bulan=2026-10").status_code == 403
+    body = client.get(reverse("jadwal:mine") + "?bulan=2026-10").content.decode()
+    assert "Jadwal saya · Oktober 2026" in body and "Heni" not in body
     assert client.get(reverse("jadwal:roster") + f"?cabang={ctl.pk}").status_code == 403
     assert client.post(reverse("jadwal:plan") + f"?cabang={jmr.pk}&bulan=2026-10").status_code == 403
     # Staf tidak membuka pembagian tugas seluruh tim (porsinya ada di Checklist Saya).

@@ -10,11 +10,11 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
 | | |
 |---|---|
-| Produksi (mini PC, ops.joderma.id) | Commit `56fc3ba` (dideploy 3 Oktober): tahap 3 paket F, KPI per staf, di atas `c224394` (dideploy 3 Oktober): banner saran (password awal, izin lokasi), di atas `f0fabf8` (dideploy 3 Oktober 21.50): Unduh CSV di Jejak, di atas `8c48cde` (dideploy 3 Oktober 21.33): tahap 3 paket E (jejak kehadiran, koordinat cabang terisi, Semua cabang saat memilah), di atas `3056c3d`: tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
+| Produksi (mini PC, ops.joderma.id) | Commit `410e069` (dideploy 4 Oktober): kas, tutup selisih sebagai kekeliruan administratif, di atas `56fc3ba` (dideploy 3 Oktober): tahap 3 paket F, KPI per staf, di atas `c224394` (dideploy 3 Oktober): banner saran (password awal, izin lokasi), di atas `f0fabf8` (dideploy 3 Oktober 21.50): Unduh CSV di Jejak, di atas `8c48cde` (dideploy 3 Oktober 21.33): tahap 3 paket E (jejak kehadiran, koordinat cabang terisi, Semua cabang saat memilah), di atas `3056c3d`: tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | Kas: tutup selisih sebagai kekeliruan administratif (4 Okt); tanpa migrasi |
-| Test | 725 (724 lulus, 1 dilewati) per 4 Okt: 704 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
+| Belum dideploy | Fase 7: tampilan staf sederhana (4 Okt); tanpa migrasi |
+| Test | 729 (728 lulus, 1 dilewati) per 4 Okt: 708 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -97,6 +97,7 @@ sesudah 1–2 bulan data.
    - **Kas hanya pada hari ia ditugaskan sebagai kasir** (porsi "Kasir hari ini"), ditegakkan di
      server, bukan hanya menu.
    - Komplain, Masukan, Kerusakan, Laporan Saya, Masukan Saya tetap.
+   - *Selesai di kode 4 Okt (lihat Riwayat ▸ Fase 7).*
 3. **Fase 8 — PIC sesuai porsi fungsinya.** Pembagian tugas yang ada dipakai apa adanya (uji coba);
    PIC mengganti pelaksana, giliran perawat, istirahat, dan roster hanya untuk porsi fungsinya di
    cabangnya. Saat ini hanya Koordinator Shift (SUPERVISOR) yang boleh mengganti pelaksana.
@@ -127,8 +128,6 @@ sesudah 1–2 bulan data.
 - Beberapa predikat di `core/permissions.py` (audit, ekspor, baca pengaturan klinik) masih
   menyebut owner. Untuk akun yang hanya Owner, halaman itu tetap ditolak oleh tampilan Owner
   (`core/peran.py`); predikatnya dirapikan bila disentuh lagi.
-- Sampai fase 7, staf masih melihat grid Jadwal Jaga seluruh tim dan menu Kas setiap hari bila
-  memegang peran front desk.
 - Summary harian hanya terkirim bila Direktur menekan tombol; belum ada pengingat bila lupa.
 - Pemilih tanggal memakai format bawaan browser (mis. bulan/tanggal di browser berbahasa Inggris).
 - Tangkapan layar tiap fase dibuat di database uji (data contoh), bukan data klinik.
@@ -153,7 +152,31 @@ sesudah 1–2 bulan data.
 
 # Riwayat
 
-## Kas: selisih karena kekeliruan administratif (4 Oktober 2026) — belum di-commit
+## Fase 7: tampilan staf sederhana (4 Oktober 2026) — belum di-commit
+
+Mengikuti `docs/KEBUTUHAN_REDEFINISI_PERAN.md` (keputusan no. 5 dan 6). Hanya tampilan **Staf**; PIC,
+Direktur, Owner tidak berubah.
+
+- **Tugas hari ini** (`core:today`, `/hari-ini/tugas/`), halaman pertama staf sesudah login: porsi
+  checklist hari ini (`my_assignments`) dengan progres per run dan tombol ke `checklists:run?saya=1`,
+  tombol **Buat sesi hari ini**, kotak Kas bila kasir hari ini, Tugas saya (partial baru
+  `core/_my_tasks.html`, dipakai juga Hari Ini), istirahat hari ini.
+- **Jadwal saya** (`jadwal:mine`), **Istirahat saya** (`breaks:mine`), **Tindakan saya** (`nurses:mine`:
+  giliran diri, tally hari ini/bulan ini, ketersediaan diri, tindakan yang ditugaskan, catat tally diri).
+- `core/peran.py`: `HOME[STAF] = core:today`; menu staf `_staff_sections`; `STAF_BLOCKED` menambah grid
+  tim (`jadwal:roster`, `breaks:list/create/update/cancel`, papan dan aksi koordinator `nurses:*`
+  kecuali `mine`, `tally_create`, `start`, `complete`, `availability`); `cash:*` untuk staf hanya bila
+  `jadwal.services.is_cashier_today` (porsi kelompok KAS pada tanggal itu).
+- `nurses/views.py`: tally oleh staf hanya untuk dirinya; aksi tally/mulai/selesai/ketersediaan kembali ke
+  `next` yang aman (Tindakan saya).
+- Hari Ini untuk staf: kartu Kas hanya hari kasir; tautan papan/istirahat diganti halaman "saya".
+- Dicatat: Kas staf bergantung pada Pembagian Tugas yang benar; bila kasir berganti mendadak, PIC
+  mengganti pelaksana porsi "Kasir hari ini". Front desk lain tidak lagi bisa menjadi penghitung kedua
+  di luar hari kasirnya (verifikasi oleh Koordinator Shift/Direktur tetap).
+- Test baru `core/tests/test_tampilan_staf.py` (+4); test menu/landing staf, `jadwal` dan `nurses`
+  disesuaikan.
+
+## Kas: selisih karena kekeliruan administratif (4 Oktober 2026) — `410e069`, dideploy 4 Okt
 
 Masalah nyata 3 Okt (Citraland): kasir tidak mengisi **Diharapkan** (Rp 0) di kas awal dan kas akhir,
 sehingga seluruh uang (Rp 683.800 dan Rp 653.800) tercatat sebagai selisih. Verifikasi Direktur dengan

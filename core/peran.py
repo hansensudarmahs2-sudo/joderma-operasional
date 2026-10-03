@@ -40,7 +40,7 @@ HOME = {
     DIREKTUR: "direktur:overview",
     OWNER: "owner:dashboard",
     PIC: "core:dashboard",
-    STAF: "core:dashboard",
+    STAF: "core:today",
     ADMIN: "accounts:user_list",
 }
 
@@ -104,7 +104,28 @@ STAF_BLOCKED = {
     "owner:*",
     "audit:*",
     "jejak:*",
+    # Fase 7 (staf sederhana): grid tim diganti halaman "saya". Hari Ini dan Checklist Saya tetap
+    # bisa dibuka (aksi hari dan pengisian checklist), hanya tidak ada di menu staf.
+    "jadwal:roster",
+    "breaks:list",
+    "breaks:create",
+    "breaks:update",
+    "breaks:cancel",
+    "nurses:board",
+    "nurses:roster",
+    "nurses:assign",
+    "nurses:cancel",
+    "nurses:skip",
+    "nurses:ledger",
+    "nurses:hand_over",
+    "nurses:move",
+    "nurses:sync",
+    "nurses:tally_day",
+    "nurses:tally_correct",
 }
+
+# Staf membuka Kas hanya pada hari ia ditugaskan sebagai kasir (porsi kelompok Kas di Pembagian Tugas).
+STAF_CASHIER_ONLY = {"cash:*"}
 
 
 def persona(user) -> str:
@@ -147,6 +168,10 @@ def route_allowed(user, route: str, method: str = "GET") -> bool:
         # Admin yang diberi akses penuh data bisnis (OWNER_DECISION_REVIEW D8) tidak dibatasi.
         return has_admin_full_access(user) or _matches(route, ADMIN_ALLOWED)
     if who == STAF:
+        if _matches(route, STAF_CASHIER_ONLY):
+            from jadwal.services import is_cashier_today
+
+            return is_cashier_today(user)
         return not _matches(route, STAF_BLOCKED)
     return True
 
@@ -279,7 +304,10 @@ def nav_sections(user) -> list[NavSection]:
             settings.add("Admin", "accounts:user_list")
         return [s for s in (overview, mine, ops, reports, settings) if s.items]
 
-    # PIC dan Staf
+    if who == STAF:
+        return _staff_sections(user, flags)
+
+    # PIC
     work = NavSection()
     work.add("Hari Ini", "core:dashboard")
     work.add("Checklist Saya", "checklists:index")
@@ -310,3 +338,22 @@ def nav_sections(user) -> list[NavSection]:
         settings.add("Admin", "accounts:user_list")
         sections.append(settings)
     return sections
+
+
+def _staff_sections(user, flags) -> list[NavSection]:
+    """Menu staf (fase 7): hanya yang ia kerjakan hari itu dan jadwalnya sendiri."""
+    from jadwal.services import is_cashier_today
+
+    work = NavSection()
+    work.add("Tugas hari ini", "core:today")
+    work.add("Jadwal saya", "jadwal:mine")
+    work.add("Istirahat saya", "breaks:mine")
+    if flags["nurses"]:
+        work.add("Tindakan saya", "nurses:mine")
+    if flags["cash"] and is_cashier_today(user):
+        work.add("Kas", "cash:index")
+    if flags["orders"]:
+        work.add("Order Produk Online", "orders:index")
+    if flags["stok"]:
+        work.add("Stok Apotek", "stok:index")
+    return [work, _report_section(user, flags)]

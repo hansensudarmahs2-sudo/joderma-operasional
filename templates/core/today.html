@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Tugas hari ini{% endblock %}
+{% block content %}
+<h1>Tugas hari ini</h1>
+<p class="sub">{{ today|date:"l, j F Y" }}{% if clinic %} · {{ clinic.name }}{% endif %}{% if duty %} · <span class="tag {% if duty.is_working %}ok{% else %}muted{% endif %}">{% if duty.status == "PERBANTUAN" %}Perbantuan di {{ duty.clinic.name }}{% else %}{{ duty.get_status_display }}{% endif %}</span>{% endif %}</p>
+
+<section class="card today-duties" aria-labelledby="judul-porsi">
+  <div class="checklist-heading" style="margin:0">
+    <h2 id="judul-porsi" style="margin:0">Checklist porsi saya</h2>
+    {% if duties_total %}<span class="meta">{{ duties_done }}/{{ duties_total }} butir</span>{% endif %}
+  </div>
+  {% if not day %}
+    <p class="meta">Sesi hari operasional {{ clinic.name }} belum dibuat, jadi checklist hari ini belum ada.</p>
+    {% if clinic %}<p><a class="btn small" href="{% url 'core:today' %}?buat=1">Buat sesi hari ini</a></p>{% endif %}
+  {% elif duties %}
+  <ul class="request-list">
+    {% for d in duties %}
+    <li class="request-row">
+      <span class="request-main">
+        <strong>{{ d.assignment.portion.name }}</strong>
+        {% if d.assignment.portion.description %}<span class="meta">{{ d.assignment.portion.description }}</span>{% endif %}
+        {% if d.runs %}
+        <span class="today-runs">{% for r in d.runs %}<a class="btn small {% if r.done >= r.total %}secondary{% endif %}" href="{% url 'checklists:run' r.run.pk %}?saya=1">{{ r.run.get_session_display }} · {{ r.run.template.name }} {{ r.done }}/{{ r.total }} ›</a>{% endfor %}</span>
+        {% elif d.assignment.clinic != day.clinic %}
+        <span class="meta">Porsi di {{ d.assignment.clinic.name }}.</span>
+        {% else %}
+        <span class="meta">Tidak ada butir checklist untuk porsi ini.</span>
+        {% endif %}
+      </span>
+      <span class="request-state">{% if d.total %}{% if d.done >= d.total %}<span class="tag ok">Selesai</span>{% else %}<span class="tag warn">{{ d.done }}/{{ d.total }}</span>{% endif %}{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+    <p class="meta">Tidak ada porsi checklist yang ditugaskan kepada Anda hari ini.</p>
+  {% endif %}
+  {% if day %}<p class="meta" style="margin:.6rem 0 0">Hari operasional: {{ day.get_status_display }} · <a href="{% url 'core:dashboard' %}">buka/tutup hari</a> · <a href="{% url 'checklists:index' %}">semua checklist</a></p>{% endif %}
+</section>
+
+{% if cashier %}
+<section class="card" aria-labelledby="judul-kas">
+  <h2 id="judul-kas">Kas · Anda kasir hari ini</h2>
+  {% if cash %}
+  <p class="meta">Kas awal: {{ cash.opening_status }} · Kas akhir: {{ cash.closing_status }}</p>
+  {% endif %}
+  <p class="help">Isi juga kolom <strong>Diharapkan</strong>: kas awal = modal kembalian; kas akhir = kas awal + tunai masuk − pengeluaran tunai.</p>
+  <p><a class="btn small" href="{% url 'cash:index' %}">Buka Kas</a></p>
+</section>
+{% endif %}
+
+{% include "core/_my_tasks.html" %}
+
+{% if breaks_today %}
+<section class="card" aria-labelledby="judul-istirahat">
+  <h2 id="judul-istirahat">Istirahat hari ini</h2>
+  <ul class="timeline">{% for b in breaks_today %}<li>{{ b.get_break_type_display }} {{ b.start_at|time:"H.i" }}–{{ b.end_at|time:"H.i" }}{% if b.location_note %} <span class="meta">· {{ b.location_note }}</span>{% endif %}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% endblock %}

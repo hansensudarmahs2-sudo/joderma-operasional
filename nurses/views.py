@@ -45,6 +45,23 @@ from .services import (
 )
 
 
+def _back(request, default: str = "nurses:board"):
+    """Kembali ke halaman asal (mis. Tindakan saya) bila `next` aman; selain itu ke papan."""
+    from django.utils.http import url_has_allowed_host_and_scheme
+
+    nxt = request.POST.get("next", "")
+    if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()},
+                                               require_https=request.is_secure()):
+        return redirect(nxt)
+    return redirect(default)
+
+
+def _is_staff_view(user) -> bool:
+    from core import peran
+
+    return peran.persona(user) == peran.STAF
+
+
 def _tally_nurses(day):
     """Pilihan perawat di form tally: yang ada di roster hari ini dan tidak off."""
     ids = NurseRosterEntry.objects.filter(operational_day=day).exclude(
@@ -87,7 +104,9 @@ def board(request):
 def create_tally(request):
     clinic = active_clinic(request.user)
     day, _ = get_or_create_day(clinic, user=request.user)
-    form = NurseActionTallyForm(request.POST, nurse_queryset=_tally_nurses(day))
+    # Staf (fase 7) hanya mencatat tally untuk dirinya sendiri, dari Tindakan saya.
+    nurses = User.objects.filter(pk=request.user.pk) if _is_staff_view(request.user) else _tally_nurses(day)
+    form = NurseActionTallyForm(request.POST, nurse_queryset=nurses)
     if form.is_valid():
         tally = form.save(commit=False)
         tally.rm_number = normalize_rm_number(clinic, tally.rm_number)
@@ -102,7 +121,7 @@ def create_tally(request):
         messages.success(request, "Tally tindakan disimpan.")
     else:
         messages.error(request, "Data tally belum lengkap atau tidak valid.")
-    return redirect("nurses:board")
+    return _back(request)
 
 
 @login_required
@@ -202,13 +221,13 @@ def start(request, pk: int):
     assignment = get_object_or_404(ProcedureAssignment, pk=pk)
     if assignment.nurse_id != request.user.pk and not is_supervisor(request.user):
         messages.error(request, "Hanya perawat terkait atau supervisor yang dapat memulai tindakan.")
-        return redirect("nurses:board")
+        return _back(request)
     try:
         start_procedure(assignment, user=request.user)
         messages.success(request, "Tindakan dimulai.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
-    return redirect("nurses:board")
+    return _back(request)
 
 
 @login_required
@@ -217,13 +236,13 @@ def complete(request, pk: int):
     assignment = get_object_or_404(ProcedureAssignment, pk=pk)
     if assignment.nurse_id != request.user.pk and not is_supervisor(request.user):
         messages.error(request, "Hanya perawat terkait atau supervisor yang dapat menyelesaikan.")
-        return redirect("nurses:board")
+        return _back(request)
     try:
         complete_procedure(assignment, user=request.user)
         messages.success(request, "Tindakan selesai; giliran berpindah.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
-    return redirect("nurses:board")
+    return _back(request)
 
 
 @login_required
@@ -257,7 +276,7 @@ def availability(request, pk: int):
     entry = get_object_or_404(NurseRosterEntry, pk=pk)
     if entry.nurse_id != request.user.pk and not is_supervisor(request.user):
         messages.error(request, "Anda tidak dapat mengubah ketersediaan perawat lain.")
-        return redirect("nurses:board")
+        return _back(request)
     try:
         set_availability(
             entry,
@@ -268,7 +287,7 @@ def availability(request, pk: int):
         messages.success(request, "Ketersediaan diperbarui.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
-    return redirect("nurses:board")
+    return _back(request)
 
 
 @login_required
@@ -337,3 +356,30 @@ def tally_correct(request, pk: int):
         except ValidationError as exc:
             messages.error(request, " ".join(exc.messages))
     return render(request, "nurses/tally_correct.html", {"tally": tally, "day": day, "nurses": nurses})
+
+
+@login_required
+def mine(request):
+    """Tindakan saya (fase 7): giliran, tindakan, dan tally diri sendiri, bukan papan seluruh tim."""
+    from .services import daily_tally, monthly_tally
+
+    clinic = active_clinic(request.user)
+    day, _ = get_or_create_day(clinic, user=request.user)
+    if not NurseRosterEntry.objects.filter(operational_day=day).exists():
+        sync_roster_with_duty(day, actor=request.user)
+    rotation = rotation_board(day)
+    me = next((r for r in rotation["rows"] if r["entry"].nurse_id == request.user.pk), None)
+    available = [r for r in rotation["rows"] if r["entry"].availability == Availability.TERSEDIA]
+    queue_place = next((i for i, r in enumerate(available, 1) if me and r["entry"].pk == me["entry"].pk), None)
+    procedures = (ProcedureAssignment.objects.filter(operational_day=day, nurse=request.user)
+                  .exclude(status=ProcedureStatus.BATAL).select_related("category").order_by("-assigned_at"))
+    tallies = NurseActionTally.objects.filter(operational_day=day, nurse=request.user).select_related("entered_by")
+    form = NurseActionTallyForm(nurse_queryset=User.objects.filter(pk=request.user.pk),
+                                initial={"nurse": request.user.pk})
+    return render(request, "nurses/mine.html", {
+        "day": day, "me": me, "next_entry": rotation["next"], "reason": rotation["reason"],
+        "queue_place": queue_place, "procedures": procedures, "tallies": tallies,
+        "today_total": daily_tally(day).get(request.user.pk, 0),
+        "month_total": monthly_tally([request.user.pk], day.date)[request.user.pk],
+        "tally_form": form, "rm_prefix": rm_prefix(clinic),
+    })

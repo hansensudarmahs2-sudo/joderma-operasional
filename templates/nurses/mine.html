@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Tindakan saya{% endblock %}
+{% block content %}
+<h1>Tindakan saya</h1>
+<p class="sub">{{ day.clinic.name }} · {{ day.date|date:"l, d/m/Y" }} · tally dicatat saat tindakan selesai, satu tindakan satu tally.</p>
+
+<div class="tile-row">
+  <div class="card"><span class="tile-num">{{ today_total }}</span><strong>Tally hari ini</strong></div>
+  <div class="card"><span class="tile-num">{{ month_total }}</span><strong>Total bulan ini</strong><div class="meta">digabung dua cabang</div></div>
+  <div class="card">
+    {% if not me %}
+      <span class="tile-num">—</span><strong>Giliran</strong><div class="meta">Anda tidak ada di papan giliran hari ini.</div>
+    {% elif me.is_next %}
+      <span class="tile-num">✓</span><strong>Giliran Anda berikutnya</strong>{% if reason %}<div class="meta">{{ reason }}</div>{% endif %}
+    {% elif me.entry.availability == "TERSEDIA" %}
+      <span class="tile-num">{{ queue_place|default:"—" }}</span><strong>Urutan giliran</strong><div class="meta">berikutnya: {{ next_entry.nurse|default:"—" }}</div>
+    {% else %}
+      <span class="tile-num">—</span><strong>{{ me.entry.get_availability_display }}</strong>
+    {% endif %}
+  </div>
+</div>
+
+{% if me and me.entry.availability != "OFF_DUTY" %}
+<div class="inline-actions">
+  {% if me.entry.availability == "TERSEDIA" %}
+  <form method="post" action="{% url 'nurses:availability' me.entry.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="ketersediaan" value="ISTIRAHAT"><button class="btn small secondary" type="submit">Saya istirahat</button></form>
+  {% else %}
+  <form method="post" action="{% url 'nurses:availability' me.entry.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="ketersediaan" value="TERSEDIA"><button class="btn small secondary" type="submit">Saya tersedia lagi</button></form>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if procedures %}
+<h2>Tindakan yang ditugaskan kepada saya</h2>
+<ul class="request-list card">
+  {% for p in procedures %}
+  <li class="request-row">
+    <span class="request-main"><strong>{{ p.category.name }}</strong><span class="meta">ditugaskan {{ p.assigned_at|time:"H.i" }}{% if p.note %} · {{ p.note }}{% endif %}</span></span>
+    <span class="request-state"><span class="tag {% if p.status == 'SELESAI' %}ok{% elif p.status == 'DIMULAI' %}warn{% else %}info{% endif %}">{{ p.get_status_display }}</span>
+      {% if p.status == "DITUGASKAN" %}<form method="post" action="{% url 'nurses:start' p.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn small" type="submit">Mulai</button></form>
+      {% elif p.status == "DIMULAI" %}<form method="post" action="{% url 'nurses:complete' p.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn small" type="submit">Selesai</button></form>{% endif %}
+    </span>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<div class="card">
+  <h2>Catat tally saya — saat tindakan selesai</h2>
+  <p class="meta">Nomor RM otomatis memakai prefix {{ rm_prefix }}. Tiga tindakan pada satu pasien = tally 3.</p>
+  <form method="post" action="{% url 'nurses:tally_create' %}" class="stack-form">{% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <input type="hidden" name="nurse" value="{{ request.user.pk }}">
+    <div class="inline">
+      <div><label for="{{ tally_form.rm_number.id_for_label }}">Nomor RM</label>{{ tally_form.rm_number }}</div>
+      <div><label for="{{ tally_form.patient_name.id_for_label }}">Nama pasien</label>{{ tally_form.patient_name }}</div>
+      <div><label for="{{ tally_form.action_name.id_for_label }}">Tindakan</label>{{ tally_form.action_name }}</div>
+      <div><label for="{{ tally_form.tally.id_for_label }}">Jumlah</label>{{ tally_form.tally }}</div>
+    </div>
+    <p><button class="btn" type="submit">Simpan tally</button></p>
+  </form>
+</div>
+
+<h2>Tally saya hari ini</h2>
+<table class="responsive"><thead><tr><th>RM</th><th>Nama pasien</th><th>Tindakan</th><th>Jumlah</th><th>Jam</th></tr></thead>
+<tbody>{% for t in tallies %}<tr><td data-label="RM">{{ t.rm_number }}</td><td data-label="Nama pasien">{{ t.patient_name }}</td><td data-label="Tindakan">{{ t.action_name }}</td><td data-label="Jumlah">{{ t.tally }}{% if t.corrected_at %} <span class="tag warn" title="{{ t.correction_reason }}">dikoreksi</span>{% endif %}</td><td data-label="Jam">{{ t.created_at|time:"H.i" }}</td></tr>{% empty %}<tr><td colspan="5" class="meta">Belum ada tally hari ini.</td></tr>{% endfor %}</tbody></table>
+<p class="meta">Salah input? Minta Koordinator Shift mengoreksi.</p>
+{% endblock %}

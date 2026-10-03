@@ -72,7 +72,7 @@ def test_persona_from_roles(clinic):
         ((Role.OWNER,), "owner:dashboard"),
         ((Role.AOM,), "direktur:overview"),
         ((Role.PIC, Role.FRONT_DESK), "core:dashboard"),
-        ((Role.PERAWAT, Role.STAF), "core:dashboard"),
+        ((Role.PERAWAT, Role.STAF), "core:today"),
         ((Role.ADMIN,), "accounts:user_list"),
     ],
 )
@@ -116,11 +116,12 @@ def test_director_menu_keeps_everything(client, clinic):
 
 def test_staff_menu_is_simple(client, clinic):
     client.force_login(_user(clinic, "yani", Role.PERAWAT, Role.STAF))
-    menu = _nav(client.get(reverse("core:dashboard")).content.decode())
-    for label in ("Hari Ini", "Checklist Saya", "Jadwal Jaga", "Jadwal Istirahat", "Giliran Perawat",
-                  "Komplain", "Masukan", "Kerusakan"):
+    menu = _nav(client.get(reverse("core:today")).content.decode())
+    assert menu[:4] == ["Tugas hari ini", "Jadwal saya", "Istirahat saya", "Tindakan saya"]
+    for label in ("Komplain", "Masukan", "Kerusakan", "Laporan Saya", "Masukan Saya"):
         assert label in menu
-    for label in ("Pembagian Tugas", "Laporan Operasional", "Audit", "Ringkasan", "Kas", "Admin"):
+    for label in ("Hari Ini", "Checklist Saya", "Jadwal Jaga", "Jadwal Istirahat", "Giliran Perawat",
+                  "Pembagian Tugas", "Laporan Operasional", "Audit", "Ringkasan", "Kas", "Admin"):
         assert label not in menu
 
 

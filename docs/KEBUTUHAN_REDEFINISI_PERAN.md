@@ -148,6 +148,7 @@ Akun: `superadmin`. Pengguna, konfigurasi, template, ditambah:
    2026:* `direktur/summary.py`, kartu di bawah Checklist Direktur, menu Summary Harian untuk
    Direktur, lonceng notifikasi dengan bulatan merah (keputusan no. 2).
 6. **Permintaan Owner** dari ujung ke ujung, termasuk baris Gantt.
-7. **Staf:** Tugas hari ini, Jadwal saya, Istirahat saya, Tindakan saya.
+7. **Staf:** Tugas hari ini, Jadwal saya, Istirahat saya, Tindakan saya. *Selesai di kode 4 Oktober
+   2026:* lihat `current-progress.md` ▸ Riwayat ▸ Fase 7.
 8. **PIC:** lihat dan atur tim sesuai jawaban pertanyaan no. 3.
 9. **Uji tampilan** per peran (desktop dan HP), dicek bersama product owner sebelum commit.

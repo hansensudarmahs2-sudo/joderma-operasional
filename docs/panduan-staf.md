@@ -7,11 +7,26 @@ Aplikasi diakses dari ponsel, tablet, atau komputer klinik melalui alamat yang
 diberikan admin. Anda harus terhubung Tailscale dan memakai akun pribadi.
 **Akun tidak boleh dipakai bersama** — semua tindakan tercatat atas nama Anda.
 
+## Menu Anda
+
+Sesudah login Anda langsung masuk ke **Tugas hari ini**. Menu staf sengaja pendek:
+
+| Menu | Isi |
+|---|---|
+| **Tugas hari ini** | Butir checklist **porsi Anda** hari ini (dari Pembagian Tugas) dengan tombol ke halaman pengisiannya, task yang dikirim kepada Anda, jadwal istirahat hari ini, dan kotak **Kas** bila Anda kasir hari ini. Bila sesi hari belum dibuat, tekan **Buat sesi hari ini** |
+| **Jadwal saya** | Jadwal jaga dan porsi tugas Anda sebulan. Perubahan diajukan ke Koordinator Shift |
+| **Istirahat saya** | Jadwal istirahat Anda hari ini dan 7 hari ke depan |
+| **Tindakan saya** | Untuk perawat: giliran Anda (berikutnya atau urutan ke berapa), tally hari ini dan total bulan ini, tombol **Saya istirahat / Saya tersedia lagi**, tindakan yang ditugaskan, dan **Catat tally saya** |
+| **Kas** | Hanya muncul pada hari Anda ditugaskan sebagai kasir. Bila jadwal kasir berubah mendadak, minta Koordinator Shift mengganti pelaksana porsi "Kasir hari ini" |
+| **Lapor** | Komplain, Masukan, Kerusakan, Laporan Saya, Masukan Saya |
+
+Halaman **Hari Ini** (buka/tutup hari) dan **semua checklist** tetap bisa dibuka dari tautan di bawah
+kotak checklist pada Tugas hari ini.
+
 ## Pagi: membuka klinik
 
-1. Buka **Hari Ini** → tekan **Buat sesi hari ini** bila belum ada.
-2. Masuk **Pembukaan**, isi setiap area (akses umum, komputer, ruang konsultasi,
-   ruang tindakan).
+1. Buka **Tugas hari ini** → tekan **Buat sesi hari ini** bila belum ada.
+2. Tekan tombol porsi Anda (mis. *Pembukaan · Akses umum 0/3*) dan isi butirnya.
 3. Untuk tiap item pilih hasil: OK, Tidak lengkap, Rusak, atau Tidak berlaku.
    - Butir yang beres: tekan **Check**.
    - Butir bermasalah: buka **Ada masalah?** di bawah butir itu, pilih hasilnya, tulis

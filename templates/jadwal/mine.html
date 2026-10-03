@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Jadwal saya{% endblock %}
+{% block content %}
+<div class="checklist-heading">
+  <h1 style="margin:0">Jadwal saya · {{ nav.label }}</h1>
+  <p class="meeting-nav" style="margin:0"><a href="?bulan={{ nav.prev }}">← Sebelumnya</a> · <a href="?bulan={{ nav.next }}">Berikutnya →</a></p>
+</div>
+<p class="sub">{{ working }} hari masuk · {{ off }} hari off/cuti. Perubahan jadwal diajukan ke Koordinator Shift.</p>
+<table class="responsive my-schedule">
+  <thead><tr><th>Tanggal</th><th>Jadwal</th><th>Porsi tugas</th></tr></thead>
+  <tbody>{% for l in lines %}
+  <tr class="{% if l.is_today %}is-today{% elif l.is_past %}is-past{% endif %}">
+    <td data-label="Tanggal" class="nowrap">{{ l.date|date:"D d/m" }}{% if l.is_today %} <span class="tag info">Hari ini</span>{% endif %}</td>
+    <td data-label="Jadwal">{% if l.duty %}<span class="tag {% if l.duty.is_working %}ok{% else %}muted{% endif %}">{{ l.duty.get_status_display }}</span>{% if l.duty.clinic %} <span class="meta">{{ l.duty.clinic.name }}</span>{% endif %}{% if l.duty.note %}<div class="meta">{{ l.duty.note }}</div>{% endif %}{% else %}<span class="meta">—</span>{% endif %}</td>
+    <td data-label="Porsi tugas">{% if l.portions %}{% for a in l.portions %}{{ a.portion.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}<span class="meta">—</span>{% endif %}</td>
+  </tr>
+  {% endfor %}</tbody>
+</table>
+{% endblock %}

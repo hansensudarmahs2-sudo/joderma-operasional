@@ -50,6 +50,17 @@ def list_view(request):
 
 
 @login_required
+def mine(request):
+    """Istirahat saya (fase 7): jadwal istirahat diri sendiri, hari ini dan 7 hari ke depan."""
+    today = local_today()
+    schedules = (
+        BreakSchedule.objects.filter(user=request.user, date__gte=today, date__lte=today + dt.timedelta(days=7))
+        .exclude(status=BreakStatus.BATAL).select_related("clinic").order_by("date", "start_at")
+    )
+    return render(request, "breaks/mine.html", {"today": today, "schedules": schedules})
+
+
+@login_required
 @require(can_manage_breaks)
 def create(request):
     clinic = active_clinic(request.user)

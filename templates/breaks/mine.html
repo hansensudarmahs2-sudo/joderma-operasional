@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Istirahat saya{% endblock %}
+{% block content %}
+<h1>Istirahat saya</h1>
+<p class="sub">Hari ini dan 7 hari ke depan. Jadwal istirahat diatur Koordinator Shift.</p>
+{% if schedules %}
+<table class="responsive">
+  <thead><tr><th>Tanggal</th><th>Jam</th><th>Jenis</th><th>Status</th></tr></thead>
+  <tbody>{% for b in schedules %}
+  <tr>
+    <td data-label="Tanggal" class="nowrap">{{ b.date|date:"D d/m" }}{% if b.date == today %} <span class="tag info">Hari ini</span>{% endif %}<div class="meta">{{ b.clinic.name }}</div></td>
+    <td data-label="Jam" class="nowrap">{{ b.start_at|time:"H.i" }}–{{ b.end_at|time:"H.i" }} <span class="meta">({{ b.duration_minutes }} menit)</span></td>
+    <td data-label="Jenis">{{ b.get_break_type_display }}{% if b.location_note %}<div class="meta">{{ b.location_note }}</div>{% endif %}</td>
+    <td data-label="Status"><span class="tag {% if b.status == 'BERJALAN' %}warn{% elif b.status == 'SELESAI' %}ok{% else %}info{% endif %}">{{ b.get_status_display }}</span></td>
+  </tr>
+  {% endfor %}</tbody>
+</table>
+{% else %}
+<p class="card meta">Belum ada jadwal istirahat untuk Anda.</p>
+{% endif %}
+{% endblock %}

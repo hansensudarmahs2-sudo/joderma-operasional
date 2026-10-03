@@ -216,6 +216,7 @@ def test_board_page_hand_over_and_tally(client, jmr, team):
     lia.refresh_from_db()
     assert lia.availability == Availability.TERSEDIA and lia.turns_taken == 2 and lia.position == 2
     client.force_login(team["lia"])
-    assert client.post(reverse("nurses:move", args=[lia.pk]), {"arah": "naik"}).status_code == 302
+    # Fase 7: staf tidak membuka papan tim; menggeser urutan ditolak di server.
+    assert client.post(reverse("nurses:move", args=[lia.pk]), {"arah": "naik"}).status_code == 403
     lia.refresh_from_db()
     assert lia.position == 2  # perawat biasa tidak dapat menggeser urutan

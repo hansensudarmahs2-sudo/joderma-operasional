@@ -294,3 +294,25 @@ def day(request, date: str):
             "month": f"{the_day:%Y-%m}",
         },
     )
+
+
+@login_required
+def mine(request):
+    """Jadwal saya (fase 7): jadwal jaga dan porsi tugas diri sendiri sebulan, bukan grid tim."""
+    from .models import DutyAssignment
+
+    year, month = _month(request)
+    days = services.month_days(year, month)
+    rows = {r.date: r for r in DutyRoster.objects.filter(user=request.user, date__in=days).select_related("clinic")}
+    portions: dict = {}
+    for a in (DutyAssignment.objects.filter(user=request.user, date__in=days, portion__active=True)
+              .select_related("portion", "clinic").order_by("portion__sort_order")):
+        portions.setdefault(a.date, []).append(a)
+    today = local_today()
+    lines = [{"date": d, "duty": rows.get(d), "portions": portions.get(d, []), "is_today": d == today,
+              "is_past": d < today} for d in days]
+    working = sum(1 for r in rows.values() if r.is_working)
+    return render(request, "jadwal/mine.html", {
+        "nav": _nav(year, month), "lines": lines, "working": working,
+        "off": sum(1 for r in rows.values() if not r.is_working),
+    })

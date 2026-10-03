@@ -561,3 +561,19 @@ def month_plan(clinic, year: int, month: int) -> dict:
         p["days"] = working
         p["per_day"] = round(p["total"] / working, 1) if working else 0
     return {"days": days, "groups": [(g.value, g.label) for g in groups], "table": table, "people": people}
+
+
+def cashier_assignments(user, day: dt.date | None = None):
+    """Porsi kelompok Kas (mis. "Kasir hari ini") yang ditugaskan kepada pengguna pada tanggal itu."""
+    from core.models import local_today
+
+    return DutyAssignment.objects.filter(
+        user=user, date=day or local_today(), portion__group="KAS", portion__active=True
+    ).select_related("portion", "clinic")
+
+
+def is_cashier_today(user, day: dt.date | None = None) -> bool:
+    """Staf hanya membuka Kas pada hari ia ditugaskan sebagai kasir (keputusan no. 5, fase 7)."""
+    if not getattr(user, "is_authenticated", False):
+        return False
+    return cashier_assignments(user, day).exists()

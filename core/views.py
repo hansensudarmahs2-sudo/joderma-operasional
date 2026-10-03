@@ -124,6 +124,14 @@ def dashboard(request):
         "can_manage_users": can_manage_users(user),
         "can_manage_templates": can_manage_templates(user),
     }
+    from . import peran
+
+    # Fase 7: staf membuka Hari Ini untuk aksi hari; tautan tim diganti halaman "saya", Kas hanya hari kasir.
+    context["staff_view"] = peran.persona(user) == peran.STAF
+    if context["staff_view"]:
+        from jadwal.services import is_cashier_today
+
+        context["can_view_cash"] = context["can_view_cash"] and is_cashier_today(user)
 
     if is_aom(user):
         from .models import TaskAssignmentStatus as _TAS
@@ -173,7 +181,7 @@ def dashboard(request):
         context.update(
             {
                 "progress": opening_progress(day),
-                "cash": cash_summary(day) if can_view_cash_amounts(user) else None,
+                "cash": cash_summary(day) if context["can_view_cash"] else None,
                 "next_nurse": NurseRosterEntry.objects.filter(
                     operational_day=day, availability=Availability.TERSEDIA
                 )
@@ -186,6 +194,67 @@ def dashboard(request):
             }
         )
     return render(request, "core/dashboard.html", context)
+
+
+@login_required
+def today(request):
+    """Tugas hari ini (fase 7, halaman pertama staf): butir checklist porsinya, task, dan kas bila kasir."""
+    from breaks.models import BreakSchedule, BreakStatus
+    from checklists.models import ChecklistResponse, ResponseResult
+    from jadwal.services import cashier_assignments, duty_of, my_assignments
+
+    from .task_services import my_tasks
+
+    user = request.user
+    clinic = active_clinic(user)
+    date = local_today()
+    day = OperationalDay.today_for(clinic) if clinic else None
+    if day is None and clinic and request.GET.get("buat") == "1":
+        get_or_create_day(clinic, user=user)
+        messages.success(request, "Sesi hari operasional dibuat.")
+        return redirect("core:today")
+
+    duties = []
+    assignments = list(my_assignments(user, date))
+    responses = []
+    if day:
+        responses = list(
+            ChecklistResponse.objects.filter(run__operational_day=day)
+            .exclude(portion="").select_related("run__template")
+        )
+    for a in assignments:
+        items = [r for r in responses if r.portion == a.portion.code and a.clinic_id == day.clinic_id] if day else []
+        runs = {}
+        for r in items:
+            row = runs.setdefault(r.run_id, {"run": r.run, "total": 0, "done": 0})
+            row["total"] += 1
+            row["done"] += r.result != ResponseResult.BELUM
+        done = sum(1 for r in items if r.result != ResponseResult.BELUM)
+        duties.append({
+            "assignment": a, "total": len(items), "done": done,
+            "runs": sorted(runs.values(), key=lambda x: ({"OPENING": 0, "ANYTIME": 1, "CLOSING": 2}.get(x["run"].session, 3),
+                                                        x["run"].pk)),
+        })
+
+    tasks_mine = my_tasks(user)
+    cashier = list(cashier_assignments(user, date))
+    breaks_today = BreakSchedule.objects.filter(user=user, date=date).exclude(
+        status=BreakStatus.BATAL).order_by("start_at")
+    return render(request, "core/today.html", {
+        "clinic": clinic,
+        "day": day,
+        "today": date,
+        "duty": duty_of(user, date),
+        "duties": duties,
+        "duties_total": sum(d["total"] for d in duties),
+        "duties_done": sum(d["done"] for d in duties),
+        "my_tasks": tasks_mine,
+        "task_photos": task_photos([t["item"] for t in tasks_mine]),
+        "my_issues": user.issue_assignments.filter(active=True).select_related("issue")[:10],
+        "cashier": cashier,
+        "cash": cash_summary(day) if day and cashier else None,
+        "breaks_today": breaks_today,
+    })
 
 
 @login_required
