@@ -19,6 +19,7 @@ from core.services import active_clinic, get_or_create_day
 
 from .models import CashSession, CashSessionType, CashStatus, VerificationResult
 from .services import (
+    open_variances,
     pending_verification,
     cash_summary,
     correct_after_verification,
@@ -62,6 +63,7 @@ def index(request):
             "summary": cash_summary(day),
             "can_edit": can_edit_cash(request.user),
             "pending": pending_verification(request.user),
+            "open_variances": open_variances(request.user),
             "dual_control": dual_control_enabled(clinic),
         },
     )

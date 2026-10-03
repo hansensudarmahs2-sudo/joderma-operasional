@@ -264,3 +264,21 @@ def pending_verification(user, *, limit: int = 30):
         .select_related("operational_day__clinic", "counted_by")
         .order_by("operational_day__date", "id")[:limit]
     )
+
+
+def open_variances(user, *, limit: int = 30):
+    """Kas berstatus Selisih yang perkaranya belum ditutup, di semua cabang yang dapat diakses.
+
+    Sesi ini sudah diverifikasi sehingga tidak muncul di "Menunggu verifikasi"; daftar ini memberi jalan
+    kembali ke halaman Review untuk menutupnya (mis. kekeliruan administratif) walau harinya sudah lewat.
+    """
+    from core.permissions import can_verify_cash, user_clinic_queryset
+
+    if not can_verify_cash(user):
+        return CashSession.objects.none()
+    return (
+        CashSession.objects.filter(status=CashStatus.SELISIH, operational_day__clinic__in=user_clinic_queryset(user))
+        .exclude(variance=0)
+        .select_related("operational_day__clinic", "counted_by")
+        .order_by("operational_day__date", "id")[:limit]
+    )

@@ -108,6 +108,8 @@ Unduhan itu sendiri tercatat di audit. Koordinator Shift hanya bisa membaca audi
   tersimpan di riwayat dan audit. Kas yang sudah berstatus Selisih dapat ditutup dengan tombol yang
   sama di bagian **Tutup perkara selisih**, tanpa koreksi. Tombol ini hanya untuk Direktur Operasional.
   Memilih hasil **Sesuai** padahal angkanya berbeda ditolak dengan penjelasan.
+- **Selisih belum ditutup.** Halaman **Kas** mendaftar semua kas berstatus Selisih dari kedua cabang,
+  termasuk dari hari yang sudah lewat. Ketuk untuk membuka Review dan menutup perkaranya.
 - **Koreksi tally.** Seperti Koordinator Shift, Anda dapat mengoreksi tally di kedua cabang lewat
   **Giliran Perawat ▸ Koreksi tally per tanggal** (alasan wajib, tercatat di audit).
 - **Cabang aktif.** Pilih cabang di kanan atas; pilihan berlaku untuk hari ini.

@@ -85,3 +85,17 @@ def test_only_director_closes_as_administrative_error(client, day, kasir, superv
     assert resp.status_code == 403
     s.refresh_from_db()
     assert s.status == CashStatus.MENUNGGU_VERIFIKASI
+
+
+def test_open_variances_listed_on_cash_page_after_the_day(client, clinic, day, kasir, supervisor, direktur):
+    """Masalah 4 Okt: kas berstatus Selisih dari hari kemarin tidak bisa dicari dari halaman Kas."""
+    import datetime as dt
+
+    s = _counted(day, kasir)
+    verify(s, verifier=supervisor, note="uji coba")
+    type(day).objects.filter(pk=day.pk).update(date=day.date - dt.timedelta(days=1))
+    client.force_login(direktur)
+    page = client.get(reverse("cash:index")).content.decode()
+    assert "Selisih belum ditutup" in page and reverse("cash:review", args=[s.pk]) in page
+    client.post(reverse("cash:verify", args=[s.pk]), {"aksi": "administratif"})
+    assert "Selisih belum ditutup" not in client.get(reverse("cash:index")).content.decode()

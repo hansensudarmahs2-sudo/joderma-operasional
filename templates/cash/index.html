@@ -42,4 +42,17 @@
   {% endfor %}
 </ul>
 {% endif %}
+{% if open_variances %}
+<h2>Selisih belum ditutup</h2>
+<p class="meta">Sudah diverifikasi dengan hasil Selisih. Buka untuk memeriksa; bila uangnya benar dan yang keliru pencatatan, Direktur Operasional menutupnya dengan <strong>Setujui: kekeliruan administratif</strong>.</p>
+<ul class="request-list card">
+  {% for p in open_variances %}
+  <li><a class="request-row" href="{% url 'cash:review' p.pk %}">
+    <span class="request-main"><strong>{{ p.get_session_type_display }} · {{ p.operational_day.clinic.name }}</strong>
+      <span class="meta">{{ p.operational_day.date|date:"l, d/m/Y" }} · dihitung {{ p.counted_by|default:"—" }} · diharapkan Rp {{ p.expected_total|intcomma }}, aktual Rp {{ p.actual_total|intcomma }}</span></span>
+    <span class="request-state"><span class="tag err">Selisih Rp {{ p.variance|intcomma }}</span><span class="tag info">Review</span></span>
+  </a></li>
+  {% endfor %}
+</ul>
+{% endif %}
 {% endblock %}
