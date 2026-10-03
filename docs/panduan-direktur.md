@@ -235,6 +235,26 @@ ajakan mengganti password awal (bila akun masih memakainya), atau ajakan mengizi
 browser belum diizinkan; tidak tampil di perangkat klinik terdaftar dan tidak untuk Owner).
 **Nanti** menyembunyikannya 7 hari. Tidak ada pekerjaan yang diblokir.
 
+**KPI per staf (tahap 3 paket F).** Menu **KPI** menampilkan angka per staf per bulan, satu kolom per
+metrik, tanpa skor gabungan dan tanpa peringkat (keputusan uji coba 3 Okt; skor gabungan dipertimbangkan
+sesudah 1–2 bulan data). Hanya Direktur Operasional dan Owner yang melihat.
+
+- **Kelengkapan porsi**: butir checklist dari porsi yang ditugaskan kepadanya di Pembagian Tugas, berapa
+  yang terisi; "diisi orang lain" bila yang mengisi bukan orang yang ditugaskan di porsi itu. Hari ini
+  baru dihitung setelah hari ditutup.
+- **Pembukaan tepat waktu**: butir sesi Pembukaan yang ia isi sendiri, selesai sebelum jam buka cabang
+  (Pengaturan Klinik) + toleransi 15 menit.
+- **Jejak di klinik**: persentase jejak Kuat + Sedang.
+- **Task tepat target**: task bertarget bulan itu yang sudah lewat, diajukan selesai (pengajuan pertama)
+  sebelum target; juga jumlah terlambat, belum diajukan, dan diminta revisi.
+- **Centang massal**: tanda bila ≥5 butir dicentang dalam 60 detik. Hanya untuk dicek, bukan pengurang.
+
+Ketuk nama staf untuk rincian per hari (porsi, siapa yang mengambil alih, jam butir pembukaan terakhir
+dan batasnya, jejak, centang massal) dan daftar task-nya. **Unduh CSV** tercatat sebagai ekspor di Audit.
+Toleransi dan ambang centang massal diubah per cabang di **Konfigurasi** (`kpi.open_tolerance_minutes`,
+`kpi.bulk_items`, `kpi.bulk_seconds`). Pastikan jam buka tiap cabang di Pengaturan Klinik benar, karena
+itulah dasar "tepat waktu".
+
 **Pelapor.** Kartu task (Kanban, Prioritas), detail task, dan Daftar Task menampilkan pelapor
 asal: staf yang mengisi butir checklist, pemeriksa temuan Direktur, Owner untuk permintaan
 Owner, penulis catatan; selain itu pembuat task.

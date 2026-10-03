@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}KPI {{ person }} · {{ first|date:"F Y" }}{% endblock %}
+{% block content %}
+{% with cq=clinic.pk|default_if_none:"" %}
+<p><a href="{% url 'direktur:kpi' %}?bulan={{ first|date:'Y-m' }}{% if clinic %}&cabang={{ cq }}{% endif %}">← KPI {{ first|date:"F Y" }}</a></p>
+<h1>{{ person }} · {{ first|date:"F Y" }}</h1>
+<p class="sub">{{ clinic.name|default:"Semua cabang" }} · <a href="?bulan={{ prev|date:'Y-m' }}{% if clinic %}&cabang={{ cq }}{% endif %}">← {{ prev|date:"M Y" }}</a>{% if not is_current %} · <a href="?bulan={{ next|date:'Y-m' }}{% if clinic %}&cabang={{ cq }}{% endif %}">{{ next|date:"M Y" }} →</a>{% endif %} · <a href="{% url 'jejak:index' %}?staf={{ person.pk }}&dari={{ first|date:'Y-m-d' }}">Jejak</a></p>
+
+{% if kpi %}
+<div class="tile-row">
+  <div class="card"><span class="tile-num">{% if kpi.filled_pct is not None %}{{ kpi.filled_pct }}%{% else %}—{% endif %}</span><strong>Kelengkapan porsi</strong><div class="meta">{{ kpi.filled }}/{{ kpi.items }} butir{% if kpi.taken_over %} · {{ kpi.taken_over }} diisi orang lain{% endif %}</div></div>
+  <div class="card"><span class="tile-num">{% if kpi.opening_pct is not None %}{{ kpi.opening_pct }}%{% else %}—{% endif %}</span><strong>Pembukaan tepat waktu</strong><div class="meta">{{ kpi.opening_on_time }}/{{ kpi.opening_own }} butir</div></div>
+  <div class="card"><span class="tile-num">{% if kpi.stamps_pct is not None %}{{ kpi.stamps_pct }}%{% else %}—{% endif %}</span><strong>Jejak di klinik</strong><div class="meta">{{ kpi.stamps_good }}/{{ kpi.stamps_total }} Kuat+Sedang</div></div>
+  <div class="card"><span class="tile-num">{% if kpi.tasks_pct is not None %}{{ kpi.tasks_pct }}%{% else %}—{% endif %}</span><strong>Task tepat target</strong><div class="meta">{{ kpi.tasks_on_time }}/{{ kpi.tasks_due }}{% if kpi.revisions %} · {{ kpi.revisions }}× revisi{% endif %}</div></div>
+</div>
+
+<h2>Per hari</h2>
+<table class="responsive">
+  <thead><tr><th>Tanggal</th><th>Jaga</th><th>Porsi</th><th>Pembukaan</th><th>Jejak</th><th>Tanda</th></tr></thead>
+  <tbody>{% for d in kpi.day_rows %}
+  <tr>
+    <td data-label="Tanggal" class="nowrap"><span>{{ d.date|date:"D d/m" }}<div class="meta">{{ d.clinic.name|default:"" }}</div></span></td>
+    <td data-label="Jaga">{{ d.duty|default:"—" }}</td>
+    <td data-label="Porsi"><span>{% if d.items %}{{ d.filled }}/{{ d.items }} butir{% if d.taken_over %}<div class="meta">{{ d.taken_over }} diisi {{ d.taken_over_by|join:", " }}</div>{% endif %}{% elif d.portions %}<span class="meta">belum dinilai</span>{% else %}—{% endif %}{% if d.portions %}<div class="meta">{{ d.portions|join:", " }}</div>{% endif %}</span></td>
+    <td data-label="Pembukaan"><span>{% if d.opening_own %}{% if d.opening_late %}<span class="tag warn">{{ d.opening_late }} dari {{ d.opening_own }} terlambat</span>{% else %}<span class="tag ok">{{ d.opening_own }} tepat waktu</span>{% endif %}<div class="meta">terakhir {{ d.latest_opening|time:"H.i" }} · batas {{ d.opening_deadline|time:"H.i" }}</div>{% else %}—{% endif %}</span></td>
+    <td data-label="Jejak">{% if d.stamps.KUAT or d.stamps.SEDANG or d.stamps.LEMAH %}<span class="nowrap">{{ d.stamps.KUAT }} Kuat · {{ d.stamps.SEDANG }} Sedang · {{ d.stamps.LEMAH }} Lemah</span>{% else %}—{% endif %}</td>
+    <td data-label="Tanda"><span>{% for b in d.bursts %}<div><span class="tag warn">{{ b.count }} butir</span> <span class="meta">{{ b.start|time:"H.i.s" }}–{{ b.end|time:"H.i.s" }}</span></div>{% empty %}—{% endfor %}</span></td>
+  </tr>
+  {% empty %}<tr><td colspan="6" class="meta">Tidak ada data harian.</td></tr>{% endfor %}</tbody>
+</table>
+<p class="meta">"Belum dinilai": hari ini sebelum ditutup, atau checklist hari itu belum dibuat.</p>
+
+<h2>Task dengan target bulan ini</h2>
+<table class="responsive">
+  <thead><tr><th>Task</th><th>Target</th><th>Diajukan</th><th>Status</th></tr></thead>
+  <tbody>{% for t in kpi.tasks %}
+  <tr>
+    <td data-label="Task"><a href="{% url 'direktur:task_detail' t.item.pk %}">{{ t.item.title }}</a></td>
+    <td data-label="Target" class="nowrap">{{ t.item.due_at|date:"d/m H.i" }}</td>
+    <td data-label="Diajukan" class="nowrap">{{ t.submitted|date:"d/m H.i"|default:"—" }}</td>
+    <td data-label="Status">{% if t.state == "tepat" %}<span class="tag ok">Tepat target</span>{% elif t.state == "terlambat" %}<span class="tag warn">Terlambat</span>{% else %}<span class="tag err">Belum diajukan</span>{% endif %}</td>
+  </tr>
+  {% empty %}<tr><td colspan="4" class="meta">Tidak ada task bertarget bulan ini yang sudah lewat.</td></tr>{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="card meta">Tidak ada data KPI untuk {{ person }} pada bulan dan cabang ini (atau akun ini tidak dihitung, misalnya Owner).</p>
+{% endif %}
+{% endwith %}
+{% endblock %}

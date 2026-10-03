@@ -16,6 +16,7 @@ from core.photos import SOURCE_PHOTO_ENTITY, photos_for, save_optional_photo
 from core.models import (
     ActionItem,
     ActionItemStatus,
+    ClinicConfig,
     Priority,
     ReviewBy,
     TaskAssignment,
@@ -742,6 +743,84 @@ def meeting_page(request):
             "is_director": is_aom(request.user),
         },
     )
+
+
+# --- KPI per staf (tahap 3 paket F) --------------------------------------------------
+
+def _kpi_scope(request):
+    from . import kpi
+
+    clinics = list(user_clinic_queryset(request.user).order_by("id"))
+    raw = request.GET.get("cabang", "")
+    clinic = next((c for c in clinics if raw.isdigit() and c.pk == int(raw)), None)
+    first = kpi.parse_month(request.GET.get("bulan"))
+    return clinics, clinic, first
+
+
+@login_required
+@require(dashboard.can_view_overview)
+def kpi_page(request):
+    """KPI per staf per bulan: angka per metrik, tanpa skor gabungan (uji coba)."""
+    from . import kpi
+
+    clinics, clinic, first = _kpi_scope(request)
+    rows = kpi.compose([clinic] if clinic else clinics, first)
+    if request.GET.get("unduh") == "csv":
+        return _kpi_csv(request, first, clinic, rows)
+    settings_rows = [
+        {"clinic": c, "tolerance": ClinicConfig.get(c, kpi.OPEN_TOLERANCE_KEY, 15),
+         "bulk_items": ClinicConfig.get(c, kpi.BULK_ITEMS_KEY, 5),
+         "bulk_seconds": ClinicConfig.get(c, kpi.BULK_SECONDS_KEY, 60)}
+        for c in ([clinic] if clinic else clinics)
+    ]
+    return render(request, "direktur/kpi.html", {
+        "rows": rows, "clinics": clinics, "clinic": clinic, "first": first, "last": kpi.month_end(first),
+        "prev": kpi.shift_month(first, -1), "next": kpi.shift_month(first, 1),
+        "is_current": first == local_today().replace(day=1), "settings_rows": settings_rows,
+    })
+
+
+@login_required
+@require(dashboard.can_view_overview)
+def kpi_staff(request, user_id):
+    """Rincian KPI satu staf per hari, untuk memeriksa angka di halaman KPI."""
+    from accounts.models import User
+
+    from . import kpi
+
+    person = get_object_or_404(User, pk=user_id)
+    clinics, clinic, first = _kpi_scope(request)
+    rows = kpi.compose([clinic] if clinic else clinics, first, only_user=person)
+    return render(request, "direktur/kpi_staff.html", {
+        "person": person, "kpi": rows[0] if rows else None, "clinics": clinics, "clinic": clinic,
+        "first": first, "prev": kpi.shift_month(first, -1), "next": kpi.shift_month(first, 1),
+        "is_current": first == local_today().replace(day=1),
+    })
+
+
+def _kpi_csv(request, first, clinic, rows):
+    import csv
+
+    from django.http import HttpResponse
+
+    from audit.models import AuditAction
+    from audit.services import log_event
+    from audit.views import _cell
+
+    from . import kpi
+
+    log_event(action=AuditAction.EXPORT, entity_type="kpi", entity_label=f"Ekspor KPI {first:%Y-%m}",
+              actor=request.user, after={"bulan": f"{first:%Y-%m}", "cabang": clinic.name if clinic else "Semua",
+                                         "rows": len(rows)}, request=request)
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    suffix = clinic.code if clinic else "semua"
+    response["Content-Disposition"] = f'attachment; filename="kpi_{first:%Y-%m}_{suffix}.csv"'
+    response.write("﻿")
+    writer = csv.writer(response)
+    writer.writerow(kpi.CSV_HEADER)
+    for p in rows:
+        writer.writerow([_cell(v) if isinstance(v, str) else v for v in kpi.csv_row(first, p)])
+    return response
 
 
 # --- Pilihan cabang untuk task baru: satu cabang atau semua cabang -------------------

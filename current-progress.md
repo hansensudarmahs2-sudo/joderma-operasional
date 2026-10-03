@@ -10,11 +10,11 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
 | | |
 |---|---|
-| Produksi (mini PC, ops.joderma.id) | Commit `f0fabf8` (dideploy 3 Oktober 21.50): Unduh CSV di Jejak, di atas `8c48cde` (dideploy 3 Oktober 21.33): tahap 3 paket E (jejak kehadiran, koordinat cabang terisi, Semua cabang saat memilah), di atas `3056c3d`: tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
+| Produksi (mini PC, ops.joderma.id) | Commit `c224394` (dideploy 3 Oktober): banner saran (password awal, izin lokasi), di atas `f0fabf8` (dideploy 3 Oktober 21.50): Unduh CSV di Jejak, di atas `8c48cde` (dideploy 3 Oktober 21.33): tahap 3 paket E (jejak kehadiran, koordinat cabang terisi, Semua cabang saat memilah), di atas `3056c3d`: tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | Banner saran lembut: password awal dan izin lokasi (3 Okt); tanpa migrasi |
-| Test | 717 (716 lulus, 1 dilewati) per 3 Okt: 696 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
+| Belum dideploy | Tahap 3 paket F: KPI per staf (3 Okt); tanpa migrasi |
+| Test | 721 (720 lulus, 1 dilewati) per 3 Okt: 700 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -72,8 +72,10 @@ Keputusan bawaan yang dipakai: halaman utama K-015 = Ringkasan Direktur dan Dash
 tenggat task yang menunggu keputusan dibekukan. Pertanyaan Owner yang masih terbuka: lama dan ukuran
 berhasil uji coba task management.
 
-**Tahap 3 — KPI (K-016).** Setiap checklist mencatat ID staf, geolokasi, dan IP Wi-Fi klinik;
-metrik kedisiplinan (tepat waktu, kelengkapan) per staf.
+**Tahap 3 — KPI (K-016).** Paket E (jejak kehadiran: IP, perangkat, lokasi sesaat) `8c48cde`, dideploy
+3 Okt. Paket F (KPI per staf, menu **KPI**) selesai di kode 3 Okt, belum di-commit: angka per metrik
+tanpa skor gabungan, hanya Direktur dan Owner. Skor gabungan dan "KPI saya" untuk staf ditinjau
+sesudah 1–2 bulan data.
 
 ## Task yang belum selesai
 
@@ -151,7 +153,31 @@ metrik kedisiplinan (tepat waktu, kelengkapan) per staf.
 
 # Riwayat
 
-## Banner saran: password awal dan izin lokasi (3 Oktober 2026) — belum di-commit
+## Paket F tahap 3: KPI per staf (3 Oktober 2026) — belum di-commit
+
+Keputusan product owner 3 Okt: empat metrik, angka per metrik tanpa skor gabungan dan tanpa peringkat,
+hanya Direktur Operasional dan Owner, toleransi jam buka 15 menit, periode bulanan, tanda centang massal
+≥5 butir dalam 60 detik (tanda, bukan pengurang).
+
+- `direktur/kpi.py`: `compose(clinics, bulan, only_user=None)` menghitung per staf: hari jaga
+  (`DutyRoster` Masuk/Perbantuan), kelengkapan porsi (`DutyAssignment` × `ChecklistResponse.portion`;
+  hari ini hanya bila `OperationalDay` CLOSED; "diambil alih" = `checked_by` di luar penerima porsi
+  itu), pembukaan tepat waktu (butir sesi OPENING yang ia isi, `checked_at` ≤ `Clinic.open_time` +
+  `kpi.open_tolerance_minutes`), jejak (Kuat+Sedang / semua `PresenceStamp`), task (target dalam bulan
+  dan sudah lewat; pengajuan pertama dari `TaskEvent` SUBMITTED; task bersama hanya untuk yang
+  mengambil; batal dan menunggu keputusan dikecualikan; revisi = `REVISION_REQUESTED` dalam bulan),
+  centang massal (`find_bursts`, per cabang). Owner dan admin murni tidak dihitung.
+- Halaman `direktur:kpi` (`/direktur/kpi/?bulan=YYYY-MM&cabang=`) dan rincian `direktur:kpi_staff`
+  (`/direktur/kpi/<id>/`): per hari dan daftar task. `?unduh=csv` tercatat EXPORT `kpi` di audit.
+  Menu **KPI** untuk Direktur dan Owner (`OWNER_ALLOWED`); staf dan PIC 403.
+- Konfigurasi baru di `DEFAULT_CONFIG`: `kpi.open_tolerance_minutes` (15), `kpi.bulk_items` (5),
+  `kpi.bulk_seconds` (60).
+- Batasan yang dicatat: jam buka satu nilai per cabang (belum per hari dalam seminggu); butir tanpa
+  porsi hanya masuk tepat waktu, tidak kelengkapan; hari tanpa sesi checklist tidak dinilai (tampil
+  "belum dinilai" di rincian).
+- Test `direktur/tests/test_kpi.py` (+4); urutan menu Owner di `test_tampilan_peran.py`.
+
+## Banner saran: password awal dan izin lokasi (3 Oktober 2026) — `c224394`, dideploy 3 Okt
 
 - Satu banner lembut di atas konten (`templates/base.html`, `core/context_processors.soft_banner`),
   tidak memaksa dan tidak memblokir. **Nanti** menyembunyikannya 7 hari di browser itu

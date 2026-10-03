@@ -61,6 +61,8 @@ OWNER_ALLOWED = COMMON | {
     "direktur:team",
     "direktur:tasks",  # Daftar Task, baca saja (unduh CSV lewat GET)
     "direktur:meeting",  # Bahan rapat Kamis, baca saja
+    "direktur:kpi",  # KPI per staf, baca saja (unduh CSV lewat GET)
+    "direktur:kpi_staff",
     "jejak:index",  # Jejak kehadiran, baca saja
     "jejak:devices",  # perangkat dikenal, baca saja (POST ditolak di view)
     "direktur:kanban",
@@ -214,6 +216,7 @@ def nav_sections(user) -> list[NavSection]:
         main.add("Keputusan", "direktur:decisions")
         main.add("Bahan Rapat", "direktur:meeting")
         main.add("Jejak", "jejak:index")
+        main.add("KPI", "direktur:kpi")
         main.add("Summary Harian", "owner:summary")
         main.add("Jadwal", "owner:jadwal")
         main.add("Stok Apotek", "stok:index")
@@ -246,6 +249,7 @@ def nav_sections(user) -> list[NavSection]:
         overview.add("Keputusan", "direktur:decisions")
         overview.add("Bahan Rapat", "direktur:meeting")
         overview.add("Jejak", "jejak:index")
+        overview.add("KPI", "direktur:kpi")
         mine = NavSection("Direktur")
         mine.add("Checklist Direktur", "direktur:checklist")
         mine.add("Summary Harian", "owner:summary")

@@ -91,6 +91,11 @@ DEFAULT_CONFIG: dict[str, object] = {
     "opening.reminder_minutes_before_open": 30,
     # Ringkasan/dashboard: task dianggap "mendesak" bila targetnya <= N jam lagi
     "dashboard.urgent_hours": 48,
+    # KPI per staf (uji coba): butir Pembukaan dianggap tepat waktu bila selesai sebelum jam buka + N menit;
+    # tanda "centang massal" bila >= N butir dicentang dalam N detik (hanya tanda, bukan pengurang).
+    "kpi.open_tolerance_minutes": 15,
+    "kpi.bulk_items": 5,
+    "kpi.bulk_seconds": 60,
 }
 
 

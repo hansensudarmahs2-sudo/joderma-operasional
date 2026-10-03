@@ -54,7 +54,7 @@ yang ditentukan dari perannya, dengan urutan: Direktur Operasional (`AOM`) → O
 | Tampilan | Halaman pertama | Menu | Halaman yang boleh dibuka |
 |---|---|---|---|
 | Direktur Operasional | Ringkasan | semua, dikelompokkan: ringkasan, Direktur, Operasional, Laporan, Pengaturan | semua (izin per view tetap berlaku) |
-| Owner / Direktur Utama | Dashboard Owner | Dashboard, Inbox, Daftar Task, Keputusan, Bahan Rapat, Jejak, Summary Harian, Jadwal, Stok Apotek | **hanya**: halaman Owner (`/owner/`: Dashboard, Permintaan dan temuan, Summary Harian, Jadwal), Inbox (baca), Tim, Daftar Task (baca + CSV), Bahan Rapat (baca), Kanban, Prioritas, Jadwal Task, Detail task (baca), Keputusan, Jadwal Jaga (baca), Stok Apotek (baca), Notifikasi, Ganti password. Selain itu 403 |
+| Owner / Direktur Utama | Dashboard Owner | Dashboard, Inbox, Daftar Task, Keputusan, Bahan Rapat, Jejak, KPI, Summary Harian, Jadwal, Stok Apotek | **hanya**: halaman Owner (`/owner/`: Dashboard, Permintaan dan temuan, Summary Harian, Jadwal), Inbox (baca), Tim, Daftar Task (baca + CSV), Bahan Rapat (baca), Jejak (baca), KPI (baca + CSV), Kanban, Prioritas, Jadwal Task, Detail task (baca), Keputusan, Jadwal Jaga (baca), Stok Apotek (baca), Notifikasi, Ganti password. Selain itu 403 |
 | PIC / Koordinator | Hari Ini | Hari Ini, Checklist Saya, Kas/Order/Stok Apotek bila perannya, Jadwal (termasuk Pembagian Tugas), Lapor, Laporan Operasional | semua kecuali yang ditolak izin per view |
 | Staf | Hari Ini | Hari Ini, Checklist Saya, Kas/Order/Stok Apotek bila perannya, Jadwal Jaga, Jadwal Istirahat, Giliran Perawat (perawat), Lapor | semua **kecuali** Pembagian Tugas tim (bulanan dan harian), Laporan Operasional dan ekspor, halaman Direktur dan Owner, Audit |
 | Admin sistem | Pengguna | Pengguna, Reset peran, Konfigurasi, Template Checklist, Pengaturan Klinik, Jadwal Jaga, Pembagian Tugas | **hanya** halaman akun, konfigurasi, template, pengaturan klinik, jadwal. Admin dengan `admin.full_access` tidak dibatasi |
@@ -161,6 +161,7 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Konfirmasi selesai / minta revisi task yang pemeriksanya Direktur Utama / Owner (otomatis bila penerimanya Direktur Operasional), dan menulis catatan di task itu | owner | — |
 | Lapor progres task sendiri; catatan bukti wajib saat ajukan selesai | penerima task | — |
 | Jejak kehadiran: daftar jejak, ringkasan per staf, IP lazim (baca), unduh CSV | AOM, owner | — |
+| KPI per staf per bulan dan rinciannya, unduh CSV | AOM, owner | — |
 | Mengatur perangkat dikenal (IP Tailscale perangkat klinik) | AOM | — |
 | Koordinat dan radius cabang (Pengaturan Klinik) | yang boleh mengubah pengaturan klinik | — |
 | Mengunduh audit (CSV, sesuai saringan; tercatat sebagai EXPORT) | AOM | `admin.full_access` |
