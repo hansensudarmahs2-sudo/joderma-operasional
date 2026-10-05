@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from notifications.services import unread_count
 
-from .peran import LABELS, nav_sections, persona, route_allowed
+from .peran import LABELS, nav_sections, persona, route_allowed, subnav
 
 
 def app_context(request):
@@ -34,6 +34,7 @@ def app_context(request):
         "nav_persona_label": LABELS[who],
         "nav_can_team_plan": route_allowed(user, "jadwal:plan"),
         "banner": soft_banner(request, who),
+        "subnav": subnav(user, getattr(getattr(request, "resolver_match", None), "view_name", "")),
     }
 
 

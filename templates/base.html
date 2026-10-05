@@ -42,7 +42,7 @@
 <nav class="main" id="main-nav" aria-label="Menu utama">
   {% for section in nav_sections %}
     {% if section.title %}<div class="nav-section">{{ section.title }}</div>{% endif %}
-    {% for label, url in section.items %}<a href="{{ url }}">{{ label }}</a>{% endfor %}
+    {% for label, url, also in section.items %}<a href="{{ url }}"{% if also %} data-also="{{ also }}"{% endif %}>{{ label }}</a>{% endfor %}
   {% endfor %}
   <a class="nav-account" href="{% url 'accounts:change_password' %}">{{ user }}<span class="meta">{{ nav_persona_label }} · Ganti password</span></a>
 </nav>
@@ -67,6 +67,8 @@
       <div class="msg {{ message.tags }}">{{ message }}</div>
     {% endfor %}
   {% endif %}
+  {% if subnav %}<nav class="subnav" aria-label="{{ subnav.label }}">{% for name, url, current in subnav.items %}<a href="{{ url }}"{% if current %} class="active" aria-current="page"{% endif %}>{{ name }}</a>{% endfor %}</nav>{% endif %}
+  {% if subnav %}<script>(function(){var n=document.querySelector('nav.subnav'),a=n&&n.querySelector('a.active');if(a&&a.offsetLeft+a.offsetWidth>n.clientWidth){n.scrollLeft=a.offsetLeft-16;}})();</script>{% endif %}
   {% block content %}{% endblock %}
 </main>
 <script>
@@ -123,7 +125,11 @@
   nav.querySelectorAll('a').forEach(function (a) {
     var u = new URL(a.href, window.location.href), p = u.pathname;
     var match = p === '/' ? path === '/' : path.indexOf(p) === 0;
-    var score = p.length + (u.search ? (search.indexOf(u.search.slice(1)) !== -1 ? 0.5 : -0.25) : 0);
+    var score = match ? p.length + (u.search ? (search.indexOf(u.search.slice(1)) !== -1 ? 0.5 : -0.25) : 0) : -1;
+    // Menu kelompok (Task, Evaluasi staf, Kebijakan) juga menyala di halaman lain kelompoknya.
+    (a.getAttribute('data-also') || '').split(' ').forEach(function (q) {
+      if (q && path.indexOf(q) === 0 && q.length > score) { match = true; score = q.length; }
+    });
     if (match && score > bestLen) { best = a; bestLen = score; }
   });
   if (best) {

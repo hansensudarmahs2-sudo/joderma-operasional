@@ -185,10 +185,50 @@ def route_allowed(user, route: str, method: str = "GET") -> bool:
 @dataclass
 class NavSection:
     title: str = ""
-    items: list[tuple[str, str]] = field(default_factory=list)
+    # (label, url, path lain yang ikut menyorot menu ini, dipisah spasi)
+    items: list[tuple[str, str, str]] = field(default_factory=list)
 
-    def add(self, label: str, route: str, query: str = "") -> None:
-        self.items.append((label, reverse(route) + query))
+    def add(self, label: str, route: str, query: str = "", also: tuple[str, ...] = ()) -> None:
+        # `also`: nama rute, atau awalan path literal (diawali "/") untuk halaman detail ber-id.
+        self.items.append((label, reverse(route) + query, " ".join(r if r.startswith("/") else reverse(r) for r in also)))
+
+    def add_group(self, user, key: str) -> None:
+        """Satu menu untuk satu kelompok halaman (SUBNAV_GROUPS); halaman lainnya lewat tab di atas halaman."""
+        label, tabs, extra = SUBNAV_GROUPS[key]
+        routes = [r for _, r in tabs if route_allowed(user, r)]
+        if routes:
+            self.add(label, routes[0], also=tuple(routes[1:]) + tuple(extra))
+
+
+# 5 Okt 2026 (product owner): menu Direktur/Owner terlalu panjang. Halaman sejenis digabung jadi satu
+# menu; di dalam halaman ada baris tab di atas untuk pindah antarhalaman kelompok itu.
+# key: (label menu, [(label tab, rute)], rute detail yang ikut kelompok tanpa tab sendiri)
+SUBNAV_GROUPS = {
+    "task": ("Task", [("Daftar Task", "direktur:tasks"), ("Kanban", "direktur:kanban"),
+                      ("Prioritas", "direktur:matrix"), ("Jadwal Task", "direktur:gantt")],
+             ("/direktur/task/",)),  # Task baru dan detail task
+    "evaluasi": ("Evaluasi staf", [("KPI", "direktur:kpi"), ("Jejak", "jejak:index")], ()),
+    "kebijakan": ("Kebijakan", [("Kebijakan", "reports:policies"), ("Keputusan", "direktur:decisions"),
+                                ("Bahan Rapat", "direktur:meeting")], ()),
+}
+# Halaman detail yang menampilkan tab kelompoknya (tanpa tab aktif).
+SUBNAV_DETAIL = {
+    "direktur:task_new": "task", "direktur:task_detail": "task", "direktur:kpi_staff": "evaluasi",
+    "jejak:devices": "evaluasi", "direktur:decision_detail": "kebijakan",
+}
+
+
+def subnav(user, view_name: str) -> dict | None:
+    """Baris tab di atas halaman untuk Direktur dan Owner, bila halaman termasuk satu kelompok."""
+    if persona(user) not in (DIREKTUR, OWNER) or not view_name:
+        return None
+    key = next((k for k, (_, tabs, _) in SUBNAV_GROUPS.items() if any(r == view_name for _, r in tabs)), None)
+    key = key or SUBNAV_DETAIL.get(view_name)
+    if key is None:
+        return None
+    label, tabs, _ = SUBNAV_GROUPS[key]
+    items = [(name, reverse(r), r == view_name) for name, r in tabs if route_allowed(user, r)]
+    return {"label": label, "items": items} if len(items) > 1 else None
 
 
 def _report_section(user, flags) -> NavSection:
@@ -238,12 +278,9 @@ def nav_sections(user) -> list[NavSection]:
         main = NavSection()
         main.add("Dashboard", "owner:dashboard")
         main.add("Inbox", "reports:inbox")
-        main.add("Daftar Task", "direktur:tasks")
-        main.add("Keputusan", "direktur:decisions")
-        main.add("Kebijakan", "reports:policies")
-        main.add("Bahan Rapat", "direktur:meeting")
-        main.add("Jejak", "jejak:index")
-        main.add("KPI", "direktur:kpi")
+        main.add_group(user, "task")
+        main.add_group(user, "evaluasi")
+        main.add_group(user, "kebijakan")
         main.add("Summary Harian", "owner:summary")
         main.add("Jadwal", "owner:jadwal")
         main.add("Stok Apotek", "stok:index")
@@ -268,16 +305,10 @@ def nav_sections(user) -> list[NavSection]:
         overview = NavSection()
         overview.add("Ringkasan", "direktur:overview")
         overview.add("Inbox", "reports:inbox")
-        overview.add("Daftar Task", "direktur:tasks")
         overview.add("Tim", "direktur:team")
-        overview.add("Kanban", "direktur:kanban")
-        overview.add("Prioritas", "direktur:matrix")
-        overview.add("Jadwal Task", "direktur:gantt")
-        overview.add("Keputusan", "direktur:decisions")
-        overview.add("Kebijakan", "reports:policies")
-        overview.add("Bahan Rapat", "direktur:meeting")
-        overview.add("Jejak", "jejak:index")
-        overview.add("KPI", "direktur:kpi")
+        overview.add_group(user, "task")
+        overview.add_group(user, "evaluasi")
+        overview.add_group(user, "kebijakan")
         mine = NavSection("Direktur")
         mine.add("Checklist Direktur", "direktur:checklist")
         mine.add("Summary Harian", "owner:summary")

@@ -175,7 +175,7 @@ def test_pages_and_permissions(client, people, jemur):
     client.force_login(people["hansen"])
     body = client.get(reverse("jejak:index")).content.decode()
     assert "Jejak kehadiran" in body and "Heni" in body and "Yani" in body and "100%" in body
-    assert 'href="/jejak/">Jejak</a>' in body
+    assert 'href="/jejak/" class="active" aria-current="page">Jejak</a>' in body
     page = client.get(reverse("jejak:devices")).content.decode()
     assert "IP Tailscale yang belum diberi nama" in page and "100.90.94.23" in page
     client.post(reverse("jejak:devices"), {"ip": "100.90.94.23", "nama": "PC Jemur", "cabang": jemur.pk, "klinik": "1"})
@@ -184,7 +184,7 @@ def test_pages_and_permissions(client, people, jemur):
     assert KnownDevice.objects.count() == 1
     client.force_login(people["jean"])
     owner_page = client.get(reverse("jejak:index")).content.decode()
-    assert 'href="/jejak/">Jejak</a>' in owner_page  # menu Owner
+    assert 'href="/jejak/" class="active" aria-current="page">Jejak</a>' in owner_page  # menu Owner
     client.post(reverse("jejak:devices"), {"ip": "100.1.1.1", "nama": "Owner"})
     assert KnownDevice.objects.count() == 1
     for who in ("heni", "yani"):

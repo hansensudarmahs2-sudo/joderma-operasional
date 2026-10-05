@@ -28,6 +28,12 @@ antrian tidak masuk checklist ini karena pencatatannya sudah dipegang Finance.
 
 ## Menu
 
+Menu atas sengaja pendek (5 Okt 2026): **Ringkasan**, **Inbox**, **Tim**, lalu tiga menu kelompok —
+**Task** (Daftar Task, Kanban, Prioritas, Jadwal Task), **Evaluasi staf** (KPI, Jejak), dan
+**Kebijakan** (Kebijakan, Keputusan, Bahan Rapat). Membuka menu kelompok membawa Anda ke halaman
+pertamanya; halaman lain dalam kelompok dipilih lewat **baris tab di atas halaman**. Detail task,
+detail keputusan, dan rincian KPI per staf juga menampilkan tab kelompoknya.
+
 - **Tugas saya** — task yang dikirim kepada Anda (termasuk yang Anda tugaskan ke diri sendiri) tampil
   paling atas di **Ringkasan** dan di **Hari Ini**, dengan tombol **Lapor progres** dan **Ajukan
   selesai**. Kedua tombol itu juga ada di halaman detail task, di baris nama Anda pada tabel

@@ -275,7 +275,7 @@ def test_menu_shows_stok_only_for_allowed_roles(cabang):
     from core import peran
 
     def label(user):
-        return [lbl for s in peran.nav_sections(user) for lbl, _ in s.items]
+        return [lbl for s in peran.nav_sections(user) for lbl, *_ in s.items]
 
     assert "Stok Apotek" in label(_user(cabang[0], "a", Role.APOTEKER, Role.STAF))
     assert "Stok Apotek" in label(_user(cabang[0], "b", Role.ASISTEN_APOTEKER))

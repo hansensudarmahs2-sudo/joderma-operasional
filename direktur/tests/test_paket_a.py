@@ -148,7 +148,7 @@ def test_list_access(client, people, many):
     client.force_login(people["yohanes"])
     body = client.get(reverse("direktur:tasks")).content.decode()
     assert "Ganti lampu lobi" in body and "Tampilan baca saja" in body and "+ Task baru" not in body
-    assert 'href="/direktur/daftar/">Daftar Task</a>' in body
+    assert 'href="/direktur/daftar/" class="active" aria-current="page">Daftar Task</a>' in body
     for who in ("heni", "yani", "regita"):
         client.force_login(people[who])
         assert client.get(reverse("direktur:tasks")).status_code in (302, 403)

@@ -116,7 +116,7 @@ def test_page_access_and_navigation(client, people, week):
         body = client.get(reverse("direktur:meeting"), {"tanggal": m.isoformat()}).content.decode()
         assert "Bahan rapat Kamis" in body and "Ganti vendor limbah" in body and "Servis AC" in body
         assert 'id="teks-rapat"' in body and "Salin untuk WhatsApp" in body
-        assert 'href="/direktur/rapat/">Bahan Rapat</a>' in body
+        assert 'href="/direktur/rapat/" class="active" aria-current="page">Bahan Rapat</a>' in body
         prev = (m - dt.timedelta(days=7)).isoformat()
         assert f"?tanggal={prev}" in body
     client.force_login(people["hansen"])

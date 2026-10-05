@@ -5,7 +5,10 @@ tampilan yang sama. Owner **membaca** keadaan klinik; satu-satunya yang ia buat 
 **Permintaan Owner**. Rancangan lengkapnya ada di
 [`KEBUTUHAN_REDEFINISI_PERAN.md`](KEBUTUHAN_REDEFINISI_PERAN.md).
 
-Sesudah login, Owner langsung masuk ke **Dashboard**. Menunya:
+Sesudah login, Owner langsung masuk ke **Dashboard**. Halaman sejenis digabung dalam satu menu
+(5 Okt 2026): **Task** (Daftar Task, Kanban, Prioritas, Jadwal Task), **Evaluasi staf** (KPI, Jejak),
+dan **Kebijakan** (Kebijakan, Keputusan, Bahan Rapat). Di dalam halaman itu ada baris tab di atas
+untuk pindah antarhalaman kelompoknya. Isi tiap halaman:
 
 | Menu | Isi |
 |---|---|

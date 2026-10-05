@@ -573,3 +573,14 @@ tr.row-late td:first-child { box-shadow: inset 3px 0 0 var(--err); }
 /* Kebijakan berlaku (5 Okt 2026) */
 .policy-title { margin: 0 0 .25rem; font-size: 1.05rem; }
 .policy-text { margin-top: .5rem; }
+
+/* Tab kelompok halaman di atas halaman (Task, Evaluasi staf, Kebijakan), 5 Okt 2026 */
+.subnav { display: flex; gap: .25rem; overflow-x: auto; margin: 0 0 1rem; border-bottom: 1px solid var(--line);
+  -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.subnav::-webkit-scrollbar { display: none; }
+.subnav a { flex: 0 0 auto; padding: .55rem .9rem; color: var(--muted); text-decoration: none; font-weight: 600;
+  border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.subnav a:hover { color: var(--ink); }
+.subnav a.active { color: var(--teal-dark); border-bottom-color: var(--teal); }
+@media (max-width: 520px) { .subnav a { padding: .5rem .6rem; font-size: .92rem; } }
+@media print { .subnav { display: none; } }

@@ -30,7 +30,7 @@ def _user(clinic, name, *roles, **extra):
 
 def _nav(body: str) -> list[str]:
     nav = body.split('id="main-nav"', 1)[1].split("</nav>", 1)[0]
-    return [re.sub(r"\s+", " ", t).strip() for t in re.findall(r"<a href=\"[^\"]*\">([^<]+)</a>", nav)]
+    return [re.sub(r"\s+", " ", t).strip() for t in re.findall(r"<a href=\"[^\"]*\"[^>]*>([^<]+)</a>", nav)]
 
 
 def _all_routes():
@@ -98,8 +98,7 @@ def test_owner_menu_is_short(client, clinic):
     client.force_login(_user(clinic, "yohanes", Role.OWNER))
     body = client.get(reverse("owner:dashboard")).content.decode()
     menu = _nav(body)
-    assert menu[:10] == ["Dashboard", "Inbox", "Daftar Task", "Keputusan", "Kebijakan", "Bahan Rapat", "Jejak",
-                         "KPI", "Summary Harian", "Jadwal"]
+    assert menu[:7] == ["Dashboard", "Inbox", "Task", "Evaluasi staf", "Kebijakan", "Summary Harian", "Jadwal"]
     for label in OWNER_FORBIDDEN_MENU:
         assert label not in menu
     assert "Owner / Direktur Utama" in body
@@ -108,8 +107,8 @@ def test_owner_menu_is_short(client, clinic):
 def test_director_menu_keeps_everything(client, clinic):
     client.force_login(_user(clinic, "hansen1", Role.AOM))
     menu = _nav(client.get(reverse("direktur:overview")).content.decode())
-    for label in ("Ringkasan", "Tim", "Kanban", "Prioritas", "Jadwal Task", "Keputusan", "Kebijakan",
-                  "Checklist Direktur",
+    assert menu[:6] == ["Ringkasan", "Inbox", "Tim", "Task", "Evaluasi staf", "Kebijakan"]
+    for label in ("Checklist Direktur",
                   "Catatan", "Hari Ini", "Checklist Saya", "Jadwal Jaga", "Pembagian Tugas",
                   "Laporan Operasional", "Audit", "Pengaturan Klinik"):
         assert label in menu
@@ -155,7 +154,7 @@ def test_every_menu_link_opens(client, clinic, roles):
     user = _user(clinic, "u1", *roles)
     client.force_login(user)
     for section in peran.nav_sections(user):
-        for label, url in section.items:
+        for label, url, _also in section.items:
             # Reset peran mengalihkan kembali ke Pengguna bila cabang standar belum ada.
             assert client.get(url, follow=True).status_code == 200, (roles, label, url)
 
@@ -235,3 +234,22 @@ def test_staff_team_plan_link_hidden(client, clinic):
     assert "Pembagian tugas bulan ini" not in client.get(reverse("jadwal:roster")).content.decode()
     client.force_login(_user(clinic, "hansen1", Role.AOM))
     assert "Pembagian tugas bulan ini" in client.get(reverse("jadwal:roster")).content.decode()
+
+
+def test_grouped_menu_and_page_tabs(client, clinic):
+    """5 Okt 2026: Task / Evaluasi staf / Kebijakan satu menu; halaman kelompoknya punya tab di atas."""
+    client.force_login(_user(clinic, "hansen1", Role.AOM))
+    for route, tabs, active in (
+        ("direktur:kanban", ["Daftar Task", "Kanban", "Prioritas", "Jadwal Task"], "Kanban"),
+        ("jejak:index", ["KPI", "Jejak"], "Jejak"),
+        ("direktur:meeting", ["Kebijakan", "Keputusan", "Bahan Rapat"], "Bahan Rapat"),
+    ):
+        body = client.get(reverse(route)).content.decode()
+        bar = body.split('class="subnav"', 1)[1].split("</nav>", 1)[0]
+        assert re.findall(r">([^<]+)</a>", bar) == tabs, route
+        assert re.search(r'aria-current="page">' + active + "<", bar), route
+    assert 'class="subnav"' not in client.get(reverse("direktur:overview")).content.decode()
+    # Owner: tab hanya halaman yang boleh ia buka.
+    client.force_login(_user(clinic, "yohanes", Role.OWNER))
+    body = client.get(reverse("direktur:kpi")).content.decode()
+    assert 'class="subnav"' in body and ">Jejak<" in body
