@@ -243,7 +243,8 @@ def test_grouped_menu_and_page_tabs(client, clinic):
     client.force_login(_user(clinic, "hansen1", Role.AOM))
     for route, tabs, active in (
         ("direktur:kanban", ["Daftar Task", "Kanban", "Prioritas", "Jadwal Task"], "Kanban"),
-        ("jejak:index", ["KPI", "Jejak"], "Jejak"),
+        ("jejak:index", ["KPI", "Jejak", "Absensi"], "Jejak"),
+        ("absensi:index", ["KPI", "Jejak", "Absensi"], "Absensi"),
         ("direktur:meeting", ["Kebijakan", "Keputusan", "Bahan Rapat"], "Bahan Rapat"),
     ):
         body = client.get(reverse(route)).content.decode()

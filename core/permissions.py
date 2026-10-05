@@ -387,6 +387,20 @@ def can_view_stok(user) -> bool:
     return can_edit_stok(user) or is_owner(user)
 
 
+def can_edit_absensi(user) -> bool:
+    """Absensi jam kerja: impor berkas mesin dan koreksi cap.
+
+    Isinya jam kerja seluruh staf dan dasar penilaian lembur, jadi haknya sempit:
+    Direktur Operasional, dan Admin yang diberi akses penuh data bisnis (D8).
+    """
+    return is_aom(user) or has_admin_full_access(user) or is_bootstrap_superuser(user)
+
+
+def can_view_absensi(user) -> bool:
+    """Owner ikut membaca papan skor dan daftar pengecualian, tanpa boleh mengimpor."""
+    return can_edit_absensi(user) or is_owner(user)
+
+
 def read_only_for(user) -> bool:
     """Owner bersifat read-only kecuali diberi kapabilitas approval."""
     return is_owner(user) and not (roles(user) - {Role.OWNER})

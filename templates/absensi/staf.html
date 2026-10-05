@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Absensi {{ orang }}{% endblock %}
+{% block content %}
+<p><a href="{% url 'absensi:index' %}?bulan={{ bulan.value }}">← Papan skor</a></p>
+<h1>{{ orang }}</h1>
+<p class="sub">Rincian harian {{ bulan.label }}: dari sinilah angka papan skor berasal.</p>
+
+<div class="month-pick">
+  <a class="btn small secondary" href="?bulan={{ bulan.prev }}" aria-label="Bulan sebelumnya">‹</a>
+  <strong>{{ bulan.label }}</strong>
+  <a class="btn small secondary" href="?bulan={{ bulan.next }}" aria-label="Bulan berikutnya">›</a>
+</div>
+
+{% if staf and staf.hari %}
+<p class="meta">
+  Hari kerja <strong>{{ staf.hari_kerja }}</strong> ·
+  terlambat <strong>{{ staf.terlambat }} m</strong> ·
+  lembur pulang <strong>{{ staf.lembur_pulang }} m</strong> ·
+  datang awal <strong>{{ staf.datang_awal }} m</strong> ·
+  skor <strong>{{ staf.skor }} m</strong>
+</p>
+<table class="responsive">
+  <thead><tr>
+    <th>Tanggal</th><th>Jadwal</th><th>Shift</th><th>Cap</th>
+    <th>Terlambat</th><th>Lembur</th><th>Datang awal</th><th>Skor</th><th>Catatan</th>
+  </tr></thead>
+  <tbody>
+  {% for h in staf.hari %}
+    <tr>
+      <td data-label="Tanggal">{{ h.tanggal|date:"j M" }} <span class="meta">{{ h.tanggal|date:"D" }}</span></td>
+      <td data-label="Jadwal">{% if h.clinic %}{{ h.clinic.name }}{% else %}<span class="meta">{{ h.status_label }}</span>{% endif %}</td>
+      <td data-label="Shift">{% if h.jam_mulai %}{{ h.jam_mulai|time:"H.i" }}–{{ h.jam_selesai|time:"H.i" }}{% else %}—{% endif %}</td>
+      <td data-label="Cap">{% if h.masuk or h.keluar %}{{ h.masuk|time:"H.i"|default:"??.??" }}–{{ h.keluar|time:"H.i"|default:"??.??" }}{% else %}—{% endif %}</td>
+      <td data-label="Terlambat">{% if h.terlambat %}−{{ h.terlambat }}{% else %}—{% endif %}</td>
+      <td data-label="Lembur">{% if h.lembur_pulang %}{{ h.lembur_pulang }}{% else %}—{% endif %}</td>
+      <td data-label="Datang awal">{% if h.datang_awal %}{{ h.datang_awal }}{% elif h.datang_awal_mentah %}<span class="meta">{{ h.datang_awal_mentah }} (belum {{ ambang_awal }})</span>{% else %}—{% endif %}</td>
+      <td data-label="Skor">{% if h.skor %}<strong>{{ h.skor }}</strong>{% else %}—{% endif %}</td>
+      <td data-label="Catatan">
+        {% for p in h.pengecualian %}<span class="tag warn">{{ p.label }}</span> {% endfor %}
+        {% for c in h.catatan %}<div class="meta">{{ c }}</div>{% endfor %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="meta">Satuan menit. Datang awal dihitung bila ≥ {{ ambang_awal }} menit; lembur pulang tanpa plafon.</p>
+{% else %}
+<div class="card"><strong>Belum ada cap maupun jadwal jaga untuk {{ orang }} di {{ bulan.label }}.</strong></div>
+{% endif %}
+{% endblock %}

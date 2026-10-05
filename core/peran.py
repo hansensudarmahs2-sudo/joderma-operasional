@@ -64,6 +64,8 @@ OWNER_ALLOWED = COMMON | {
     "direktur:kpi",  # KPI per staf, baca saja (unduh CSV lewat GET)
     "direktur:kpi_staff",
     "jejak:index",  # Jejak kehadiran, baca saja
+    "absensi:index",  # Absensi jam kerja, baca saja; unggah ditolak `can_edit_absensi`
+    "absensi:staf",
     "jejak:devices",  # perangkat dikenal, baca saja (POST ditolak di view)
     "direktur:kanban",
     "direktur:matrix",
@@ -105,6 +107,7 @@ STAF_BLOCKED = {
     "owner:*",
     "audit:*",
     "jejak:*",
+    "absensi:*",
     # Fase 7 (staf sederhana): grid tim diganti halaman "saya". Hari Ini dan Checklist Saya tetap
     # bisa dibuka (aksi hari dan pengisian checklist), hanya tidak ada di menu staf.
     "jadwal:roster",
@@ -221,14 +224,15 @@ SUBNAV_GROUPS = {
     "task": ("Task", [("Daftar Task", "direktur:tasks"), ("Kanban", "direktur:kanban"),
                       ("Prioritas", "direktur:matrix"), ("Jadwal Task", "direktur:gantt")],
              ("/direktur/task/",)),  # Task baru dan detail task
-    "evaluasi": ("Evaluasi staf", [("KPI", "direktur:kpi"), ("Jejak", "jejak:index")], ()),
+    "evaluasi": ("Evaluasi staf", [("KPI", "direktur:kpi"), ("Jejak", "jejak:index"),
+                                   ("Absensi", "absensi:index")], ()),
     "kebijakan": ("Kebijakan", [("Kebijakan", "reports:policies"), ("Keputusan", "direktur:decisions"),
                                 ("Bahan Rapat", "direktur:meeting")], ()),
 }
 # Halaman detail yang menampilkan tab kelompoknya (tanpa tab aktif).
 SUBNAV_DETAIL = {
     "direktur:task_new": "task", "direktur:task_detail": "task", "direktur:kpi_staff": "evaluasi",
-    "jejak:devices": "evaluasi", "direktur:decision_detail": "kebijakan",
+    "jejak:devices": "evaluasi", "absensi:staf": "evaluasi", "direktur:decision_detail": "kebijakan",
     "issues:detail": "dari_staf", "reports:laporan_page_detail": "dari_staf",
     "reports:masukan_page_detail": "dari_staf",
 }

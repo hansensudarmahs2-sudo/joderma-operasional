@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "stok",
     "owner",
     "jejak",
+    "absensi",
 ]
 
 MIDDLEWARE = [
