@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Laporan saya{% endblock %}
 {% block content %}
-<h1>Laporan</h1>
+<h1>{% if see_reporter %}Laporan staf{% else %}Laporan{% endif %}</h1>
 <p class="sub">Laporan cabang terlihat satu cabang; laporan rahasia hanya terlihat pelapor dan Direktur Operasional.</p>
 
 <form method="get" class="inline card">
+  {% include "core/_branch_filter.html" %}
   <div><label for="status">Status</label>
     <select id="status" name="status"><option value="">Semua (termasuk selesai/diarsipkan)</option>
       {% for value, label in statuses %}<option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
@@ -33,7 +34,7 @@
 {% endif %}
 
 <table class="responsive">
-  <thead><tr><th>Ringkasan</th><th>Visibilitas</th><th>Status</th><th>Dibuat</th></tr></thead>
+  <thead><tr><th>Ringkasan</th><th>Visibilitas</th><th>Status</th><th>Dibuat</th>{% if multi %}<th>Cabang</th>{% endif %}{% if see_reporter %}<th>Dari</th>{% endif %}</tr></thead>
   <tbody>
   {% for l in laporan_list %}
     <tr>
@@ -41,8 +42,9 @@
       <td data-label="Visibilitas">{% if l.visibility == 'RAHASIA_AOM' %}<span class="tag muted">Rahasia</span>{% else %}<span class="tag info">Cabang</span>{% endif %}</td>
       <td data-label="Status"><span class="tag {% if l.status == 'ARCHIVED' %}muted{% elif l.status == 'RESOLVED' or l.status == 'CLOSED' %}ok{% else %}warn{% endif %}">{{ l.get_status_display }}</span></td>
       <td data-label="Dibuat">{{ l.created_at|date:"d/m H:i" }}</td>
+      {% if multi %}<td data-label="Cabang">{{ l.clinic.name }}</td>{% endif %}{% if see_reporter %}<td data-label="Dari">{{ l.created_by|default:"—" }}</td>{% endif %}
     </tr>
-  {% empty %}<tr><td colspan="4" class="meta">Tidak ada laporan sesuai filter.</td></tr>{% endfor %}
+  {% empty %}<tr><td colspan="6" class="meta">Tidak ada laporan sesuai filter.</td></tr>{% endfor %}
   </tbody>
 </table>
 {% endblock %}

@@ -323,7 +323,8 @@ def mark_duplicate(issue: Issue, *, user, original: Issue, reason: str = "") -> 
 
 
 def issue_counters(clinic) -> dict:
-    qs = Issue.objects.filter(clinic=clinic)
+    clinics = clinic if isinstance(clinic, (list, tuple)) else [clinic]
+    qs = Issue.objects.filter(clinic__in=clinics)
     now = timezone.now()
     open_qs = qs.filter(status__in=OPEN_STATUSES)
     return {

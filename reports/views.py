@@ -423,8 +423,14 @@ def masukan_archive(request, pk: int):
 @login_required
 def laporan_page(request):
     """Daftar laporan dengan filter status eksplisit (data selesai/arsip tidak disembunyikan)."""
+    from core.services import list_branch_scope
+
     clinic = active_clinic(request.user)
-    qs = visible_laporan_queryset(request.user, clinic)
+    branch = list_branch_scope(request)
+    qs = Laporan.objects.none()
+    for c in branch["scope"]:
+        qs = qs | visible_laporan_queryset(request.user, c)
+    qs = qs.select_related("clinic", "created_by")
     status = request.GET.get("status", "")
     if status:
         qs = qs.filter(status=status)
@@ -447,6 +453,8 @@ def laporan_page(request):
         {
             "laporan_list": qs.order_by("-created_at")[:200],
             "status": status,
+            "see_reporter": is_aom(request.user),
+            **branch,
             "statuses": ReportStatus.choices,
             "can_create": can_create_laporan(request.user),
         },
@@ -499,8 +507,14 @@ def laporan_page_detail(request, pk: int):
 @login_required
 def masukan_page(request):
     """Daftar masukan (privat pengirim+AOM) dengan filter status eksplisit."""
+    from core.services import list_branch_scope
+
     clinic = active_clinic(request.user)
-    qs = visible_masukan_queryset(request.user, clinic)
+    branch = list_branch_scope(request)
+    qs = Masukan.objects.none()
+    for c in branch["scope"]:
+        qs = qs | visible_masukan_queryset(request.user, c)
+    qs = qs.select_related("clinic", "created_by")
     status = request.GET.get("status", "")
     if status == "archived":
         qs = qs.exclude(archived_at=None)
@@ -524,6 +538,8 @@ def masukan_page(request):
         {
             "masukan_list": qs.order_by("-created_at")[:200],
             "status": status,
+            "see_reporter": is_aom(request.user),
+            **branch,
             "can_publish": can_publish_masukan(request.user),
         },
     )

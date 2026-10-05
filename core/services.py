@@ -296,3 +296,30 @@ def reopen_day(day: OperationalDay, user, *, reason: str):
     day.save()
     log_update(day, before, actor=user, reason=reason, action=AuditAction.REOPEN)
     return day
+
+
+ALL_BRANCHES = "semua"
+
+
+def list_branch_scope(request) -> dict:
+    """Cabang untuk halaman daftar (Komplain/Masukan/Kerusakan, Laporan staf, Masukan privat staf).
+
+    Direktur Operasional dan Owner melihat lintas cabang: bawaan **Semua cabang**, bisa dipersempit
+    lewat `?cabang=<id>` (5 Okt 2026: masukan Citraland tidak terlihat karena daftar mengikuti cabang
+    aktif di kepala halaman). Pengguna lain tetap cabang aktif.
+    """
+    from .permissions import is_aom, is_owner, user_clinic_queryset
+
+    user = request.user
+    here = active_clinic(user)
+    clinics = list(user_clinic_queryset(user).order_by("id"))
+    if not (is_aom(user) or is_owner(user)) or len(clinics) < 2:
+        return {"multi": False, "scope": [here], "branch": str(here.pk) if here else "", "branch_choices": []}
+    raw = request.GET.get("cabang", ALL_BRANCHES)
+    chosen = next((c for c in clinics if raw.isdigit() and c.pk == int(raw)), None)
+    return {
+        "multi": True,
+        "scope": [chosen] if chosen else clinics,
+        "branch": str(chosen.pk) if chosen else ALL_BRANCHES,
+        "branch_choices": clinics,
+    }

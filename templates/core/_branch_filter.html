@@ -1,0 +1,3 @@
+{% if multi %}<div><label for="cabang-daftar">Cabang</label>
+  <select id="cabang-daftar" name="cabang"><option value="semua"{% if branch == 'semua' %} selected{% endif %}>Semua cabang</option>
+    {% for c in branch_choices %}<option value="{{ c.pk }}"{% if branch == c.pk|stringformat:'s' %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>{% endif %}

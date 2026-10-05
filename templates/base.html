@@ -117,10 +117,14 @@
 
   // Tandai menu halaman aktif (prefix URL terpanjang).
   var path = window.location.pathname, best = null, bestLen = -1;
+  // Beberapa menu berbagi path dan dibedakan query (?tipe=KOMPLAIN/MASUKAN/KERUSAKAN): yang query-nya
+  // cocok dengan halaman sekarang menang.
+  var search = window.location.search;
   nav.querySelectorAll('a').forEach(function (a) {
-    var p = new URL(a.href, window.location.href).pathname;
+    var u = new URL(a.href, window.location.href), p = u.pathname;
     var match = p === '/' ? path === '/' : path.indexOf(p) === 0;
-    if (match && p.length > bestLen) { best = a; bestLen = p.length; }
+    var score = p.length + (u.search ? (search.indexOf(u.search.slice(1)) !== -1 ? 0.5 : -0.25) : 0);
+    if (match && score > bestLen) { best = a; bestLen = score; }
   });
   if (best) {
     best.classList.add('active');

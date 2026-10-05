@@ -193,3 +193,27 @@ def test_director_sees_own_task_and_staff_reports(client, people, jemur):
     # Staf lain tidak melihat tombol ajukan di task orang lain; Ringkasan Owner tanpa Tugas saya.
     client.force_login(people["yohanes"])
     assert "Tugas saya" not in client.get(reverse("owner:dashboard")).content.decode()
+
+
+def test_director_lists_show_all_branches(client, people, jemur, citraland):
+    """5 Okt 2026: masukan Citraland (SUG-…) tidak terlihat Direktur karena daftar mengikuti cabang aktif."""
+    from reports.services import create_laporan
+
+    sug = create_issue(clinic=citraland, issue_type=IssueType.MASUKAN, title="Operasional kemas dan kirim barang",
+                       user=people["regita"])
+    create_issue(clinic=jemur, issue_type=IssueType.MASUKAN, title="Masukan Jemur", user=people["yani"])
+    create_laporan(clinic=citraland, user=people["dewi"], title="Laporan Citraland")
+    create_masukan(clinic=citraland, user=people["dewi"], title="Masukan privat Citraland")
+    client.force_login(people["hansen"])
+    page = client.get(reverse("issues:list") + "?tipe=MASUKAN").content.decode()
+    assert sug.number in page and "Masukan Jemur" in page and "Semua cabang" in page
+    page = client.get(reverse("issues:list") + f"?tipe=MASUKAN&cabang={jemur.pk}").content.decode()
+    assert sug.number not in page and "Masukan Jemur" in page
+    page = client.get(reverse("reports:laporan_page")).content.decode()
+    assert "Laporan Citraland" in page and "Laporan staf" in page and "Dewi" in page
+    page = client.get(reverse("reports:masukan_page")).content.decode()
+    assert "Masukan privat Citraland" in page and "Masukan privat staf" in page
+    # Staf tetap hanya cabangnya sendiri, tanpa pilihan cabang.
+    client.force_login(people["yani"])
+    page = client.get(reverse("issues:list") + "?tipe=MASUKAN&cabang=semua").content.decode()
+    assert sug.number not in page and "Masukan Jemur" in page and 'name="cabang"' not in page

@@ -22,10 +22,13 @@
   {% if counters.overdue %}<span class="tag warn">{{ counters.overdue }} lewat target</span>{% endif %}
 </p>
 
-<details>
+{% if multi %}<p class="sub">Menampilkan {% if branch == 'semua' %}<strong>semua cabang</strong>{% else %}{% for c in branch_choices %}{% if branch == c.pk|stringformat:'s' %}<strong>{{ c.name }}</strong>{% endif %}{% endfor %}{% endif %}. Ganti lewat Filter.</p>{% endif %}
+
+<details{% if multi and branch != 'semua' %} open{% endif %}>
   <summary>Filter dan pencarian</summary>
 
 <form method="get" class="inline card">
+  {% include "core/_branch_filter.html" %}
   <div><label for="tipe">Tipe</label>
     <select id="tipe" name="tipe"><option value="">Semua</option>
       {% for v, l in types %}<option value="{{ v }}" {% if filters.tipe == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
@@ -46,7 +49,7 @@
   <tr>
     <td data-label="Nomor"><a href="{% url 'issues:detail' i.pk %}">{{ i.number }}</a>
       {% if i.is_restricted %}<span class="tag muted">Terbatas</span>{% endif %}</td>
-    <td data-label="Judul">{{ i.title }}<div class="meta">{{ i.get_issue_type_display }}{% if i.location %} · {{ i.location }}{% endif %}</div></td>
+    <td data-label="Judul">{{ i.title }}<div class="meta">{{ i.get_issue_type_display }}{% if multi %} · {{ i.clinic.name }}{% endif %}{% if i.location %} · {{ i.location }}{% endif %}</div></td>
     <td data-label="Pelapor">{% if see_reporter or not i.is_anonymous %}{{ i.created_by|default:"—" }}{% else %}<span class="meta">Anonim</span>{% endif %}</td>
     <td data-label="Tingkat">
       {% if i.severity == 'KRITIS' %}<span class="tag err">Kritis</span>

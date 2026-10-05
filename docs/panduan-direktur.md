@@ -35,8 +35,11 @@ antrian tidak masuk checklist ini karena pencatatannya sudah dipegang Finance.
   **Diajukan selesai** (menunggu konfirmasi) sampai Owner mengonfirmasi atau meminta revisi. Bila
   evaluasinya Anda sendiri, pakai Lapor progres dan geser Target ke tanggal evaluasi; ajukan selesai
   sesudahnya.
-- **Dari staf** — Komplain, Masukan, Kerusakan, Laporan staf, dan Masukan privat staf untuk cabang
-  yang dipilih di kepala halaman, termasuk yang sudah ditangani cabang. Inbox tetap tempat memilah.
+- **Dari staf** — Komplain, Masukan, Kerusakan, Laporan staf, dan Masukan privat staf dari **semua
+  cabang** (kolom/keterangan cabang di setiap baris), termasuk yang sudah ditangani cabang. Persempit ke
+  satu cabang lewat **Filter ▸ Cabang**. Masukan/saran bernomor SUG-… yang ditulis staf lewat Lapor ▸
+  Masukan ada di menu **Masukan**; **Masukan privat staf** adalah kotak saran privat (hanya pengirim
+  dan Anda). Inbox tetap tempat memilah.
 - **Tim** — per cabang: butir checklist staf yang belum diisi hari ini, pemegang tiap fungsi
   PIC, task per orang (belum selesai / menunggu konfirmasi / selesai 7 hari), dan temuan
   Direktur yang masih terbuka. Hanya untuk membaca; tidak ada skor atau peringkat.

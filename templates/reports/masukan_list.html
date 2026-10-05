@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Masukan saya{% endblock %}
 {% block content %}
-<h1>Masukan</h1>
-<p class="sub">Masukan privat terlihat oleh pengirim dan Direktur Operasional, yang dapat memublikasikannya ke cabang.</p>
+<h1>{% if see_reporter %}Masukan privat staf{% else %}Masukan{% endif %}</h1>
+<p class="sub">Masukan privat terlihat oleh pengirim dan Direktur Operasional, yang dapat memublikasikannya ke cabang.{% if see_reporter %} Masukan/saran yang ditulis lewat Lapor ▸ Masukan (nomor SUG-…) ada di menu <a href="{% url 'issues:list' %}?tipe=MASUKAN">Masukan</a>.{% endif %}</p>
 
 <form method="get" class="inline card">
+  {% include "core/_branch_filter.html" %}
   <div><label for="status">Status</label>
     <select id="status" name="status">
       <option value="">Semua (termasuk diarsipkan)</option>
@@ -28,7 +29,7 @@
 </details>
 
 <table class="responsive">
-  <thead><tr><th>Ringkasan</th><th>Status</th><th>Dibuat</th></tr></thead>
+  <thead><tr><th>Ringkasan</th><th>Status</th><th>Dibuat</th>{% if multi %}<th>Cabang</th>{% endif %}{% if see_reporter %}<th>Dari</th>{% endif %}</tr></thead>
   <tbody>
   {% for m in masukan_list %}
     <tr>
@@ -39,8 +40,9 @@
         {% else %}<span class="tag info">Privat</span>{% endif %}
       </td>
       <td data-label="Dibuat">{{ m.created_at|date:"d/m H:i" }}</td>
+      {% if multi %}<td data-label="Cabang">{{ m.clinic.name }}</td>{% endif %}{% if see_reporter %}<td data-label="Dari">{{ m.created_by|default:"—" }}</td>{% endif %}
     </tr>
-  {% empty %}<tr><td colspan="3" class="meta">Tidak ada masukan sesuai filter.</td></tr>{% endfor %}
+  {% empty %}<tr><td colspan="5" class="meta">Tidak ada masukan sesuai filter.</td></tr>{% endfor %}
   </tbody>
 </table>
 {% endblock %}

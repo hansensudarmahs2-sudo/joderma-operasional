@@ -54,8 +54,9 @@ TYPE_LABELS = {
 
 
 def _visible_issues(user, clinic):
-    """Catatan terbatas hanya terlihat pembuat, assignee, supervisor, owner."""
-    qs = Issue.objects.filter(clinic=clinic).select_related("created_by", "asset")
+    """Catatan terbatas hanya terlihat pembuat, assignee, supervisor, owner. `clinic` boleh daftar cabang."""
+    clinics = clinic if isinstance(clinic, (list, tuple)) else [clinic]
+    qs = Issue.objects.filter(clinic__in=clinics).select_related("created_by", "asset", "clinic")
     if is_supervisor(user) or is_owner(user) or is_aom(user):
         return qs
     return qs.filter(
@@ -67,8 +68,10 @@ def _visible_issues(user, clinic):
 
 @login_required
 def list_view(request):
-    clinic = active_clinic(request.user)
-    qs = _visible_issues(request.user, clinic)
+    from core.services import list_branch_scope
+
+    branch = list_branch_scope(request)
+    qs = _visible_issues(request.user, branch["scope"])
 
     issue_type = request.GET.get("tipe") or ""
     status = request.GET.get("status") or ""
@@ -92,7 +95,8 @@ def list_view(request):
         "issues/list.html",
         {
             "issues": qs[:200],
-            "counters": issue_counters(clinic),
+            "counters": issue_counters(branch["scope"]),
+            **branch,
             "types": IssueType.choices,
             "statuses": IssueStatus.choices,
             "filters": {"tipe": issue_type, "status": status, "q": q, "terbuka": only_open},
