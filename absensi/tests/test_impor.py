@@ -87,6 +87,14 @@ def test_hari_libur_tidak_menghasilkan_cap(elvira):
     assert batch.rows_read == 0
 
 
+def test_jendela_shift_mesin_ikut_tersimpan(elvira):
+    """Kolom tempat mesin menulis jam pulang menandakan shift; itu keterangan, bukan tebakan."""
+    services.impor_kartu_laporan(_berkas([(1, ["14:02", "22:05"], [])]), "sep.xlsx")
+    masuk, keluar = AttendancePunch.objects.order_by("occurred_at")
+    assert masuk.tz_mesin == ""      # kolom masuk sama untuk kedua shift
+    assert keluar.tz_mesin == "II"   # pabrik tes menaruh cap kedua di kolom Timezone II
+
+
 def test_penanda_lokasi_lain_disimpan_sebagai_catatan(elvira):
     services.impor_kartu_laporan(_berkas([(5, ["09:04", "17:03"], ["Citraland"])]), "sep.xlsx")
     assert {p.note for p in AttendancePunch.objects.all()} == {"Citraland"}

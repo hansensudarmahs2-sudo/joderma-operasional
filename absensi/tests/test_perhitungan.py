@@ -515,3 +515,78 @@ def test_hari_tak_terduga_tetap_menampilkan_capnya(dunia):
     assert hari.masuk is not None and hari.keluar is not None
     assert hari.skor == 0
     assert Pengecualian.TANPA_ROSTER in hari.pengecualian
+
+
+# --- jendela shift yang dicatat mesin -------------------------------------------
+
+
+def _cap_tz(dunia, *pasangan, tanggal=TGL):
+    """`pasangan`: ("HH:MM", tz) — tz "I"/"II"/"" seperti kolom di ekspor mesin."""
+    for teks, tz in pasangan:
+        j, m = (int(x) for x in teks.split(":"))
+        hari = tanggal + dt.timedelta(days=1) if j < 6 else tanggal
+        AttendancePunch.objects.create(
+            user=dunia["user"], shift_date=tanggal, kind=JenisCap.MASUK, tz_mesin=tz,
+            occurred_at=timezone.make_aware(dt.datetime.combine(hari, dt.time(j, m))),
+        )
+
+
+def test_timezone_mesin_dipetakan_ke_cabang_menurut_jam_tutup(dunia):
+    from absensi.perhitungan import cabang_dari_timezone
+
+    cabang = [dunia["jemur"], dunia["citra"]]
+    assert cabang_dari_timezone("I", cabang) == dunia["citra"]    # tutup lebih awal
+    assert cabang_dari_timezone("II", cabang) == dunia["jemur"]
+    assert cabang_dari_timezone("", cabang) is None
+
+
+def test_timezone_mesin_diabaikan_bila_cabang_bukan_dua(dunia):
+    """Urutan jam tutup hanya cukup memetakan dua cabang; lebih dari itu perlu aturan lain."""
+    from absensi.perhitungan import cabang_dari_timezone
+
+    ketiga = Clinic.objects.create(
+        code="ketiga", name="Cabang ketiga", open_time=dt.time(10, 0), close_time=dt.time(19, 0)
+    )
+    assert cabang_dari_timezone("I", [dunia["jemur"], dunia["citra"], ketiga]) is None
+
+
+def test_keterangan_mesin_menjawab_hari_yang_tidak_bisa_ditebak_dari_jam(dunia):
+    """Datang lima jam lebih awal: polanya buntu, tetapi mesin tahu shift-nya."""
+    _cap_tz(dunia, ("08:55", ""), ("22:19", "II"))
+    hari = _hari(dunia)
+    assert hari.clinic == dunia["jemur"]
+    assert hari.datang_awal == 305        # inilah hari yang hilang bila hanya menebak pola
+    assert "mesin" in " ".join(hari.catatan)
+
+
+def test_keterangan_mesin_menjawab_baris_cap_tunggal(dunia):
+    """Satu cap saja tidak punya pola untuk dibaca, tetapi kolomnya tetap menandakan shift."""
+    _cap_tz(dunia, ("21:02", "I"))
+    hari = _hari(dunia)
+    assert hari.clinic == dunia["citra"]
+    assert hari.lembur_pulang == 2
+
+
+def test_keterangan_mesin_dipakai_sebelum_dugaan_pola(dunia):
+    """Hari yang polanya mengarah ke Citraland, tetapi mesin bilang Timezone II."""
+    _cap_tz(dunia, ("11:39", ""), ("22:38", "II"))
+    hari = _hari(dunia)
+    assert hari.clinic == dunia["jemur"]          # dugaan pola akan menyebutnya ambigu
+    assert hari.datang_awal == 141
+
+
+def test_dugaan_pola_dipakai_bila_mesin_tidak_memberi_keterangan(dunia):
+    _cap_tz(dunia, ("14:02", ""), ("22:05", ""))
+    hari = _hari(dunia)
+    assert hari.clinic == dunia["jemur"]
+    assert "pola" in " ".join(hari.catatan)
+
+
+def test_roster_tetap_menang_atas_keterangan_mesin(dunia):
+    """Jadwal jaga yang sudah diisi manusia tidak boleh ditimpa keterangan mesin."""
+    _roster(dunia, DutyStatus.MASUK, "citra")
+    _cap_tz(dunia, ("13:48", ""), ("22:39", "II"))
+    hari = _hari(dunia)
+    assert hari.clinic == dunia["citra"]
+    assert hari.cabang_dari_dugaan is False
+    assert Pengecualian.CABANG_BEDA in hari.pengecualian

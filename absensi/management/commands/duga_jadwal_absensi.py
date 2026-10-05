@@ -4,6 +4,10 @@ Dipakai untuk bulan seperti September 2026: capnya ada, tetapi jadwal jaganya ti
 ada di sistem dan PDF jadwal awal bulan terbukti tidak bisa dipercaya (17 hari Naya
 tercatat di Jemur padahal jam capnya Citraland sepanjang bulan).
 
+Sumber pertamanya bukan tebakan: mesin sidik jari mencatat sendiri jendela shift
+("Timezone I" / "Timezone II") pada tiap cap pulang. Dugaan dari pola jam hanya
+dipakai bila keterangan itu tidak ada.
+
 Perintah ini **tidak pernah menimpa** baris jadwal jaga yang sudah ada: roster tetap
 sumber kebenaran bila ada. Ia hanya mengisi hari yang kosong, dan hanya bila polanya
 mengarah ke satu cabang tanpa ragu. Hari yang tidak bisa diduga dibiarkan kosong
@@ -22,7 +26,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from absensi.models import AttendanceDevice, AttendancePunch
-from absensi.perhitungan import duga_cabang
+from absensi.perhitungan import cabang_dari_timezone, duga_cabang
 from audit.models import AuditAction
 from audit.services import log_event
 from core.models import Clinic
@@ -70,7 +74,7 @@ class Command(BaseCommand):
             per_hari[(p.user_id, p.shift_date)].append(p)
             orang[p.user_id] = p.user
 
-        usul: list[tuple[int, dt.date, Clinic]] = []
+        usul: list[tuple[int, dt.date, Clinic, str]] = []
         gagal: list[tuple[str, dt.date, str, str, str]] = []
         dilewati = 0
 
@@ -81,7 +85,11 @@ class Command(BaseCommand):
             caps.sort(key=lambda c: c.occurred_at)
             masuk = caps[0].occurred_at
             keluar = caps[-1].occurred_at if len(caps) > 1 else None
-            duga, alasan = duga_cabang(masuk, keluar, tanggal, cabang)
+            tz = next((c.tz_mesin for c in reversed(caps) if c.tz_mesin), "")
+            duga = cabang_dari_timezone(tz, cabang)
+            alasan = "MESIN"
+            if duga is None:
+                duga, alasan = duga_cabang(masuk, keluar, tanggal, cabang)
             if duga is None:
                 gagal.append((
                     orang[uid].username, tanggal,
@@ -90,23 +98,25 @@ class Command(BaseCommand):
                     alasan,
                 ))
                 continue
-            usul.append((uid, tanggal, duga))
+            usul.append((uid, tanggal, duga, alasan))
 
         # Cabang asal ditebak dari cabang yang paling sering muncul pada bulan itu.
         # Hanya dipakai saat seseorang mengecap di hari off, jadi perkiraan cukup.
         asal: dict[int, Clinic] = {}
-        for uid in {u for u, _, _ in usul}:
-            hitung = Counter(c.pk for u, _, c in usul if u == uid)
+        for uid in {u for u, _, _, _ in usul}:
+            hitung = Counter(c.pk for u, _, c, _ in usul if u == uid)
             asal[uid] = next(c for c in cabang if c.pk == hitung.most_common(1)[0][0])
 
         self.stdout.write(self.style.MIGRATE_HEADING(f"Dugaan jadwal jaga {mulai:%B %Y}"))
         self.stdout.write(f"  Hari dengan cap        : {len(per_hari)}")
         self.stdout.write(f"  Sudah ada di jadwal    : {dilewati} (tidak disentuh)")
-        self.stdout.write(f"  Bisa diduga            : {len(usul)}")
+        dari_mesin = sum(1 for *_, a in usul if a == "MESIN")
+        self.stdout.write(f"  Terbaca dari mesin     : {dari_mesin}")
+        self.stdout.write(f"  Diduga dari pola jam   : {len(usul) - dari_mesin}")
         self.stdout.write(f"  Tidak bisa diduga      : {len(gagal)}")
 
         per_orang = Counter()
-        for uid, _, duga in usul:
+        for uid, _, duga, _ in usul:
             per_orang[(orang[uid].username, duga.name)] += 1
         if per_orang:
             self.stdout.write("\n  Rencana per staf:")
@@ -128,9 +138,9 @@ class Command(BaseCommand):
             DutyRoster(
                 user_id=uid, date=tanggal, clinic=duga, home_clinic=asal[uid],
                 status=DutyStatus.MASUK,
-                note="Diduga dari pola jam cap absensi; belum dikonfirmasi.",
+                note="Dari absensi (jendela shift mesin / pola jam); belum dikonfirmasi.",
             )
-            for uid, tanggal, duga in usul
+            for uid, tanggal, duga, _ in usul
         ])
         log_event(
             action=AuditAction.CREATE,

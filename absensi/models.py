@@ -14,6 +14,12 @@ Dua hal yang dipisahkan sengaja:
     adalah detik sebenarnya. Menghitung lembur dari ``occurred_at`` membuat 00.28
     menjadi +148 menit, bukan -1292 menit.
 
+``tz_mesin`` adalah keterangan mesin, bukan tebakan kami
+    Mesin punya dua jendela shift dan menaruh cap pulang di kolom milik jendela yang
+    dipakai hari itu. Itu jauh lebih dapat dipercaya daripada menebak shift dari
+    jamnya, dan ia menjawab justru hari-hari yang paling sulit ditebak: datang jauh
+    lebih awal, atau hanya ada satu cap.
+
 ``jenis`` boleh belum pasti
     Bila satu hari cuma punya satu cap, importer tidak menebak apakah itu masuk atau
     keluar; ia menandainya ``TIDAK_PASTI``. Yang punya jadwal adalah lapisan
@@ -119,6 +125,12 @@ class AttendancePunch(models.Model):
     shift_date = models.DateField("tanggal shift", db_index=True)
     occurred_at = models.DateTimeField("waktu cap")
     kind = models.CharField("jenis", max_length=12, choices=JenisCap.choices)
+    tz_mesin = models.CharField(
+        "jendela shift mesin", max_length=2, blank=True,
+        help_text='"I" atau "II": jendela shift yang dipakai mesin untuk cap ini, dibaca '
+                  "dari kolom tempat jamnya ditulis di ekspor. Kosong bila kolomnya tidak "
+                  "membedakan shift (cap masuk selalu begitu).",
+    )
     source = models.CharField(
         "sumber", max_length=12, choices=SumberCap.choices, default=SumberCap.FINGERPRINT
     )

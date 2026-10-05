@@ -122,7 +122,7 @@ Tujuh keadaan dilaporkan, bukan ditebak:
 | `TANPA_CAP` | Dijadwalkan masuk tetapi tidak ada cap |
 | `CAP_TUNGGAL` | Hanya satu cap; ditafsir dari kedekatan ke jam buka/tutup, sisi lain nol |
 | `CABANG_BEDA` | Jam cap berpola cabang lain daripada yang tertulis di jadwal jaga |
-| `CABANG_DUGAAN` | Cabang diduga dari pola jam karena hari itu tidak ada di jadwal jaga |
+| `CABANG_DUGAAN` | Cabang ditentukan dari absensi (jendela shift mesin atau pola jam), bukan dari jadwal jaga |
 | `LEWAT_TENGAH_MALAM` | Cap pulang setelah tengah malam |
 | `LEMBUR_PANJANG` | Lembur sehari ≥ 180 menit; informasi saja, tidak memotong bayaran |
 
@@ -213,15 +213,38 @@ sistem**, hanya Oktober. Verifikasi di atas memuatnya dari hasil ekstraksi PDF
 jadwal awal bulan. Untuk bulan yang rosternya sudah terisi di sistem, langkah itu
 hilang dan perintah di atas cukup.
 
-## 4b. Dugaan pola cabang
+## 4b. Menentukan cabang tanpa jadwal jaga
 
 Untuk bulan yang jadwal jaganya belum terisi — atau terisi tetapi tidak bisa
-dipercaya, seperti September 2026 — cabang seseorang pada satu hari bisa diduga dari
-pola jam capnya. Jadwal jaga tetap menang bila ada; dugaan hanya mengisi yang kosong.
+dipercaya, seperti September 2026 — cabang seseorang pada satu hari masih bisa
+ditentukan. Jadwal jaga tetap menang bila ada; ini hanya mengisi yang kosong.
 
-### Yang menentukan adalah jam pulang, bukan jam masuk
+Ada dua sumber, dan urutannya penting.
 
-Ini bukan detail teknis, melainkan inti aturannya. Jam kerja Citraland (12.00–21.00)
+### Sumber pertama: jendela shift yang dicatat mesin
+
+Mesin sidik jari punya dua jendela shift, "Timezone I" dan "Timezone II", dan
+**menaruh cap pulang di kolom milik jendela yang dipakai hari itu**. Keterangan itu
+ada di dalam berkas ekspor sejak awal; ia bukan tebakan kami. Cap masuk selalu jatuh
+di kolom Masuk Timezone I apa pun shift-nya, jadi yang membawa keterangan hanya cap
+pulang.
+
+Pemetaannya diturunkan dari urutan jam tutup, bukan dari pengaturan terpisah yang
+bisa lupa diisi: Timezone I adalah jendela yang lebih awal (Citraland, tutup 21.00),
+Timezone II yang lebih malam (Jemur, tutup 22.00). Bila suatu saat ada lebih dari dua
+cabang, urutan saja tidak cukup dan keterangan mesin diabaikan.
+
+Pada September 2026 keterangan ini tersedia untuk **328 dari 328 hari (100%)**, dan
+benar pada 16 dari 16 hari yang jawabannya sudah diketahui dari analisis manual
+terpisah — termasuk hari visitasi dan seluruh baris cap tunggal, yaitu justru hari
+yang paling sulit ditebak dari jamnya.
+
+### Sumber kedua: dugaan dari pola jam
+
+Dipakai hanya bila kolom mesin tidak memberi keterangan.
+
+**Yang menentukan adalah jam pulang, bukan jam masuk.** Ini bukan detail teknis,
+melainkan inti aturannya. Jam kerja Citraland (12.00–21.00)
 seluruhnya termuat di dalam "hari Jemur (14.00–22.00) yang datang dua jam lebih
 awal", dan datang awal itu dibayar. Jadi **jam masuk tidak pernah bisa membedakan
 keduanya**. Jam pulang bisa: orang Citraland pulang sekitar 21.00, orang Jemur
@@ -244,35 +267,14 @@ menit. Angka 5 menit pada toleransi pulang-awal diuji terhadap 328 hari Septembe
 0 dan 5 menit benar sepuluh-duanya; mulai 10 menit, hari Rahayu 18 September (pulang
 21.51) ikut cocok dengan Jemur dan jadi ambigu.
 
-### Hasil pada September 2026
+Sendirian, dugaan pola hanya mencapai 305 dari 328 hari (93%) pada September 2026,
+dan skor hasilnya **2896 menit (48 jam) lebih rendah** daripada dengan jadwal
+lengkap. Selisihnya persis 23 hari yang tidak terduga — hari visitasi dan hari datang
+awal lainnya. Masuk akal: datang sangat awal membuat jam masuk jauh dari jam buka
+cabang mana pun, jadi hari yang paling menguntungkan staf adalah hari yang paling
+sulit ditebak dari jamnya. Keterangan mesin menutup seluruh selisih itu.
 
-| | Hari |
-|---|---|
-| Terduga satu cabang | 305 (93%) |
-| Cocok dua cabang, tidak diduga | 15 |
-| Tidak cocok cabang mana pun | 8 |
-
-Dugaan itu **memperbaiki** kekeliruan terbesar PDF jadwal: Naya terduga Citraland 26
-hari, sedangkan PDF menaruhnya di Jemur 17 hari.
-
-### Tetapi dugaan saja tidak cukup
-
-Skor hasil dugaan murni dibandingkan skor dengan jadwal jaga lengkap:
-
-```
-elvira  1336 vs 1948   -612      lia      828 vs 1134  -306
-arsi    1146 vs 1759   -613      ayu      379 vs  554  -175
-desy    1184 vs 1737   -553      yani     734 vs  838  -104
-luki    1114 vs 1344   -230      ...
-                                 total  -2896 menit (48 jam)
-```
-
-Selisihnya persis 23 hari yang tidak terduga — dan hari-hari itu **justru yang
-paling bernilai**: hari pendampingan visitasi dan hari datang awal lainnya. Masuk
-akal: datang sangat awal membuat jam masuk jauh dari jam buka cabang mana pun, jadi
-hari yang paling menguntungkan staf adalah hari yang paling sulit ditebak.
-
-**Karena itu dugaan dipakai untuk menyusun jadwal jaga, bukan menggantikannya:**
+### Menyusun jadwal jaga dari absensi
 
 ```bash
 python manage.py duga_jadwal_absensi 2026-09            # lihat rencananya
@@ -280,10 +282,15 @@ python manage.py duga_jadwal_absensi 2026-09 --simpan   # tulis 305 baris
 ```
 
 Perintah itu tidak pernah menimpa baris yang sudah ada, dan setiap baris yang
-dibuatnya bercatat "Diduga dari pola jam cap absensi; belum dikonfirmasi". Hari yang
-tidak terduga **dibiarkan kosong** supaya tetap terlihat sebagai lubang yang harus
-diisi manusia, bukan ditutup dengan tebakan. Di halaman, hari yang cabangnya dari
-dugaan diberi tanda `dugaan`.
+dibuatnya bercatat "belum dikonfirmasi". Hari yang tidak bisa ditentukan **dibiarkan
+kosong** supaya tetap terlihat sebagai lubang yang harus diisi manusia, bukan ditutup
+dengan tebakan. Di halaman, hari semacam itu diberi tanda `dugaan`.
+
+Pada September 2026 perintah ini menghasilkan 328 baris, seluruhnya dari keterangan
+mesin. Skornya dibandingkan perhitungan manual terpisah: **10 dari 13 staf cocok
+persis**, dan tiga yang berbeda justru memperbaiki PDF jadwal — Luki +91 (tgl 18 dan
+24 ternyata Jemur), Yani −30, Rahayu −72 (tgl 18 ternyata Citraland). Ketiganya sama
+persis dengan besaran koreksi yang dihitung terpisah saat memeriksa PDF.
 
 ## 5. Batasan yang diketahui
 
@@ -302,9 +309,10 @@ jadi aman sekarang; shift yang benar-benar mulai jam 5 pagi akan salah tanggal.
 
 **Dugaan pola tidak bisa membedakan dua hal yang memang serupa.** Jam kerja
 Citraland (12.00–21.00) seluruhnya termuat di dalam "hari Jemur yang datang dua jam
-lebih awal", dan datang awal itu dibayar. Pembedanya hanya jam pulang. Lihat bagian
-4b. Pada September 2026, 23 dari 328 hari tidak bisa diduga — dan hari-hari itu
-justru yang paling bernilai.
+lebih awal", dan datang awal itu dibayar. Pembedanya hanya jam pulang, dan 23 dari
+328 hari September tetap tidak terjawab. Keterangan jendela shift dari mesin
+menutupnya seluruhnya — tetapi bila suatu saat ekspor mesin tidak lagi memuat kolom
+itu, batasan ini kembali berlaku. Lihat bagian 4b.
 
 **Tafsir `CAP_TUNGGAL` bisa keliru.** Satu cap ditafsir masuk atau pulang dari
 kedekatannya ke jam buka/tutup. Orang yang lupa cap masuk lalu pulang sangat awal
@@ -339,7 +347,7 @@ Pada verifikasi September satu baris semacam itu menggeser skor 127 menit.
 
 | Kode | Pertanyaan | Keadaan sekarang | Yang perlu diputuskan |
 |---|---|---|---|
-| **D6** | Ambang penandaan cabang | Diganti aturan dugaan pola (bagian 4b): toleransi masuk 60 menit, pulang-awal 5 menit | Angka 90 menit sudah tidak ada. Yang tersisa: apakah 305 baris jadwal September hasil dugaan diterima setelah ditinjau |
+| **D6** | Ambang penandaan cabang | Tidak lagi dipakai pada data nyata: cabang kini dibaca dari jendela shift mesin (bagian 4b). Dugaan pola tersisa sebagai cadangan | Yang tersisa: apakah 328 baris jadwal September hasil pembacaan absensi diterima setelah ditinjau |
 
 **D6 — mengapa ada angka 90 dan dari mana asalnya.** Angka itu **bukan** aturan
 bayaran dan bukan keputusan Anda; saya yang memilihnya sebagai titik awal, dan saya

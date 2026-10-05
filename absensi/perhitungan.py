@@ -170,6 +170,25 @@ def _menit(selisih: dt.timedelta) -> int:
     return int(selisih.total_seconds() // 60)
 
 
+def cabang_dari_timezone(tz: str, cabang) -> Clinic | None:
+    """Cabang menurut jendela shift yang dicatat mesin sidik jari.
+
+    Mesin menandai tiap cap pulang dengan jendela shift yang dipakai hari itu.
+    Pemetaannya diturunkan dari urutan jam tutup, bukan dari pengaturan terpisah yang
+    bisa lupa diisi: "Timezone I" adalah jendela yang lebih awal, "Timezone II" yang
+    lebih malam. Pada dua cabang sekarang itu berarti Citraland (tutup 21.00) dan
+    Jemur (tutup 22.00).
+
+    Hanya berlaku untuk tepat dua cabang aktif. Lebih dari itu, urutan saja tidak
+    cukup untuk memetakan dan keterangan mesin diabaikan — dugaan pola mengambil
+    alih, dan hari yang tidak terduga tetap terlihat sebagai lubang.
+    """
+    if tz not in ("I", "II") or len(cabang) != 2:
+        return None
+    urut = sorted(cabang, key=lambda c: c.close_time)
+    return urut[0] if tz == "I" else urut[1]
+
+
 def duga_cabang(
     masuk, keluar, tanggal: dt.date, cabang, toleransi: int | None = None
 ) -> tuple[Clinic | None, str]:
@@ -259,7 +278,17 @@ def hitung_hari(
             return hasil
         masuk = caps[0].occurred_at
         keluar = caps[-1].occurred_at if len(caps) > 1 else None
-        duga, alasan = duga_cabang(masuk, keluar, tanggal, cabang)
+
+        # Keterangan mesin lebih dulu: ia tahu jendela shift yang sebenarnya dipakai,
+        # termasuk pada hari yang jamnya tidak mungkin ditebak (datang jauh lebih awal,
+        # atau hanya ada satu cap).
+        tz = next((c.tz_mesin for c in reversed(caps) if c.tz_mesin), "")
+        duga = cabang_dari_timezone(tz, cabang)
+        sumber = "jendela shift yang dicatat mesin"
+        alasan = "MESIN"
+        if duga is None:
+            duga, alasan = duga_cabang(masuk, keluar, tanggal, cabang)
+            sumber = "pola jamnya"
         if duga is None:
             # Capnya tetap ditampilkan walau tidak dinilai: hari ini perlu diisi manusia,
             # dan yang mengisinya butuh melihat jamnya.
@@ -275,7 +304,7 @@ def hitung_hari(
         hasil.cabang_dari_dugaan = True
         hasil.pengecualian.append(Pengecualian.CABANG_DUGAAN)
         hasil.catatan.append(
-            f"Tidak ada di jadwal jaga; polanya mengarah ke {duga.name}, jadi jam itu yang dipakai."
+            f"Tidak ada di jadwal jaga; {sumber} mengarah ke {duga.name}, jadi jam itu yang dipakai."
         )
         libur = False
     else:
@@ -329,7 +358,10 @@ def hitung_hari(
             hasil.pengecualian.append(Pengecualian.LEMBUR_PANJANG)
 
     if not hasil.cabang_dari_dugaan:
-        duga, _ = duga_cabang(hasil.masuk, hasil.keluar, tanggal, cabang)
+        tz = next((c.tz_mesin for c in reversed(caps) if c.tz_mesin), "")
+        duga = cabang_dari_timezone(tz, cabang) or duga_cabang(
+            hasil.masuk, hasil.keluar, tanggal, cabang
+        )[0]
         if duga is not None and duga.pk != clinic.pk:
             hasil.pengecualian.append(Pengecualian.CABANG_BEDA)
             hasil.catatan.append(

@@ -11,6 +11,10 @@ Jenis cap tidak ditebak-tebak: cap paling awal menjadi MASUK, paling akhir menja
 KELUAR, dan bila satu hari hanya punya satu cap jenisnya TIDAK_PASTI. Lapisan
 perhitungan yang memegang jadwal shift-lah yang menafsirkannya, dan melaporkannya
 sebagai pengecualian.
+
+Satu keterangan lagi ikut disimpan apa adanya: `tz_mesin`, jendela shift menurut
+kolom tempat mesin menulis jam itu. Mesin mencatatnya sendiri, jadi ia bukan tebakan
+dan tidak ditafsirkan di sini.
 """
 from __future__ import annotations
 
@@ -100,15 +104,18 @@ def impor_kartu_laporan(
             if not harian.jam:
                 continue
             baris_terbaca += 1
-            waktu = sorted(waktu_cap(harian.tanggal, j, batas_dini_jam) for j in harian.jam)
+            waktu = sorted(
+                (waktu_cap(harian.tanggal, c.jam, batas_dini_jam), c.timezone) for c in harian.cap
+            )
             catatan = ", ".join(p for p in harian.penanda if p.strip().lower() != parser.LABEL_ABSEN)
-            for urutan, saat in enumerate(waktu):
+            for urutan, (saat, tz) in enumerate(waktu):
                 calon.append(
                     AttendancePunch(
                         user=alat.user,
                         shift_date=harian.tanggal,
                         occurred_at=saat,
                         kind=_jenis(urutan, len(waktu)),
+                        tz_mesin=tz,
                         source=SumberCap.FINGERPRINT,
                         device=alat,
                         import_batch=batch,

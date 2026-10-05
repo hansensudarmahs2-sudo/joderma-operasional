@@ -12,6 +12,12 @@ Bentuk berkasnya tidak biasa, jadi aturan bacanya ditulis di sini:
 - Sel bisa berisi teks, bukan jam: "Absen" (libur terjadwal), atau nama tempat seperti
   "Citraland"/"BLOK F" (bertugas di tempat lain). Teks semacam itu dikembalikan apa
   adanya sebagai penanda, tidak dibuang diam-diam.
+- **Kolom tempat jam pulang ditulis menandakan shift-nya.** Mesin punya dua jendela
+  shift ("Timezone I" dan "Timezone II") dan menaruh cap pulang di kolom milik
+  jendela yang dipakai hari itu. Itu keterangan yang dicatat mesin sendiri, jauh
+  lebih dapat dipercaya daripada menebak dari jamnya, jadi posisi kolom tiap jam
+  ikut dikembalikan. Cap masuk selalu jatuh di kolom Masuk Timezone I apa pun
+  shift-nya, sehingga tidak membawa keterangan apa-apa.
 - Jam dikembalikan sebagai jam dinding mentah. Penentuan tanggal sebenarnya untuk cap
   lewat tengah malam dilakukan di `services`, yang tahu batas dini hari cabang.
 
@@ -49,12 +55,47 @@ class FileTidakDikenal(ValueError):
     """Berkas bukan ekspor Kartu Laporan yang dikenali."""
 
 
+# Jarak kolom dari kolom tanggal, menurut header ekspor:
+#   +1 Timezone I Masuk   +3 Timezone I Keluar
+#   +6 Timezone II Masuk  +8 Timezone II Keluar
+# Mesin menulis cap pulang di +3 atau +6 tergantung jendela shift hari itu.
+OFFSET_TIMEZONE_II = 6
+
+
+def timezone_mesin(offset: int) -> str:
+    """Jendela shift menurut kolom tempat jam itu ditulis.
+
+    Mengembalikan "I", "II", atau "" untuk kolom Masuk Timezone I, yang dipakai cap
+    masuk pada kedua shift sehingga tidak membedakan apa pun.
+    """
+    if offset >= OFFSET_TIMEZONE_II:
+        return "II"
+    return "I" if offset > 1 else ""
+
+
+@dataclass
+class Cap:
+    jam: dt.time
+    # "I", "II", atau "" bila kolomnya tidak membedakan shift.
+    timezone: str = ""
+
+
 @dataclass
 class BarisHarian:
     tanggal: dt.date
-    jam: list[dt.time] = field(default_factory=list)
+    cap: list[Cap] = field(default_factory=list)
     penanda: list[str] = field(default_factory=list)
     baris_sumber: int = 0
+
+    @property
+    def jam(self) -> list[dt.time]:
+        return [c.jam for c in self.cap]
+
+    @property
+    def timezone_shift(self) -> str:
+        """Jendela shift hari itu, dari cap yang kolomnya membedakan (yaitu cap pulang)."""
+        punya = [c.timezone for c in self.cap if c.timezone]
+        return punya[-1] if punya else ""
 
     @property
     def libur(self) -> bool:
@@ -210,10 +251,10 @@ def _baca_blok(sel: dict, baris_jangkar: int, kiri: int, kanan: int, hasil: Hasi
                 if j > 23 or mnt > 59:
                     hasil.peringatan.append(f"ID {uid} baris {baris}: jam '{teks}' tidak sah, dilewati.")
                     continue
-                harian.jam.append(dt.time(j, mnt))
+                harian.cap.append(Cap(dt.time(j, mnt), timezone_mesin(kolom - kiri)))
             elif not _angka(teks):
                 harian.penanda.append(teks)
-        harian.jam.sort()
+        harian.cap.sort(key=lambda c: c.jam)
         kartu.hari.append(harian)
         baris += 1
     return kartu
