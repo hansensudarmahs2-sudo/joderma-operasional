@@ -68,9 +68,11 @@ def index(request):
     tahun, bulan = _bulan(request)
     mulai, selesai = _rentang(tahun, bulan)
 
-    ringkasan = hitung_periode(mulai, selesai)
+    semua = hitung_periode(mulai, selesai)
+    ringkasan = [s for s in semua if s.dinilai]
+    rekam_saja = [s for s in semua if not s.dinilai]
     perlu = sorted(
-        (h for s in ringkasan for h in s.pengecualian), key=lambda h: (h.tanggal, str(h.user))
+        (h for s in semua for h in s.pengecualian), key=lambda h: (h.tanggal, str(h.user))
     )
     return render(
         request,
@@ -80,6 +82,7 @@ def index(request):
             "tabs": TABS,
             "bulan": _nav(tahun, bulan),
             "ringkasan": ringkasan,
+            "rekam_saja": rekam_saja,
             "perlu": perlu,
             "ambang_awal": AMBANG_DATANG_AWAL_MENIT,
             "bisa_impor": can_edit_absensi(request.user),
@@ -104,6 +107,30 @@ def staf(request, pk: int):
             "bulan": _nav(tahun, bulan),
             "staf": ringkasan[0] if ringkasan else None,
             "ambang_awal": AMBANG_DATANG_AWAL_MENIT,
+        },
+    )
+
+
+@login_required
+def saya(request):
+    """Jam kerja sendiri (keputusan D5).
+
+    Terbuka untuk siapa pun yang login, tetapi hanya menampilkan data dirinya: tidak
+    ada parameter staf, jadi tidak ada cara meminta data orang lain dari sini. Staf
+    yang paling cepat tahu capnya hilang adalah staf itu sendiri.
+    """
+    tahun, bulan = _bulan(request)
+    mulai, selesai = _rentang(tahun, bulan)
+    ringkasan = hitung_periode(mulai, selesai, users=[request.user])
+    return render(
+        request,
+        "absensi/staf.html",
+        {
+            "orang": request.user,
+            "bulan": _nav(tahun, bulan),
+            "staf": ringkasan[0] if ringkasan else None,
+            "ambang_awal": AMBANG_DATANG_AWAL_MENIT,
+            "milik_sendiri": True,
         },
     )
 

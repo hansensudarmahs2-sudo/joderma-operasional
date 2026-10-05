@@ -60,6 +60,11 @@ class AttendanceDevice(models.Model):
         verbose_name="staf",
     )
     active = models.BooleanField("aktif", default=True)
+    recording_only = models.BooleanField(
+        "rekam saja, tanpa penilaian", default=False,
+        help_text="Capnya disimpan dan bisa dilihat, tetapi tidak masuk papan skor dan "
+                  "tidak menghasilkan daftar pengecualian. Untuk staf di luar skema shift dua cabang.",
+    )
     note = models.CharField("catatan", max_length=200, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

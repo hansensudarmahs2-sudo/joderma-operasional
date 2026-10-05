@@ -66,6 +66,7 @@ OWNER_ALLOWED = COMMON | {
     "jejak:index",  # Jejak kehadiran, baca saja
     "absensi:index",  # Absensi jam kerja, baca saja; unggah ditolak `can_edit_absensi`
     "absensi:staf",
+    "absensi:saya",
     "jejak:devices",  # perangkat dikenal, baca saja (POST ditolak di view)
     "direktur:kanban",
     "direktur:matrix",
@@ -94,6 +95,7 @@ ADMIN_ALLOWED = COMMON | {
     "core:config",
     "core:clinic_profile",
     "checklists:templates",
+    "absensi:saya",
     "jadwal:*",
 }
 
@@ -107,7 +109,11 @@ STAF_BLOCKED = {
     "owner:*",
     "audit:*",
     "jejak:*",
-    "absensi:*",
+    # Jam kerja seluruh tim tertutup untuk staf; jam kerjanya sendiri terbuka
+    # lewat "Absensi saya" (keputusan D5), jadi dilarang per rute, bukan per namespace.
+    "absensi:index",
+    "absensi:staf",
+    "absensi:unggah",
     # Fase 7 (staf sederhana): grid tim diganti halaman "saya". Hari Ini dan Checklist Saya tetap
     # bisa dibuka (aksi hari dan pengisian checklist), hanya tidak ada di menu staf.
     "jadwal:roster",
@@ -413,6 +419,7 @@ def _staff_sections(user, flags) -> list[NavSection]:
     work = NavSection()
     work.add("Tugas hari ini", "core:today")
     work.add("Jadwal saya", "jadwal:mine")
+    work.add("Absensi saya", "absensi:saya")
     work.add("Istirahat saya", "breaks:mine")
     if flags["nurses"]:
         work.add("Tindakan saya", "nurses:mine")

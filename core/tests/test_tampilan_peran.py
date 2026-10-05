@@ -119,7 +119,9 @@ def test_director_menu_keeps_everything(client, clinic):
 def test_staff_menu_is_simple(client, clinic):
     client.force_login(_user(clinic, "yani", Role.PERAWAT, Role.STAF))
     menu = _nav(client.get(reverse("core:today")).content.decode())
-    assert menu[:4] == ["Tugas hari ini", "Jadwal saya", "Istirahat saya", "Tindakan saya"]
+    # "Absensi saya" (keputusan D5): jam kerjanya sendiri, bersebelahan dengan jadwalnya.
+    assert menu[:5] == ["Tugas hari ini", "Jadwal saya", "Absensi saya", "Istirahat saya",
+                        "Tindakan saya"]
     for label in ("Komplain", "Masukan", "Kerusakan", "Laporan Saya", "Masukan Saya", "Kebijakan"):
         assert label in menu
     for label in ("Hari Ini", "Checklist Saya", "Jadwal Jaga", "Jadwal Istirahat", "Giliran Perawat",

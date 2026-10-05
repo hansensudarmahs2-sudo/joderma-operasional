@@ -7,7 +7,7 @@ import pytest
 from django.utils import timezone
 
 from absensi import perhitungan
-from absensi.models import AttendancePunch, JenisCap
+from absensi.models import AttendanceDevice, AttendancePunch, JenisCap
 from absensi.perhitungan import Pengecualian, hitung_periode, laporan_pengecualian
 from accounts.models import User
 from core.models import Clinic
@@ -277,3 +277,107 @@ def test_hari_off_menyebut_statusnya(dunia):
 def test_hari_tanpa_roster_menyebut_ketiadaannya(dunia):
     _cap(dunia, "14:02", "22:05")
     assert _hari(dunia).status_label == "Tidak ada di jadwal"
+
+
+# --- D1: staf "rekam saja" ------------------------------------------------------
+
+
+def test_staf_rekam_saja_capnya_tersimpan_tetapi_tidak_dinilai(dunia):
+    """Izul/Isya/Lina di luar jadwal dua cabang; menilainya dengan jam Jemur/Citraland
+    hanya menghasilkan angka yang tidak berarti, jadi capnya direkam tanpa skor."""
+    AttendanceDevice.objects.create(
+        device_uid="2", device_label="Izul", user=dunia["user"], recording_only=True
+    )
+    _cap(dunia, "08:04", "17:03")
+    (staf,) = hitung_periode(TGL, TGL, users=[dunia["user"]])
+    hari = staf.hari[0]
+    assert staf.dinilai is False
+    assert staf.skor == 0
+    assert hari.masuk is not None and hari.keluar is not None
+    assert (hari.terlambat, hari.lembur_pulang, hari.datang_awal) == (0, 0, 0)
+
+
+def test_staf_rekam_saja_tidak_membanjiri_daftar_pengecualian(dunia):
+    """Tanpa jadwal jaga, setiap harinya akan jadi TANPA_ROSTER dan menenggelamkan
+    temuan yang benar-benar perlu dilihat."""
+    AttendanceDevice.objects.create(
+        device_uid="2", device_label="Izul", user=dunia["user"], recording_only=True
+    )
+    _cap(dunia, "08:04", "17:03")
+    assert laporan_pengecualian(TGL, TGL) == []
+
+
+def test_staf_rekam_saja_selalu_di_bawah_yang_dinilai(dunia):
+    AttendanceDevice.objects.create(
+        device_uid="2", device_label="Izul", user=dunia["user"], recording_only=True
+    )
+    _cap(dunia, "08:04", "17:03")
+    lain = User.objects.create_user(username="arsi", password="TestPassword123!")
+    DutyRoster.objects.create(
+        user=lain, date=TGL, home_clinic=dunia["jemur"], clinic=dunia["jemur"],
+        status=DutyStatus.MASUK,
+    )
+    AttendancePunch.objects.create(
+        user=lain, shift_date=TGL, kind=JenisCap.MASUK,
+        occurred_at=timezone.make_aware(dt.datetime.combine(TGL, dt.time(14, 0))),
+    )
+    urut = [s.user.username for s in hitung_periode(TGL, TGL)]
+    assert urut.index("arsi") < urut.index("elvira")
+
+
+# --- D2: hari Minggu adalah hari biasa ------------------------------------------
+
+
+def test_hari_minggu_diperlakukan_sama_dengan_hari_kerja_lain(dunia):
+    """Keputusan product owner (D2): Minggu hari biasa, penggantinya hari off di roster.
+    Jadi tidak boleh ada premi atau perlakuan khusus di perhitungan."""
+    minggu = dt.date(2026, 9, 6)
+    senin = dt.date(2026, 9, 7)
+    assert minggu.weekday() == 6 and senin.weekday() == 0
+    for tanggal in (minggu, senin):
+        _roster(dunia, tanggal=tanggal)
+        _cap(dunia, "14:10", "22:40", tanggal=tanggal)
+    (staf,) = hitung_periode(minggu, senin, users=[dunia["user"]])
+    hari_minggu, hari_senin = staf.hari
+    assert (hari_minggu.terlambat, hari_minggu.lembur_pulang) == (10, 40)
+    assert hari_minggu.skor == hari_senin.skor
+
+
+def test_off_tetapi_mengecap_tetap_dibayar(dunia):
+    """D2: dibayar. Tetap ditandai karena jam shift-nya diambil dari cabang asal."""
+    _roster(dunia, DutyStatus.OFF)
+    _cap(dunia, "14:00", "22:40")
+    hari = _hari(dunia)
+    assert hari.skor == 40
+    assert Pengecualian.LIBUR_TAPI_NGECAP in hari.pengecualian
+
+
+# --- D3: lembur panjang tanpa persetujuan ---------------------------------------
+
+
+def test_lembur_panjang_hanya_informasi_tidak_memotong(dunia):
+    """D3: tidak perlu persetujuan saat ini, jadi tandanya tidak boleh mengubah angka."""
+    _roster(dunia)
+    _cap(dunia, "14:00", "03:00")
+    hari = _hari(dunia)
+    assert Pengecualian.LEMBUR_PANJANG in hari.pengecualian
+    assert hari.lembur_pulang == 300 and hari.skor == 300
+
+
+def test_ambang_penandaan_tidak_pernah_mengubah_angka(dunia, monkeypatch):
+    """Penjaga D6: CABANG_BEDA dan LEMBUR_PANJANG hanya menandai.
+
+    Mengubah kedua ambang itu boleh menambah atau mengurangi tanda, tetapi tidak
+    boleh menggeser terlambat, lembur, datang awal, atau skor satu menit pun.
+    """
+    _roster(dunia, DutyStatus.MASUK, "citra")
+    _cap(dunia, "13:48", "22:39")
+    asli = _hari(dunia)
+    angka = (asli.terlambat, asli.lembur_pulang, asli.datang_awal, asli.skor)
+    assert asli.pengecualian  # pada ambang bawaan hari ini memang tertandai
+
+    monkeypatch.setattr(perhitungan, "AMBANG_CURIGA_CABANG_MENIT", 10_000)
+    monkeypatch.setattr(perhitungan, "AMBANG_LEMBUR_PANJANG_MENIT", 10_000)
+    longgar = _hari(dunia)
+    assert (longgar.terlambat, longgar.lembur_pulang, longgar.datang_awal, longgar.skor) == angka
+    assert longgar.pengecualian == []

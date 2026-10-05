@@ -196,7 +196,57 @@ def test_menu_direktur_memuat_absensi(client, dunia):
     assert "Evaluasi staf" in body
 
 
-def test_menu_staf_tidak_memuat_absensi(client, dunia):
+def test_menu_staf_memuat_absensi_saya_bukan_papan_skor(client, dunia):
+    """Staf melihat jam kerjanya sendiri (D5), bukan jam kerja seluruh tim."""
     _masuk(client, dunia["staf"])
     body = client.get(reverse("core:today")).content.decode()
-    assert reverse("absensi:index") not in body
+    assert f'href="{reverse("absensi:saya")}"' in body
+    assert f'href="{reverse("absensi:index")}"' not in body
+
+
+# --- absensi saya (D5) ----------------------------------------------------------
+
+
+def test_staf_boleh_membuka_absensi_saya(client, dunia):
+    _masuk(client, dunia["staf"])
+    body = client.get(reverse("absensi:saya"), {"bulan": BULAN}).content.decode()
+    assert "Absensi saya" in body
+    assert "148" in body            # lembur 4 Sep miliknya sendiri
+
+
+def test_absensi_saya_tidak_bisa_diminta_untuk_orang_lain(client, dunia):
+    """Tidak ada parameter staf di rute ini, jadi tidak ada cara meminta data orang lain."""
+    _masuk(client, dunia["staf"])
+    body = client.get(
+        reverse("absensi:saya"), {"bulan": BULAN, "orang": dunia["direktur"].pk, "pk": 1}
+    ).content.decode()
+    assert str(dunia["direktur"].display_name) not in body
+
+
+def test_absensi_saya_tanpa_login_diarahkan(client, dunia):
+    resp = client.get(reverse("absensi:saya"))
+    assert resp.status_code == 302 and "login" in resp["Location"]
+
+
+def test_staf_tetap_ditolak_membuka_rincian_orang_lain(client, dunia):
+    _masuk(client, dunia["staf"])
+    assert client.get(reverse("absensi:staf", args=[dunia["direktur"].pk])).status_code == 403
+
+
+def test_papan_skor_memisahkan_staf_rekam_saja(client, dunia):
+    """D1: capnya terlihat, tetapi tidak ikut diperingkat bersama yang dinilai."""
+    from absensi.models import AttendanceDevice
+
+    izul = User.objects.create_user(username="izul", password=SANDI, display_name="Izul")
+    AttendanceDevice.objects.create(
+        device_uid="2", device_label="Izul", user=izul, recording_only=True
+    )
+    AttendancePunch.objects.create(
+        user=izul, shift_date=TGL, kind=JenisCap.MASUK,
+        occurred_at=timezone.make_aware(dt.datetime.combine(TGL, dt.time(8, 4))),
+    )
+    _masuk(client, dunia["direktur"])
+    body = client.get(reverse("absensi:index"), {"bulan": BULAN}).content.decode()
+    assert "Direkam tanpa penilaian" in body
+    papan, rekam = body.split("Direkam tanpa penilaian", 1)
+    assert "Izul" in rekam and "Izul" not in papan

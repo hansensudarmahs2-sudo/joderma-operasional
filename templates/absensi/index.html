@@ -38,6 +38,21 @@
     </tbody>
   </table>
   <p class="meta">Skor = lembur pulang + datang awal − terlambat, dalam menit. Datang awal dihitung bila ≥ {{ ambang_awal }} menit; lembur pulang tanpa plafon.</p>
+  {% if rekam_saja %}
+  <h2 style="margin-top:1.2rem">Direkam tanpa penilaian</h2>
+  <p class="meta">Di luar jadwal jaga dua cabang, jadi jam shift-nya tidak diketahui dan skornya tidak dihitung. Capnya tetap tersimpan dan bisa dibuka.</p>
+  <table class="responsive">
+    <thead><tr><th>Nama</th><th>Hari dengan cap</th></tr></thead>
+    <tbody>
+    {% for s in rekam_saja %}
+      <tr>
+        <td data-label="Nama"><a href="{% url 'absensi:staf' s.user.pk %}?bulan={{ bulan.value }}">{{ s.user }}</a></td>
+        <td data-label="Hari dengan cap">{{ s.hari_kerja }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
   {% else %}
   <div class="card" style="margin-top:.8rem"><strong>Belum ada data untuk {{ bulan.label }}.</strong>
     <p class="meta" style="margin:.3rem 0 0">Unggah berkas ekspor mesin sidik jari di tab Impor berkas, dan pastikan jadwal jaga bulan ini sudah diisi.</p></div>

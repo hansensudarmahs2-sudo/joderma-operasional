@@ -5,8 +5,10 @@ mesin adalah user `heni`, "Agustin" adalah `nanda`, "Nadiya" adalah `naya`, "Rah
 adalah `ayu`. Pemetaan awal ini berasal dari ekspor September 2026; setelah dibuat,
 perubahannya lewat admin, bukan dengan mengedit berkas ini.
 
-ID yang pemiliknya belum punya user di sistem sengaja tidak dipetakan dan dilaporkan
-sebagai sisa, supaya tidak diam-diam hilang dari hasil impor.
+Izul, Isya, dan Lina tidak ada di jadwal jaga dua cabang, jadi jam shift-nya tidak
+diketahui dan skornya tidak berarti. Keputusan product owner (D1, Okt 2026): capnya
+tetap direkam, tetapi tidak dinilai. User mereka dibuat **nonaktif dan tanpa peran**
+— cukup untuk menautkan cap, tidak cukup untuk masuk aplikasi.
 """
 from __future__ import annotations
 
@@ -33,8 +35,13 @@ PEMETAAN = [
     ("18", "Nadiya", "naya"),
 ]
 
-# Ada di mesin, belum ada user-nya di sistem dan belum ada di jadwal jaga dua cabang.
-BELUM_ADA_USER = [("2", "Izul"), ("6", "Isya"), ("9", "Lina")]
+# D1: direkam saja. Tidak ada di jadwal jaga dua cabang, jadi tidak dinilai.
+# (ID di mesin, nama di mesin, username, nama tampilan)
+REKAM_SAJA = [
+    ("2", "Izul", "izul", "Izul"),
+    ("6", "Isya", "isya", "Isya"),
+    ("9", "Lina", "lina", "Lina"),
+]
 
 
 class Command(BaseCommand):
@@ -49,6 +56,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         kering = options["dry_run"]
         dibuat = diperbarui = 0
+        self.stdout.write("Staf yang dinilai:")
         for uid, label, username in PEMETAAN:
             user = User.objects.filter(username=username).first()
             if user is None:
@@ -67,8 +75,36 @@ class Command(BaseCommand):
                     alat.device_label, alat.user = label, user
                     alat.save(update_fields=["device_label", "user"])
 
-        for uid, label in BELUM_ADA_USER:
-            self.stdout.write(self.style.WARNING(f"  ! ID {uid} ({label}) belum punya user; capnya tidak akan diimpor."))
+        self.stdout.write("Staf rekam-saja (capnya direkam, tidak dinilai):")
+        for uid, label, username, nama in REKAM_SAJA:
+            user = User.objects.filter(username=username).first()
+            if user is None:
+                self.stdout.write(f"  + user nonaktif '{username}' ({nama})")
+                if not kering:
+                    user = User.objects.create_user(
+                        username=username, display_name=nama, is_active=False
+                    )
+                    user.set_unusable_password()
+                    user.save(update_fields=["password"])
+            if user is None:      # dry-run: belum ada user untuk ditautkan
+                self.stdout.write(f"  + ID {uid} {label} -> {username} (rekam saja)")
+                dibuat += 1
+                continue
+            alat = AttendanceDevice.objects.filter(device_uid=uid).first()
+            if alat is None:
+                self.stdout.write(f"  + ID {uid} {label} -> {username} (rekam saja)")
+                dibuat += 1
+                if not kering:
+                    AttendanceDevice.objects.create(
+                        device_uid=uid, device_label=label, user=user, recording_only=True,
+                        note="Di luar jadwal jaga dua cabang; capnya direkam, tidak dinilai (D1).",
+                    )
+            elif not alat.recording_only:
+                self.stdout.write(f"  ~ ID {uid} {label} ditandai rekam saja")
+                diperbarui += 1
+                if not kering:
+                    alat.recording_only = True
+                    alat.save(update_fields=["recording_only"])
 
         self.stdout.write(self.style.SUCCESS(f"{dibuat} dibuat, {diperbarui} diperbarui" + (" (dry-run)" if kering else "")))
         if kering:

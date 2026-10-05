@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Absensi {{ orang }}{% endblock %}
 {% block content %}
+{% if milik_sendiri %}
+<h1>Absensi saya</h1>
+<p class="sub">Jam kerja Anda {{ bulan.label }}, dari cap mesin sidik jari. Bila ada cap yang hilang atau jamnya keliru, beri tahu Direktur Operasional untuk dikoreksi.</p>
+{% else %}
 <p><a href="{% url 'absensi:index' %}?bulan={{ bulan.value }}">← Papan skor</a></p>
 <h1>{{ orang }}</h1>
 <p class="sub">Rincian harian {{ bulan.label }}: dari sinilah angka papan skor berasal.</p>
+{% endif %}
 
 <div class="month-pick">
   <a class="btn small secondary" href="?bulan={{ bulan.prev }}" aria-label="Bulan sebelumnya">‹</a>
@@ -45,6 +50,6 @@
 </table>
 <p class="meta">Satuan menit. Datang awal dihitung bila ≥ {{ ambang_awal }} menit; lembur pulang tanpa plafon.</p>
 {% else %}
-<div class="card"><strong>Belum ada cap maupun jadwal jaga untuk {{ orang }} di {{ bulan.label }}.</strong></div>
+<div class="card"><strong>Belum ada cap maupun jadwal jaga {% if milik_sendiri %}untuk Anda{% else %}untuk {{ orang }}{% endif %} di {{ bulan.label }}.</strong></div>
 {% endif %}
 {% endblock %}

@@ -1,7 +1,7 @@
 # Absensi Jam Kerja
 
-> **STATUS: Tahap 1-3 selesai — pemetaan ID, model cap, importer, mesin
-> perhitungan, laporan pengecualian, dan halaman web.**
+> **STATUS: Tahap 1-5 selesai — pemetaan ID, model cap, importer, mesin
+> perhitungan, laporan pengecualian, halaman web, dan "Absensi saya" untuk staf.**
 > Belum di-merge ke `master`; ada di branch `absensi-jam-kerja`.
 > **Belum boleh dipakai untuk penilaian nyata** sampai bagian 9 beres.
 
@@ -32,6 +32,14 @@ Cara itu punya satu kesalahan yang mahal dan beberapa yang menular:
 | Lembur pulang | Tanpa plafon |
 | Terlambat | Mengurangi skor |
 | Skor | `lembur_pulang + datang_awal − terlambat`, satuan menit |
+| Hari Minggu | Hari biasa. Tidak ada premi; penggantinya hari off di jadwal jaga (D2) |
+| Hari off tetapi tetap mengecap | Dibayar (D2) |
+| Lembur sangat panjang | Tidak perlu persetujuan (D3) |
+
+**Hanya satu angka di modul ini yang mengubah bayaran: ambang datang-awal 60 menit.**
+Ambang lain yang ada di kode (`AMBANG_CURIGA_CABANG_MENIT`,
+`AMBANG_LEMBUR_PANJANG_MENIT`) hanya memutuskan apakah suatu hari masuk daftar
+"Perlu dicek". Lihat bagian 6, D6.
 
 Sumber jam shift adalah `core.Clinic.open_time`/`close_time`, dan cabang per hari
 diambil dari `jadwal.DutyRoster.clinic` (bukan `home_clinic`, karena hari
@@ -56,7 +64,7 @@ templates/absensi/
   index.html / staf.html
 ```
 
-70 test di `absensi/tests/`. Seluruh suite repo 819 lulus.
+82 test di `absensi/tests/`. Seluruh suite repo 831 lulus.
 
 ### Halaman dan hak akses
 
@@ -66,9 +74,11 @@ templates/absensi/
 | `/absensi/?tab=pengecualian` | Hari yang perlu dilihat manusia, urut tanggal |
 | `/absensi/?tab=impor` | Unggah berkas ekspor mesin dan riwayat impor beserta peringatannya |
 | `/absensi/staf/<id>/` | Rincian harian satu staf: shift, cap, dan asal setiap angka |
+| `/absensi/saya/` | Jam kerja sendiri (D5). Tidak punya parameter staf, jadi tidak bisa diminta untuk orang lain |
 
 Direktur Operasional (dan Admin berakses penuh) membaca dan mengimpor; Owner hanya
-membaca. Staf tidak melihat halaman ini sama sekali. Pemeriksaannya ganda:
+membaca. Staf tidak melihat jam kerja tim, hanya jam kerjanya sendiri lewat
+"Absensi saya". Pemeriksaannya ganda:
 `core.permissions.can_view_absensi`/`can_edit_absensi` di view, dan `core/peran.py`
 untuk menu serta `PersonaAccessMiddleware`. Menunya masuk kelompok **Evaluasi staf**,
 bersebelahan dengan KPI dan Jejak.
@@ -137,9 +147,15 @@ Yang ditebalkan ejaannya berbeda jauh; ID 14 bahkan nama yang lain sama sekali.
 Importer memperingatkan bila nama pada berkas tidak lagi cocok dengan pemetaan,
 karena ID yang berpindah orang adalah kesalahan mahal yang sulit terlihat.
 
-ID **2 (Izul)**, **6 (Isya)**, dan **9 (Lina)** ada di mesin tetapi belum punya user
-dan tidak ada di jadwal jaga kedua cabang. Capnya tidak diimpor — 72 hari pada
-September 2026 — dan importer memperingatkannya setiap kali. Lihat keputusan **D1**.
+ID **2 (Izul)**, **6 (Isya)**, dan **9 (Lina)** tidak ada di jadwal jaga kedua
+cabang, jadi jam shift-nya tidak diketahui. Keputusan **D1**: capnya direkam, tidak
+dinilai. Devicenya ditandai `recording_only`, usernya dibuat **nonaktif dan tanpa
+peran** — cukup untuk menautkan cap, tidak cukup untuk masuk aplikasi. Pada September
+2026 itu menambah 128 cap (Isya 26 hari, Izul 19, Lina 27) yang sebelumnya hilang.
+
+Mereka muncul di papan skor pada bagian terpisah "Direkam tanpa penilaian", dan tidak
+pernah menghasilkan pengecualian — kalau dinilai, setiap harinya akan jadi
+`TANPA_ROSTER` dan menenggelamkan temuan yang benar-benar perlu dilihat.
 
 ## 4. Hasil verifikasi September 2026
 
@@ -195,10 +211,13 @@ blok per pita, batasnya jatuh ke kolom terjauh sheet.
 dan 05.59 dianggap milik shift hari sebelumnya. Kedua cabang mulai 12.00 dan 14.00,
 jadi aman sekarang; shift yang benar-benar mulai jam 5 pagi akan salah tanggal.
 
-**Ambang `CABANG_BEDA` 90 menit adalah heuristik.** Ia tidak menangkap semua
-kekeliruan: Rahayu 18 September (selisih 78 menit) lolos tanpa tanda. Menurunkan
-ambangnya menambah temuan palsu pada hari yang memang lembur panjang. Angka ini
-sebaiknya ditinjau setelah beberapa bulan data nyata.
+**Ambang `CABANG_BEDA` 90 menit adalah heuristik pengembang, bukan aturan bayaran.**
+Ia hanya memutuskan apakah satu hari ditandai untuk ditinjau. Ia tidak menangkap
+semua kekeliruan: Rahayu 18 September (selisih 78 menit) lolos tanpa tanda.
+Menurunkan ambangnya menambah temuan palsu pada hari yang memang lembur panjang.
+Angka ini layak ditinjau setelah beberapa bulan data nyata. Ada test
+(`test_ambang_penandaan_tidak_pernah_mengubah_angka`) yang menjaga agar mengubahnya
+tidak pernah menggeser skor.
 
 **Tafsir `CAP_TUNGGAL` bisa keliru.** Satu cap ditafsir masuk atau pulang dari
 kedekatannya ke jam buka/tutup. Orang yang lupa cap masuk lalu pulang sangat awal
@@ -219,17 +238,57 @@ Pada verifikasi September satu baris semacam itu menggeser skor 127 menit.
 
 ## 6. Keputusan yang masih terbuka
 
-| Kode | Pertanyaan | Keadaan sekarang | Yang berubah bila dijawab |
-|---|---|---|---|
-| **D1** | Izul (2), Isya (6), Lina (9) ikut skema ini? | Tidak punya user; capnya tidak diimpor | 72 hari cap September masuk atau tetap di luar. Mereka juga perlu jadwal jaga, kalau tidak skornya nol |
-| **D2** | Hari off tetapi tetap ngecap dibayar? | Dihitung memakai jam cabang asal, ditandai `LIBUR_TAPI_NGECAP` | 14 hari di September. Alternatifnya nol sampai disetujui atasan |
-| **D3** | Lembur sangat panjang perlu persetujuan? | `LEMBUR_PANJANG` ≥ 180 menit hanya informasi | Hari visitasi 22 Sep bernilai 324 menit untuk Elvira. Tanpa alur persetujuan, datang pagi atas inisiatif sendiri tidak bisa dibedakan dari penugasan |
-| **D4** | Boleh skor bulan lalu berubah? | Ya; selalu dihitung ulang dari roster terkini | Bila tidak, perlu "kunci periode": roster dan skor dibekukan setelah disetujui |
-| **D5** | Staf melihat jam kerjanya sendiri? | Tidak; halaman tertutup untuk staf | Menambah halaman "Absensi saya". Risiko rendah (hanya datanya sendiri), dan membantu staf menemukan cap yang hilang lebih cepat daripada Direktur |
-| **D6** | Ambang `CABANG_BEDA` tetap 90 menit? | 90 | Diturunkan menangkap lebih banyak, termasuk lebih banyak temuan palsu |
+### Sudah dijawab (product owner, Okt 2026)
 
-D1 dan D2 memengaruhi angka bulan ini. D3 dan D4 memengaruhi apakah angka ini layak
-dipakai membayar. D5 dan D6 bisa ditunda.
+| Kode | Pertanyaan | Jawaban | Keadaan di kode |
+|---|---|---|---|
+| **D1** | Izul (2), Isya (6), Lina (9) ikut skema ini? | Ikut, **rekam saja** — capnya disimpan, tidak dinilai | Selesai. `AttendanceDevice.recording_only`; user dibuat nonaktif tanpa peran. 72 hari cap September kini terekam |
+| **D2** | Hari off tetapi tetap ngecap dibayar? | **Dibayar.** Hari Minggu hari biasa, penggantinya hari off | Selesai. Sudah sesuai perilaku sebelumnya; ditambah test penjaga agar Minggu tidak pernah diberi perlakuan khusus |
+| **D3** | Lembur sangat panjang perlu persetujuan? | **Tidak, untuk saat ini** | Selesai. `LEMBUR_PANJANG` tetap hanya tanda, tidak memotong |
+| **D5** | Staf melihat jam kerjanya sendiri? | **Ya** | Selesai. `/absensi/saya/`, menu "Absensi saya". Tidak ada parameter staf di rute itu, jadi tidak ada cara meminta data orang lain |
+
+### Masih terbuka
+
+| Kode | Pertanyaan | Keadaan sekarang | Yang perlu diputuskan |
+|---|---|---|---|
+| **D4** | Boleh skor bulan lalu berubah? | Ya; selalu dihitung ulang dari roster terkini | Dijawab "boleh, tetapi hanya Direktur Operasional / Direktur Utama / Owner yang boleh mengubah". Dua hal belum jelas: berlaku untuk semua tanggal atau hanya tanggal lampau, dan apakah hak Admin serta Koordinator Shift dicabut. Lihat di bawah |
+| **D6** | Ambang `CABANG_BEDA` 90 menit | 90, pilihan pengembang | Dipertahankan, diubah, atau tanda ini dimatikan saja |
+
+**D4 — yang masih perlu diputuskan.** Saat ini jadwal jaga boleh diubah oleh Direktur
+Operasional, Admin, dan Koordinator Shift (untuk staf cabangnya; keputusan 3 Okt
+2026). Mengubahnya menjadi hanya tiga peran yang Anda sebut berarti:
+
+- **Koordinator Shift kehilangan hak mengatur tukar off harian** bila aturannya
+  berlaku untuk semua tanggal. Itu pekerjaan sehari-harinya.
+- **Admin kehilangan haknya**, padahal sekarang punya.
+- **Owner / Direktur Utama mendapat hak tulis baru.** Sekarang Owner hanya membaca di
+  seluruh aplikasi; ini akan jadi pengecualian pertama.
+
+Yang paling masuk akal menurut saya: batasan berlaku untuk **tanggal yang sudah
+lewat** saja, karena di situlah roster mengubah bayaran. Hari ini dan ke depan tetap
+seperti sekarang supaya Koordinator Shift bisa bekerja. Tetapi itu tafsiran saya,
+bukan keputusan Anda, jadi belum dikerjakan.
+
+**D6 — mengapa ada angka 90 dan dari mana asalnya.** Angka itu **bukan** aturan
+bayaran dan bukan keputusan Anda; saya yang memilihnya sebagai titik awal, dan saya
+keliru menaruhnya di daftar keputusan tanpa menyebut asalnya. Penjelasan lengkap:
+
+- Ambang **60 menit** milik Anda ada di `AMBANG_DATANG_AWAL_MENIT`. Itu satu-satunya
+  angka di modul ini yang menyentuh bayaran.
+- Ambang **90 menit** ada di `AMBANG_CURIGA_CABANG_MENIT`. Ia dipakai di satu tempat
+  saja: memutuskan apakah suatu hari muncul di daftar "Perlu dicek" dengan tanda
+  `CABANG_BEDA`. Ia tidak pernah menyentuh terlambat, lembur, datang awal, atau skor.
+- Cara kerjanya: untuk satu hari, dihitung seberapa jauh jam cap meleset dari jam
+  buka dan tutup tiap cabang. Bila cabang lain lebih cocok **90 menit atau lebih**,
+  hari itu ditandai agar manusia memeriksa apakah cabang di jadwal jaga keliru.
+- Contoh nyata, Rahayu 18 September 2026, cap 11.57–21.51:
+  meleset dari Jemur (14.00–22.00) sebesar `123 + 9 = 132` menit; dari Citraland
+  (12.00–21.00) sebesar `3 + 51 = 54` menit. Selisih 78 — di bawah 90, jadi hari itu
+  **tidak** ditandai meski polanya Citraland sedangkan rosternya Jemur.
+
+Di kode, ketiga angka itu sekarang dipisah dengan judul "mengubah bayaran" dan
+"hanya menandai", dan ada test yang gagal bila ambang penandaan sampai menggeser
+skor.
 
 ## 7. Rencana tahap berikutnya
 
@@ -240,10 +299,9 @@ diperbaiki lewat Django admin. Yang dibutuhkan: tombol pada baris "Perlu dicek"
 untuk menambah atau mengubah satu cap, tersimpan sebagai `SumberCap.MANUAL` dengan
 alasan wajib dan tercatat di audit. Bergantung pada: tidak ada.
 
-**Tahap 5 — halaman "Absensi saya".** Staf melihat rincian hariannya sendiri, dengan
-tombol "cap saya kurang" yang membuat permintaan koreksi, bukan mengubah data
-langsung. Bergantung pada: **D5**, dan sebaiknya setelah Tahap 4 supaya permintaannya
-ada tempat mendarat.
+**Tahap 5 — halaman "Absensi saya".** *Selesai.* Staf melihat rincian hariannya
+sendiri di `/absensi/saya/`. Yang belum ada: tombol "cap saya kurang" yang membuat
+permintaan koreksi. Itu menunggu Tahap 4 supaya permintaannya ada tempat mendarat.
 
 **Tahap 6 — unduh CSV.** Papan skor dan daftar pengecualian, mengikuti pola unduh
 yang sudah ada di `direktur:kpi`. Bergantung pada: tidak ada.
@@ -292,10 +350,12 @@ sini lebih dulu:
 
 - [ ] Roster bulan itu **lengkap di sistem**, bukan di PDF. Papan skor tidak bisa
       benar tanpa itu — hari tanpa roster muncul sebagai `TANPA_ROSTER` dan skornya 0.
-- [ ] Semua ID mesin terpetakan, atau **D1** dijawab tertulis untuk yang tidak.
+- [x] Semua ID mesin terpetakan (16 dari 16; tiga di antaranya rekam-saja per **D1**).
 - [ ] Daftar "Perlu dicek" bulan itu sudah ditinjau dan roster yang keliru dikoreksi.
       Pada September 2026 ada 69 hari; 17 di antaranya satu kekeliruan roster yang sama.
-- [ ] **D2**, **D3**, dan **D4** dijawab tertulis di `DECISIONS.md`.
+- [x] **D1**, **D2**, **D3**, **D5** dijawab product owner (Okt 2026).
+- [ ] **D4** diselesaikan: siapa boleh mengubah jadwal jaga tanggal lampau.
+- [ ] Keputusan D1-D6 disalin ke `DECISIONS.md`.
 - [ ] Staf diberi tahu cara skor ini dihitung sebelum dipakai menilai mereka.
       Aturannya mudah dijelaskan, tetapi mengejutkan bila baru diketahui setelah dinilai.
 - [ ] Angka satu bulan penuh dicocokkan dengan perhitungan tangan sekali lagi,

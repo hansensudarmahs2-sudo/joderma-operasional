@@ -33,15 +33,32 @@ from django.utils import timezone
 from core.models import Clinic
 from jadwal.models import WORKING_STATUSES, DutyRoster
 
-from .models import AttendancePunch
+from .models import AttendanceDevice, AttendancePunch
 
-# Datang awal baru dihitung mulai menit ke-60. Gerbang: lolos ambang -> dibayar penuh.
+# ---------------------------------------------------------------------------
+# Angka yang MENGUBAH BAYARAN. Keputusan product owner; jangan diubah tanpa itu.
+# ---------------------------------------------------------------------------
+
+# Datang awal baru dihitung mulai menit ke-60. Gerbang: lolos ambang -> dibayar
+# penuh, bukan dikurangi 60 dulu.
 AMBANG_DATANG_AWAL_MENIT = 60
 
-# Selisih kecocokan jam (menit) sebelum sebuah hari dicurigai salah cabang di roster.
+# ---------------------------------------------------------------------------
+# Angka yang HANYA MENANDAI. Keduanya cuma memutuskan apakah satu hari masuk
+# daftar "Perlu dicek"; tidak satu pun menyentuh terlambat, lembur, datang awal,
+# atau skor. Dipilih pengembang sebagai titik awal, bukan keputusan product
+# owner, dan layak ditinjau setelah ada beberapa bulan data nyata.
+# ---------------------------------------------------------------------------
+
+# Seberapa jauh jam cap harus lebih cocok ke cabang lain sebelum hari itu
+# ditandai CABANG_BEDA. Terlalu kecil: banyak temuan palsu pada hari lembur
+# panjang. Terlalu besar: kekeliruan roster lolos (mis. Rahayu 18 Sep 2026,
+# selisih 78, lolos pada ambang 90).
 AMBANG_CURIGA_CABANG_MENIT = 90
 
-# Lembur sehari sebesar ini dilaporkan untuk dilihat. Tidak memotong bayaran.
+# Lembur sehari sebesar ini ditandai supaya terlihat. Tidak memotong bayaran:
+# keputusan product owner (D3) adalah lembur pulang tanpa plafon dan tanpa
+# persetujuan.
 AMBANG_LEMBUR_PANJANG_MENIT = 180
 
 
@@ -86,6 +103,10 @@ class HasilHarian:
 class RingkasanStaf:
     user: object
     hari: list[HasilHarian] = field(default_factory=list)
+    # Staf "rekam saja" (keputusan D1): capnya disimpan dan bisa dilihat, tetapi tidak
+    # masuk papan skor. Mereka di luar skema shift dua cabang, jadi menilainya dengan
+    # jam Jemur/Citraland hanya akan menghasilkan angka yang tidak berarti.
+    dinilai: bool = True
 
     def _jumlah(self, bidang: str) -> int:
         return sum(getattr(h, bidang) for h in self.hari)
@@ -162,6 +183,7 @@ def hitung_hari(
     caps: list[AttendancePunch],
     roster: DutyRoster | None,
     cabang=None,
+    dinilai: bool = True,
 ) -> HasilHarian:
     """Satu orang, satu hari kerja.
 
@@ -173,6 +195,13 @@ def hitung_hari(
     caps = sorted(caps, key=lambda c: c.occurred_at)
     hasil.status_roster = roster.status if roster else ""
     hasil.status_label = roster.get_status_display() if roster else "Tidak ada di jadwal"
+
+    if not dinilai:
+        # Hanya merekam jam masuk dan pulang; tidak ada jam shift untuk dibandingkan.
+        if caps:
+            hasil.masuk = caps[0].occurred_at
+            hasil.keluar = caps[-1].occurred_at if len(caps) > 1 else None
+        return hasil
 
     if roster is None:
         if caps:
@@ -241,7 +270,12 @@ def hitung_hari(
 
 
 def hitung_periode(mulai: dt.date, selesai: dt.date, users=None) -> list[RingkasanStaf]:
-    """Ringkasan per staf untuk satu rentang tanggal, urut skor tertinggi."""
+    """Ringkasan per staf untuk satu rentang tanggal, urut skor tertinggi.
+
+    Staf yang ID mesinnya ditandai `recording_only` ikut keluar di sini supaya capnya
+    tetap bisa dilihat, tetapi dengan `dinilai=False`, tanpa skor dan tanpa
+    pengecualian. Pemanggil yang menampilkan papan skor menyaringnya sendiri.
+    """
     caps = AttendancePunch.objects.filter(shift_date__range=(mulai, selesai)).select_related("user")
     roster = DutyRoster.objects.filter(date__range=(mulai, selesai)).select_related(
         "user", "clinic", "home_clinic"
@@ -265,20 +299,29 @@ def hitung_periode(mulai: dt.date, selesai: dt.date, users=None) -> list[Ringkas
             orang.setdefault(u.pk, u)
 
     cabang = list(Clinic.objects.filter(active=True))
+    rekam_saja = set(
+        AttendanceDevice.objects.filter(recording_only=True).values_list("user_id", flat=True)
+    )
+
     ringkasan = []
     for uid, user in orang.items():
-        staf = RingkasanStaf(user=user)
+        staf = RingkasanStaf(user=user, dinilai=uid not in rekam_saja)
         tanggal = mulai
         while tanggal <= selesai:
             kunci = (uid, tanggal)
             if kunci in per_cap or kunci in per_roster:
                 staf.hari.append(
-                    hitung_hari(user, tanggal, per_cap.get(kunci, []), per_roster.get(kunci), cabang)
+                    hitung_hari(
+                        user, tanggal, per_cap.get(kunci, []), per_roster.get(kunci),
+                        cabang, dinilai=staf.dinilai,
+                    )
                 )
             tanggal += dt.timedelta(days=1)
         ringkasan.append(staf)
 
-    ringkasan.sort(key=lambda s: (-s.skor, str(s.user)))
+    # Yang dinilai lebih dulu, lalu skor tertinggi; yang "rekam saja" selalu di bawah
+    # karena skornya nol menurut konstruksi, bukan menurut kinerja.
+    ringkasan.sort(key=lambda s: (not s.dinilai, -s.skor, str(s.user)))
     return ringkasan
 
 
