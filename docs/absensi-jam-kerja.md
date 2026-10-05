@@ -121,7 +121,8 @@ Tujuh keadaan dilaporkan, bukan ditebak:
 | `LIBUR_TAPI_NGECAP` | Jadwal off/cuti tetapi tetap mengecap; dihitung memakai jam cabang asal |
 | `TANPA_CAP` | Dijadwalkan masuk tetapi tidak ada cap |
 | `CAP_TUNGGAL` | Hanya satu cap; ditafsir dari kedekatan ke jam buka/tutup, sisi lain nol |
-| `CABANG_BEDA` | Jam cap lebih cocok dengan cabang lain (ambang 90 menit) |
+| `CABANG_BEDA` | Jam cap berpola cabang lain daripada yang tertulis di jadwal jaga |
+| `CABANG_DUGAAN` | Cabang diduga dari pola jam karena hari itu tidak ada di jadwal jaga |
 | `LEWAT_TENGAH_MALAM` | Cap pulang setelah tengah malam |
 | `LEMBUR_PANJANG` | Lembur sehari ≥ 180 menit; informasi saja, tidak memotong bayaran |
 
@@ -212,6 +213,78 @@ sistem**, hanya Oktober. Verifikasi di atas memuatnya dari hasil ekstraksi PDF
 jadwal awal bulan. Untuk bulan yang rosternya sudah terisi di sistem, langkah itu
 hilang dan perintah di atas cukup.
 
+## 4b. Dugaan pola cabang
+
+Untuk bulan yang jadwal jaganya belum terisi — atau terisi tetapi tidak bisa
+dipercaya, seperti September 2026 — cabang seseorang pada satu hari bisa diduga dari
+pola jam capnya. Jadwal jaga tetap menang bila ada; dugaan hanya mengisi yang kosong.
+
+### Yang menentukan adalah jam pulang, bukan jam masuk
+
+Ini bukan detail teknis, melainkan inti aturannya. Jam kerja Citraland (12.00–21.00)
+seluruhnya termuat di dalam "hari Jemur (14.00–22.00) yang datang dua jam lebih
+awal", dan datang awal itu dibayar. Jadi **jam masuk tidak pernah bisa membedakan
+keduanya**. Jam pulang bisa: orang Citraland pulang sekitar 21.00, orang Jemur
+sekitar 22.00 atau lebih.
+
+Satu hari cocok dengan sebuah cabang bila:
+
+- jam masuknya **tidak lebih dari 60 menit setelah** jam buka — tanpa batas bawah,
+  karena datang awal sah dan tidak boleh menggugurkan dugaan;
+- jam pulangnya **tidak lebih awal dari 5 menit sebelum** jam tutup — lembur tidak
+  dibatasi, yang tidak masuk akal adalah pulang jauh sebelum tutup.
+
+Bila dua cabang sama-sama cocok, tidak ada yang diduga.
+
+Versi pertama aturan ini memakai jam masuk sebagai jangkar dan **salah membaca 4
+hari**, selalu merugikan staf: Desy 19, 26, 27 September dan Lia 22 September terbaca
+sebagai hari Citraland padahal hari Jemur dengan datang awal, dan kehilangan 261
+menit. Angka 5 menit pada toleransi pulang-awal diuji terhadap 328 hari September
+2026 dengan 10 hari yang jawabannya sudah diketahui dari analisis manual terpisah:
+0 dan 5 menit benar sepuluh-duanya; mulai 10 menit, hari Rahayu 18 September (pulang
+21.51) ikut cocok dengan Jemur dan jadi ambigu.
+
+### Hasil pada September 2026
+
+| | Hari |
+|---|---|
+| Terduga satu cabang | 305 (93%) |
+| Cocok dua cabang, tidak diduga | 15 |
+| Tidak cocok cabang mana pun | 8 |
+
+Dugaan itu **memperbaiki** kekeliruan terbesar PDF jadwal: Naya terduga Citraland 26
+hari, sedangkan PDF menaruhnya di Jemur 17 hari.
+
+### Tetapi dugaan saja tidak cukup
+
+Skor hasil dugaan murni dibandingkan skor dengan jadwal jaga lengkap:
+
+```
+elvira  1336 vs 1948   -612      lia      828 vs 1134  -306
+arsi    1146 vs 1759   -613      ayu      379 vs  554  -175
+desy    1184 vs 1737   -553      yani     734 vs  838  -104
+luki    1114 vs 1344   -230      ...
+                                 total  -2896 menit (48 jam)
+```
+
+Selisihnya persis 23 hari yang tidak terduga — dan hari-hari itu **justru yang
+paling bernilai**: hari pendampingan visitasi dan hari datang awal lainnya. Masuk
+akal: datang sangat awal membuat jam masuk jauh dari jam buka cabang mana pun, jadi
+hari yang paling menguntungkan staf adalah hari yang paling sulit ditebak.
+
+**Karena itu dugaan dipakai untuk menyusun jadwal jaga, bukan menggantikannya:**
+
+```bash
+python manage.py duga_jadwal_absensi 2026-09            # lihat rencananya
+python manage.py duga_jadwal_absensi 2026-09 --simpan   # tulis 305 baris
+```
+
+Perintah itu tidak pernah menimpa baris yang sudah ada, dan setiap baris yang
+dibuatnya bercatat "Diduga dari pola jam cap absensi; belum dikonfirmasi". Hari yang
+tidak terduga **dibiarkan kosong** supaya tetap terlihat sebagai lubang yang harus
+diisi manusia, bukan ditutup dengan tebakan. Di halaman, hari yang cabangnya dari
+dugaan diberi tanda `dugaan`.
+
 ## 5. Batasan yang diketahui
 
 Ditulis supaya tidak ditemukan ulang dengan cara yang mahal.
@@ -227,13 +300,11 @@ blok per pita, batasnya jatuh ke kolom terjauh sheet.
 dan 05.59 dianggap milik shift hari sebelumnya. Kedua cabang mulai 12.00 dan 14.00,
 jadi aman sekarang; shift yang benar-benar mulai jam 5 pagi akan salah tanggal.
 
-**Ambang `CABANG_BEDA` 90 menit adalah heuristik pengembang, bukan aturan bayaran.**
-Ia hanya memutuskan apakah satu hari ditandai untuk ditinjau. Ia tidak menangkap
-semua kekeliruan: Rahayu 18 September (selisih 78 menit) lolos tanpa tanda.
-Menurunkan ambangnya menambah temuan palsu pada hari yang memang lembur panjang.
-Angka ini layak ditinjau setelah beberapa bulan data nyata. Ada test
-(`test_ambang_penandaan_tidak_pernah_mengubah_angka`) yang menjaga agar mengubahnya
-tidak pernah menggeser skor.
+**Dugaan pola tidak bisa membedakan dua hal yang memang serupa.** Jam kerja
+Citraland (12.00–21.00) seluruhnya termuat di dalam "hari Jemur yang datang dua jam
+lebih awal", dan datang awal itu dibayar. Pembedanya hanya jam pulang. Lihat bagian
+4b. Pada September 2026, 23 dari 328 hari tidak bisa diduga — dan hari-hari itu
+justru yang paling bernilai.
 
 **Tafsir `CAP_TUNGGAL` bisa keliru.** Satu cap ditafsir masuk atau pulang dari
 kedekatannya ke jam buka/tutup. Orang yang lupa cap masuk lalu pulang sangat awal
@@ -268,7 +339,7 @@ Pada verifikasi September satu baris semacam itu menggeser skor 127 menit.
 
 | Kode | Pertanyaan | Keadaan sekarang | Yang perlu diputuskan |
 |---|---|---|---|
-| **D6** | Ambang `CABANG_BEDA` 90 menit | 90, pilihan pengembang | Dipertahankan, diturunkan, atau tanda ini dimatikan saja. Lihat penjelasan di bawah |
+| **D6** | Ambang penandaan cabang | Diganti aturan dugaan pola (bagian 4b): toleransi masuk 60 menit, pulang-awal 5 menit | Angka 90 menit sudah tidak ada. Yang tersisa: apakah 305 baris jadwal September hasil dugaan diterima setelah ditinjau |
 
 **D6 — mengapa ada angka 90 dan dari mana asalnya.** Angka itu **bukan** aturan
 bayaran dan bukan keputusan Anda; saya yang memilihnya sebagai titik awal, dan saya

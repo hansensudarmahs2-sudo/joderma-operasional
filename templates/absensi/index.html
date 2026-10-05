@@ -70,7 +70,7 @@
         <td data-label="Tanggal">{{ h.tanggal|date:"j M" }}</td>
         <td data-label="Nama"><a href="{% url 'absensi:staf' h.user.pk %}?bulan={{ bulan.value }}">{{ h.user }}</a></td>
         <td data-label="Cap">{% if h.masuk or h.keluar %}{{ h.masuk|time:"H.i"|default:"??.??" }}–{{ h.keluar|time:"H.i"|default:"??.??" }}{% else %}—{% endif %}</td>
-        <td data-label="Cabang">{{ h.clinic.name|default:"—" }}</td>
+        <td data-label="Cabang">{{ h.clinic.name|default:"—" }}{% if h.cabang_dari_dugaan %} <span class="meta">(dugaan)</span>{% endif %}</td>
         <td data-label="Temuan">
           {% for p in h.pengecualian %}<span class="tag warn">{{ p.label }}</span> {% endfor %}
           {% for c in h.catatan %}<div class="meta">{{ c }}</div>{% endfor %}

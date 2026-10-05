@@ -50,11 +50,21 @@ AMBANG_DATANG_AWAL_MENIT = 60
 # owner, dan layak ditinjau setelah ada beberapa bulan data nyata.
 # ---------------------------------------------------------------------------
 
-# Seberapa jauh jam cap harus lebih cocok ke cabang lain sebelum hari itu
-# ditandai CABANG_BEDA. Terlalu kecil: banyak temuan palsu pada hari lembur
-# panjang. Terlalu besar: kekeliruan roster lolos (mis. Rahayu 18 Sep 2026,
-# selisih 78, lolos pada ambang 90).
-AMBANG_CURIGA_CABANG_MENIT = 90
+# Seberapa jauh jam cap boleh meleset dari jam buka/tutup cabang dan masih
+# dianggap berpola cabang itu. Dipakai untuk MENDUGA cabang pada hari yang tidak
+# ada di jadwal jaga, dan untuk menandai hari yang rosternya tampak keliru.
+# Tidak pernah mengubah angka: lihat `duga_cabang`.
+TOLERANSI_POLA_MENIT = 60
+
+# Pulang lebih awal dari jam tutup praktis tidak pernah terjadi (kolom "pulang awal"
+# pada ekspor September 2026 nyaris nol), jadi kelonggarannya kecil. Inilah yang
+# membedakan hari Citraland dari hari Jemur yang datang awal.
+#
+# Nilainya diuji terhadap 328 hari September 2026 dengan 10 hari yang jawabannya
+# sudah diketahui dari analisis manual terpisah: 0 dan 5 menit benar sepuluh-duanya
+# dengan 305 hari terduga; mulai 10 menit, hari Rahayu 18 Sep (pulang 21.51, sembilan
+# menit sebelum jam tutup Jemur) ikut cocok dengan Jemur dan jadi ambigu.
+TOLERANSI_PULANG_AWAL_MENIT = 5
 
 # Lembur sehari sebesar ini ditandai supaya terlihat. Tidak memotong bayaran:
 # keputusan product owner (D3) adalah lembur pulang tanpa plafon dan tanpa
@@ -67,7 +77,8 @@ class Pengecualian(models.TextChoices):
     LIBUR_TAPI_NGECAP = "LIBUR_TAPI_NGECAP", "Jadwal off/cuti tetapi tetap mengecap"
     TANPA_CAP = "TANPA_CAP", "Dijadwalkan masuk tetapi tidak ada cap"
     CAP_TUNGGAL = "CAP_TUNGGAL", "Hanya satu cap; sisi lainnya tidak terhitung"
-    CABANG_BEDA = "CABANG_BEDA", "Jam cap lebih cocok dengan cabang lain"
+    CABANG_BEDA = "CABANG_BEDA", "Jam cap berpola cabang lain"
+    CABANG_DUGAAN = "CABANG_DUGAAN", "Cabang diduga dari pola jam, bukan dari jadwal jaga"
     LEWAT_TENGAH_MALAM = "LEWAT_TENGAH_MALAM", "Cap pulang setelah tengah malam"
     LEMBUR_PANJANG = "LEMBUR_PANJANG", "Lembur sehari sangat panjang"
 
@@ -83,6 +94,8 @@ class HasilHarian:
     jam_selesai: dt.datetime | None = None
     masuk: dt.datetime | None = None
     keluar: dt.datetime | None = None
+    # Cabangnya dari dugaan pola jam, bukan dari jadwal jaga.
+    cabang_dari_dugaan: bool = False
     terlambat: int = 0
     lembur_pulang: int = 0
     datang_awal: int = 0
@@ -157,24 +170,59 @@ def _menit(selisih: dt.timedelta) -> int:
     return int(selisih.total_seconds() // 60)
 
 
-def _cabang_lebih_cocok(masuk, keluar, dipakai: Clinic, tanggal: dt.date, cabang) -> Clinic | None:
-    """Cabang lain yang jam bukanya jauh lebih pas dengan cap hari itu.
+def duga_cabang(
+    masuk, keluar, tanggal: dt.date, cabang, toleransi: int | None = None
+) -> tuple[Clinic | None, str]:
+    """Menduga cabang seseorang pada satu hari dari pola jam capnya.
 
-    Dipakai untuk menandai kemungkinan salah cabang di roster. Ini penting karena
-    salah cabang tidak menghasilkan selisih kecil: jam shift kedua cabang berbeda
-    dua jam, sehingga satu baris keliru menggeser bayaran sekitar dua jam.
+    Jadwal jaga adalah sumber kebenaran bila ada. Untuk bulan yang rosternya belum
+    terisi — atau terisi tetapi tidak bisa dipercaya, seperti September 2026 — pola
+    jam masih bisa dibaca.
+
+    Yang menentukan adalah **jam pulang**, bukan jam masuk. Alasannya tidak sepele:
+    jam kerja Citraland (12.00-21.00) seluruhnya termuat di dalam "hari Jemur yang
+    datang dua jam lebih awal", dan datang awal itu dibayar. Jadi jam masuk saja
+    tidak pernah bisa membedakan keduanya. Jam pulang bisa: orang Citraland pulang
+    sekitar 21.00, orang Jemur sekitar 22.00 atau lebih.
+
+    Satu hari dianggap cocok dengan sebuah cabang bila:
+
+    - **jam masuknya tidak lebih dari `toleransi` menit setelah jam buka.** Tidak ada
+      batas bawah: datang awal sah dan dibayar, jadi tidak boleh menggugurkan dugaan.
+    - **jam pulangnya tidak lebih awal dari jam tutup** (dengan sedikit kelonggaran).
+      Lembur tidak dibatasi; yang tidak masuk akal adalah pulang jauh sebelum tutup.
+
+    Bila dua cabang sama-sama cocok, tidak ada yang diduga. Itu terjadi pada hari
+    yang memang tidak bisa dibedakan dari jamnya saja — misalnya datang pagi lalu
+    pulang lewat jam tutup Jemur, yang bisa berarti hari Citraland dengan lembur
+    panjang atau hari Jemur dengan datang awal. Menebak salah satunya berarti
+    memilih selisih sekitar satu jam bayaran secara acak, dan arahnya selalu
+    merugikan staf.
+
+    Mengembalikan `(cabang, alasan)`; `alasan` berisi "COCOK", "GANDA", atau
+    "TIDAK_COCOK".
     """
-    if masuk is None or keluar is None:
-        return None
+    if masuk is None:
+        return None, "TIDAK_COCOK"
+    # Dibaca saat dipanggil, bukan sebagai nilai bawaan parameter: nilai bawaan terikat
+    # saat fungsi didefinisikan, sehingga angkanya tidak bisa diubah belakangan.
+    if toleransi is None:
+        toleransi = TOLERANSI_POLA_MENIT
 
-    def biaya(clinic: Clinic) -> int:
+    cocok = []
+    for clinic in cabang:
         awal, akhir = jendela_shift(clinic, tanggal)
-        return abs(_menit(masuk - awal)) + abs(_menit(keluar - akhir))
+        if _menit(masuk - awal) > toleransi:
+            continue  # datang terlalu jauh setelah jam buka
+        if keluar is not None and _menit(akhir - keluar) > TOLERANSI_PULANG_AWAL_MENIT:
+            continue  # pulang jauh sebelum jam tutup
+        cocok.append(clinic)
 
-    terbaik = min(cabang, key=biaya, default=None)
-    if terbaik is None or terbaik.pk == dipakai.pk:
-        return None
-    return terbaik if biaya(dipakai) - biaya(terbaik) >= AMBANG_CURIGA_CABANG_MENIT else None
+    if len(cocok) == 1:
+        return cocok[0], "COCOK"
+    if len(cocok) > 1:
+        return None, "GANDA"
+    return None, "TIDAK_COCOK"
 
 
 def hitung_hari(
@@ -203,14 +251,36 @@ def hitung_hari(
             hasil.keluar = caps[-1].occurred_at if len(caps) > 1 else None
         return hasil
 
-    if roster is None:
-        if caps:
-            hasil.pengecualian.append(Pengecualian.TANPA_ROSTER)
-            hasil.catatan.append("Jam shift tidak diketahui; skor hari ini tidak dihitung.")
-        return hasil
+    if cabang is None:
+        cabang = list(Clinic.objects.filter(active=True))
 
-    clinic = roster.clinic or roster.home_clinic
-    libur = roster.status not in WORKING_STATUSES
+    if roster is None:
+        if not caps:
+            return hasil
+        masuk = caps[0].occurred_at
+        keluar = caps[-1].occurred_at if len(caps) > 1 else None
+        duga, alasan = duga_cabang(masuk, keluar, tanggal, cabang)
+        if duga is None:
+            # Capnya tetap ditampilkan walau tidak dinilai: hari ini perlu diisi manusia,
+            # dan yang mengisinya butuh melihat jamnya.
+            hasil.masuk, hasil.keluar = masuk, keluar
+            hasil.pengecualian.append(Pengecualian.TANPA_ROSTER)
+            hasil.catatan.append(
+                "Tidak ada di jadwal jaga dan polanya tidak mengarah ke satu cabang"
+                + (" (cocok dengan lebih dari satu)" if alasan == "GANDA" else "")
+                + "; skor hari ini tidak dihitung."
+            )
+            return hasil
+        clinic = duga
+        hasil.cabang_dari_dugaan = True
+        hasil.pengecualian.append(Pengecualian.CABANG_DUGAAN)
+        hasil.catatan.append(
+            f"Tidak ada di jadwal jaga; polanya mengarah ke {duga.name}, jadi jam itu yang dipakai."
+        )
+        libur = False
+    else:
+        clinic = roster.clinic or roster.home_clinic
+        libur = roster.status not in WORKING_STATUSES
 
     if libur and not caps:
         return hasil
@@ -258,14 +328,13 @@ def hitung_hari(
         if hasil.lembur_pulang >= AMBANG_LEMBUR_PANJANG_MENIT:
             hasil.pengecualian.append(Pengecualian.LEMBUR_PANJANG)
 
-    if cabang is None:
-        cabang = list(Clinic.objects.filter(active=True))
-    lain = _cabang_lebih_cocok(hasil.masuk, hasil.keluar, clinic, tanggal, cabang)
-    if lain is not None:
-        hasil.pengecualian.append(Pengecualian.CABANG_BEDA)
-        hasil.catatan.append(
-            f"Jam capnya lebih cocok dengan {lain.name}; periksa cabang di jadwal jaga."
-        )
+    if not hasil.cabang_dari_dugaan:
+        duga, _ = duga_cabang(hasil.masuk, hasil.keluar, tanggal, cabang)
+        if duga is not None and duga.pk != clinic.pk:
+            hasil.pengecualian.append(Pengecualian.CABANG_BEDA)
+            hasil.catatan.append(
+                f"Jam capnya berpola {duga.name}; periksa cabang di jadwal jaga."
+            )
     return hasil
 
 

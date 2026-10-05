@@ -143,11 +143,35 @@ def test_lembur_tidak_diplafon(dunia):
 # --- pengecualian ---------------------------------------------------------------
 
 
-def test_cap_tanpa_roster_tidak_dihitung_dan_ditandai(dunia):
+def test_tanpa_roster_tetapi_polanya_jelas_cabangnya_diduga(dunia):
+    """Jadwal September bukan sumber kebenaran, jadi pola jam dipakai bila roster kosong."""
     _cap(dunia, "14:02", "22:05")
     hari = _hari(dunia)
+    assert hari.clinic == dunia["jemur"]
+    assert hari.cabang_dari_dugaan is True
+    assert (hari.terlambat, hari.lembur_pulang) == (2, 5)
+    assert Pengecualian.CABANG_DUGAAN in hari.pengecualian
+    assert Pengecualian.TANPA_ROSTER not in hari.pengecualian
+
+
+def test_tanpa_roster_dan_pola_tidak_jelas_tidak_dihitung(dunia):
+    """Datang lima jam lebih awal: tidak mendekati jam buka cabang mana pun."""
+    _cap(dunia, "08:55", "22:19")
+    hari = _hari(dunia)
     assert hari.skor == 0
+    assert hari.clinic is None
     assert Pengecualian.TANPA_ROSTER in hari.pengecualian
+
+
+def test_tanpa_roster_dan_pola_cocok_dua_cabang_tidak_ditebak(dunia):
+    """Masuk 11.39 pulang 22.38 bisa berarti hari Citraland dengan lembur panjang, atau
+    hari Jemur dengan datang awal. Menebak salah satunya memilih selisih bayaran secara
+    acak, dan arahnya selalu merugikan staf."""
+    _cap(dunia, "11:39", "22:38")
+    hari = _hari(dunia)
+    assert hari.clinic is None
+    assert Pengecualian.TANPA_ROSTER in hari.pengecualian
+    assert "lebih dari satu" in " ".join(hari.catatan)
 
 
 def test_dijadwalkan_masuk_tetapi_tidak_ada_cap(dunia):
@@ -367,8 +391,9 @@ def test_lembur_panjang_hanya_informasi_tidak_memotong(dunia):
 def test_ambang_penandaan_tidak_pernah_mengubah_angka(dunia, monkeypatch):
     """Penjaga D6: CABANG_BEDA dan LEMBUR_PANJANG hanya menandai.
 
-    Mengubah kedua ambang itu boleh menambah atau mengurangi tanda, tetapi tidak
-    boleh menggeser terlambat, lembur, datang awal, atau skor satu menit pun.
+    Mengubah kedua ambang itu boleh menambah atau mengurangi tanda, tetapi pada hari
+    yang cabangnya datang dari jadwal jaga tidak boleh menggeser terlambat, lembur,
+    datang awal, atau skor satu menit pun.
     """
     _roster(dunia, DutyStatus.MASUK, "citra")
     _cap(dunia, "13:48", "22:39")
@@ -376,8 +401,117 @@ def test_ambang_penandaan_tidak_pernah_mengubah_angka(dunia, monkeypatch):
     angka = (asli.terlambat, asli.lembur_pulang, asli.datang_awal, asli.skor)
     assert asli.pengecualian  # pada ambang bawaan hari ini memang tertandai
 
-    monkeypatch.setattr(perhitungan, "AMBANG_CURIGA_CABANG_MENIT", 10_000)
+    monkeypatch.setattr(perhitungan, "TOLERANSI_POLA_MENIT", 10_000)
     monkeypatch.setattr(perhitungan, "AMBANG_LEMBUR_PANJANG_MENIT", 10_000)
     longgar = _hari(dunia)
     assert (longgar.terlambat, longgar.lembur_pulang, longgar.datang_awal, longgar.skor) == angka
     assert longgar.pengecualian == []
+
+
+# --- dugaan pola cabang ---------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "masuk, keluar, diharapkan, alasan",
+    [
+        ("14:02", "22:05", "jemur", "COCOK"),       # hari biasa Jemur
+        ("11:57", "21:51", "citra", "COCOK"),       # hari biasa Citraland
+        ("13:30", "00:28", "jemur", "COCOK"),       # lembur lewat tengah malam tetap terbaca
+        ("13:48", "22:39", "jemur", "COCOK"),       # lembur 39 menit
+        ("11:44", "21:21", "citra", "COCOK"),
+        ("08:55", "22:19", None, "GANDA"),          # datang 5 jam awal: bisa dua-duanya
+        ("13:00", "21:30", "citra", "COCOK"),       # pulang 21.30: terlalu awal untuk Jemur
+        ("11:39", "22:38", None, "GANDA"),          # Citraland lembur, atau Jemur datang awal?
+        ("11:50", "17:00", None, "TIDAK_COCOK"),    # pulang 4 jam sebelum tutup
+    ],
+)
+def test_duga_cabang_dari_pola_jam(dunia, masuk, keluar, diharapkan, alasan):
+    from absensi.perhitungan import duga_cabang
+
+    def saat(teks):
+        j, m = (int(x) for x in teks.split(":"))
+        hari = TGL + dt.timedelta(days=1) if j < 6 else TGL
+        return timezone.make_aware(dt.datetime.combine(hari, dt.time(j, m)))
+
+    cabang = [dunia["jemur"], dunia["citra"]]
+    hasil, sebab = duga_cabang(saat(masuk), saat(keluar), TGL, cabang)
+    assert sebab == alasan
+    assert hasil == (dunia[diharapkan] if diharapkan else None)
+
+
+def test_jam_pulang_boleh_selarut_apa_pun_tetapi_tidak_boleh_terlalu_awal(dunia):
+    """Lembur menggeser jam pulang, jadi hanya pulang terlalu awal yang membatalkan dugaan."""
+    from absensi.perhitungan import duga_cabang
+
+    def saat(teks, hari_berikutnya=False):
+        j, m = (int(x) for x in teks.split(":"))
+        return timezone.make_aware(
+            dt.datetime.combine(TGL + dt.timedelta(days=1 if hari_berikutnya else 0), dt.time(j, m))
+        )
+
+    cabang = [dunia["jemur"], dunia["citra"]]
+    larut, _ = duga_cabang(saat("14:00"), saat("03:00", True), TGL, cabang)
+    assert larut == dunia["jemur"]
+    terlalu_awal, sebab = duga_cabang(saat("14:00"), saat("19:00"), TGL, cabang)
+    assert terlalu_awal is None and sebab == "TIDAK_COCOK"
+
+
+def test_roster_menang_atas_dugaan_bila_ada(dunia):
+    """Untuk bulan yang rosternya terisi, jadwal jaga tetap sumber kebenaran."""
+    _roster(dunia, DutyStatus.MASUK, "citra")
+    _cap(dunia, "13:48", "22:39")        # polanya Jemur
+    hari = _hari(dunia)
+    assert hari.clinic == dunia["citra"]
+    assert hari.cabang_dari_dugaan is False
+    assert Pengecualian.CABANG_BEDA in hari.pengecualian
+
+
+def test_dugaan_menangkap_rahayu_18_september(dunia):
+    """Kasus yang lolos pada aturan selisih-biaya lama (selisih 78, ambang 90)."""
+    _roster(dunia, DutyStatus.MASUK, "jemur")
+    _cap(dunia, "11:57", "21:51")
+    hari = _hari(dunia)
+    assert Pengecualian.CABANG_BEDA in hari.pengecualian
+    assert "Citraland" in " ".join(hari.catatan)
+
+
+def test_jam_pulang_yang_membedakan_citraland_dari_jemur_datang_awal(dunia):
+    """Inti aturan dugaan.
+
+    Jam kerja Citraland (12-21) seluruhnya termuat di "hari Jemur yang datang dua jam
+    lebih awal", dan datang awal itu dibayar. Jam masuk karena itu tidak pernah bisa
+    membedakan keduanya; jam pulang bisa.
+    """
+    from absensi.perhitungan import duga_cabang
+
+    def saat(teks):
+        j, m = (int(x) for x in teks.split(":"))
+        return timezone.make_aware(dt.datetime.combine(TGL, dt.time(j, m)))
+
+    cabang = [dunia["jemur"], dunia["citra"]]
+    # Jam masuk sama persis, jam pulang berbeda satu jam.
+    pulang_21, _ = duga_cabang(saat("11:45"), saat("21:10"), TGL, cabang)
+    pulang_22, alasan = duga_cabang(saat("11:45"), saat("22:10"), TGL, cabang)
+    assert pulang_21 == dunia["citra"]          # pulang dekat tutup Citraland
+    assert pulang_22 is None and alasan == "GANDA"   # bisa Citraland lembur, bisa Jemur awal
+
+
+def test_dugaan_tidak_pernah_menukar_hari_perbantuan_jadi_datang_awal(dunia):
+    """Hari Citraland Luki (11.42-21.39) tidak boleh terbaca sebagai hari Jemur."""
+    from absensi.perhitungan import duga_cabang
+
+    def saat(teks):
+        j, m = (int(x) for x in teks.split(":"))
+        return timezone.make_aware(dt.datetime.combine(TGL, dt.time(j, m)))
+
+    duga, _ = duga_cabang(saat("11:42"), saat("21:39"), TGL, [dunia["jemur"], dunia["citra"]])
+    assert duga == dunia["citra"]
+
+
+def test_hari_tak_terduga_tetap_menampilkan_capnya(dunia):
+    """Hari ini harus diisi manusia, dan yang mengisinya butuh melihat jamnya."""
+    _cap(dunia, "11:39", "22:38")          # ambigu: Citraland lembur atau Jemur datang awal
+    hari = _hari(dunia)
+    assert hari.masuk is not None and hari.keluar is not None
+    assert hari.skor == 0
+    assert Pengecualian.TANPA_ROSTER in hari.pengecualian

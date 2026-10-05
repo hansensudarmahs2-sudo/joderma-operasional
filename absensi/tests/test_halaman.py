@@ -300,3 +300,19 @@ def test_riwayat_impor_tidak_bisa_diubah_siapa_pun(rf, dunia):
     assert situs.has_add_permission(permintaan) is False
     assert situs.has_change_permission(permintaan) is False
     assert situs.has_delete_permission(permintaan) is False
+
+
+def test_hari_yang_cabangnya_diduga_ditandai_di_halaman(client, dunia):
+    """Angka dari dugaan tidak boleh terlihat sama pastinya dengan angka dari jadwal."""
+    AttendancePunch.objects.create(
+        user=dunia["staf"], shift_date=dt.date(2026, 9, 10), kind=JenisCap.MASUK,
+        occurred_at=timezone.make_aware(dt.datetime(2026, 9, 10, 14, 2)),
+    )
+    AttendancePunch.objects.create(
+        user=dunia["staf"], shift_date=dt.date(2026, 9, 10), kind=JenisCap.KELUAR,
+        occurred_at=timezone.make_aware(dt.datetime(2026, 9, 10, 22, 5)),
+    )
+    _masuk(client, dunia["direktur"])
+    url = reverse("absensi:staf", args=[dunia["staf"].pk])
+    body = client.get(url, {"bulan": BULAN}).content.decode()
+    assert "dugaan" in body

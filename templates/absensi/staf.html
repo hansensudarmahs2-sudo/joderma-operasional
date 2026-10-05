@@ -33,7 +33,7 @@
   {% for h in staf.hari %}
     <tr>
       <td data-label="Tanggal">{{ h.tanggal|date:"j M" }} <span class="meta">{{ h.tanggal|date:"D" }}</span></td>
-      <td data-label="Jadwal">{% if h.clinic %}{{ h.clinic.name }}{% else %}<span class="meta">{{ h.status_label }}</span>{% endif %}</td>
+      <td data-label="Jadwal">{% if h.clinic %}{{ h.clinic.name }}{% if h.cabang_dari_dugaan %} <span class="tag warn">dugaan</span>{% endif %}{% else %}<span class="meta">{{ h.status_label }}</span>{% endif %}</td>
       <td data-label="Shift">{% if h.jam_mulai %}{{ h.jam_mulai|time:"H.i" }}–{{ h.jam_selesai|time:"H.i" }}{% else %}—{% endif %}</td>
       <td data-label="Cap">{% if h.masuk or h.keluar %}{{ h.masuk|time:"H.i"|default:"??.??" }}–{{ h.keluar|time:"H.i"|default:"??.??" }}{% else %}—{% endif %}</td>
       <td data-label="Terlambat">{% if h.terlambat %}−{{ h.terlambat }}{% else %}—{% endif %}</td>
