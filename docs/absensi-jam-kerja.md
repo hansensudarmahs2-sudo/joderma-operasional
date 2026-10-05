@@ -200,12 +200,13 @@ Belum ada perintah sekali-jalan; langkahnya manual dan memakai **salinan** datab
 tidak pernah database produksi (`AGENTS.md`).
 
 ```bash
+cd ~/Desktop/joderma-operasional
 cp data/db.sqlite3 /tmp/uji.sqlite3
 export DJANGO_DB_PATH=/tmp/uji.sqlite3
-python manage.py migrate
-python manage.py petakan_id_absensi
-python manage.py impor_absensi "SEPTEMBER 2026.xlsx"
-python manage.py laporan_absensi 2026-09
+.venv/bin/python manage.py migrate
+.venv/bin/python manage.py petakan_id_absensi
+.venv/bin/python manage.py impor_absensi "SEPTEMBER 2026.xlsx"
+.venv/bin/python manage.py laporan_absensi 2026-09
 ```
 
 Satu langkah tidak bisa diotomatiskan sekarang: **roster September tidak ada di
@@ -466,6 +467,14 @@ proyek ini memakai venv sendiri:
 
 ```bash
 cd ~/Desktop/joderma-operasional
+
+# Sekali saja, dan wajib lebih dulu: modul ini menambah tabel baru. Bila database
+# lokal tertinggal migrasi, perintah di bawahnya gagal dengan pesan seperti
+# "no such column: core_clinic.latitude" — itu tanda migrasi, bukan tanda data rusak.
+cp data/db.sqlite3 "data/db.sqlite3.bak-$(date +%F)"
+.venv/bin/python manage.py showmigrations --plan | grep '^\[ \]'   # lihat yang belum
+.venv/bin/python manage.py migrate
+
 .venv/bin/python manage.py petakan_id_absensi --dry-run   # periksa rencana pemetaan
 .venv/bin/python manage.py petakan_id_absensi
 .venv/bin/python manage.py impor_absensi "SEPTEMBER 2026.xlsx" --actor hansen
