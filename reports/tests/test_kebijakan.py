@@ -175,8 +175,7 @@ def test_director_sees_own_task_and_staff_reports(client, people, jemur):
     client.force_login(hansen)
     page = client.get(reverse("direktur:overview")).content.decode()
     assert "Tugas saya" in page and "Evaluasi alur surat kontrol" in page
-    for label in ("Komplain", "Kerusakan", "Laporan staf", "Masukan privat staf"):
-        assert f">{label}<" in page, label
+    assert ">Dari staf<" in page  # satu menu; Komplain dsb. jadi tab di halamannya
 
     url = reverse("direktur:task_detail", args=[task.pk])
     page = client.get(url).content.decode()

@@ -195,15 +195,29 @@ class NavSection:
     def add_group(self, user, key: str) -> None:
         """Satu menu untuk satu kelompok halaman (SUBNAV_GROUPS); halaman lainnya lewat tab di atas halaman."""
         label, tabs, extra = SUBNAV_GROUPS[key]
-        routes = [r for _, r in tabs if route_allowed(user, r)]
-        if routes:
-            self.add(label, routes[0], also=tuple(routes[1:]) + tuple(extra))
+        allowed = [_tab(t) for t in tabs if route_allowed(user, _tab(t)[1])]
+        if allowed:
+            first = allowed[0]
+            others = tuple(dict.fromkeys(r for _, r, _ in allowed[1:] if r != first[1]))
+            self.add(label, first[1], first[2], also=others + tuple(extra))
+
+
+def _tab(entry) -> tuple[str, str, str]:
+    """Tab kelompok: (label, rute) atau (label, rute, query) — mis. Komplain/Masukan/Kerusakan berbagi rute."""
+    return entry if len(entry) == 3 else (*entry, "")
 
 
 # 5 Okt 2026 (product owner): menu Direktur/Owner terlalu panjang. Halaman sejenis digabung jadi satu
 # menu; di dalam halaman ada baris tab di atas untuk pindah antarhalaman kelompok itu.
-# key: (label menu, [(label tab, rute)], rute detail yang ikut kelompok tanpa tab sendiri)
+# key: (label menu, [(label tab, rute[, query])], rute/awalan path yang ikut kelompok tanpa tab sendiri)
 SUBNAV_GROUPS = {
+    # 5 Okt 2026: semua yang datang dari staf satu menu untuk Direktur (daftar lintas cabang).
+    "dari_staf": ("Dari staf", [("Komplain", "issues:list", "?tipe=KOMPLAIN"),
+                                ("Masukan", "issues:list", "?tipe=MASUKAN"),
+                                ("Kerusakan", "issues:list", "?tipe=KERUSAKAN"),
+                                ("Laporan staf", "reports:laporan_page"),
+                                ("Masukan privat staf", "reports:masukan_page")],
+                  ("issues:list",)),  # detail catatan /catatan/<id>/ juga menyorot menu ini
     "task": ("Task", [("Daftar Task", "direktur:tasks"), ("Kanban", "direktur:kanban"),
                       ("Prioritas", "direktur:matrix"), ("Jadwal Task", "direktur:gantt")],
              ("/direktur/task/",)),  # Task baru dan detail task
@@ -215,19 +229,33 @@ SUBNAV_GROUPS = {
 SUBNAV_DETAIL = {
     "direktur:task_new": "task", "direktur:task_detail": "task", "direktur:kpi_staff": "evaluasi",
     "jejak:devices": "evaluasi", "direktur:decision_detail": "kebijakan",
+    "issues:detail": "dari_staf", "reports:laporan_page_detail": "dari_staf",
+    "reports:masukan_page_detail": "dari_staf",
 }
 
 
-def subnav(user, view_name: str) -> dict | None:
-    """Baris tab di atas halaman untuk Direktur dan Owner, bila halaman termasuk satu kelompok."""
+def subnav(user, view_name: str, params=None) -> dict | None:
+    """Baris tab di atas halaman untuk Direktur dan Owner, bila halaman termasuk satu kelompok.
+
+    `params`: request.GET; tab ber-query (mis. ?tipe=MASUKAN) aktif bila query-nya cocok."""
     if persona(user) not in (DIREKTUR, OWNER) or not view_name:
         return None
-    key = next((k for k, (_, tabs, _) in SUBNAV_GROUPS.items() if any(r == view_name for _, r in tabs)), None)
+    key = next((k for k, (_, tabs, _) in SUBNAV_GROUPS.items()
+                if any(_tab(t)[1] == view_name for t in tabs)), None)
     key = key or SUBNAV_DETAIL.get(view_name)
     if key is None:
         return None
     label, tabs, _ = SUBNAV_GROUPS[key]
-    items = [(name, reverse(r), r == view_name) for name, r in tabs if route_allowed(user, r)]
+    params = params or {}
+
+    def current(route, query):
+        if route != view_name:
+            return False
+        from urllib.parse import parse_qsl
+
+        return all(params.get(k) == v for k, v in parse_qsl(query.lstrip("?")))
+
+    items = [(name, reverse(r) + q, current(r, q)) for name, r, q in map(_tab, tabs) if route_allowed(user, r)]
     return {"label": label, "items": items} if len(items) > 1 else None
 
 
@@ -305,6 +333,7 @@ def nav_sections(user) -> list[NavSection]:
         overview = NavSection()
         overview.add("Ringkasan", "direktur:overview")
         overview.add("Inbox", "reports:inbox")
+        overview.add_group(user, "dari_staf")
         overview.add("Tim", "direktur:team")
         overview.add_group(user, "task")
         overview.add_group(user, "evaluasi")
@@ -325,14 +354,6 @@ def nav_sections(user) -> list[NavSection]:
         if flags["orders"]:
             ops.add("Order Produk Online", "orders:index")
         ops.add("Stok Apotek", "stok:index")
-        # 5 Okt 2026: semua yang dilaporkan staf terlihat langsung dari menu (tidak hanya lewat Inbox).
-        # "Laporan staf" dan "Masukan privat staf" menampilkan semua milik staf cabang aktif.
-        staff = NavSection("Dari staf")
-        staff.add("Komplain", "issues:list", "?tipe=KOMPLAIN")
-        staff.add("Masukan", "issues:list", "?tipe=MASUKAN")
-        staff.add("Kerusakan", "issues:list", "?tipe=KERUSAKAN")
-        staff.add("Laporan staf", "reports:laporan_page")
-        staff.add("Masukan privat staf", "reports:masukan_page")
         reports = NavSection("Laporan")
         reports.add("Laporan Operasional", "reports:index")
         if flags["audit"]:
@@ -342,7 +363,7 @@ def nav_sections(user) -> list[NavSection]:
             settings.add("Pengaturan Klinik", "core:clinic_profile")
         if flags["users"] or flags["config"]:
             settings.add("Admin", "accounts:user_list")
-        return [s for s in (overview, staff, mine, ops, reports, settings) if s.items]
+        return [s for s in (overview, mine, ops, reports, settings) if s.items]
 
     if who == STAF:
         return _staff_sections(user, flags)

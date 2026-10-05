@@ -34,7 +34,7 @@ def app_context(request):
         "nav_persona_label": LABELS[who],
         "nav_can_team_plan": route_allowed(user, "jadwal:plan"),
         "banner": soft_banner(request, who),
-        "subnav": subnav(user, getattr(getattr(request, "resolver_match", None), "view_name", "")),
+        "subnav": subnav(user, getattr(getattr(request, "resolver_match", None), "view_name", ""), request.GET),
     }
 
 

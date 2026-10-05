@@ -28,7 +28,8 @@ antrian tidak masuk checklist ini karena pencatatannya sudah dipegang Finance.
 
 ## Menu
 
-Menu atas sengaja pendek (5 Okt 2026): **Ringkasan**, **Inbox**, **Tim**, lalu tiga menu kelompok —
+Menu atas sengaja pendek (5 Okt 2026): **Ringkasan**, **Inbox**, **Dari staf**, **Tim**, lalu tiga menu
+kelompok lagi —
 **Task** (Daftar Task, Kanban, Prioritas, Jadwal Task), **Evaluasi staf** (KPI, Jejak), dan
 **Kebijakan** (Kebijakan, Keputusan, Bahan Rapat). Membuka menu kelompok membawa Anda ke halaman
 pertamanya; halaman lain dalam kelompok dipilih lewat **baris tab di atas halaman**. Detail task,
@@ -41,7 +42,8 @@ detail keputusan, dan rincian KPI per staf juga menampilkan tab kelompoknya.
   **Diajukan selesai** (menunggu konfirmasi) sampai Owner mengonfirmasi atau meminta revisi. Bila
   evaluasinya Anda sendiri, pakai Lapor progres dan geser Target ke tanggal evaluasi; ajukan selesai
   sesudahnya.
-- **Dari staf** — Komplain, Masukan, Kerusakan, Laporan staf, dan Masukan privat staf dari **semua
+- **Dari staf** — satu menu dengan tab Komplain, Masukan, Kerusakan, Laporan staf, dan Masukan privat
+  staf dari **semua
   cabang** (kolom/keterangan cabang di setiap baris), termasuk yang sudah ditangani cabang. Persempit ke
   satu cabang lewat **Filter ▸ Cabang**. Masukan/saran bernomor SUG-… yang ditulis staf lewat Lapor ▸
   Masukan ada di menu **Masukan**; **Masukan privat staf** adalah kotak saran privat (hanya pengirim

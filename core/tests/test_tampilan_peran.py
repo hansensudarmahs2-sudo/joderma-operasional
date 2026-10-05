@@ -107,7 +107,9 @@ def test_owner_menu_is_short(client, clinic):
 def test_director_menu_keeps_everything(client, clinic):
     client.force_login(_user(clinic, "hansen1", Role.AOM))
     menu = _nav(client.get(reverse("direktur:overview")).content.decode())
-    assert menu[:6] == ["Ringkasan", "Inbox", "Tim", "Task", "Evaluasi staf", "Kebijakan"]
+    assert menu[:7] == ["Ringkasan", "Inbox", "Dari staf", "Tim", "Task", "Evaluasi staf", "Kebijakan"]
+    for label in ("Komplain", "Kerusakan", "Laporan staf", "Masukan privat staf"):
+        assert label not in menu  # tab di halaman Dari staf
     for label in ("Checklist Direktur",
                   "Catatan", "Hari Ini", "Checklist Saya", "Jadwal Jaga", "Pembagian Tugas",
                   "Laporan Operasional", "Audit", "Pengaturan Klinik"):
@@ -249,6 +251,16 @@ def test_grouped_menu_and_page_tabs(client, clinic):
         assert re.findall(r">([^<]+)</a>", bar) == tabs, route
         assert re.search(r'aria-current="page">' + active + "<", bar), route
     assert 'class="subnav"' not in client.get(reverse("direktur:overview")).content.decode()
+    # Dari staf: tab ber-query (Komplain/Masukan/Kerusakan berbagi satu halaman daftar).
+    tabs = ["Komplain", "Masukan", "Kerusakan", "Laporan staf", "Masukan privat staf"]
+    for url, active in ((reverse("issues:list") + "?tipe=MASUKAN&cabang=semua", "Masukan"),
+                        (reverse("issues:list") + "?tipe=KERUSAKAN", "Kerusakan"),
+                        (reverse("reports:masukan_page"), "Masukan privat staf")):
+        bar = client.get(url).content.decode().split('class="subnav"', 1)[1].split("</nav>", 1)[0]
+        assert re.findall(r">([^<]+)</a>", bar) == tabs, url
+        assert re.findall(r'aria-current="page">([^<]+)<', bar) == [active], url
+    bar = client.get(reverse("issues:list")).content.decode().split('class="subnav"', 1)[1].split("</nav>", 1)[0]
+    assert "aria-current" not in bar  # semua tipe: tidak ada tab aktif
     # Owner: tab hanya halaman yang boleh ia buka.
     client.force_login(_user(clinic, "yohanes", Role.OWNER))
     body = client.get(reverse("direktur:kpi")).content.decode()
