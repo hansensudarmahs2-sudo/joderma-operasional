@@ -276,18 +276,30 @@ sulit ditebak dari jamnya. Keterangan mesin menutup seluruh selisih itu.
 
 ### Menyusun jadwal jaga dari absensi
 
+Lewat halaman: **Evaluasi staf → Absensi → tab Impor berkas**, kartu "Susun jadwal
+jaga dari absensi". Kartu itu menampilkan rencananya lebih dulu (berapa hari sudah
+ada, berapa terbaca dari mesin, berapa tidak bisa ditentukan) sebelum tombolnya
+ditekan.
+
+Lewat terminal:
+
 ```bash
-python manage.py duga_jadwal_absensi 2026-09            # lihat rencananya
-python manage.py duga_jadwal_absensi 2026-09 --simpan   # tulis 305 baris
+cd ~/Desktop/joderma-operasional
+.venv/bin/python manage.py duga_jadwal_absensi 2026-09            # lihat rencananya
+.venv/bin/python manage.py duga_jadwal_absensi 2026-09 --simpan   # tulis
 ```
+
+Ubuntu tidak punya perintah `python`, dan proyek ini memakai venv sendiri, jadi
+`.venv/bin/python` bukan `python`.
 
 Perintah itu tidak pernah menimpa baris yang sudah ada, dan setiap baris yang
 dibuatnya bercatat "belum dikonfirmasi". Hari yang tidak bisa ditentukan **dibiarkan
 kosong** supaya tetap terlihat sebagai lubang yang harus diisi manusia, bukan ditutup
 dengan tebakan. Di halaman, hari semacam itu diberi tanda `dugaan`.
 
-Pada September 2026 perintah ini menghasilkan 328 baris, seluruhnya dari keterangan
-mesin. Skornya dibandingkan perhitungan manual terpisah: **10 dari 13 staf cocok
+Pada September 2026 ini menghasilkan 328 baris, seluruhnya dari keterangan mesin,
+dan daftar "Perlu dicek" turun dari 328 hari menjadi 17 (10 cap lewat tengah malam,
+8 baris cap tunggal). Skornya dibandingkan perhitungan manual terpisah: **10 dari 13 staf cocok
 persis**, dan tiga yang berbeda justru memperbaiki PDF jadwal — Luki +91 (tgl 18 dan
 24 ternyata Jemur), Yani −30, Rahayu −72 (tgl 18 ternyata Citraland). Ketiganya sama
 persis dengan besaran koreksi yang dihitung terpisah saat memeriksa PDF.
@@ -445,12 +457,20 @@ sini lebih dulu:
 
 ## 10. Cara memakai
 
+Seluruh alur bisa dijalankan dari halaman **Evaluasi staf → Absensi**: unggah berkas
+di tab Impor berkas, lalu tekan "Susun jadwal jaga dari absensi" pada kartu di
+bawahnya. Papan skor langsung terisi.
+
+Lewat terminal, dari direktori proyek. Ubuntu tidak punya perintah `python`, dan
+proyek ini memakai venv sendiri:
+
 ```bash
-python manage.py petakan_id_absensi --dry-run   # periksa rencana pemetaan
-python manage.py petakan_id_absensi
-python manage.py impor_absensi "SEPTEMBER 2026.xlsx" --actor hansen
-python manage.py laporan_absensi 2026-09                     # papan skor + pengecualian
-python manage.py laporan_absensi 2026-09 --pengecualian-saja
+cd ~/Desktop/joderma-operasional
+.venv/bin/python manage.py petakan_id_absensi --dry-run   # periksa rencana pemetaan
+.venv/bin/python manage.py petakan_id_absensi
+.venv/bin/python manage.py impor_absensi "SEPTEMBER 2026.xlsx" --actor hansen
+.venv/bin/python manage.py duga_jadwal_absensi 2026-09 --simpan
+.venv/bin/python manage.py laporan_absensi 2026-09
 ```
 
 Lewat halaman: **Evaluasi staf → Absensi**, tab **Impor berkas**. Batas ukuran 5 MB

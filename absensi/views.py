@@ -15,6 +15,7 @@ import datetime as dt
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -22,6 +23,8 @@ from django.views.decorators.http import require_POST
 from accounts.models import User
 from core.models import local_today
 from core.permissions import can_edit_absensi, can_view_absensi, require
+
+from jadwal.services import can_edit_roster
 
 from . import parser, services
 from .models import AttendanceImport
@@ -87,6 +90,11 @@ def index(request):
             "ambang_awal": AMBANG_DATANG_AWAL_MENIT,
             "bisa_impor": can_edit_absensi(request.user),
             "impor_terakhir": AttendanceImport.objects.select_related("imported_by")[:10],
+            "rencana_jadwal": (
+                services.susun_jadwal_dari_absensi(mulai, selesai)
+                if tab == "impor" and can_edit_roster(request.user)
+                else None
+            ),
         },
     )
 
@@ -133,6 +141,39 @@ def saya(request):
             "milik_sendiri": True,
         },
     )
+
+
+@login_required
+@require(can_edit_absensi)
+@require_POST
+def susun_jadwal(request):
+    """Mengisi jadwal jaga bulan itu dari data absensi (lihat services).
+
+    Menulis `jadwal.DutyRoster`, jadi haknya hak jadwal jaga — Direktur Operasional,
+    Admin, atau Koordinator Shift — bukan hak absensi.
+    """
+    if not can_edit_roster(request.user):
+        raise PermissionDenied("Menyusun jadwal jaga dilakukan Direktur Operasional atau Admin.")
+    tahun, bulan = _bulan(request)
+    mulai, selesai = _rentang(tahun, bulan)
+    hasil = services.susun_jadwal_dari_absensi(mulai, selesai, simpan=True, actor=request.user)
+
+    if hasil.disimpan:
+        messages.success(
+            request,
+            f"{hasil.disimpan} hari jadwal jaga dibuat dari absensi "
+            f"({hasil.dari_mesin} dari jendela shift mesin, {hasil.dari_pola} dari pola jam). "
+            'Semuanya bercatat "belum dikonfirmasi"; tinjau di Jadwal Jaga.',
+        )
+    else:
+        messages.info(request, "Tidak ada hari baru yang bisa diisi dari absensi.")
+    if hasil.gagal:
+        messages.warning(
+            request,
+            f"{len(hasil.gagal)} hari dibiarkan kosong karena tidak bisa ditentukan dari capnya; "
+            "isi sendiri di Jadwal Jaga.",
+        )
+    return redirect(f"{reverse('absensi:index')}?tab=impor&bulan={tahun:04d}-{bulan:02d}")
 
 
 @login_required

@@ -19,6 +19,7 @@ dan tidak ditafsirkan di sini.
 from __future__ import annotations
 
 import datetime as dt
+from dataclasses import dataclass, field
 
 from django.db import transaction
 from django.utils import timezone
@@ -156,3 +157,123 @@ def impor_kartu_laporan(
         },
     )
     return batch
+
+
+@dataclass
+class UsulJadwal:
+    """Satu baris jadwal jaga yang diusulkan dari data absensi."""
+
+    user: object
+    tanggal: dt.date
+    clinic: object
+    dari_mesin: bool
+
+
+@dataclass
+class HasilSusunJadwal:
+    usul: list[UsulJadwal] = field(default_factory=list)
+    gagal: list[tuple] = field(default_factory=list)   # (user, tanggal, masuk, keluar, alasan)
+    hari_bercap: int = 0
+    dilewati: int = 0          # sudah ada di jadwal jaga, tidak disentuh
+    disimpan: int = 0
+
+    @property
+    def dari_mesin(self) -> int:
+        return sum(1 for u in self.usul if u.dari_mesin)
+
+    @property
+    def dari_pola(self) -> int:
+        return len(self.usul) - self.dari_mesin
+
+
+def susun_jadwal_dari_absensi(
+    mulai: dt.date, selesai: dt.date, *, simpan: bool = False, actor=None
+) -> HasilSusunJadwal:
+    """Menyusun jadwal jaga dari cap absensi untuk hari yang belum ada di jadwal.
+
+    Urutan sumbernya: jendela shift yang dicatat mesin lebih dulu, baru dugaan pola
+    jam. Baris jadwal jaga yang sudah ada **tidak pernah** disentuh — yang diisi
+    manusia tetap menang. Hari yang tidak bisa ditentukan dibiarkan kosong supaya
+    tetap terlihat sebagai lubang, bukan ditutup dengan tebakan.
+    """
+    from collections import Counter, defaultdict
+
+    from core.models import Clinic
+    from jadwal.models import DutyRoster, DutyStatus
+
+    from .perhitungan import cabang_dari_timezone, duga_cabang
+
+    cabang = list(Clinic.objects.filter(active=True))
+    hasil = HasilSusunJadwal()
+    if len(cabang) < 2:
+        return hasil
+
+    rekam_saja = set(
+        AttendanceDevice.objects.filter(recording_only=True).values_list("user_id", flat=True)
+    )
+    sudah_ada = {
+        (r.user_id, r.date)
+        for r in DutyRoster.objects.filter(date__range=(mulai, selesai)).only("user_id", "date")
+    }
+
+    per_hari: dict[tuple[int, dt.date], list[AttendancePunch]] = defaultdict(list)
+    orang: dict[int, object] = {}
+    for p in AttendancePunch.objects.filter(
+        shift_date__range=(mulai, selesai)
+    ).select_related("user"):
+        if p.user_id in rekam_saja:
+            continue
+        per_hari[(p.user_id, p.shift_date)].append(p)
+        orang[p.user_id] = p.user
+    hasil.hari_bercap = len(per_hari)
+
+    for (uid, tanggal), caps in sorted(per_hari.items(), key=lambda kv: (kv[0][1], str(kv[0][0]))):
+        if (uid, tanggal) in sudah_ada:
+            hasil.dilewati += 1
+            continue
+        caps.sort(key=lambda c: c.occurred_at)
+        masuk = caps[0].occurred_at
+        keluar = caps[-1].occurred_at if len(caps) > 1 else None
+        tz = next((c.tz_mesin for c in reversed(caps) if c.tz_mesin), "")
+        pilih = cabang_dari_timezone(tz, cabang)
+        dari_mesin = pilih is not None
+        alasan = "MESIN"
+        if pilih is None:
+            pilih, alasan = duga_cabang(masuk, keluar, tanggal, cabang)
+        if pilih is None:
+            hasil.gagal.append((orang[uid], tanggal, masuk, keluar, alasan))
+            continue
+        hasil.usul.append(UsulJadwal(orang[uid], tanggal, pilih, dari_mesin))
+
+    if not simpan or not hasil.usul:
+        return hasil
+
+    # Cabang asal diambil dari cabang tersering orang itu pada bulan tersebut; hanya
+    # dipakai bila ia mengecap pada hari off, jadi perkiraan sudah cukup.
+    asal: dict[int, object] = {}
+    for u in hasil.usul:
+        asal.setdefault(u.user.pk, Counter())[u.clinic.pk] += 1
+    asal = {
+        uid: next(c for c in cabang if c.pk == hitung.most_common(1)[0][0])
+        for uid, hitung in asal.items()
+    }
+    DutyRoster.objects.bulk_create([
+        DutyRoster(
+            user=u.user, date=u.tanggal, clinic=u.clinic, home_clinic=asal[u.user.pk],
+            status=DutyStatus.MASUK,
+            note="Dari absensi (jendela shift mesin / pola jam); belum dikonfirmasi.",
+        )
+        for u in hasil.usul
+    ])
+    hasil.disimpan = len(hasil.usul)
+    log_event(
+        action=AuditAction.CREATE,
+        entity_type="jadwal.DutyRoster",
+        entity_label=f"disusun dari absensi {mulai:%Y-%m}",
+        actor=actor,
+        after={
+            "dibuat": hasil.disimpan, "dari_mesin": hasil.dari_mesin,
+            "dari_pola": hasil.dari_pola, "dilewati": hasil.dilewati, "gagal": len(hasil.gagal),
+        },
+    )
+    return hasil

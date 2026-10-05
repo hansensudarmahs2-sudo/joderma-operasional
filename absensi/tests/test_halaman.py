@@ -316,3 +316,62 @@ def test_hari_yang_cabangnya_diduga_ditandai_di_halaman(client, dunia):
     url = reverse("absensi:staf", args=[dunia["staf"].pk])
     body = client.get(url, {"bulan": BULAN}).content.decode()
     assert "dugaan" in body
+
+
+# --- susun jadwal jaga dari absensi ----------------------------------------------
+
+
+def _cap_hari(user, tanggal, masuk, keluar, tz="II"):
+    AttendancePunch.objects.create(
+        user=user, shift_date=tanggal, kind=JenisCap.MASUK,
+        occurred_at=timezone.make_aware(dt.datetime.combine(tanggal, masuk)),
+    )
+    AttendancePunch.objects.create(
+        user=user, shift_date=tanggal, kind=JenisCap.KELUAR, tz_mesin=tz,
+        occurred_at=timezone.make_aware(dt.datetime.combine(tanggal, keluar)),
+    )
+
+
+def test_tab_impor_menawarkan_susun_jadwal(client, dunia):
+    _masuk(client, dunia["direktur"])
+    body = client.get(reverse("absensi:index"), {"tab": "impor", "bulan": BULAN}).content.decode()
+    assert "Susun jadwal jaga dari absensi" in body
+
+
+def test_susun_jadwal_mengisi_hari_yang_kosong(client, dunia):
+    from jadwal.models import DutyRoster
+
+    _cap_hari(dunia["staf"], dt.date(2026, 9, 10), dt.time(14, 2), dt.time(22, 5))
+    _masuk(client, dunia["direktur"])
+    resp = client.post(reverse("absensi:susun_jadwal"), {"bulan": BULAN}, follow=True)
+    baris = DutyRoster.objects.get(user=dunia["staf"], date=dt.date(2026, 9, 10))
+    assert baris.clinic == dunia["jemur"]
+    assert "belum dikonfirmasi" in baris.note
+    assert "dibuat dari absensi" in resp.content.decode()
+
+
+def test_susun_jadwal_tidak_menimpa_baris_yang_sudah_ada(client, dunia):
+    """Jadwal yang diisi manusia tetap menang."""
+    from jadwal.models import DutyRoster
+
+    citra = Clinic.objects.get(code="citraland")
+    DutyRoster.objects.create(
+        user=dunia["staf"], date=dt.date(2026, 9, 10), home_clinic=dunia["jemur"],
+        clinic=citra, status=DutyStatus.MASUK, note="diisi manusia",
+    )
+    _cap_hari(dunia["staf"], dt.date(2026, 9, 10), dt.time(14, 2), dt.time(22, 5))
+    _masuk(client, dunia["direktur"])
+    client.post(reverse("absensi:susun_jadwal"), {"bulan": BULAN})
+    baris = DutyRoster.objects.get(user=dunia["staf"], date=dt.date(2026, 9, 10))
+    assert baris.clinic == citra and baris.note == "diisi manusia"
+
+
+def test_owner_tidak_boleh_menyusun_jadwal(client, dunia):
+    """Menulis jadwal jaga adalah hak jadwal jaga, bukan hak absensi."""
+    _masuk(client, dunia["owner"])
+    assert client.post(reverse("absensi:susun_jadwal"), {"bulan": BULAN}).status_code == 403
+
+
+def test_staf_tidak_boleh_menyusun_jadwal(client, dunia):
+    _masuk(client, dunia["staf"])
+    assert client.post(reverse("absensi:susun_jadwal"), {"bulan": BULAN}).status_code == 403

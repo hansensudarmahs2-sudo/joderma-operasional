@@ -98,6 +98,39 @@
   <p class="meta" style="margin-top:.8rem">Impor berkas dilakukan Direktur Operasional.</p>
   {% endif %}
 
+  {% if rencana_jadwal and rencana_jadwal.hari_bercap %}
+  <div class="card" style="margin-top:.8rem">
+    <strong>Susun jadwal jaga dari absensi</strong>
+    <p class="meta" style="margin:.3rem 0 .5rem">
+      Papan skor butuh jadwal jaga untuk tahu jam shift tiap hari. Untuk bulan yang jadwalnya belum diisi, cabang bisa dibaca dari data absensi itu sendiri: mesin mencatat jendela shift pada tiap cap pulang.
+    </p>
+    <p class="meta" style="margin:0 0 .5rem">
+      {{ bulan.label }}: <strong>{{ rencana_jadwal.hari_bercap }}</strong> hari ada capnya ·
+      <strong>{{ rencana_jadwal.dilewati }}</strong> sudah ada di jadwal (tidak disentuh) ·
+      <strong>{{ rencana_jadwal.dari_mesin }}</strong> terbaca dari mesin ·
+      <strong>{{ rencana_jadwal.dari_pola }}</strong> dari pola jam ·
+      <strong>{{ rencana_jadwal.gagal|length }}</strong> tidak bisa ditentukan
+    </p>
+    {% if rencana_jadwal.usul %}
+    <form method="post" action="{% url 'absensi:susun_jadwal' %}">
+      {% csrf_token %}
+      <input type="hidden" name="bulan" value="{{ bulan.value }}">
+      <button class="btn" type="submit">Isi {{ rencana_jadwal.usul|length }} hari di jadwal jaga</button>
+    </form>
+    <p class="meta" style="margin:.5rem 0 0">Baris yang sudah ada tidak akan ditimpa. Yang dibuat bercatat "belum dikonfirmasi" — tinjau di Jadwal Jaga sebelum papan skor dipakai menilai.</p>
+    {% else %}
+    <p class="meta" style="margin:0">Tidak ada hari baru yang bisa diisi.</p>
+    {% endif %}
+    {% if rencana_jadwal.gagal %}
+    <details style="margin-top:.5rem"><summary class="meta">{{ rencana_jadwal.gagal|length }} hari yang akan dibiarkan kosong</summary>
+      {% for user, tanggal, masuk, keluar, alasan in rencana_jadwal.gagal %}
+      <div class="meta">{{ user }} · {{ tanggal|date:"j M" }} · {{ masuk|time:"H.i" }}–{{ keluar|time:"H.i"|default:"??.??" }}</div>
+      {% endfor %}
+    </details>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <h2 style="margin-top:1.2rem">Impor terakhir</h2>
   {% if impor_terakhir %}
   <table class="responsive">
