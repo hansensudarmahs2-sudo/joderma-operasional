@@ -171,3 +171,25 @@ def test_bell_shows_red_count(client, jemur, owners):
     assert '<span class="bell-count">3</span>' in body and "3 belum dibaca" in body
     Notification.objects.bulk_create([Notification(user=owner, type_code="x", title="N") for _ in range(100)])
     assert '<span class="bell-count">99+</span>' in client.get(reverse("owner:dashboard")).content.decode()
+
+
+def test_summary_can_be_downloaded_as_pdf(client, jemur, hansen, owners):
+    """5 Okt 2026: tombol Unduh PDF di Summary Harian (Owner dan Direktur)."""
+    seed()
+    services.record_check(item=AuditItem.objects.get(code="harian-limbah"), clinic=jemur, actor=hansen,
+                          result=CheckResult.TEMUAN, note="Kotak penuh → minta jemput 😊\nbaris kedua")
+    item = daily.send_summary(actor=hansen, note="Catatan: tunggu vendor ≤ 2 hari")
+    day = item.date.isoformat()
+    for who in (owners[0], hansen):
+        client.force_login(who)
+        page = client.get(reverse("owner:summary"), {"tanggal": day}).content.decode()
+        assert f'{reverse("owner:summary_pdf")}?tanggal={day}' in page and "Unduh PDF" in page
+        resp = client.get(reverse("owner:summary_pdf"), {"tanggal": day})
+        assert resp.status_code == 200 and resp["Content-Type"] == "application/pdf"
+        assert resp["Content-Disposition"] == f'attachment; filename="summary-harian-{day}.pdf"'
+        assert resp.content.startswith(b"%PDF") and len(resp.content) > 2000
+    other = (item.date - dt.timedelta(days=3)).isoformat()
+    assert client.get(reverse("owner:summary_pdf"), {"tanggal": other}).status_code == 404
+    staff = _user(jemur, "yani", Role.PERAWAT, Role.STAF)
+    client.force_login(staff)
+    assert client.get(reverse("owner:summary_pdf"), {"tanggal": day}).status_code == 403

@@ -20,7 +20,7 @@ untuk pindah antarhalaman kelompoknya. Isi tiap halaman:
 | **Jejak** | Jejak kehadiran staf (IP, perangkat, lokasi sesaat) dengan label Kuat/Sedang/Lemah, hanya baca |
 | **KPI** | Angka per staf per bulan: kelengkapan porsi checklist, pembukaan tepat waktu, jejak di klinik, task tepat target, dan tanda centang massal. Tanpa skor gabungan dan tanpa peringkat selama uji coba; ketuk nama staf untuk rincian per hari; unduh CSV. Staf belum melihat halaman ini |
 | **Jadwal Task** (dari Dashboard: *Lihat di Jadwal Task*) | Satu baris per permintaan/temuan Anda dari tanggal diminta sampai target (garis putus-putus oranye), dengan task turunan yang dibuat Direktur di bawahnya. Yang belum dipecah ditandai |
-| **Summary Harian** | Summary of the day dari Direktur Operasional, pilih per tanggal |
+| **Summary Harian** | Summary of the day dari Direktur Operasional, pilih per tanggal; **Unduh PDF** untuk menyimpan atau meneruskannya |
 | **Jadwal** | Pilih cabang, lihat siapa yang bertugas hari itu dan siapa yang libur, cuti, atau sedang di cabang lain. Tombol **Lihat jadwal penuh** membuka grid bulanan (hanya baca) |
 
 Halaman lain (Hari Ini, checklist, pembagian tugas, kas, laporan, audit, pengaturan klinik) tidak
@@ -71,7 +71,9 @@ Direktur. Owner membuka isinya **baca saja**. Catatan kritis juga muncul di lonc
 Direktur Operasional mengirim summary dari Checklist Direktur. Isinya: hasil checklist Direktur
 per cabang, catatan Direktur, keputusan dan task hari itu, serta status Permintaan Owner. Bila
 Direktur mengirim ulang di hari yang sama, yang tampil adalah versi terakhir beserta jamnya.
-Pakai tombol ← → atau pilih tanggal untuk melihat hari lain.
+Pakai tombol ← → atau pilih tanggal untuk melihat hari lain. Tombol **Unduh PDF** (muncul bila summary
+tanggal itu ada) menyimpan summary sebagai file PDF A4 bernama `summary-harian-TTTT-BB-HH.pdf`, isinya
+sama dengan halaman, untuk disimpan, dicetak, atau dikirim lewat WhatsApp.
 
 ## Notifikasi
 

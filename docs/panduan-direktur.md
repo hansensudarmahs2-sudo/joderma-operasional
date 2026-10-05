@@ -166,7 +166,7 @@ Buka **Pratinjau isi yang disusun otomatis** untuk melihat isinya, tulis catatan
 lagi di hari yang sama; summary hari itu diperbarui (bukan ditambah), Owner melihat versi terakhir
 beserta jamnya dan berapa kali diperbarui, dan notifikasinya tidak menumpuk. Isi yang terkirim adalah
 salinan saat tombol ditekan; perubahan data sesudahnya baru masuk bila dikirim ulang. Riwayat per
-tanggal ada di menu **Summary Harian**.
+tanggal ada di menu **Summary Harian**, dengan tombol **Unduh PDF** per tanggal.
 
 ## Ringkasan untuk Owner dan Direktur
 

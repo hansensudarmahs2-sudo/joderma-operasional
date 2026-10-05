@@ -15,6 +15,7 @@
 </div>
 
 {% if summary %}
+<p><a class="btn small" href="{% url 'owner:summary_pdf' %}?tanggal={{ day|date:'Y-m-d' }}" download>Unduh PDF</a></p>
 <p class="meta">Dikirim {{ summary.sent_by }} pukul {{ summary.sent_at|date:"H.i" }}{% if summary.send_count > 1 %} · diperbarui {{ summary.send_count }} kali, pertama pukul {{ summary.first_sent_at|date:"H.i" }}{% endif %}</p>
 {% if summary.note %}
 <div class="card summary-note"><strong>Catatan Direktur</strong><div style="white-space:pre-wrap">{{ summary.note }}</div></div>

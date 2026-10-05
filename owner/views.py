@@ -194,6 +194,23 @@ def summary(request):
 
 
 @login_required
+@require(services.can_view_summary)
+def summary_pdf(request):
+    """Unduh Summary Harian satu tanggal sebagai PDF (5 Okt 2026)."""
+    from django.http import Http404, HttpResponse
+
+    from .summary_pdf import build
+
+    day = _date(request.GET.get("tanggal"), local_today())
+    item = DailySummary.objects.filter(date=day).select_related("sent_by").first()
+    if item is None:
+        raise Http404("Belum ada summary untuk tanggal ini.")
+    response = HttpResponse(build(item), content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="summary-harian-{day:%Y-%m-%d}.pdf"'
+    return response
+
+
+@login_required
 @require(dashboard.can_view_overview)
 def jadwal(request):
     clinics = list(user_clinic_queryset(request.user).order_by("id"))
