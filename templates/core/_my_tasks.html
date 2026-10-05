@@ -11,7 +11,7 @@
       <span class="request-main">
         <strong>{{ t.item.title }}</strong>
         <span class="meta">{% if t.item.created_by %}dari {{ t.item.created_by }} · {% endif %}{{ t.item.clinic.name }}{% if t.item.due_at %} · target {{ t.item.due_at|date:"d/m H.i" }}{% endif %}</span>
-        {% if t.item.description %}<span class="meta">{{ t.item.description|truncatechars:160 }}</span>{% endif %}
+        {% include "core/_task_desc.html" with desc=t.item.description %}
         {% if t.revision and t.assignment.revision_note %}<span class="meta">Catatan revisi: {{ t.assignment.revision_note }}</span>{% endif %}
         {% if t.last_progress %}<span class="meta">Progres terakhir {{ t.last_progress.created_at|date:"d/m H.i" }}: {{ t.last_progress.note|truncatechars:120 }}</span>{% endif %}
         {% if t.dirut %}<span class="meta">Diverifikasi Direktur Utama / Owner.</span>{% endif %}

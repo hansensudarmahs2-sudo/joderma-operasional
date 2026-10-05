@@ -490,6 +490,12 @@ a.request-row:hover { background: #f7faf9; }
 .stack-form label { font-size: .82rem; margin: .2rem 0 0; }
 .stack-form .field-row { margin: 0; }
 .stack-form .btn { justify-self: start; }
+/* Uraian task panjang: "Baca selengkapnya" dibuka di tempat (5 Okt 2026) */
+.task-desc > summary { list-style: none; cursor: pointer; font-weight: normal; }
+.task-desc > summary::-webkit-details-marker { display: none; }
+.task-desc-more, .task-desc-less { color: var(--teal); font-weight: 600; font-size: .85rem; white-space: nowrap; }
+.task-desc:not([open]) .task-desc-less, .task-desc[open] .task-desc-preview, .task-desc[open] .task-desc-more { display: none; }
+.task-desc-full { display: block; overflow-wrap: anywhere; }
 .task-submit { margin-top: .35rem; }
 .task-submit > summary { list-style: none; display: inline-flex; cursor: pointer; }
 .task-submit > summary::-webkit-details-marker { display: none; }

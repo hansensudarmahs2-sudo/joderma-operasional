@@ -16,7 +16,7 @@
   {% for row in rows %}
     {% with item=row.item %}
     <tr>
-      <td data-label="Judul"><strong>{{ item.title }}</strong><div class="meta">{{ item.source_label|default:item.source_type }}</div>{% foto_thumbs task_photos|ambil:item.pk %}</td>
+      <td data-label="Judul"><span><strong>{{ item.title }}</strong><div class="meta">{{ item.source_label|default:item.source_type }}</div>{% include "core/_task_desc.html" with desc=item.description %}{% foto_thumbs task_photos|ambil:item.pk %}</span></td>
       <td data-label="Owner">{{ item.owner|default:"—" }}</td>
       <td data-label="Prioritas">{{ item.get_priority_display }}</td>
       <td data-label="Target">{{ item.due_at|default:"—" }}{% if item.is_overdue %} <span class="tag err">Lewat</span>{% endif %}</td>

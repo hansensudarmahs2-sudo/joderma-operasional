@@ -146,3 +146,20 @@ def test_my_procedures_tally_only_for_myself(client, clinic, team):
     client.post(reverse("nurses:availability", args=[budi_entry.pk]), {"next": mine_url, "ketersediaan": "OFF_DUTY"})
     budi_entry.refresh_from_db()
     assert budi_entry.availability != Availability.OFF_DUTY  # perawat lain tidak bisa diubah
+
+
+def test_long_task_description_can_be_read_in_full(client, clinic, team):
+    """5 Okt 2026: uraian task panjang terpotong di Tugas saya; kini bisa dibuka utuh di tempat."""
+    from core.models import TaskAudienceType
+    from core.task_services import create_task
+
+    direktur = User.objects.create_user(username="hansen1", password="TestPassword123!", display_name="Hansen")
+    UserRole.objects.create(user=direktur, clinic=clinic, role=Role.AOM)
+    ujung = "Pekerjaan : Alamat : Diagnosis : Tanggal kontrol berikutnya"
+    panjang = "Tolong surat keterangan kontrol disimpan dalam bentuk soft file dan juga tercetak. " * 3 + ujung
+    create_task(clinic=clinic, actor=direktur, title="Surat Keterangan Kontrol", description=panjang,
+                audience_type=TaskAudienceType.USER, user_ids=[team["koor"].pk])
+    client.force_login(team["koor"])
+    for url in (reverse("core:dashboard"), reverse("core:action_items")):
+        page = client.get(url).content.decode()
+        assert "Baca selengkapnya" in page and ujung in page, url

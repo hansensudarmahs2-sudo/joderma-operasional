@@ -1,0 +1,5 @@
+{% comment %}Uraian task: pendek tampil utuh; panjang diringkas dengan "Baca selengkapnya" (dibuka di tempat).{% endcomment %}
+{% if desc %}{% if desc|length > 160 %}<details class="task-desc">
+  <summary><span class="meta task-desc-preview">{{ desc|truncatechars:160 }}</span> <span class="task-desc-more">Baca selengkapnya</span><span class="task-desc-less">Ringkas</span></summary>
+  <span class="meta task-desc-full">{{ desc|linebreaksbr }}</span>
+</details>{% else %}<span class="meta task-desc-full">{{ desc|linebreaksbr }}</span>{% endif %}{% endif %}
