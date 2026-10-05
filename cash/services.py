@@ -54,6 +54,69 @@ def get_or_create_session(day, session_type: str, user=None, shift: str = "") ->
     return session
 
 
+def previous_closing(day) -> CashSession | None:
+    """Kas akhir terhitung terakhir di cabang yang sama sebelum hari ini (hari libur dilewati)."""
+    return (
+        CashSession.objects.filter(
+            operational_day__clinic=day.clinic,
+            operational_day__date__lt=day.date,
+            session_type=CashSessionType.CLOSING,
+            counted_at__isnull=False,
+        )
+        .select_related("operational_day", "counted_by")
+        .order_by("-operational_day__date")
+        .first()
+    )
+
+
+def todays_opening(day) -> CashSession | None:
+    return (
+        CashSession.objects.filter(operational_day=day, session_type=CashSessionType.OPENING,
+                                   counted_at__isnull=False)
+        .select_related("counted_by")
+        .first()
+    )
+
+
+def _who(session) -> str:
+    return f" (dihitung {session.counted_by})" if session.counted_by else ""
+
+
+def expected_baseline(session: CashSession) -> dict:
+    """Dasar angka "diharapkan" (keputusan product owner 6 Okt 2026).
+
+    - Kas awal = kas akhir terhitung terakhir di cabang itu.
+    - Kas akhir = kas awal hari itu + tunai masuk − tunai keluar. Bila kas awal hari itu belum dihitung,
+      dasarnya kas akhir terakhir.
+    Bila belum ada pembanding sama sekali (mis. hari pertama), `base` None: kasir mengisi manual.
+    """
+    day = session.operational_day
+    if session.session_type == CashSessionType.CLOSING:
+        opening = todays_opening(day)
+        if opening is not None and opening.pk != session.pk:
+            return {"base": opening.actual_total, "label": f"Kas awal hari ini{_who(opening)}", "source": opening}
+    prev = previous_closing(day)
+    if prev is not None:
+        label = f"Kas akhir {prev.operational_day.date:%d/%m/%Y}{_who(prev)}"
+        if session.session_type == CashSessionType.CLOSING:
+            label += " — kas awal hari ini belum dihitung"
+        return {"base": prev.actual_total, "label": label, "source": prev}
+    return {"base": None, "label": "", "source": None}
+
+
+def expected_for(session: CashSession, *, cash_in: int = 0, cash_out: int = 0, manual: int = 0) -> tuple[int, str]:
+    """(angka diharapkan, keterangan dasarnya) untuk disimpan bersama hitungan kasir."""
+    cash_in, cash_out = max(0, int(cash_in or 0)), max(0, int(cash_out or 0))
+    base = expected_baseline(session)
+    if base["base"] is None:
+        start, label = max(0, int(manual or 0)), "Diisi manual (belum ada kas akhir sebelumnya)"
+    else:
+        start, label = base["base"], base["label"]
+    if session.session_type == CashSessionType.OPENING:
+        return start, label
+    return max(0, start + cash_in - cash_out), f"{label} + tunai masuk − tunai keluar"
+
+
 @transaction.atomic
 def save_count(
     session: CashSession,
@@ -65,6 +128,9 @@ def save_count(
     other_funds_total: int = 0,
     note: str = "",
     expected_version: int | None = None,
+    cash_in_total: int = 0,
+    cash_out_total: int = 0,
+    expected_basis: str = "",
 ) -> CashSession:
     session.operational_day.assert_editable()
 
@@ -88,6 +154,9 @@ def save_count(
     session.expected_total = max(0, int(expected_total or 0))
     session.change_fund_total = max(0, int(change_fund_total or 0))
     session.other_funds_total = max(0, int(other_funds_total or 0))
+    session.cash_in_total = max(0, int(cash_in_total or 0))
+    session.cash_out_total = max(0, int(cash_out_total or 0))
+    session.expected_basis = (expected_basis or "")[:200]
     session.note = (note or "").strip()
     session.counted_by = session.counted_by or user
     session.counted_at = timezone.now()

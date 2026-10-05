@@ -133,8 +133,13 @@ Unduhan itu sendiri tercatat di audit. Koordinator Shift hanya bisa membaca audi
   menunggu verifikasi dari kedua cabang tampil di **Kas ▸ Menunggu verifikasi** dan di Hari Ini.
   Verifikasi boleh dilakukan sesudah hari ditutup; sejak itu selisih menjadi tanggung jawab Anda
   sebagai verifikator. Dual-control tetap berlaku: penghitung tidak memverifikasi hitungannya sendiri.
+- **Angka diharapkan disusun sistem (6 Okt 2026).** Kas awal = kas akhir terakhir cabang itu; kas akhir =
+  kas awal hari itu + tunai masuk − tunai keluar (diisi kasir dari Omnicare). Kasir tidak lagi mengetik
+  angka diharapkan, kecuali belum ada kas akhir sebelumnya sama sekali. Dasar angkanya tertulis di
+  halaman Review. Untuk kas lama yang diharapkannya 0, halaman Review menampilkan **Pembanding dari
+  sistem** (mis. kas akhir kemarin) dan selisih terhadapnya.
 - **Selisih karena kekeliruan administratif.** Selisih = Aktual − Diharapkan. Bila kasir tidak mengisi
-  **Diharapkan**, seluruh uang tampak sebagai selisih. Bila uangnya benar dan yang keliru hanya
+  **Diharapkan** (cara lama), seluruh uang tampak sebagai selisih. Bila uangnya benar dan yang keliru hanya
   pencatatan, tekan **Setujui: kekeliruan administratif** saat verifikasi (keterangan boleh kosong).
   Kas menjadi *Disetujui dengan catatan*, tanda "Ada selisih" hilang, perkara ditutup; angka selisih tetap
   tersimpan di riwayat dan audit. Kas yang sudah berstatus Selisih dapat ditutup dengan tombol yang

@@ -3,16 +3,16 @@
 {% block title %}{{ session.get_session_type_display }}{% endblock %}
 {% block content %}
 <h1>{{ session.get_session_type_display }}</h1>
-<p class="sub">{{ day.date }} · Status <span class="tag info">{{ session.get_status_display }}</span></p>
+<p class="sub">{{ clinic.name }} · {{ day.date|date:"l, d/m/Y" }} · Status <span class="tag info">{{ session.get_status_display }}</span></p>
 {% if session.is_verified %}
   <div class="msg warning">Sesi sudah diverifikasi. Koreksi hanya lewat supervisor dengan alasan di halaman review.</div>
 {% endif %}
 
-<form method="post" data-jejak action="{% url 'cash:save' session.pk %}">
+<form method="post" data-jejak action="{% url 'cash:save' session.pk %}" id="form-kas">
   {% csrf_token %}
   <input type="hidden" name="versi" value="{{ session.version }}">
   <div class="card">
-    <h3>Rincian pecahan</h3>
+    <h3>1. Hitung uang di laci</h3>
     <table class="responsive">
       <thead><tr><th>Pecahan</th><th>Jumlah</th><th class="right">Subtotal</th></tr></thead>
       <tbody>
@@ -20,53 +20,91 @@
         <tr>
           <td data-label="Pecahan">Rp {{ row.denomination|intcomma }}</td>
           <td data-label="Jumlah"><input name="denom_{{ row.denomination }}" type="number" min="0" step="1"
-              value="{{ row.quantity }}" data-denom="{{ row.denomination }}" class="qty"></td>
+              value="{{ row.quantity }}" data-denom="{{ row.denomination }}" class="qty" inputmode="numeric"></td>
           <td data-label="Subtotal" class="right"><span class="sub-{{ row.denomination }}">{{ row.subtotal|intcomma }}</span></td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-    <p class="right"><strong>Total aktual: Rp <span id="total">{{ session.actual_total|intcomma }}</span></strong></p>
+    <p class="right"><strong>Uang terhitung: Rp <span id="total">{{ session.actual_total|intcomma }}</span></strong></p>
   </div>
 
   <div class="card">
+    <h3>2. Yang seharusnya ada</h3>
+    {% if baseline.base is not None %}
+      <p>{{ baseline.label }}: <strong>Rp {{ baseline.base|intcomma }}</strong></p>
+      <input type="hidden" id="dasar" value="{{ baseline.base }}">
+    {% else %}
+      <p class="help">Belum ada kas akhir sebelumnya di cabang ini, jadi sistem belum punya pembanding. Isi {% if is_closing %}kas awal hari ini{% else %}uang yang seharusnya ada di laci pagi ini{% endif %}.</p>
+      <label for="diharapkan">{% if is_closing %}Kas awal hari ini (Rp){% else %}Kas awal seharusnya (Rp){% endif %}</label>
+      <input id="diharapkan" name="diharapkan" type="number" min="0" inputmode="numeric" value="{% if session.expected_basis|slice:':6' == 'Diisi ' %}{{ session.expected_total }}{% else %}0{% endif %}">
+    {% endif %}
+    {% if is_closing %}
     <div class="inline">
-      <div><label for="diharapkan">Uang modal diharapkan (Rp)</label>
-        <input id="diharapkan" name="diharapkan" type="number" min="0" value="{{ session.expected_total }}"></div>
-      <div><label for="kembalian">Uang kembalian tersedia (Rp)</label>
-        <input id="kembalian" name="kembalian" type="number" min="0" value="{{ session.change_fund_total }}"></div>
-      <div><label for="dana_lain">Dana kas lain (Rp)</label>
-        <input id="dana_lain" name="dana_lain" type="number" min="0" value="{{ session.other_funds_total }}"></div>
+      <div><label for="tunai_masuk">Tunai masuk hari ini (Rp)</label>
+        <input id="tunai_masuk" name="tunai_masuk" type="number" min="0" inputmode="numeric" value="{{ session.cash_in_total }}">
+        <span class="help">Penjualan/pembayaran tunai hari ini dari Omnicare.</span></div>
+      <div><label for="tunai_keluar">Tunai keluar dari laci (Rp)</label>
+        <input id="tunai_keluar" name="tunai_keluar" type="number" min="0" inputmode="numeric" value="{{ session.cash_out_total }}">
+        <span class="help">Setoran, belanja kecil, atau uang yang diambil dari laci hari ini.</span></div>
     </div>
+    {% endif %}
+    <p><strong>Seharusnya ada: Rp <span id="seharusnya">{{ session.expected_total|intcomma }}</span></strong></p>
+  </div>
+
+  <div class="card" id="kotak-selisih">
+    <h3>3. Selisih</h3>
+    <p class="stat" id="selisih-angka">Rp {{ session.variance|intcomma }}</p>
+    <p id="selisih-pesan" class="help"></p>
     <label for="catatan">Catatan (wajib bila ada selisih)</label>
-    <textarea id="catatan" name="catatan" rows="2">{{ session.note }}</textarea>
-    <p class="meta">Selisih tersimpan: Rp {{ session.variance|intcomma }}</p>
-    <button class="btn" type="submit">Simpan hitungan</button>
+    <textarea id="catatan" name="catatan" rows="2" placeholder="Mis. sudah dihitung ulang dua kali; selisih karena ...">{{ session.note }}</textarea>
+    <p class="actions">
+      <button class="btn secondary" type="submit">Simpan</button>
+      {% if not session.is_verified %}<button class="btn" type="submit" name="ajukan" value="1">Simpan dan ajukan verifikasi</button>{% endif %}
+    </p>
   </div>
 </form>
 
-{% if not session.is_verified %}
-<form method="post" data-jejak action="{% url 'cash:submit' session.pk %}">
-  {% csrf_token %}
-  <button class="btn secondary" type="submit">Ajukan verifikasi</button>
-</form>
-{% endif %}
-
 <script>
-function recalc() {
-  var total = 0;
-  document.querySelectorAll('.qty').forEach(function (input) {
-    var d = parseInt(input.dataset.denom, 10);
-    var q = parseInt(input.value || '0', 10);
-    if (isNaN(q) || q < 0) q = 0;
-    var sub = d * q;
-    total += sub;
-    var cell = document.querySelector('.sub-' + d);
-    if (cell) cell.textContent = sub.toLocaleString('id-ID');
+(function () {
+  var fmt = function (n) { return (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('id-ID'); };
+  var num = function (id) { var el = document.getElementById(id); var v = el ? parseInt(el.value || '0', 10) : 0; return isNaN(v) || v < 0 ? 0 : v; };
+  var closing = {{ is_closing|yesno:"true,false" }};
+  function recalc() {
+    var total = 0;
+    document.querySelectorAll('.qty').forEach(function (input) {
+      var d = parseInt(input.dataset.denom, 10), q = parseInt(input.value || '0', 10);
+      if (isNaN(q) || q < 0) q = 0;
+      total += d * q;
+      var cell = document.querySelector('.sub-' + d);
+      if (cell) cell.textContent = (d * q).toLocaleString('id-ID');
+    });
+    document.getElementById('total').textContent = total.toLocaleString('id-ID');
+    var base = document.getElementById('dasar') ? num('dasar') : num('diharapkan');
+    var expected = closing ? Math.max(0, base + num('tunai_masuk') - num('tunai_keluar')) : base;
+    document.getElementById('seharusnya').textContent = expected.toLocaleString('id-ID');
+    var diff = total - expected, box = document.getElementById('kotak-selisih'), msg = document.getElementById('selisih-pesan');
+    document.getElementById('selisih-angka').textContent = 'Rp ' + fmt(diff);
+    box.classList.remove('kas-ok', 'kas-warn');
+    if (total === 0) { msg.textContent = 'Isi jumlah lembar/koin di langkah 1.'; return; }
+    if (diff === 0) { box.classList.add('kas-ok'); msg.textContent = 'Sesuai. Tidak ada selisih.'; return; }
+    box.classList.add('kas-warn');
+    if (expected === 0) {
+      msg.textContent = 'Angka "seharusnya ada" masih 0, jadi semua uang terbaca sebagai selisih. Isi angka di langkah 2 dulu.';
+    } else {
+      msg.textContent = (diff > 0 ? 'Uang lebih ' : 'Uang kurang ') + 'Rp ' + fmt(Math.abs(diff)) +
+        '. Hitung ulang uangnya' + (closing ? ' dan periksa tunai masuk/keluar' : '') + '; bila tetap, tulis penjelasan di catatan.';
+    }
+  }
+  document.querySelectorAll('#form-kas input').forEach(function (i) { i.addEventListener('input', recalc); });
+  recalc();
+  document.getElementById('form-kas').addEventListener('submit', function (e) {
+    var diff = parseInt((document.getElementById('selisih-angka').textContent || '0').replace(/[^0-9−-]/g, '').replace('−', '-'), 10) || 0;
+    if (e.submitter && e.submitter.name === 'ajukan' && diff !== 0 &&
+        !window.confirm('Masih ada selisih Rp ' + document.getElementById('selisih-angka').textContent.replace('Rp ', '') + '. Tetap ajukan verifikasi?')) {
+      e.preventDefault();
+    }
   });
-  document.getElementById('total').textContent = total.toLocaleString('id-ID');
-}
-document.querySelectorAll('.qty').forEach(function (i) { i.addEventListener('input', recalc); });
-recalc();
+})();
 </script>
 {% endblock %}

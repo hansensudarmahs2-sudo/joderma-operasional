@@ -125,6 +125,8 @@ kembali, ditandai sebagai entri susulan dengan alasan. Runbook: `docs/runbook.md
 | Database | SQLite WAL (migrasi ke PostgreSQL sesuai PRD 16.2) | PROVISIONAL |
 
 ## Catatan perubahan
+- 2026-10-06 — Angka diharapkan kas disusun sistem: kas awal = kas akhir terakhir cabang itu; kas akhir
+  = kas awal hari itu + tunai masuk − tunai keluar (keputusan product owner).
 - 2026-10-05 — Item Inbox dapat dijadikan kebijakan tanpa penugasan, diumumkan ke semua orang di
   cabangnya tanpa nama pelapor; Direktur Operasional dapat menjadi penerima task di semua cabang
   (keputusan product owner).

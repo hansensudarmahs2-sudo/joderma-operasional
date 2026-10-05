@@ -3,12 +3,14 @@
 {% block title %}Review kas{% endblock %}
 {% block content %}
 <h1>Review {{ session.get_session_type_display }}</h1>
-<p class="sub">{{ session.operational_day.date }} · <span class="tag info">{{ session.get_status_display }}</span></p>
+<p class="sub">{{ session.operational_day.clinic.name }} · {{ session.operational_day.date|date:"l, d/m/Y" }} · <span class="tag info">{{ session.get_status_display }}</span></p>
 
 <div class="grid">
   <div class="card">
     <div class="stat-label">Diharapkan</div>
     <div class="stat">Rp {{ session.expected_total|intcomma }}</div>
+    {% if session.expected_basis %}<div class="meta">{{ session.expected_basis }}{% if session.session_type == "CLOSING" %}: tunai masuk Rp {{ session.cash_in_total|intcomma }}, keluar Rp {{ session.cash_out_total|intcomma }}{% endif %}</div>
+    {% elif not session.expected_total %}<div class="meta">Diisi 0 oleh kasir (sebelum angka diharapkan disusun sistem).</div>{% endif %}
   </div>
   <div class="card">
     <div class="stat-label">Aktual (dari pecahan)</div>
@@ -21,6 +23,16 @@
     {% elif session.variance != 0 %}<span class="tag err">Selisih</span>{% else %}<span class="tag ok">Sesuai</span>{% endif %}
   </div>
 </div>
+
+{% if hint %}
+<div class="card kas-pembanding">
+  <h3>Pembanding dari sistem</h3>
+  <p>{{ hint.label }}: <strong>Rp {{ hint.expected|intcomma }}</strong>. Terhadap angka itu, uang terhitung
+    {% if hint.variance == 0 %}<strong>sesuai</strong>{% else %}{% if hint.variance > 0 %}lebih{% else %}kurang{% endif %} <strong>Rp {{ hint.abs|intcomma }}</strong>{% endif %}.</p>
+  {% if session.session_type == "CLOSING" and not session.cash_in_total %}<p class="help">Tunai masuk hari itu belum tercatat, jadi pembanding ini belum memasukkan penjualan tunai.</p>{% endif %}
+  <p class="help">Bila selisih pada kas ini hanya karena angka diharapkan keliru (mis. 0), tutup dengan <strong>Setujui: kekeliruan administratif</strong> dan cantumkan pembanding ini di catatan.</p>
+</div>
+{% endif %}
 
 <div class="card">
   <h3>Rincian pecahan</h3>

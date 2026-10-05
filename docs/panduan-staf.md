@@ -36,8 +36,10 @@ kotak checklist pada Tugas hari ini.
    - Item bertipe jumlah: isi jumlah aktual yang Anda hitung.
    - Item **Rusak** → tekan *Buat laporan kerusakan* (foto butir ikut terbawa).
    - Item **Tidak lengkap** → tekan *Buat tindak lanjut kekurangan*.
-4. Front desk mencatat **Kas awal**: isi jumlah lembar per pecahan (total dihitung
-   otomatis), isi uang modal yang diharapkan, lalu **Ajukan verifikasi**.
+4. Front desk mencatat **Kas awal**: (1) isi jumlah lembar per pecahan; (2) angka **yang seharusnya
+   ada** diisi sistem dari kas akhir terakhir cabang ini; (3) kotak **Selisih** langsung berubah: hijau
+   bila sesuai, kuning bila uang lebih/kurang. Bila kuning, hitung ulang; bila tetap, tulis penjelasan
+   di catatan. Lalu tekan **Simpan dan ajukan verifikasi**.
 5. Orang kedua (rekan front desk atau supervisor) membuka **Review kas** dan
    menyimpan verifikasi. Anda tidak dapat memverifikasi hitungan Anda sendiri.
 6. Supervisor membuka **Review pembukaan** lalu konfirmasi, atau *Terima dengan
@@ -97,7 +99,10 @@ cabang tugas di jadwal jaga hari ini, atau cabang asal bila Anda sedang off.
 
 ## Sore: menutup hari
 
-1. Front desk mencatat **Kas akhir** dan **Ajukan verifikasi**.
+1. Front desk mencatat **Kas akhir**: hitung lembar per pecahan, lalu isi **Tunai masuk hari ini**
+   (penjualan/pembayaran tunai dari Omnicare) dan **Tunai keluar dari laci** (setoran, belanja kecil).
+   Yang seharusnya ada = kas awal hari ini + tunai masuk − tunai keluar, dihitung sistem. Periksa kotak
+   Selisih, lalu **Simpan dan ajukan verifikasi**.
 2. Koordinator Shift: di **Hari Ini** pilih **Tutup hari**. Cukup kas akhir sudah
    **diajukan**; verifikasi oleh Direktur Operasional boleh menyusul, juga sesudah hari
    ditutup. Bila kas akhir belum diajukan atau ada catatan kritis belum ditriase, penutupan

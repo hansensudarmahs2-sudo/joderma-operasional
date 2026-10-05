@@ -30,6 +30,10 @@ class CashSession(models.Model):
     actual_total = models.BigIntegerField("jumlah aktual (Rp)", default=0)
     change_fund_total = models.BigIntegerField("uang kembalian (Rp)", default=0)
     other_funds_total = models.BigIntegerField("dana kas lain (Rp)", default=0)
+    # 6 Okt 2026: "diharapkan" disusun sistem, bukan diketik kasir (lihat cash.services.expected_for).
+    cash_in_total = models.BigIntegerField("tunai masuk hari itu (Rp)", default=0)
+    cash_out_total = models.BigIntegerField("tunai keluar dari laci (Rp)", default=0)
+    expected_basis = models.CharField("dasar angka diharapkan", max_length=200, blank=True)
     variance = models.BigIntegerField("selisih (Rp)", default=0)
 
     status = models.CharField(max_length=26, choices=CashStatus.choices, default=CashStatus.DRAFT)

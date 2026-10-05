@@ -2,8 +2,8 @@
 {% load humanize %}
 {% block title %}Kas{% endblock %}
 {% block content %}
-<h1>Kas</h1>
-<p class="sub">{{ day.date }} · Dual-control {% if dual_control %}<span class="tag ok">aktif</span>{% else %}<span class="tag warn">nonaktif</span>{% endif %}</p>
+<h1>Kas · {{ day.clinic.name }}</h1>
+<p class="sub">{{ day.date|date:"l, d/m/Y" }} · cabang aktif (ganti di kanan atas) · Dual-control {% if dual_control %}<span class="tag ok">aktif</span>{% else %}<span class="tag warn">nonaktif</span>{% endif %}</p>
 <div class="grid">
   <div class="card">
     <h3>Kas awal</h3>
@@ -31,13 +31,13 @@
 <p class="meta">Kas akhir cukup dihitung lalu <strong>diajukan</strong>; hari bisa ditutup sesudahnya. Verifikasi dilakukan Direktur Operasional, juga setelah hari ditutup, dan sejak itu selisih menjadi tanggung jawab verifikator.</p>
 
 {% if pending %}
-<h2>Menunggu verifikasi</h2>
+<h2>Menunggu verifikasi <span class="meta">· semua cabang</span></h2>
 <ul class="request-list card">
   {% for p in pending %}
   <li><a class="request-row" href="{% url 'cash:review' p.pk %}">
     <span class="request-main"><strong>{{ p.get_session_type_display }} · {{ p.operational_day.clinic.name }}</strong>
       <span class="meta">{{ p.operational_day.date|date:"l, d/m/Y" }} · dihitung {{ p.counted_by|default:"—" }}{% if p.submitted_at %} · diajukan {{ p.submitted_at|date:"d/m H.i" }}{% endif %}</span></span>
-    <span class="request-state">{% if p.variance %}<span class="tag err">Selisih Rp {{ p.variance|intcomma }}</span>{% else %}<span class="tag ok">Tanpa selisih</span>{% endif %}<span class="tag info">Verifikasi</span></span>
+    <span class="request-state">{% if p.variance and not p.expected_total %}<span class="tag warn" title="Kolom yang seharusnya ada masih 0">Diharapkan Rp 0</span>{% endif %}{% if p.variance %}<span class="tag err">Selisih Rp {{ p.variance|intcomma }}</span>{% else %}<span class="tag ok">Tanpa selisih</span>{% endif %}<span class="tag info">Verifikasi</span></span>
   </a></li>
   {% endfor %}
 </ul>

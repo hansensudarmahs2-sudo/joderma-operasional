@@ -25,6 +25,8 @@ from .services import (
     correct_after_verification,
     denominations_for,
     dual_control_enabled,
+    expected_baseline,
+    expected_for,
     get_or_create_session,
     save_count,
     submit_for_verification,
@@ -87,7 +89,9 @@ def form(request, session_type: str):
     return render(
         request,
         "cash/form.html",
-        {"session": session, "rows": rows, "day": day, "dual_control": dual_control_enabled(clinic)},
+        {"session": session, "rows": rows, "day": day, "dual_control": dual_control_enabled(clinic),
+         "clinic": clinic, "baseline": expected_baseline(session),
+         "is_closing": session.session_type == CashSessionType.CLOSING},
     )
 
 
@@ -98,19 +102,33 @@ def save(request, pk: int):
     session = _session(request, pk)
     clinic = session.operational_day.clinic
     try:
+        cash_in = int(request.POST.get("tunai_masuk") or 0)
+        cash_out = int(request.POST.get("tunai_keluar") or 0)
+        # 6 Okt 2026: angka diharapkan disusun sistem dari kas akhir sebelumnya / kas awal hari itu;
+        # kolom "diharapkan" hanya dipakai bila belum ada pembanding sama sekali.
+        expected, basis = expected_for(session, cash_in=cash_in, cash_out=cash_out,
+                                       manual=int(request.POST.get("diharapkan") or 0))
         save_count(
             session,
             user=request.user,
             quantities=_quantities_from_post(request.POST, denominations_for(clinic)),
-            expected_total=int(request.POST.get("diharapkan") or 0),
-            change_fund_total=int(request.POST.get("kembalian") or 0),
-            other_funds_total=int(request.POST.get("dana_lain") or 0),
+            expected_total=expected,
+            change_fund_total=int(request.POST.get("kembalian") or session.change_fund_total or 0),
+            other_funds_total=int(request.POST.get("dana_lain") or session.other_funds_total or 0),
             note=request.POST.get("catatan", ""),
             expected_version=int(request.POST.get("versi") or session.version),
+            cash_in_total=cash_in,
+            cash_out_total=cash_out,
+            expected_basis=basis,
         )
         from jejak.services import stamp
 
         stamp(request, "KAS", clinic=clinic, entity=session)
+        if request.POST.get("ajukan") == "1":
+            submit_for_verification(session, request.user)
+            stamp(request, "KAS_AJUKAN", clinic=clinic, entity=session)
+            messages.success(request, "Hitungan kas disimpan dan diajukan untuk verifikasi.")
+            return redirect("cash:index")
         messages.success(request, "Hitungan kas disimpan.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
@@ -143,11 +161,21 @@ def review(request, pk: int):
         {"denomination": d.denomination, "quantity": d.quantity, "subtotal": d.subtotal}
         for d in session.denominations.all()
     ]
+    baseline = expected_baseline(session)
+    hint = None
+    if baseline["base"] is not None and session.counted_at:
+        base = baseline["base"]
+        if session.session_type == CashSessionType.CLOSING:
+            base += session.cash_in_total - session.cash_out_total
+        if base != session.expected_total:
+            diff = session.actual_total - base
+            hint = {"label": baseline["label"], "expected": base, "variance": diff, "abs": abs(diff)}
     return render(
         request,
         "cash/review.html",
         {
             "session": session,
+            "hint": hint,
             "rows": rows,
             "can_verify": can_verify_cash(request.user),
             "can_close_admin": is_aom(request.user),
