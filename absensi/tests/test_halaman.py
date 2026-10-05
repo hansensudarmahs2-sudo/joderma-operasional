@@ -250,3 +250,53 @@ def test_papan_skor_memisahkan_staf_rekam_saja(client, dunia):
     assert "Direkam tanpa penilaian" in body
     papan, rekam = body.split("Direkam tanpa penilaian", 1)
     assert "Izul" in rekam and "Izul" not in papan
+
+
+# --- D4: siapa boleh mengoreksi cap ---------------------------------------------
+
+
+def _admin_absensi(model):
+    from django.contrib import admin as dj
+
+    return dj.site._registry[model]
+
+
+@pytest.mark.parametrize("model", [AttendancePunch, AttendanceDevice])
+def test_direktur_operasional_boleh_mengoreksi_cap(rf, dunia, model):
+    """D4: mengoreksi cap mengubah skor orang, jadi haknya lebih sempit dari mengimpor."""
+    situs = _admin_absensi(model)
+    permintaan = rf.get("/")
+    permintaan.user = dunia["direktur"]
+    assert situs.has_change_permission(permintaan) is True
+    assert situs.has_add_permission(permintaan) is True
+
+
+@pytest.mark.parametrize("model", [AttendancePunch, AttendanceDevice])
+def test_owner_dan_direktur_utama_boleh_mengoreksi_cap(rf, dunia, model):
+    situs = _admin_absensi(model)
+    permintaan = rf.get("/")
+    permintaan.user = dunia["owner"]
+    assert situs.has_change_permission(permintaan) is True
+
+
+@pytest.mark.parametrize("model", [AttendancePunch, AttendanceDevice])
+def test_admin_sistem_tidak_boleh_mengoreksi_cap(rf, dunia, model):
+    """Admin boleh mengubah jadwal jaga, tetapi bukan angka yang menilai orang."""
+    situs = _admin_absensi(model)
+    permintaan = rf.get("/")
+    permintaan.user = _user(dunia["jemur"], "adminsistem", Role.ADMIN)
+    assert situs.has_change_permission(permintaan) is False
+    assert situs.has_add_permission(permintaan) is False
+    assert situs.has_delete_permission(permintaan) is False
+
+
+def test_riwayat_impor_tidak_bisa_diubah_siapa_pun(rf, dunia):
+    """Catatan apa yang pernah diimpor, bukan data yang boleh dirapikan belakangan."""
+    from absensi.models import AttendanceImport
+
+    situs = _admin_absensi(AttendanceImport)
+    permintaan = rf.get("/")
+    permintaan.user = dunia["direktur"]
+    assert situs.has_add_permission(permintaan) is False
+    assert situs.has_change_permission(permintaan) is False
+    assert situs.has_delete_permission(permintaan) is False

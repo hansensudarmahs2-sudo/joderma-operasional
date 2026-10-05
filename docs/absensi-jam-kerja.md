@@ -76,8 +76,20 @@ templates/absensi/
 | `/absensi/staf/<id>/` | Rincian harian satu staf: shift, cap, dan asal setiap angka |
 | `/absensi/saya/` | Jam kerja sendiri (D5). Tidak punya parameter staf, jadi tidak bisa diminta untuk orang lain |
 
-Direktur Operasional (dan Admin berakses penuh) membaca dan mengimpor; Owner hanya
-membaca. Staf tidak melihat jam kerja tim, hanya jam kerjanya sendiri lewat
+Tiga hak yang sengaja dipisah:
+
+| Hak | Siapa | Pemeriksa |
+|---|---|---|
+| Membaca papan skor dan pengecualian | Direktur Operasional, Admin berakses penuh, Owner | `can_view_absensi` |
+| Mengimpor berkas mesin | Direktur Operasional, Admin berakses penuh | `can_edit_absensi` |
+| **Mengoreksi cap, skor, lembur** | Direktur Operasional, Direktur Utama, Owner (D4) | `can_correct_absensi` |
+
+Mengimpor hanya memasukkan apa yang dicatat mesin; mengoreksi mengubah angka yang
+dipakai menilai orang. Karena itu Admin boleh mengimpor tetapi tidak mengoreksi, dan
+Owner sebaliknya. Mengubah pemilik satu ID mesin dihitung sebagai koreksi, karena
+memindahkan seluruh cap bulan itu ke orang lain.
+
+Staf tidak melihat jam kerja tim, hanya jam kerjanya sendiri lewat
 "Absensi saya". Pemeriksaannya ganda:
 `core.permissions.can_view_absensi`/`can_edit_absensi` di view, dan `core/peran.py`
 untuk menu serta `PersonaAccessMiddleware`. Menunya masuk kelompok **Evaluasi staf**,
@@ -92,8 +104,12 @@ menunjukkan satu baris roster yang salah menggeser skor **127 menit** untuk satu
 hari saja, jadi angka yang selalu ikut roster terkini lebih aman daripada angka yang
 cepat dibaca.
 
-Harga dari pilihan itu ada di bagian 6, keputusan **D4**: skor bulan lalu bisa
-berubah bila rosternya dikoreksi hari ini.
+Harga dari pilihan itu: skor bulan lalu bisa berubah bila rosternya dikoreksi hari
+ini. Keputusan **D4** menerima itu, tetapi perhatikan satu ketegangan yang tersisa —
+yang boleh *mengoreksi absen* hanya tiga peran, sedangkan *jadwal jaga* tetap boleh
+diubah Admin dan Koordinator Shift. Mengubah jadwal jaga tanggal lampau tetap
+menggeser skor bulan itu, lewat jalur yang berbeda. Bila nanti itu jadi masalah,
+jalan keluarnya Tahap 7 (kunci periode), bukan mencabut hak Koordinator Shift.
 
 ### Pengecualian
 
@@ -246,28 +262,13 @@ Pada verifikasi September satu baris semacam itu menggeser skor 127 menit.
 | **D2** | Hari off tetapi tetap ngecap dibayar? | **Dibayar.** Hari Minggu hari biasa, penggantinya hari off | Selesai. Sudah sesuai perilaku sebelumnya; ditambah test penjaga agar Minggu tidak pernah diberi perlakuan khusus |
 | **D3** | Lembur sangat panjang perlu persetujuan? | **Tidak, untuk saat ini** | Selesai. `LEMBUR_PANJANG` tetap hanya tanda, tidak memotong |
 | **D5** | Staf melihat jam kerjanya sendiri? | **Ya** | Selesai. `/absensi/saya/`, menu "Absensi saya". Tidak ada parameter staf di rute itu, jadi tidak ada cara meminta data orang lain |
+| **D4** | Siapa boleh mengoreksi absen, skor, dan lembur? | **Direktur Operasional, Direktur Utama, dan Owner.** Jadwal jaga tidak berubah: tetap Admin, Koordinator Shift, Direktur Operasional | Selesai. `core.permissions.can_correct_absensi`, ditegakkan di Django admin tempat koreksi dilakukan sekarang |
 
 ### Masih terbuka
 
 | Kode | Pertanyaan | Keadaan sekarang | Yang perlu diputuskan |
 |---|---|---|---|
-| **D4** | Boleh skor bulan lalu berubah? | Ya; selalu dihitung ulang dari roster terkini | Dijawab "boleh, tetapi hanya Direktur Operasional / Direktur Utama / Owner yang boleh mengubah". Dua hal belum jelas: berlaku untuk semua tanggal atau hanya tanggal lampau, dan apakah hak Admin serta Koordinator Shift dicabut. Lihat di bawah |
-| **D6** | Ambang `CABANG_BEDA` 90 menit | 90, pilihan pengembang | Dipertahankan, diubah, atau tanda ini dimatikan saja |
-
-**D4 — yang masih perlu diputuskan.** Saat ini jadwal jaga boleh diubah oleh Direktur
-Operasional, Admin, dan Koordinator Shift (untuk staf cabangnya; keputusan 3 Okt
-2026). Mengubahnya menjadi hanya tiga peran yang Anda sebut berarti:
-
-- **Koordinator Shift kehilangan hak mengatur tukar off harian** bila aturannya
-  berlaku untuk semua tanggal. Itu pekerjaan sehari-harinya.
-- **Admin kehilangan haknya**, padahal sekarang punya.
-- **Owner / Direktur Utama mendapat hak tulis baru.** Sekarang Owner hanya membaca di
-  seluruh aplikasi; ini akan jadi pengecualian pertama.
-
-Yang paling masuk akal menurut saya: batasan berlaku untuk **tanggal yang sudah
-lewat** saja, karena di situlah roster mengubah bayaran. Hari ini dan ke depan tetap
-seperti sekarang supaya Koordinator Shift bisa bekerja. Tetapi itu tafsiran saya,
-bukan keputusan Anda, jadi belum dikerjakan.
+| **D6** | Ambang `CABANG_BEDA` 90 menit | 90, pilihan pengembang | Dipertahankan, diturunkan, atau tanda ini dimatikan saja. Lihat penjelasan di bawah |
 
 **D6 — mengapa ada angka 90 dan dari mana asalnya.** Angka itu **bukan** aturan
 bayaran dan bukan keputusan Anda; saya yang memilihnya sebagai titik awal, dan saya
@@ -295,9 +296,10 @@ skor.
 Satu tahap satu kali, berhenti di setiap approval gate (`AGENTS.md`).
 
 **Tahap 4 — koreksi cap dari halaman.** Sekarang cap yang hilang atau salah tafsir
-diperbaiki lewat Django admin. Yang dibutuhkan: tombol pada baris "Perlu dicek"
-untuk menambah atau mengubah satu cap, tersimpan sebagai `SumberCap.MANUAL` dengan
-alasan wajib dan tercatat di audit. Bergantung pada: tidak ada.
+diperbaiki lewat Django admin, yang sudah memakai `can_correct_absensi` (D4). Yang
+dibutuhkan: tombol pada baris "Perlu dicek" untuk menambah atau mengubah satu cap,
+tersimpan sebagai `SumberCap.MANUAL` dengan alasan wajib dan tercatat di audit, dengan
+hak yang sama. Bergantung pada: tidak ada.
 
 **Tahap 5 — halaman "Absensi saya".** *Selesai.* Staf melihat rincian hariannya
 sendiri di `/absensi/saya/`. Yang belum ada: tombol "cap saya kurang" yang membuat
@@ -354,7 +356,8 @@ sini lebih dulu:
 - [ ] Daftar "Perlu dicek" bulan itu sudah ditinjau dan roster yang keliru dikoreksi.
       Pada September 2026 ada 69 hari; 17 di antaranya satu kekeliruan roster yang sama.
 - [x] **D1**, **D2**, **D3**, **D5** dijawab product owner (Okt 2026).
-- [ ] **D4** diselesaikan: siapa boleh mengubah jadwal jaga tanggal lampau.
+- [x] **D4** dijawab: koreksi absen hanya Direktur Operasional, Direktur Utama, Owner.
+- [ ] **D6** diputuskan: ambang penandaan `CABANG_BEDA` dipertahankan atau diubah.
 - [ ] Keputusan D1-D6 disalin ke `DECISIONS.md`.
 - [ ] Staf diberi tahu cara skor ini dihitung sebelum dipakai menilai mereka.
       Aturannya mudah dijelaskan, tetapi mengejutkan bila baru diketahui setelah dinilai.

@@ -401,6 +401,20 @@ def can_view_absensi(user) -> bool:
     return can_edit_absensi(user) or is_owner(user)
 
 
+def can_correct_absensi(user) -> bool:
+    """Mengoreksi cap absen, dan karenanya skor serta lembur seseorang.
+
+    Lebih sempit daripada `can_edit_absensi`: mengimpor berkas hanya memasukkan apa
+    yang dicatat mesin, sedangkan mengoreksi cap mengubah angka yang dipakai menilai
+    orang. Keputusan product owner (D4, Okt 2026): hanya Direktur Operasional,
+    Direktur Utama, dan Owner. Admin sistem tidak termasuk, meski boleh mengubah
+    jadwal jaga.
+
+    `Role.OWNER` mencakup Owner dan Direktur Utama.
+    """
+    return is_aom(user) or is_owner(user) or is_bootstrap_superuser(user)
+
+
 def read_only_for(user) -> bool:
     """Owner bersifat read-only kecuali diberi kapabilitas approval."""
     return is_owner(user) and not (roles(user) - {Role.OWNER})
