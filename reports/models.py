@@ -191,6 +191,7 @@ class TriageAction(models.TextChoices):
     TUGASKAN = "TUGASKAN", "Diputuskan dan ditugaskan"
     TERUSKAN = "TERUSKAN", "Diteruskan, dipantau"
     RAPAT = "RAPAT", "Dibawa ke rapat bersama"
+    KEBIJAKAN = "KEBIJAKAN", "Dijadikan kebijakan"
     TIDAK = "TIDAK", "Tidak ditindaklanjuti"
 
 

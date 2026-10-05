@@ -147,7 +147,9 @@ def create_issue(
 
 @transaction.atomic
 def assign_issue(issue: Issue, *, supervisor, assignee, due_at=None, note: str = "") -> Issue:
-    if not assignee.user_roles.filter(clinic=issue.clinic).exists():
+    from core.permissions import is_clinic_member
+
+    if not is_clinic_member(assignee, issue.clinic):
         raise ValidationError("Penanggung jawab harus berasal dari cabang catatan.")
     before = snapshot(issue)
     IssueAssignment.objects.filter(issue=issue, active=True).update(active=False)

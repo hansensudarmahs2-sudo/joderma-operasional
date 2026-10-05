@@ -1,6 +1,6 @@
 # Current Progress
 
-Status per **4 Oktober 2026** (Asia/Jakarta). Tahap 1 (masalah Citraland), tahap 2 (task management),
+Status per **5 Oktober 2026** (Asia/Jakarta). Tahap 1 (masalah Citraland), tahap 2 (task management),
 tahap 3 (jejak kehadiran dan KPI), dan fase 6–8 redefinisi peran sudah dideploy. Yang berjalan: **uji
 coba fase 9 oleh staf secara langsung**; menunggu masukan mereka (daftar uji di Task yang belum selesai).
 Bagian atas dokumen ini adalah posisi terakhir, sisa pekerjaan, dan roadmap. Bagian **Riwayat**
@@ -13,8 +13,8 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 | Produksi (mini PC, ops.joderma.id) | Commit `9552fbb` (dideploy 4 Oktober): fase 8 PIC sesuai porsi fungsinya, di atas `6b0b589` (dideploy 4 Oktober): kas, daftar Selisih belum ditutup, di atas `e9735d2` (dideploy 4 Oktober): fase 6 Permintaan Owner di Jadwal Task, di atas `e0f53c5` (dideploy 4 Oktober): fase 7 tampilan staf sederhana, di atas `410e069` (dideploy 4 Oktober): kas, tutup selisih sebagai kekeliruan administratif, di atas `56fc3ba` (dideploy 3 Oktober): tahap 3 paket F, KPI per staf, di atas `c224394` (dideploy 3 Oktober): banner saran (password awal, izin lokasi), di atas `f0fabf8` (dideploy 3 Oktober 21.50): Unduh CSV di Jejak, di atas `8c48cde` (dideploy 3 Oktober 21.33): tahap 3 paket E (jejak kehadiran, koordinat cabang terisi, Semua cabang saat memilah), di atas `3056c3d`: tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | Penutupan tanpa batas jam (di-commit 4 Okt) dan uraian task bisa dibaca utuh (5 Okt); tanpa migrasi. Berjalan: **uji coba fase 9 oleh staf**, lihat Task yang belum selesai ▸ Fase 9 |
-| Test | 737 (736 lulus, 1 dilewati) per 5 Okt: 716 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
+| Belum dideploy | Penutupan tanpa batas jam (di-commit 4 Okt), uraian task bisa dibaca utuh (5 Okt), dan Inbox → kebijakan + Direktur penerima task di kedua cabang (5 Okt; migrasi `reports 0004`, hanya pilihan). Berjalan: **uji coba fase 9 oleh staf**, lihat Task yang belum selesai ▸ Fase 9 |
+| Test | 741 (740 lulus, 1 dilewati) per 5 Okt: 720 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -173,6 +173,28 @@ sesudah 1–2 bulan data.
 ---
 
 # Riwayat
+
+## Inbox jadi kebijakan; Direktur penerima task di kedua cabang (5 Oktober 2026) — belum di-commit
+
+Permintaan product owner 5 Okt (dari masukan staf SUG-20261005-001):
+
+- **Jadikan kebijakan** di halaman Pilah Inbox (pilihan kelima, `TriageAction.KEBIJAKAN`, migrasi
+  `reports 0004` hanya mengubah pilihan). `reports.triage.to_policy` membuat Keputusan berstatus
+  ditetapkan, pemutus Direktur Operasional, `is_policy`, untuk satu cabang atau semua cabang, lalu
+  mencatat pilah. Tanpa penugasan; nama pelapor dan uraian asli tidak ikut (isi ditulis Direktur).
+- `direktur.services.announce_policy`: notifikasi "Kebijakan baru: …" ke semua orang di cabang
+  kebijakan (kecuali yang menetapkan), tautan ke halaman Kebijakan, tercatat di audit (PUBLISH).
+  Dipanggil juga saat kebijakan ditetapkan dari halaman Keputusan (sekali, tidak diulang saat
+  ditetapkan ulang).
+- Halaman baru **Kebijakan** (`reports:policies`, `/laporan/kebijakan/`) untuk semua peran: kebijakan
+  cabangnya dan yang berlaku semua cabang, tanda Baru 7 hari. Menu ditambahkan untuk Direktur,
+  Owner (baca), PIC, dan Staf.
+- Direktur Operasional (peran tercatat di Jemur saja) kini bisa dipilih sebagai penerima task dan
+  penanggung jawab catatan di **kedua cabang**: `core.permissions.clinic_member_q` /
+  `is_clinic_member` (peran lintas cabang: AOM) dipakai `target_choices`, `resolve_task_recipients`
+  (USER/USERS), daftar penanggung jawab dan `assign_issue`. Kiriman ke seluruh cabang/peran tidak
+  berubah.
+- Test `reports/tests/test_kebijakan.py` (+4); menu test disesuaikan.
 
 ## Uraian task bisa dibaca utuh (5 Oktober 2026) — belum di-commit
 

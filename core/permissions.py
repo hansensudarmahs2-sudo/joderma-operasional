@@ -56,6 +56,25 @@ def can_access_clinic(user, clinic) -> bool:
     return user.user_roles.filter(clinic=clinic).exists()
 
 
+# Peran yang bekerja lintas cabang: boleh menjadi penerima task/penanggung jawab di cabang mana pun
+# walau UserRole-nya tercatat di satu cabang saja (5 Okt 2026: Direktur Operasional hanya punya
+# peran di Jemur, padahal task untuknya bisa berlaku di kedua cabang).
+CROSS_BRANCH_ROLES = (Role.AOM,)
+
+
+def clinic_member_q(clinic, prefix: str = ""):
+    """Filter User: anggota cabang `clinic`, termasuk Direktur Operasional (lintas cabang)."""
+    from django.db.models import Q
+
+    return Q(**{f"{prefix}user_roles__clinic": clinic}) | Q(**{f"{prefix}user_roles__role__in": CROSS_BRANCH_ROLES})
+
+
+def is_clinic_member(user, clinic) -> bool:
+    if user is None or clinic is None:
+        return False
+    return user.user_roles.filter(clinic=clinic).exists() or user.user_roles.filter(role__in=CROSS_BRANCH_ROLES).exists()
+
+
 def user_clinic_queryset(user):
     from core.models import Clinic
 

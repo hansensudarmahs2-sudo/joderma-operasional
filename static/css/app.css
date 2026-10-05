@@ -569,3 +569,7 @@ tr.row-late td:first-child { box-shadow: inset 3px 0 0 var(--err); }
 .soft-banner[hidden] { display: none; }
 .soft-banner-text { flex: 1 1 18rem; }
 .soft-banner-actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+
+/* Kebijakan berlaku (5 Okt 2026) */
+.policy-title { margin: 0 0 .25rem; font-size: 1.05rem; }
+.policy-text { margin-top: .5rem; }

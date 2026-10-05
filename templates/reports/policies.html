@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Kebijakan{% endblock %}
+{% block content %}
+<h1>Kebijakan</h1>
+<p class="sub">Aturan yang sudah ditetapkan dan berlaku. Kebijakan baru juga diumumkan lewat notifikasi.</p>
+
+{% for d in items %}
+<article class="card policy">
+  <h2 class="policy-title">{{ d.title }}</h2>
+  <p class="meta">
+    {% if d.decided_on >= fresh %}<span class="tag info">Baru</span> {% endif %}Berlaku mulai {{ d.decided_on|date:"d/m/Y" }} · {{ d.clinic.name|default:"Semua cabang" }}
+    {% if is_director %} · <a href="{% url 'direktur:decision_detail' d.pk %}">buka di Keputusan</a>{% endif %}
+  </p>
+  <div class="policy-text">{{ d.decision_text|linebreaksbr }}</div>
+</article>
+{% empty %}
+<p class="card meta">Belum ada kebijakan yang ditetapkan.</p>
+{% endfor %}
+{% endblock %}

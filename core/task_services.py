@@ -20,7 +20,7 @@ from .models import (
     TaskEvent,
     TaskEventType,
 )
-from .permissions import can_access_clinic, is_aom, is_owner, is_pic
+from .permissions import can_access_clinic, clinic_member_q, is_aom, is_owner, is_pic
 
 
 def _recipient_payload(user: User) -> dict:
@@ -40,12 +40,12 @@ def resolve_task_recipients(
         ids = list(user_ids or [])
         if len(ids) != 1:
             raise ValidationError("Target satu user membutuhkan tepat satu penerima.")
-        qs = qs.filter(pk=ids[0], user_roles__clinic=clinic)
+        qs = qs.filter(clinic_member_q(clinic), pk=ids[0])
     elif audience_type == TaskAudienceType.USERS:
         ids = list(user_ids or [])
         if not ids:
             raise ValidationError("Target beberapa user membutuhkan minimal satu penerima.")
-        qs = qs.filter(pk__in=ids, user_roles__clinic=clinic)
+        qs = qs.filter(clinic_member_q(clinic), pk__in=ids)
     elif audience_type == TaskAudienceType.PIC_FUNCTION:
         if not pic_function:
             raise ValidationError("Fungsi PIC wajib dipilih.")

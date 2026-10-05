@@ -68,7 +68,7 @@ Tab: **Belum dipilah** (bawaan), **Diteruskan, dipantau**, **Sudah dipilah**, **
 sudah ditangani di cabang (status bukan Baru), permintaan yang sudah punya task, dan catatan yang
 sudah dijadikan task dihitung sudah dipilah.
 
-Tombol **Pilah** membuka halaman satu item dengan empat pilihan, sesuai matriks wewenang:
+Tombol **Pilah** membuka halaman satu item dengan lima pilihan, sesuai matriks wewenang:
 
 - **Putuskan dan tugaskan** — bidang Anda (operasional harian, SDM ringan, kas ≤ Rp1 juta): judul,
   PIC, prioritas, target → menjadi task bersumber item itu. Untuk hal yang berlaku di kedua cabang,
@@ -81,12 +81,22 @@ Tombol **Pilah** membuka halaman satu item dengan empat pilihan, sesuai matriks 
   selesai.
 - **Bawa ke rapat Kamis** — menjadi perkara di Keputusan (pemutus Rapat bersama) dan tampil di
   Agenda rapat Kamis. Pilih **Berlaku untuk**: cabang asal, cabang lain, atau semua cabang.
+- **Jadikan kebijakan** — cukup ditetapkan sebagai aturan, tanpa penugasan. Tulis judul dan isi
+  kebijakan (terisi dari item, silakan disunting), pilih **Berlaku untuk** (semua cabang atau satu
+  cabang) dan **Berlaku mulai**. Kebijakan tercatat di Keputusan (ditetapkan, pemutus Direktur
+  Operasional, tanda Kebijakan), diumumkan lewat notifikasi ke semua orang di cabang itu, dan tampil
+  di menu **Kebijakan** semua peran. **Nama pelapor dan uraian asli tidak ikut diumumkan**; yang
+  diumumkan hanya judul dan isi yang Anda tulis, jadi pastikan isinya tidak menyebut nama.
 - **Tidak ditindaklanjuti** — alasan wajib.
 
 Pada komplain/masukan/kerusakan, pilah juga ditulis di riwayat catatan supaya cabang tahu, dan
 statusnya maju dari Baru ke Ditinjau / Dipertimbangkan / Ditriase (ke Ditugaskan bila dijadikan
 task dan alurnya mengizinkan). Memilah lagi menggantikan hasil sebelumnya; semuanya tercatat di
 audit log. Matriks hanya panduan: sistem tidak memaksa (PP belum disahkan).
+
+Anda bisa dipilih sebagai **penerima task** (dan penanggung jawab komplain/masukan/kerusakan) di
+kedua cabang, walau peran Anda tercatat di Jemur saja; pilihan nama Anda muncul di daftar PIC setiap
+cabang, termasuk saat **Semua cabang**.
 
 ## Ekspor audit
 

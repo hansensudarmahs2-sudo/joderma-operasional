@@ -70,6 +70,26 @@
   </details>
 
   <details class="card">
+    <summary><strong>Jadikan kebijakan</strong></summary>
+    <p class="help">Cukup ditetapkan sebagai aturan, tanpa penugasan. Diumumkan lewat notifikasi ke semua orang di cabang yang dipilih dan tampil di halaman Kebijakan. <strong>Nama pelapor dan uraian aslinya tidak ikut diumumkan</strong>; yang diumumkan hanya judul dan isi di bawah, jadi pastikan isinya tidak menyebut nama.</p>
+    <form method="post">{% csrf_token %}<input type="hidden" name="aksi" value="kebijakan">
+      <label for="judul-kebijakan">Judul kebijakan</label>
+      <input id="judul-kebijakan" name="judul_kebijakan" maxlength="200" required value="{{ row.title }}">
+      <label for="isi-kebijakan">Isi kebijakan</label>
+      <textarea id="isi-kebijakan" name="isi_kebijakan" rows="4" required>{{ row.description }}</textarea>
+      <div class="inline">
+        <div><label for="cabang-kebijakan">Berlaku untuk</label>
+          <select id="cabang-kebijakan" name="cabang_kebijakan">
+            <option value="semua">Semua cabang</option>
+            {% for c in clinics %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+          </select></div>
+        <div><label for="berlaku">Berlaku mulai</label><input id="berlaku" type="date" name="berlaku" value="{% now 'Y-m-d' %}"></div>
+      </div>
+      <p><button class="btn" type="submit">Tetapkan dan umumkan</button></p>
+    </form>
+  </details>
+
+  <details class="card">
     <summary><strong>Tidak ditindaklanjuti</strong></summary>
     <form method="post">{% csrf_token %}<input type="hidden" name="aksi" value="tidak">
       <label for="alasan">Alasan</label>

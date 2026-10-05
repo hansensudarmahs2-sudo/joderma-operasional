@@ -7,6 +7,9 @@ Empat hasil, mengikuti matriks wewenang yang diusulkan (Okt 2026):
 - TERUSKAN  : di luar bidangnya (apotek/stok/harga obat, Omnicare, keuangan di atas batas,
               medis, strategis) -> catat diteruskan ke siapa; item tetap dipantau di Inbox.
 - RAPAT     : perlu diputuskan bersama -> perkara baru di Keputusan (pemutus Rapat bersama).
+- KEBIJAKAN : cukup ditetapkan sebagai aturan yang berlaku, tanpa penugasan -> Keputusan berstatus
+              ditetapkan + kebijakan, diumumkan ke semua orang di cabangnya, tanpa nama pelapor
+              (5 Okt 2026).
 - TIDAK     : tidak ditindaklanjuti, alasan wajib.
 
 Matriks tidak dipaksakan sistem (PP belum disahkan); halaman pilah hanya menampilkannya
@@ -143,6 +146,32 @@ def to_meeting(row, *, actor, title: str = "", background: str = "", needed_by=N
     triage = _save(row, actor=actor, action=TriageAction.RAPAT, decision=decision)
     _issue_followup(row, actor=actor, action=TriageAction.RAPAT,
                     text="Dipilah Direktur Operasional: dibawa ke rapat bersama (Kamis) untuk diputuskan.")
+    return triage
+
+
+@transaction.atomic
+def to_policy(row, *, actor, title: str, text: str, clinic="semua", effective_on=None) -> InboxTriage:
+    """Jadikan kebijakan berlaku dan umumkan. `clinic`: "asal" = cabang item; "semua"/None = semua
+    cabang; atau cabang tertentu. Pengumuman hanya memuat judul dan isi yang ditulis Direktur:
+    nama pelapor dan uraian aslinya tidak ikut."""
+    from direktur import services as direktur
+    from direktur.models import Decider
+
+    _assert(actor)
+    if not (title or "").strip():
+        raise ValidationError("Judul kebijakan wajib diisi.")
+    if not (text or "").strip():
+        raise ValidationError("Isi kebijakan wajib diisi.")
+    target = row["clinic"] if clinic == "asal" else (None if clinic in ("semua", None) else clinic)
+    decision = direktur.create_decision(
+        actor=actor, title=title.strip()[:200], decider=Decider.DIREKTUR_OPERASIONAL, clinic=target,
+        reference=row["ref"][:30], background=f"Berasal dari {row['kind_label'].lower()} di Inbox.",
+    )
+    direktur.settle_decision(decision, actor=actor, decision_text=text, is_policy=True, decided_on=effective_on)
+    triage = _save(row, actor=actor, action=TriageAction.KEBIJAKAN, decision=decision,
+                   note=f"Kebijakan \"{decision.title}\" untuk {target.name if target else 'semua cabang'}.")
+    _issue_followup(row, actor=actor, action=TriageAction.KEBIJAKAN,
+                    text=f"Dipilah Direktur Operasional: dijadikan kebijakan \"{decision.title}\" dan diumumkan.")
     return triage
 
 

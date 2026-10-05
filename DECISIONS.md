@@ -125,6 +125,9 @@ kembali, ditandai sebagai entri susulan dengan alasan. Runbook: `docs/runbook.md
 | Database | SQLite WAL (migrasi ke PostgreSQL sesuai PRD 16.2) | PROVISIONAL |
 
 ## Catatan perubahan
+- 2026-10-05 — Item Inbox dapat dijadikan kebijakan tanpa penugasan, diumumkan ke semua orang di
+  cabangnya tanpa nama pelapor; Direktur Operasional dapat menjadi penerima task di semua cabang
+  (keputusan product owner).
 - 2026-10-04 — Jam operasional per cabang dan penutupan tanpa batas jam dikonfirmasi product owner.
 - 2026-09-11 — Dokumen dibuat dari PRD v1.0 Bagian 29. Seluruh entri `PROVISIONAL`.
 - 2026-09-11 — Persiapan UAT pilot: ditambahkan rujukan ke `OWNER_DECISION_REVIEW.md`;

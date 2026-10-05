@@ -71,6 +71,7 @@ OWNER_ALLOWED = COMMON | {
     "direktur:task_detail",  # baca saja; tombol ubah hanya untuk pemberi tugas/Direktur
     "direktur:decisions",
     "direktur:decision_detail",
+    "reports:policies",  # Kebijakan berlaku (5 Okt 2026), baca saja
     "jadwal:roster",
     "stok:index",  # Stok Apotek, baca saja; unggah dan parameter tetap ditolak
     "core:attachment",  # foto permintaan/temuan; izin per lampiran diperiksa di view
@@ -239,6 +240,7 @@ def nav_sections(user) -> list[NavSection]:
         main.add("Inbox", "reports:inbox")
         main.add("Daftar Task", "direktur:tasks")
         main.add("Keputusan", "direktur:decisions")
+        main.add("Kebijakan", "reports:policies")
         main.add("Bahan Rapat", "direktur:meeting")
         main.add("Jejak", "jejak:index")
         main.add("KPI", "direktur:kpi")
@@ -272,6 +274,7 @@ def nav_sections(user) -> list[NavSection]:
         overview.add("Prioritas", "direktur:matrix")
         overview.add("Jadwal Task", "direktur:gantt")
         overview.add("Keputusan", "direktur:decisions")
+        overview.add("Kebijakan", "reports:policies")
         overview.add("Bahan Rapat", "direktur:meeting")
         overview.add("Jejak", "jejak:index")
         overview.add("KPI", "direktur:kpi")
@@ -324,6 +327,7 @@ def nav_sections(user) -> list[NavSection]:
         work.add("Order Produk Online", "orders:index")
     if flags["stok"]:
         work.add("Stok Apotek", "stok:index")
+    work.add("Kebijakan", "reports:policies")
     sections = [work, team, _report_section(user, flags)]
     if who == PIC:
         manage = NavSection("Koordinasi")
@@ -356,4 +360,5 @@ def _staff_sections(user, flags) -> list[NavSection]:
         work.add("Order Produk Online", "orders:index")
     if flags["stok"]:
         work.add("Stok Apotek", "stok:index")
+    work.add("Kebijakan", "reports:policies")
     return [work, _report_section(user, flags)]

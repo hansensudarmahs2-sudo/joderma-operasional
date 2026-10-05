@@ -13,7 +13,7 @@ from accounts.models import PicAssignment, PicFunction, User
 from audit.models import AuditAction
 from audit.services import log_create, log_event, log_update, snapshot
 from core.models import ActionItem, ActionItemStatus, Priority, TaskAudienceType, local_today
-from core.permissions import can_access_clinic, is_aom
+from core.permissions import can_access_clinic, clinic_member_q, is_aom
 from core.task_services import create_task
 
 from .models import (
@@ -58,7 +58,7 @@ def target_choices(clinic) -> list[tuple[str, str]]:
         if value in held:
             choices.append((f"pic:{value}", f"PIC {label}"))
     users = (
-        User.objects.filter(is_active=True, user_roles__clinic=clinic)
+        User.objects.filter(clinic_member_q(clinic), is_active=True)  # termasuk Direktur Operasional
         .distinct()
         .order_by("display_name", "username")
     )
@@ -591,6 +591,7 @@ def settle_decision(
     if not (decision_text or "").strip():
         raise ValidationError("Tuliskan isi keputusannya.")
     before = snapshot(decision)
+    was_policy = decision.is_policy and decision.status == DecisionStatus.DITETAPKAN
     decision.status = DecisionStatus.DITETAPKAN
     decision.decision_text = decision_text.strip()
     decision.is_policy = bool(is_policy)
@@ -598,7 +599,36 @@ def settle_decision(
     decision.save()
     log_update(decision, before, actor=actor, action=AuditAction.APPROVE)
     _release_waiting(decision, actor=actor, verb="ditetapkan")
+    if decision.is_policy and not was_policy:
+        announce_policy(decision, actor=actor)
     return decision
+
+
+def policy_audience(decision: Decision):
+    """Semua pengguna aktif di cabang kebijakan (lintas cabang = semua cabang aktif)."""
+    from core.models import Clinic
+
+    clinics = [decision.clinic] if decision.clinic_id else list(Clinic.objects.filter(active=True))
+    return User.objects.filter(is_active=True, user_roles__clinic__in=clinics).distinct()
+
+
+def announce_policy(decision: Decision, *, actor) -> int:
+    """Umumkan kebijakan berlaku lewat notifikasi ke semua orang di cabangnya (5 Okt 2026).
+
+    Isi pengumuman hanya judul dan isi kebijakan: tanpa nama pelapor atau sumbernya.
+    """
+    from notifications.services import notify_user
+
+    sent = 0
+    for person in policy_audience(decision).exclude(pk=getattr(actor, "pk", None)):
+        if notify_user(person, type_code="POLICY_PUBLISHED", title=f"Kebijakan baru: {decision.title}",
+                       body=decision.decision_text, entity_ref=f"decision#{decision.pk}",
+                       url_name="reports:policies"):
+            sent += 1
+    log_event(action=AuditAction.PUBLISH, entity_type="decision", entity_id=decision.pk,
+              entity_label=f"Kebijakan diumumkan: {decision.title}"[:200], actor=actor,
+              after={"clinic": decision.clinic.code if decision.clinic_id else "SEMUA", "recipients": sent})
+    return sent
 
 
 @transaction.atomic

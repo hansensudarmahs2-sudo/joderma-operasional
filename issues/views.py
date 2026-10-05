@@ -20,6 +20,7 @@ from core.permissions import (
     can_access_clinic,
     can_assign_issue,
     can_view_restricted_issue,
+    clinic_member_q,
     is_aom,
     is_owner,
     is_supervisor,
@@ -182,7 +183,7 @@ def detail(request, pk: int):
                 (s, dict(IssueStatus.choices).get(s, s)) for s in issue.allowed_next_statuses()
             ),
             "can_assign": can_assign_issue(request.user),
-            "users": User.objects.filter(is_active=True, user_roles__clinic=issue.clinic)
+            "users": User.objects.filter(clinic_member_q(issue.clinic), is_active=True)
             .distinct()
             .order_by("username"),
             "attachment_form": AttachmentForm(),

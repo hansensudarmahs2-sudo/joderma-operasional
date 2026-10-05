@@ -54,9 +54,9 @@ yang ditentukan dari perannya, dengan urutan: Direktur Operasional (`AOM`) → O
 | Tampilan | Halaman pertama | Menu | Halaman yang boleh dibuka |
 |---|---|---|---|
 | Direktur Operasional | Ringkasan | semua, dikelompokkan: ringkasan, Direktur, Operasional, Laporan, Pengaturan | semua (izin per view tetap berlaku) |
-| Owner / Direktur Utama | Dashboard Owner | Dashboard, Inbox, Daftar Task, Keputusan, Bahan Rapat, Jejak, KPI, Summary Harian, Jadwal, Stok Apotek | **hanya**: halaman Owner (`/owner/`: Dashboard, Permintaan dan temuan, Summary Harian, Jadwal), Inbox (baca), Tim, Daftar Task (baca + CSV), Bahan Rapat (baca), Jejak (baca), KPI (baca + CSV), Kanban, Prioritas, Jadwal Task, Detail task (baca), Keputusan, Jadwal Jaga (baca), Stok Apotek (baca), Notifikasi, Ganti password. Selain itu 403 |
-| PIC / Koordinator | Hari Ini | Hari Ini, Checklist Saya, Kas/Order/Stok Apotek bila perannya, Jadwal (termasuk Pembagian Tugas), Lapor, Laporan Operasional | semua kecuali yang ditolak izin per view |
-| Staf | Tugas hari ini | Tugas hari ini, Jadwal saya, Istirahat saya, Tindakan saya (perawat), Kas **hanya pada hari ia kasir** (porsi kelompok Kas di Pembagian Tugas), Order/Stok Apotek bila perannya, Lapor | semua **kecuali** grid tim (Jadwal Jaga, Jadwal Istirahat, papan Giliran Perawat beserta aksi koordinatornya), Pembagian Tugas tim, Laporan Operasional dan ekspor, halaman Direktur dan Owner, Audit, Jejak; Kas di luar hari kasir. Hari Ini dan Checklist tetap bisa dibuka (aksi hari, pengisian butir) walau tidak di menu. Tally hanya untuk dirinya sendiri (fase 7, 4 Okt 2026) |
+| Owner / Direktur Utama | Dashboard Owner | Dashboard, Inbox, Daftar Task, Keputusan, Kebijakan, Bahan Rapat, Jejak, KPI, Summary Harian, Jadwal, Stok Apotek | **hanya**: halaman Owner (`/owner/`: Dashboard, Permintaan dan temuan, Summary Harian, Jadwal), Inbox (baca), Tim, Daftar Task (baca + CSV), Bahan Rapat (baca), Jejak (baca), KPI (baca + CSV), Kanban, Prioritas, Jadwal Task, Detail task (baca), Keputusan, Kebijakan (baca), Jadwal Jaga (baca), Stok Apotek (baca), Notifikasi, Ganti password. Selain itu 403 |
+| PIC / Koordinator | Hari Ini | Hari Ini, Checklist Saya, Kas/Order/Stok Apotek bila perannya, Kebijakan, Jadwal (termasuk Pembagian Tugas), Lapor, Laporan Operasional | semua kecuali yang ditolak izin per view |
+| Staf | Tugas hari ini | Tugas hari ini, Jadwal saya, Istirahat saya, Tindakan saya (perawat), Kas **hanya pada hari ia kasir** (porsi kelompok Kas di Pembagian Tugas), Order/Stok Apotek bila perannya, Kebijakan, Lapor | semua **kecuali** grid tim (Jadwal Jaga, Jadwal Istirahat, papan Giliran Perawat beserta aksi koordinatornya), Pembagian Tugas tim, Laporan Operasional dan ekspor, halaman Direktur dan Owner, Audit, Jejak; Kas di luar hari kasir. Hari Ini dan Checklist tetap bisa dibuka (aksi hari, pengisian butir) walau tidak di menu. Tally hanya untuk dirinya sendiri (fase 7, 4 Okt 2026) |
 | Admin sistem | Pengguna | Pengguna, Reset peran, Konfigurasi, Template Checklist, Pengaturan Klinik, Jadwal Jaga, Pembagian Tugas | **hanya** halaman akun, konfigurasi, template, pengaturan klinik, jadwal. Admin dengan `admin.full_access` tidak dibatasi |
 
 Penolakan dilakukan `core.middleware.PersonaAccessMiddleware` untuk setiap permintaan,
@@ -135,6 +135,9 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Mengekspor laporan | supervisor, AOM, owner | `report.export`, `admin.full_access` |
 | Ringkasan, Daftar Task, Bahan Rapat, Kanban, Prioritas, Jadwal Task, Keputusan, Tim, Detail task (baca) | AOM, owner | — |
 | Tahan task menunggu keputusan, bawa ke rapat, buat task tindak lanjut keputusan | AOM | — |
+| Jadikan item Inbox kebijakan (diumumkan ke semua orang di cabangnya, tanpa nama pelapor) | AOM | — |
+| Membaca Kebijakan (`/laporan/kebijakan/`): kebijakan cabangnya sendiri dan yang berlaku semua cabang | semua peran | — |
+| Dipilih sebagai penerima task / penanggung jawab catatan di **cabang mana pun** walau perannya tercatat di satu cabang (5 Okt 2026) | AOM | — |
 | Detail task: ubah status/target, tandai selesai, batalkan, keluarkan penerima | AOM, pembuat task | — |
 | Pengaturan klinik (nama, alamat, nomor HP, jam, DPJ, APJ): ubah | admin, AOM, superuser bootstrap | — |
 | Pengaturan klinik: baca | (owner dahulu; sejak fase 3 ditolak tampilan Owner) | — |

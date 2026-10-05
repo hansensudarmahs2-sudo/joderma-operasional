@@ -8,6 +8,7 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("masuk/", views.inbox, name="inbox"),
     path("masuk/pilah/<str:sumber>/<int:pk>/", views.inbox_triage, name="inbox_triage"),
+    path("kebijakan/", views.policies, name="policies"),
     path("ekspor/<str:dataset>/", views.export_csv, name="export"),
     # Laporan (plan bagian 9)
     path("laporan/", views.laporan_list, name="laporan_list"),

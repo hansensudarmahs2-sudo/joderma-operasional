@@ -98,8 +98,8 @@ def test_owner_menu_is_short(client, clinic):
     client.force_login(_user(clinic, "yohanes", Role.OWNER))
     body = client.get(reverse("owner:dashboard")).content.decode()
     menu = _nav(body)
-    assert menu[:9] == ["Dashboard", "Inbox", "Daftar Task", "Keputusan", "Bahan Rapat", "Jejak", "KPI",
-                        "Summary Harian", "Jadwal"]
+    assert menu[:10] == ["Dashboard", "Inbox", "Daftar Task", "Keputusan", "Kebijakan", "Bahan Rapat", "Jejak",
+                         "KPI", "Summary Harian", "Jadwal"]
     for label in OWNER_FORBIDDEN_MENU:
         assert label not in menu
     assert "Owner / Direktur Utama" in body
@@ -108,7 +108,8 @@ def test_owner_menu_is_short(client, clinic):
 def test_director_menu_keeps_everything(client, clinic):
     client.force_login(_user(clinic, "hansen1", Role.AOM))
     menu = _nav(client.get(reverse("direktur:overview")).content.decode())
-    for label in ("Ringkasan", "Tim", "Kanban", "Prioritas", "Jadwal Task", "Keputusan", "Checklist Direktur",
+    for label in ("Ringkasan", "Tim", "Kanban", "Prioritas", "Jadwal Task", "Keputusan", "Kebijakan",
+                  "Checklist Direktur",
                   "Catatan", "Hari Ini", "Checklist Saya", "Jadwal Jaga", "Pembagian Tugas",
                   "Laporan Operasional", "Audit", "Pengaturan Klinik"):
         assert label in menu
@@ -118,7 +119,7 @@ def test_staff_menu_is_simple(client, clinic):
     client.force_login(_user(clinic, "yani", Role.PERAWAT, Role.STAF))
     menu = _nav(client.get(reverse("core:today")).content.decode())
     assert menu[:4] == ["Tugas hari ini", "Jadwal saya", "Istirahat saya", "Tindakan saya"]
-    for label in ("Komplain", "Masukan", "Kerusakan", "Laporan Saya", "Masukan Saya"):
+    for label in ("Komplain", "Masukan", "Kerusakan", "Laporan Saya", "Masukan Saya", "Kebijakan"):
         assert label in menu
     for label in ("Hari Ini", "Checklist Saya", "Jadwal Jaga", "Jadwal Istirahat", "Giliran Perawat",
                   "Pembagian Tugas", "Laporan Operasional", "Audit", "Ringkasan", "Kas", "Admin"):

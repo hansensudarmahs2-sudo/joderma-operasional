@@ -636,6 +636,16 @@ def inbox_triage(request, sumber: str, pk: int):
                                       needed_by=direktur.parse_date(request.POST.get("tenggat", ""), "Tenggat"),
                                       clinic=meeting_clinic)
                 messages.success(request, f"Dibawa ke rapat Kamis: {t.decision}.")
+            elif aksi == "kebijakan":
+                raw = request.POST.get("cabang_kebijakan", "semua")
+                policy_clinic = raw if raw in ("asal", "semua") else next(
+                    (c for c in clinics if raw.isdigit() and c.pk == int(raw)), None)
+                if policy_clinic is None:
+                    raise ValidationError("Cabang tidak valid.")
+                t = triage.to_policy(row, actor=request.user, title=request.POST.get("judul_kebijakan", ""),
+                                     text=request.POST.get("isi_kebijakan", ""), clinic=policy_clinic,
+                                     effective_on=direktur.parse_date(request.POST.get("berlaku", ""), "Berlaku mulai"))
+                messages.success(request, f"Dijadikan kebijakan dan diumumkan: {t.decision.title}.")
             elif aksi == "tidak":
                 triage.dismiss(row, actor=request.user, reason=request.POST.get("alasan", ""))
                 messages.success(request, "Dicatat: tidak ditindaklanjuti.")
@@ -651,4 +661,23 @@ def inbox_triage(request, sumber: str, pk: int):
         "forward_choices": ForwardTo.choices,
         "default_priority": "TINGGI" if row["critical"] else "SEDANG",
         "default_due": row.get("target_date"),
+    })
+
+
+@login_required
+def policies(request):
+    """Kebijakan berlaku: dibaca semua peran (5 Okt 2026). Tanpa nama pelapor atau sumbernya."""
+    from core.permissions import user_clinic_queryset
+    from direktur.models import Decision, DecisionStatus
+
+    clinics = list(user_clinic_queryset(request.user))
+    items = (
+        Decision.objects.filter(status=DecisionStatus.DITETAPKAN, is_policy=True)
+        .filter(Q(clinic__isnull=True) | Q(clinic__in=clinics))
+        .select_related("clinic")
+        .order_by("-decided_on", "-id")
+    )
+    fresh = local_today() - timedelta(days=7)
+    return render(request, "reports/policies.html", {
+        "items": items, "fresh": fresh, "is_director": is_aom(request.user),
     })
