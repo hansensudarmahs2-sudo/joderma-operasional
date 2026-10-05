@@ -515,7 +515,7 @@ MY_OPEN_ASSIGNMENT = (
 )
 
 
-def _my_task_row(item: ActionItem, assignment: TaskAssignment | None, user, now) -> dict:
+def my_task_row(item: ActionItem, assignment: TaskAssignment | None, user, now) -> dict:
     shared = item.assignment_mode == TaskAssignmentMode.BERSAMA
     status = assignment.status if assignment else None
     workable = status in (
@@ -565,12 +565,12 @@ def my_tasks(user) -> list[dict]:
         item = a.action_item
         if item.assignment_mode == TaskAssignmentMode.BERSAMA and a.claimed_by_id not in (None, user.pk):
             continue
-        rows.append(_my_task_row(item, a, user, now))
+        rows.append(my_task_row(item, a, user, now))
         seen.add(item.pk)
     for item in open_items.filter(owner=user).exclude(pk__in=seen).select_related("clinic", "created_by"):
         if TaskAssignment.objects.filter(action_item=item).exists():
             continue  # sudah dikirim ke orang lain atau sudah dikonfirmasi; bukan tugas terbuka saya
-        rows.append(_my_task_row(item, None, user, now))
+        rows.append(my_task_row(item, None, user, now))
     import datetime as dt
 
     far = dt.datetime.max.replace(tzinfo=dt.timezone.utc)

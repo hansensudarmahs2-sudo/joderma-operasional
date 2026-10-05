@@ -10,11 +10,11 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
 | | |
 |---|---|
-| Produksi (mini PC, ops.joderma.id) | Commit `9552fbb` (dideploy 4 Oktober): fase 8 PIC sesuai porsi fungsinya, di atas `6b0b589` (dideploy 4 Oktober): kas, daftar Selisih belum ditutup, di atas `e9735d2` (dideploy 4 Oktober): fase 6 Permintaan Owner di Jadwal Task, di atas `e0f53c5` (dideploy 4 Oktober): fase 7 tampilan staf sederhana, di atas `410e069` (dideploy 4 Oktober): kas, tutup selisih sebagai kekeliruan administratif, di atas `56fc3ba` (dideploy 3 Oktober): tahap 3 paket F, KPI per staf, di atas `c224394` (dideploy 3 Oktober): banner saran (password awal, izin lokasi), di atas `f0fabf8` (dideploy 3 Oktober 21.50): Unduh CSV di Jejak, di atas `8c48cde` (dideploy 3 Oktober 21.33): tahap 3 paket E (jejak kehadiran, koordinat cabang terisi, Semua cabang saat memilah), di atas `3056c3d`: tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
+| Produksi (mini PC, ops.joderma.id) | Commit `8cd539a` (dideploy 5 Oktober 16.25): Inbox jadi kebijakan, Direktur penerima task di kedua cabang (`reports 0004`), di atas `194240a` (dideploy 5 Oktober 16.00): uraian task bisa dibaca utuh, di atas `f92c47e`: penutupan tanpa batas jam, di atas `eec39fd`: daftar uji fase 9, di atas `9552fbb` (dideploy 4 Oktober): fase 8 PIC sesuai porsi fungsinya, di atas `6b0b589` (dideploy 4 Oktober): kas, daftar Selisih belum ditutup, di atas `e9735d2` (dideploy 4 Oktober): fase 6 Permintaan Owner di Jadwal Task, di atas `e0f53c5` (dideploy 4 Oktober): fase 7 tampilan staf sederhana, di atas `410e069` (dideploy 4 Oktober): kas, tutup selisih sebagai kekeliruan administratif, di atas `56fc3ba` (dideploy 3 Oktober): tahap 3 paket F, KPI per staf, di atas `c224394` (dideploy 3 Oktober): banner saran (password awal, izin lokasi), di atas `f0fabf8` (dideploy 3 Oktober 21.50): Unduh CSV di Jejak, di atas `8c48cde` (dideploy 3 Oktober 21.33): tahap 3 paket E (jejak kehadiran, koordinat cabang terisi, Semua cabang saat memilah), di atas `3056c3d`: tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
 | Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | Penutupan tanpa batas jam (di-commit 4 Okt), uraian task bisa dibaca utuh (5 Okt), dan Inbox → kebijakan + Direktur penerima task di kedua cabang (5 Okt; migrasi `reports 0004`, hanya pilihan). Berjalan: **uji coba fase 9 oleh staf**, lihat Task yang belum selesai ▸ Fase 9 |
-| Test | 741 (740 lulus, 1 dilewati) per 5 Okt: 720 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
+| Belum dideploy | Tugas saya di Ringkasan, Ajukan selesai di detail task, dan menu Dari staf untuk Direktur (5 Okt sore; tanpa migrasi). Berjalan: **uji coba fase 9 oleh staf**, lihat Task yang belum selesai ▸ Fase 9 |
+| Test | 742 (741 lulus, 1 dilewati) per 5 Okt: 721 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
 
@@ -174,7 +174,21 @@ sesudah 1–2 bulan data.
 
 # Riwayat
 
-## Inbox jadi kebijakan; Direktur penerima task di kedua cabang (5 Oktober 2026) — belum di-commit
+## Direktur: Tugas saya, Ajukan selesai di detail task, menu Dari staf (5 Oktober 2026 sore) — belum di-commit
+
+Temuan product owner sesudah deploy `8cd539a` ("tidak ada tugas saya, tidak ada melihat masukan, komplain,
+kerusakan/laporan dari staf"): Tugas saya hanya ada di Hari Ini, padahal halaman pertama Direktur
+Ringkasan; detail task tidak punya tombol untuk penerimanya; daftar komplain/masukan/kerusakan tidak
+ada di menu Direktur (hanya lewat Inbox, yang dibuka pada tab Belum dipilah).
+
+- **Tugas saya** di atas Ringkasan (bila ada task/catatan untuk yang membuka).
+- Detail task: **Lapor progres** / **Ajukan selesai** di baris penerima yang sedang membuka
+  (`task_services.my_task_row`, dulu `_my_task_row`), kembali ke halaman detail sesudahnya.
+- Menu Direktur bagian **Dari staf**: Komplain, Masukan, Kerusakan, Laporan staf, Masukan privat staf
+  (dua terakhir dulu bernama "Laporan Saya"/"Masukan Saya" walau isinya semua milik staf).
+- Test `test_director_sees_own_task_and_staff_reports` (+1).
+
+## Inbox jadi kebijakan; Direktur penerima task di kedua cabang (5 Oktober 2026) — `8cd539a`, dideploy 5 Okt
 
 Permintaan product owner 5 Okt (dari masukan staf SUG-20261005-001):
 
@@ -196,7 +210,7 @@ Permintaan product owner 5 Okt (dari masukan staf SUG-20261005-001):
   berubah.
 - Test `reports/tests/test_kebijakan.py` (+4); menu test disesuaikan.
 
-## Uraian task bisa dibaca utuh (5 Oktober 2026) — belum di-commit
+## Uraian task bisa dibaca utuh (5 Oktober 2026) — `194240a`, dideploy 5 Okt
 
 Temuan uji coba fase 9 (akun `heni`, HP): uraian task di Tugas saya terpotong 160 karakter tanpa cara
 membaca sisanya; halaman Semua task saya tidak menampilkan uraian sama sekali.
@@ -206,7 +220,7 @@ membaca sisanya; halaman Semua task saya tidak menampilkan uraian sama sekali.
   (Hari Ini dan Tugas hari ini) dan Semua task saya.
 - Test `test_long_task_description_can_be_read_in_full` (+1).
 
-## Penutupan tanpa batas jam (4 Oktober 2026) — di-commit 4 Okt
+## Penutupan tanpa batas jam (4 Oktober 2026) — `f92c47e`, dideploy 5 Okt
 
 Keputusan product owner 4 Okt: tidak ada tenggat penutupan; tutup bisa molor menunggu pasien terakhir.
 Jam operasional dikonfirmasi: Jemur 14.00–22.00, Citraland 12.00–21.00 (`DECISIONS.md`).

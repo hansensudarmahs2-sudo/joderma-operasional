@@ -294,10 +294,16 @@ def nav_sections(user) -> list[NavSection]:
         if flags["orders"]:
             ops.add("Order Produk Online", "orders:index")
         ops.add("Stok Apotek", "stok:index")
+        # 5 Okt 2026: semua yang dilaporkan staf terlihat langsung dari menu (tidak hanya lewat Inbox).
+        # "Laporan staf" dan "Masukan privat staf" menampilkan semua milik staf cabang aktif.
+        staff = NavSection("Dari staf")
+        staff.add("Komplain", "issues:list", "?tipe=KOMPLAIN")
+        staff.add("Masukan", "issues:list", "?tipe=MASUKAN")
+        staff.add("Kerusakan", "issues:list", "?tipe=KERUSAKAN")
+        staff.add("Laporan staf", "reports:laporan_page")
+        staff.add("Masukan privat staf", "reports:masukan_page")
         reports = NavSection("Laporan")
         reports.add("Laporan Operasional", "reports:index")
-        reports.add("Laporan Saya", "reports:laporan_page")
-        reports.add("Masukan Saya", "reports:masukan_page")
         if flags["audit"]:
             reports.add("Audit", "audit:log")
         settings = NavSection("Pengaturan")
@@ -305,7 +311,7 @@ def nav_sections(user) -> list[NavSection]:
             settings.add("Pengaturan Klinik", "core:clinic_profile")
         if flags["users"] or flags["config"]:
             settings.add("Admin", "accounts:user_list")
-        return [s for s in (overview, mine, ops, reports, settings) if s.items]
+        return [s for s in (overview, staff, mine, ops, reports, settings) if s.items]
 
     if who == STAF:
         return _staff_sections(user, flags)

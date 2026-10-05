@@ -84,7 +84,27 @@
         </form>
       </details>
       {% endif %}
-      {% if not r.can_review and not r.can_remove %}<span class="meta">—</span>{% endif %}
+      {% if r.can_submit %}
+      <details class="task-submit"><summary class="btn small secondary">Lapor progres</summary>
+        <form method="post" data-jejak action="{% url 'core:assignment_progress' r.a.pk %}" enctype="multipart/form-data" class="stack-form">
+          {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+          <label for="progres-{{ r.a.pk }}">Kemajuan</label>
+          <input id="progres-{{ r.a.pk }}" name="catatan" required placeholder="Mis. sudah disosialisasikan, evaluasi tgl 12/10">
+          {% foto_input "Foto (opsional)" "foto" %}
+          <button class="btn small" type="submit">Simpan progres</button>
+        </form>
+      </details>
+      <details class="task-submit"><summary class="btn small">Ajukan selesai</summary>
+        <form method="post" data-jejak action="{% url 'core:assignment_submit' r.a.pk %}" enctype="multipart/form-data" class="stack-form">
+          {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+          <label for="bukti-{{ r.a.pk }}">Catatan bukti</label>
+          <input id="bukti-{{ r.a.pk }}" name="catatan" required placeholder="Mis. alur baru sudah disosialisasikan ke staf">
+          {% foto_input "Foto bukti (opsional)" "foto" %}
+          <button class="btn small" type="submit">Kirim</button>
+        </form>
+      </details>
+      {% endif %}
+      {% if not r.can_review and not r.can_remove and not r.can_submit %}<span class="meta">—</span>{% endif %}
     </div></td>
   </tr>
   {% empty %}<tr><td colspan="4" class="meta">Belum ada penerima.</td></tr>{% endfor %}
@@ -111,7 +131,7 @@
     <label style="flex:1 1 16rem">Tandai selesai tanpa menunggu penerima<input name="catatan" required placeholder="Catatan penutupan (wajib)"></label>
     <button class="btn small" type="submit">Tandai selesai</button>
   </form>
-  {% else %}<p class="meta" style="margin:0">Task ini ditutup lewat ajukan selesai oleh penerima, lalu konfirmasi Direktur Utama / Owner.</p>{% endif %}
+  {% else %}<p class="meta" style="margin:0">Task ini ditutup lewat ajukan selesai oleh penerima, lalu konfirmasi Direktur Utama / Owner.{% if i_receive %} Anda penerimanya: tekan <strong>Ajukan selesai</strong> di tabel Penerima di atas.{% endif %}</p>{% endif %}
   <details style="margin-top:.5rem"><summary class="meta">Batalkan task</summary>
     <form method="post" class="inline">{% csrf_token %}
       <input type="hidden" name="aksi" value="batal">

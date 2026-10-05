@@ -9,5 +9,7 @@
   {% if bird.any_problem %}<span class="tag warn">Perlu perhatian</span>{% else %}<span class="tag ok">Semua beres</span>{% endif %}
 </div>
 
+{% if my_tasks or my_issues %}{% include "core/_my_tasks.html" %}{% endif %}
+
 {% include "direktur/_overview_body.html" %}
 {% endblock %}

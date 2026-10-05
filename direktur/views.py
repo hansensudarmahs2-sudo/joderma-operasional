@@ -96,11 +96,18 @@ def _filter_context(request, clinic_id, source):
 @login_required
 @require(dashboard.can_view_overview)
 def overview(request):
+    from core.photos import task_photos
+
     user = request.user
+    # 5 Okt 2026: Ringkasan adalah halaman pertama Direktur; task untuknya sendiri juga tampil di sini.
+    mine = task_services.my_tasks(user)
     return render(
         request,
         "direktur/overview.html",
         {
+            "my_tasks": mine,
+            "task_photos": task_photos([t["item"] for t in mine]),
+            "my_issues": user.issue_assignments.filter(active=True).select_related("issue")[:10],
             "inbox": _inbox_counts(request.user),
             "bird": dashboard.bird_view(user),
             "matrix": dashboard.eisenhower(user, limit=1),
@@ -576,9 +583,15 @@ def task_detail(request, pk: int):
         return redirect("direktur:task_detail", pk=item.pk)
 
     assignments = list(item.task_assignments.select_related("assignee", "claimed_by", "reviewer"))
+    now = timezone.now()
     rows = [
         {
             "a": a,
+            # 5 Okt 2026: penerima (termasuk Direktur yang menugaskan dirinya sendiri) bisa lapor progres dan
+            # ajukan selesai dari halaman ini, tidak hanya dari Tugas saya.
+            "can_submit": a.assignee_id == request.user.pk and item.status not in (
+                ActionItemStatus.SELESAI, ActionItemStatus.BATAL)
+            and task_services.my_task_row(item, a, request.user, now)["can_submit"],
             "can_review": a.status == TaskAssignmentStatus.SUBMITTED
             and task_services.can_review_assignment(a, request.user),
             "can_remove": can_manage and a.status in task_services.OPEN_ASSIGNMENT_STATES,
@@ -620,6 +633,7 @@ def task_detail(request, pk: int):
             "can_comment": can_manage or any(a.assignee_id == request.user.pk for a in assignments)
             or (is_owner(request.user) and item.reviewed_by_dirut),
             "is_open": is_open,
+            "i_receive": any(r["can_submit"] for r in rows),
             "priorities": Priority.choices,
             "statuses": [(ActionItemStatus.BARU, "Baru"), (ActionItemStatus.DIKERJAKAN, "Dikerjakan")],
             "due_value": timezone.localtime(item.due_at).date().isoformat() if item.due_at else "",

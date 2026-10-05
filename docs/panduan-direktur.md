@@ -28,6 +28,15 @@ antrian tidak masuk checklist ini karena pencatatannya sudah dipegang Finance.
 
 ## Menu
 
+- **Tugas saya** — task yang dikirim kepada Anda (termasuk yang Anda tugaskan ke diri sendiri) tampil
+  paling atas di **Ringkasan** dan di **Hari Ini**, dengan tombol **Lapor progres** dan **Ajukan
+  selesai**. Kedua tombol itu juga ada di halaman detail task, di baris nama Anda pada tabel
+  Penerima. Task yang penerimanya Anda diperiksa Direktur Utama / Owner: sesudah diajukan, statusnya
+  **Diajukan selesai** (menunggu konfirmasi) sampai Owner mengonfirmasi atau meminta revisi. Bila
+  evaluasinya Anda sendiri, pakai Lapor progres dan geser Target ke tanggal evaluasi; ajukan selesai
+  sesudahnya.
+- **Dari staf** — Komplain, Masukan, Kerusakan, Laporan staf, dan Masukan privat staf untuk cabang
+  yang dipilih di kepala halaman, termasuk yang sudah ditangani cabang. Inbox tetap tempat memilah.
 - **Tim** — per cabang: butir checklist staf yang belum diisi hari ini, pemegang tiap fungsi
   PIC, task per orang (belum selesai / menunggu konfirmasi / selesai 7 hari), dan temuan
   Direktur yang masih terbuka. Hanya untuk membaca; tidak ada skor atau peringkat.
@@ -62,7 +71,9 @@ Menu **Inbox** (di bawah Ringkasan) adalah satu pintu untuk semua yang masuk: Ko
 Kerusakan, Laporan staf, dan Masukan staf dari kedua cabang, **Permintaan dan Temuan Owner**, serta
 **Catatan Direktur** milik Anda sendiri (hanya Anda yang melihatnya). Terbaru di atas, dengan nama
 pelapor. Saring per cabang, jenis, atau kata kunci. Setiap catatan baru juga masuk ke lonceng
-notifikasi. Kotak **Inbox** di Ringkasan menunjukkan berapa yang **belum dipilah**.
+notifikasi. Kotak **Inbox** di Ringkasan menunjukkan berapa yang **belum dipilah**. Inbox dibuka
+pada tab **Belum dipilah**; item yang sudah ditangani cabang atau sudah Anda pilah ada di tab
+**Sudah dipilah** dan **Semua**.
 
 Tab: **Belum dipilah** (bawaan), **Diteruskan, dipantau**, **Sudah dipilah**, **Semua**. Item yang
 sudah ditangani di cabang (status bukan Baru), permintaan yang sudah punya task, dan catatan yang

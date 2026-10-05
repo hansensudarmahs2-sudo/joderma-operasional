@@ -162,3 +162,34 @@ def test_director_is_recipient_at_both_branches(client, people, jemur, citraland
     assign_issue(issue, supervisor=people["regita"], assignee=hansen)
     with pytest.raises(ValidationError):
         assign_issue(issue, supervisor=people["regita"], assignee=people["yani"])
+
+
+def test_director_sees_own_task_and_staff_reports(client, people, jemur):
+    """5 Okt 2026: task untuk Direktur sendiri tampil di Ringkasan dan bisa diajukan selesai dari detail task;
+    komplain/masukan/kerusakan/laporan staf ada di menu Direktur."""
+    from core.models import TaskAssignmentStatus
+
+    hansen = people["hansen"]
+    task = create_task(clinic=jemur, actor=hansen, title="Evaluasi alur surat kontrol",
+                       audience_type=TaskAudienceType.USER, user_ids=[hansen.pk])
+    client.force_login(hansen)
+    page = client.get(reverse("direktur:overview")).content.decode()
+    assert "Tugas saya" in page and "Evaluasi alur surat kontrol" in page
+    for label in ("Komplain", "Kerusakan", "Laporan staf", "Masukan privat staf"):
+        assert f">{label}<" in page, label
+
+    url = reverse("direktur:task_detail", args=[task.pk])
+    page = client.get(url).content.decode()
+    assert "Ajukan selesai" in page and "Anda penerimanya" in page
+    a = task.task_assignments.get()
+    resp = client.post(reverse("core:assignment_submit", args=[a.pk]),
+                       {"catatan": "Sudah disosialisasikan, evaluasi menyusul", "next": url})
+    assert resp["Location"] == url
+    a.refresh_from_db()
+    assert a.status == TaskAssignmentStatus.SUBMITTED
+    page = client.get(url).content.decode()
+    assert "Ajukan selesai</summary>" not in page
+
+    # Staf lain tidak melihat tombol ajukan di task orang lain; Ringkasan Owner tanpa Tugas saya.
+    client.force_login(people["yohanes"])
+    assert "Tugas saya" not in client.get(reverse("owner:dashboard")).content.decode()
