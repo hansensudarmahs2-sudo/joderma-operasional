@@ -175,6 +175,70 @@ sesudah 1–2 bulan data.
 
 # Riwayat
 
+## Absensi Tahap 4: koreksi cap dari halaman (6 Oktober 2026) — branch `absensi-tahap4`, belum di-merge
+
+Dikerjakan di worktree `~/Desktop/joderma-absensi` pada branch `absensi-tahap4`
+(protokol worktree AGENTS.md). **Tidak ada migrasi baru**, jadi deploy-nya hanya kode.
+
+**Masalahnya.** Cap yang hilang atau salah tafsir hanya bisa dibetulkan lewat Django
+admin. Admin meminta `occurred_at` sebagai waktu mutlak — persis bagian yang paling
+mudah salah: pulang 00.28 untuk hari kerja tanggal 4 harus ditulis sebagai tanggal 5,
+dan salah di situ tidak menghasilkan error, hanya angka yang keliru. Akibatnya daftar
+"Perlu dicek" hanya bisa menunjuk 8 hari September yang kehilangan cap masuk, tanpa bisa
+menutupnya.
+
+**Yang dibangun.** Tombol **Koreksi cap** pada baris "Perlu dicek" dan pada rincian per
+staf membuka `/absensi/koreksi/<id>/<tanggal>/`: tambah cap yang hilang, ubah jam atau
+jenis satu cap, hapus cap manual yang keliru. Halaman meminta **jam dinding pada hari
+kerja itu** lalu menjalankannya lewat `services.waktu_cap` — jalur yang sama dengan
+importer — sehingga aturan dini hari (< 06.00 milik hari kerja kemarin) tidak bisa lupa
+diterapkan. Sesudah menyimpan, pesannya langsung menyebut angka hari itu yang baru
+(terlambat, lembur, datang awal, skor), jadi koreksi yang salah arah terlihat saat itu
+juga.
+
+**Yang dijaga di lapisan layanan, bukan di tampilan** (`absensi/koreksi.py`):
+
+- **Alasan wajib** — `required` di HTML bisa dilewati siapa pun yang mengirim POST
+  sendiri, jadi penolakannya ada di `bersihkan_alasan`.
+- **Setiap perubahan masuk audit** sebagai `AuditAction.CORRECTION` dengan snapshot
+  sebelum dan sesudah; audit menyimpan alasan utuh, `AttendancePunch.note` 200 karakter.
+- **Hanya cap MANUAL yang boleh dihapus.** Cap mesin adalah bukti apa yang dicatat alat;
+  jamnya boleh diubah (nilai lama tersimpan di audit), penghapusannya tetap lewat admin.
+- **Cap orang lain atau hari lain ditolak 404** — rutenya memuat pemilik dan tanggalnya.
+
+Hari yang pernah dikoreksi tangan ditandai **"dikoreksi tangan"** di papan skor dan
+rincian staf (`HasilHarian.ada_koreksi_manual`), supaya angka hasil koreksi tidak pernah
+terlihat sama pastinya dengan angka mesin. Halaman "Absensi saya" sengaja **tidak**
+punya tombol koreksi, juga bagi yang berhak: koreksi dikerjakan dari halaman stafnya.
+
+**Hak (D4).** `can_correct_absensi` — Direktur Operasional, Direktur Utama, Owner. Ini
+satu-satunya halaman absensi yang boleh dikirimi POST oleh Owner, jadi `absensi:koreksi`
+masuk `OWNER_ALLOWED` tanpa masuk `OWNER_READ_ONLY`, dan masuk `STAF_BLOCKED`. Admin
+berakses penuh tetap boleh mengimpor tetapi **tidak** mengoreksi (403), sesuai batas
+`can_edit_absensi` vs `can_correct_absensi`.
+
+**Satu hal yang mudah disalahpahami, dan karena itu ada test penjaganya:** `jenis` cap
+tidak memengaruhi skor. `hitung_hari` mengurutkan cap menurut waktunya lalu memakai yang
+pertama sebagai masuk dan yang terakhir sebagai pulang; ia tidak pernah membaca `kind`.
+Membetulkan label `TIDAK_PASTI` → `KELUAR` merapikan catatan, bukan angkanya.
+
+**Berkas:** baru `absensi/koreksi.py`, `absensi/tests/test_koreksi.py`,
+`templates/absensi/koreksi.html`; diubah `absensi/{views,urls,models,perhitungan,admin}.py`,
+`core/peran.py`, `templates/absensi/{index,staf}.html`.
+
+**Test:** 911 lulus (`.venv/bin/python -m pytest`), naik 27 dari 884. Tiga mutasi
+sengaja dipasang untuk memastikan test-nya menggigit — alasan tidak lagi wajib, aturan
+dini hari dilepas, dan hak dilonggarkan ke `can_view_absensi` — ketiganya tertangkap.
+Diuji juga di browser dengan database uji (bukan data klinik): menambah cap masuk 13.55
+pada hari bercap tunggal 22.10 menutup `CAP_TUNGGAL` dan menghasilkan lembur 10 menit;
+tampilan HP tidak terpotong (tanpa scroll mendatar).
+
+**Sisa:** tinjauan product owner, lalu merge ke `master`. Isian jam memakai format
+bawaan browser (browser berbahasa Inggris menampilkan 13:55 sebagai "01:55 PM"; yang
+tersimpan tetap benar) — sama dengan catatan pemilih tanggal yang sudah ada. Staf belum
+diberi tahu otomatis saat capnya dikoreksi, dan tombol "cap saya kurang" di "Absensi
+saya" masih sisa Tahap 5.
+
 ## Absensi jam kerja (6 Oktober 2026) — `7054772`, belum dideploy
 
 Modul baru `absensi/`: impor ekspor mesin sidik jari (.xlsx dan .xls), hitung terlambat
@@ -200,9 +264,9 @@ manual terpisah, 17 hari perlu dicek (10 lewat tengah malam, 8 cap tunggal).
 1. Tinjau 328 baris jadwal September; tiga orang berbeda dari PDF jadwal — Naya
    (Citraland 26 hari, PDF bilang Jemur 17), Luki, dan Rahayu. Pembacaan mesin yang benar.
 2. Jalur `.xls` belum diuji dengan berkas asli dari mesin; baru diuji dengan sheet tiruan.
-3. Tahap 4: koreksi cap dari halaman, untuk menutup 8 hari yang kehilangan cap masuk.
-   Haknya sudah terpasang (`can_correct_absensi`), tinggal tampilannya. Dikerjakan di
-   worktree `~/Desktop/joderma-absensi` pada branch `absensi-tahap4`.
+3. ~~Tahap 4: koreksi cap dari halaman~~ — *selesai di kode 6 Okt pada branch
+   `absensi-tahap4`, belum di-merge dan belum dideploy* (lihat Riwayat ▸ Tahap 4).
+   Yang tersisa: tinjauan product owner, lalu merge ke `master`.
 
 ## Kas: angka diharapkan disusun sistem (6 Oktober 2026) — `005c7f5`, belum dideploy
 

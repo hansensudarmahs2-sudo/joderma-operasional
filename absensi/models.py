@@ -158,3 +158,15 @@ class AttendancePunch(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} {self.shift_date} {self.get_kind_display()}"
+
+    @property
+    def lewat_tengah_malam(self) -> bool:
+        """Cap ini jatuh pada tanggal kalender setelah hari kerjanya.
+
+        Dipakai tampilan untuk menyebut tanggalnya secara eksplisit: "00.28 (5 Sep)"
+        pada hari kerja 4 Sep. Tanpa itu, jam 00.28 di antara cap-cap siang terbaca
+        seperti salah urut, padahal justru lembur yang terpanjang.
+        """
+        from django.utils import timezone
+
+        return timezone.localtime(self.occurred_at).date() != self.shift_date

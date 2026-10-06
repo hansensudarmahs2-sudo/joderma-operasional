@@ -27,7 +27,7 @@
 <table class="responsive">
   <thead><tr>
     <th>Tanggal</th><th>Jadwal</th><th>Shift</th><th>Cap</th>
-    <th>Terlambat</th><th>Lembur</th><th>Datang awal</th><th>Skor</th><th>Catatan</th>
+    <th>Terlambat</th><th>Lembur</th><th>Datang awal</th><th>Skor</th><th>Catatan</th>{% if bisa_koreksi %}<th>Koreksi</th>{% endif %}
   </tr></thead>
   <tbody>
   {% for h in staf.hari %}
@@ -42,8 +42,12 @@
       <td data-label="Skor">{% if h.skor %}<strong>{{ h.skor }}</strong>{% else %}—{% endif %}</td>
       <td data-label="Catatan">
         {% for p in h.pengecualian %}<span class="tag warn">{{ p.label }}</span> {% endfor %}
+        {% if h.ada_koreksi_manual %}<span class="tag">dikoreksi tangan</span>{% endif %}
         {% for c in h.catatan %}<div class="meta">{{ c }}</div>{% endfor %}
       </td>
+      {% if bisa_koreksi %}
+      <td data-label="Koreksi"><a class="btn small secondary" href="{% url 'absensi:koreksi' orang.pk h.tanggal|date:"Y-m-d" %}">Koreksi</a></td>
+      {% endif %}
     </tr>
   {% endfor %}
   </tbody>

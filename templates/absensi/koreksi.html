@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Koreksi cap {{ orang }} {{ tanggal|date:"j M Y" }}{% endblock %}
+{% block content %}
+<p><a href="{% url 'absensi:staf' orang.pk %}?bulan={{ bulan.value }}">← {{ orang }}</a></p>
+<h1>Koreksi cap</h1>
+<p class="sub">{{ orang }} · {{ tanggal|date:"l, j F Y" }}. Jam diisi sebagai jam dinding pada hari kerja ini: cap sebelum {{ batas_dini }}.00 otomatis disimpan sebagai dini hari berikutnya, jadi pulang 00.28 tetap milik hari ini dan terhitung lembur.</p>
+
+<div class="card">
+  <strong>Keadaan hari ini</strong>
+  <p class="meta" style="margin:.3rem 0 0">
+    Jadwal: {% if hari.clinic %}<strong>{{ hari.clinic.name }}</strong>{% if hari.cabang_dari_dugaan %} <span class="tag warn">dugaan</span>{% endif %}{% else %}<span class="tag warn">{{ hari.status_label }}</span>{% endif %}
+    {% if hari.jam_mulai %} · shift <strong>{{ hari.jam_mulai|time:"H.i" }}–{{ hari.jam_selesai|time:"H.i" }}</strong>{% endif %}
+  </p>
+  <p class="meta" style="margin:.2rem 0 0">
+    {% if hari.jam_mulai %}
+      Terlambat <strong>{{ hari.terlambat }} m</strong> · lembur <strong>{{ hari.lembur_pulang }} m</strong> ·
+      datang awal <strong>{{ hari.datang_awal }} m</strong>{% if hari.datang_awal_mentah and not hari.datang_awal %} <span class="meta">({{ hari.datang_awal_mentah }} m, belum {{ ambang_awal }})</span>{% endif %} ·
+      skor <strong>{{ hari.skor }} m</strong>
+    {% else %}
+      Hari ini belum punya jam shift, jadi skornya tidak dihitung. Isi cabangnya di Jadwal Jaga lebih dulu.
+    {% endif %}
+  </p>
+  {% if hari.pengecualian %}
+  <p class="meta" style="margin:.4rem 0 0">
+    {% for p in hari.pengecualian %}<span class="tag warn">{{ p.label }}</span> {% endfor %}
+  </p>
+  {% endif %}
+  {% for c in hari.catatan %}<div class="meta">{{ c }}</div>{% endfor %}
+</div>
+
+<h2 style="margin-top:1.2rem">Cap hari ini</h2>
+{% if caps %}
+<table class="responsive">
+  <thead><tr><th>Jam</th><th>Jenis</th><th>Sumber</th><th>Catatan</th><th>Ubah</th></tr></thead>
+  <tbody>
+  {% for c in caps %}
+    <tr>
+      <td data-label="Jam">{{ c.occurred_at|date:"H.i" }}{% if c.lewat_tengah_malam %} <span class="meta">({{ c.occurred_at|date:"j M" }})</span>{% endif %}</td>
+      <td data-label="Jenis">{{ c.get_kind_display }}</td>
+      <td data-label="Sumber">{% if c.source == "MANUAL" %}<span class="tag warn">{{ c.get_source_display }}</span>{% else %}<span class="tag ok">{{ c.get_source_display }}</span>{% endif %}</td>
+      <td data-label="Catatan">{{ c.note|default:"—" }}</td>
+      <td data-label="Ubah">
+        <details>
+          <summary class="meta">Ubah cap ini</summary>
+          <form method="post" class="form-grid" style="margin-top:.4rem">{% csrf_token %}
+            <input type="hidden" name="cap" value="{{ c.pk }}">
+            <div><label for="jam-{{ c.pk }}">Jam</label>
+              <input id="jam-{{ c.pk }}" type="time" name="jam" value="{{ c.occurred_at|date:"H:i" }}" required></div>
+            <div><label for="jenis-{{ c.pk }}">Jenis</label>
+              <select id="jenis-{{ c.pk }}" name="jenis">
+                {% for nilai, label in jenis_pilihan %}
+                <option value="{{ nilai }}"{% if nilai == c.kind %} selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select></div>
+            <div class="span-2"><label for="alasan-{{ c.pk }}">Alasan koreksi</label>
+              <input id="alasan-{{ c.pk }}" type="text" name="alasan" maxlength="200" required
+                     placeholder="Mis. jam terbaca keliru di ekspor, dicek ke mesin"></div>
+            <div class="span-2">
+              <button class="btn" type="submit" name="aksi" value="ubah">Simpan perubahan</button>
+              {% if c.source == "MANUAL" %}
+              <button class="btn secondary" type="submit" name="aksi" value="hapus">Hapus cap manual ini</button>
+              {% endif %}
+            </div>
+          </form>
+        </details>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="meta">Mengubah <strong>jenis</strong> merapikan catatan, bukan angkanya: skor dihitung dari cap paling awal dan paling akhir, bukan dari label masuk/keluar. Yang menutup hari "hanya satu cap" adalah menambah cap yang hilang di bawah ini. Cap dari mesin tidak bisa dihapus di sini karena ia bukti apa yang dicatat alat; jamnya boleh diubah, dan nilai lamanya tersimpan di audit.</p>
+{% else %}
+<p class="meta">Belum ada cap pada hari ini.</p>
+{% endif %}
+
+<h2 style="margin-top:1.2rem">Tambah cap</h2>
+<form method="post" class="form-grid card">{% csrf_token %}
+  <input type="hidden" name="aksi" value="tambah">
+  <div><label for="jam-baru">Jam</label>
+    <input id="jam-baru" type="time" name="jam" required></div>
+  <div><label for="jenis-baru">Jenis</label>
+    <select id="jenis-baru" name="jenis">
+      {% for nilai, label in jenis_pilihan %}
+      <option value="{{ nilai }}">{{ label }}</option>
+      {% endfor %}
+    </select></div>
+  <div class="span-2"><label for="alasan-baru">Alasan koreksi</label>
+    <input id="alasan-baru" type="text" name="alasan" maxlength="200" required
+           placeholder="Mis. lupa cap masuk, dikonfirmasi Koordinator Shift"></div>
+  <p class="help span-2">Wajib diisi dan tersimpan di audit beserta nama Anda. Cap yang ditambahkan di sini bersumber "Koreksi manual", dan hari itu ditandai pernah dikoreksi di papan skor dan halaman rincian.</p>
+  <div class="span-2"><button class="btn" type="submit">Tambah cap</button></div>
+</form>
+{% endblock %}

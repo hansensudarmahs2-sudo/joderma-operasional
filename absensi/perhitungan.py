@@ -33,7 +33,7 @@ from django.utils import timezone
 from core.models import Clinic
 from jadwal.models import WORKING_STATUSES, DutyRoster
 
-from .models import AttendanceDevice, AttendancePunch
+from .models import AttendanceDevice, AttendancePunch, SumberCap
 
 # ---------------------------------------------------------------------------
 # Angka yang MENGUBAH BAYARAN. Keputusan product owner; jangan diubah tanpa itu.
@@ -96,6 +96,9 @@ class HasilHarian:
     keluar: dt.datetime | None = None
     # Cabangnya dari dugaan pola jam, bukan dari jadwal jaga.
     cabang_dari_dugaan: bool = False
+    # Ada cap hari ini yang pernah disentuh tangan (Tahap 4). Angka hasil koreksi tidak
+    # boleh terlihat sama pastinya dengan angka yang datang langsung dari mesin.
+    ada_koreksi_manual: bool = False
     terlambat: int = 0
     lembur_pulang: int = 0
     datang_awal: int = 0
@@ -260,6 +263,7 @@ def hitung_hari(
     """
     hasil = HasilHarian(user=user, tanggal=tanggal)
     caps = sorted(caps, key=lambda c: c.occurred_at)
+    hasil.ada_koreksi_manual = any(c.source == SumberCap.MANUAL for c in caps)
     hasil.status_roster = roster.status if roster else ""
     hasil.status_label = roster.get_status_display() if roster else "Tidak ada di jadwal"
 

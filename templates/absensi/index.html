@@ -63,7 +63,7 @@
   <p class="meta" style="margin-top:.8rem">Hari yang tidak bisa diputuskan sendiri oleh sistem. Angkanya tetap dihitung kecuali disebut lain, tetapi perlu dilihat manusia.</p>
   {% if perlu %}
   <table class="responsive" style="margin-top:.5rem">
-    <thead><tr><th>Tanggal</th><th>Nama</th><th>Cap</th><th>Cabang</th><th>Temuan</th></tr></thead>
+    <thead><tr><th>Tanggal</th><th>Nama</th><th>Cap</th><th>Cabang</th><th>Temuan</th>{% if bisa_koreksi %}<th>Koreksi</th>{% endif %}</tr></thead>
     <tbody>
     {% for h in perlu %}
       <tr>
@@ -73,8 +73,12 @@
         <td data-label="Cabang">{{ h.clinic.name|default:"—" }}{% if h.cabang_dari_dugaan %} <span class="meta">(dugaan)</span>{% endif %}</td>
         <td data-label="Temuan">
           {% for p in h.pengecualian %}<span class="tag warn">{{ p.label }}</span> {% endfor %}
+          {% if h.ada_koreksi_manual %}<span class="tag">dikoreksi tangan</span>{% endif %}
           {% for c in h.catatan %}<div class="meta">{{ c }}</div>{% endfor %}
         </td>
+        {% if bisa_koreksi %}
+        <td data-label="Koreksi"><a class="btn small secondary" href="{% url 'absensi:koreksi' h.user.pk h.tanggal|date:"Y-m-d" %}">Koreksi cap</a></td>
+        {% endif %}
       </tr>
     {% endfor %}
     </tbody>

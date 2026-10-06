@@ -1,9 +1,18 @@
 """Django admin untuk absensi.
 
-Di sini koreksi cap dilakukan sampai Tahap 4 (alur koreksi dari halaman) dibangun,
-jadi di sinilah keputusan D4 ditegakkan: yang boleh mengubah cap — dan karenanya
-skor dan lembur seseorang — hanya Direktur Operasional, Direktur Utama, dan Owner.
-Admin sistem boleh mengubah jadwal jaga, tetapi tidak boleh mengoreksi absen.
+Keputusan D4 ditegakkan di sini juga: yang boleh mengubah cap — dan karenanya skor dan
+lembur seseorang — hanya Direktur Operasional, Direktur Utama, dan Owner. Admin sistem
+boleh mengubah jadwal jaga, tetapi tidak boleh mengoreksi absen.
+
+Sejak Tahap 4 koreksi sehari-hari dikerjakan dari halaman (`absensi:koreksi`, tombol
+pada baris "Perlu dicek"), yang lebih aman untuk itu: ia meminta jam dinding pada hari
+kerja lalu menghitung sendiri waktu mutlaknya, sedangkan di sini `occurred_at` diisi
+langsung — pulang 00.28 untuk hari kerja tanggal 4 harus ditulis sebagai tanggal 5,
+dan salah di situ tidak menghasilkan error, hanya angka yang keliru.
+
+Admin tetap ada untuk yang tidak dilayani halaman itu: memindahkan pemilik satu ID
+mesin, dan menghapus cap mesin (halaman hanya menghapus cap manual, karena cap mesin
+adalah bukti apa yang dicatat alat).
 
 `AttendanceImport` sengaja tidak bisa diubah sama sekali: ia catatan apa yang pernah
 diimpor, bukan data yang boleh dirapikan belakangan.

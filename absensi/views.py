@@ -17,19 +17,28 @@ from collections import Counter
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from accounts.models import User
 from core.models import local_today
-from core.permissions import can_edit_absensi, can_view_absensi, require
+from core.permissions import (
+    can_correct_absensi,
+    can_edit_absensi,
+    can_view_absensi,
+    require,
+)
 
+from jadwal.models import DutyRoster
 from jadwal.services import can_edit_roster
 
+from . import koreksi as koreksi_cap
 from . import parser, services
-from .models import AttendanceImport
-from .perhitungan import AMBANG_DATANG_AWAL_MENIT, hitung_periode
+from .models import AttendanceDevice, AttendanceImport, AttendancePunch, JenisCap
+from .perhitungan import AMBANG_DATANG_AWAL_MENIT, hitung_hari, hitung_periode
 
 TABS = [("skor", "Papan skor"), ("pengecualian", "Perlu dicek"), ("impor", "Impor berkas")]
 MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September",
@@ -95,6 +104,7 @@ def index(request):
             "perlu": perlu,
             "ambang_awal": AMBANG_DATANG_AWAL_MENIT,
             "bisa_impor": can_edit_absensi(request.user),
+            "bisa_koreksi": can_correct_absensi(request.user),
             "impor_terakhir": AttendanceImport.objects.select_related("imported_by")[:10],
             "pemetaan_nama": services.daftar_pemetaan_nama() if tab == "impor" else None,
             "rencana_jadwal": rencana,
@@ -124,6 +134,7 @@ def staf(request, pk: int):
             "bulan": _nav(tahun, bulan),
             "staf": ringkasan[0] if ringkasan else None,
             "ambang_awal": AMBANG_DATANG_AWAL_MENIT,
+            "bisa_koreksi": can_correct_absensi(request.user),
         },
     )
 
@@ -148,6 +159,10 @@ def saya(request):
             "staf": ringkasan[0] if ringkasan else None,
             "ambang_awal": AMBANG_DATANG_AWAL_MENIT,
             "milik_sendiri": True,
+            # Tidak ada tombol koreksi di halaman sendiri, juga bagi yang berhak
+            # mengoreksi: koreksi dikerjakan dari halaman stafnya, supaya tidak ada
+            # jalan memperbaiki angka diri sendiri tanpa melewati papan skor.
+            "bisa_koreksi": False,
         },
     )
 
@@ -212,3 +227,116 @@ def unggah(request):
         for pesan in batch.warnings:
             messages.warning(request, f"{f.name}: {pesan}")
     return kembali
+
+
+# --- koreksi cap dari halaman (Tahap 4) -----------------------------------------
+
+
+def _hari_satu(orang, tanggal: dt.date):
+    """Satu orang, satu hari: cap, jadwal jaga, dan hasil perhitungannya.
+
+    Memanggil `hitung_hari` langsung, bukan `hitung_periode`, karena yang terakhir
+    hanya memuat hari yang punya cap atau baris roster — dan halaman koreksi justru
+    perlu bekerja pada hari yang belum punya keduanya.
+    """
+    caps = list(
+        AttendancePunch.objects.filter(user=orang, shift_date=tanggal).order_by("occurred_at")
+    )
+    roster = (
+        DutyRoster.objects.filter(user=orang, date=tanggal)
+        .select_related("clinic", "home_clinic")
+        .first()
+    )
+    dinilai = not AttendanceDevice.objects.filter(user=orang, recording_only=True).exists()
+    return caps, hitung_hari(orang, tanggal, caps, roster, dinilai=dinilai)
+
+
+def _akibat(hasil) -> str:
+    """Apa yang berubah pada angka hari itu, untuk ditempel di pesan sukses.
+
+    Yang mengoreksi harus langsung melihat akibatnya; kalau harus membuka halaman lain
+    untuk tahu, koreksi yang keliru arah gampang lolos.
+    """
+    if hasil.jam_mulai is None:
+        return "Hari itu belum punya jam shift, jadi skornya masih belum dihitung."
+    return (
+        f"Hari itu kini: terlambat {hasil.terlambat} m, lembur {hasil.lembur_pulang} m, "
+        f"datang awal {hasil.datang_awal} m, skor {hasil.skor} m."
+    )
+
+
+@login_required
+@require(can_correct_absensi)
+def koreksi(request, pk: int, tanggal: str):
+    """Menambah, mengubah, atau menghapus satu cap pada satu hari kerja (D4).
+
+    Haknya `can_correct_absensi`, lebih sempit daripada hak mengimpor: mengimpor hanya
+    memasukkan apa yang dicatat mesin, sedangkan di sini angka yang menilai orang
+    diubah tangan. Owner ikut boleh — dan ini satu-satunya tempat Owner mengirim POST
+    di modul ini, jadi rutenya terdaftar di `core/peran.py` tanpa masuk
+    `OWNER_READ_ONLY`.
+
+    Jam dimasukkan sebagai jam dinding pada hari kerja itu; `services.waktu_cap` yang
+    memindahkan cap dini hari ke tanggal kalender berikutnya.
+    """
+    orang = get_object_or_404(User, pk=pk)
+    try:
+        hari_kerja = dt.date.fromisoformat(tanggal)
+    except ValueError:
+        raise Http404("Tanggal tidak sah.")
+    kembali = redirect(reverse("absensi:koreksi", args=[orang.pk, hari_kerja.isoformat()]))
+
+    if request.method == "POST":
+        aksi = request.POST.get("aksi", "")
+        alasan = request.POST.get("alasan", "")
+        try:
+            if aksi == "tambah":
+                cap = koreksi_cap.tambah_cap(
+                    user=orang, shift_date=hari_kerja, jam=request.POST.get("jam", ""),
+                    jenis=request.POST.get("jenis", ""), alasan=alasan, actor=request.user,
+                )
+                pesan = (
+                    f"Cap {cap.get_kind_display().lower()} "
+                    f"{timezone.localtime(cap.occurred_at):%d/%m %H.%M} ditambahkan."
+                )
+            elif aksi in ("ubah", "hapus"):
+                cap = get_object_or_404(
+                    AttendancePunch, pk=request.POST.get("cap", 0), user=orang,
+                    shift_date=hari_kerja,
+                )
+                if aksi == "ubah":
+                    lama = timezone.localtime(cap.occurred_at)
+                    koreksi_cap.ubah_cap(
+                        cap=cap, jam=request.POST.get("jam", ""),
+                        jenis=request.POST.get("jenis", ""), alasan=alasan, actor=request.user,
+                    )
+                    pesan = (
+                        f"Cap {lama:%d/%m %H.%M} diubah menjadi "
+                        f"{timezone.localtime(cap.occurred_at):%d/%m %H.%M}."
+                    )
+                else:
+                    pesan = f"Cap manual {timezone.localtime(cap.occurred_at):%d/%m %H.%M} dihapus."
+                    koreksi_cap.hapus_cap(cap=cap, alasan=alasan, actor=request.user)
+            else:
+                raise koreksi_cap.KoreksiDitolak("Aksi koreksi tidak dikenal.")
+        except koreksi_cap.KoreksiDitolak as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, f"{pesan} {_akibat(_hari_satu(orang, hari_kerja)[1])}")
+        return kembali
+
+    caps, hasil = _hari_satu(orang, hari_kerja)
+    return render(
+        request,
+        "absensi/koreksi.html",
+        {
+            "orang": orang,
+            "tanggal": hari_kerja,
+            "bulan": _nav(hari_kerja.year, hari_kerja.month),
+            "caps": caps,
+            "hari": hasil,
+            "jenis_pilihan": JenisCap.choices,
+            "ambang_awal": AMBANG_DATANG_AWAL_MENIT,
+            "batas_dini": services.BATAS_DINI_JAM,
+        },
+    )

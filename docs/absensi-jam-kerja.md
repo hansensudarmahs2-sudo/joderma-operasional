@@ -1,8 +1,10 @@
 # Absensi Jam Kerja
 
 > **STATUS: Tahap 1-5 selesai — pemetaan ID, model cap, importer, mesin
-> perhitungan, laporan pengecualian, halaman web, dan "Absensi saya" untuk staf.**
-> Sudah di-merge ke `master` (6 Okt 2026).
+> perhitungan, laporan pengecualian, halaman web, "Absensi saya" untuk staf, dan
+> koreksi cap dari halaman.**
+> Tahap 1-3 dan 5 sudah di-merge ke `master` (6 Okt 2026). **Tahap 4 (koreksi cap dari
+> halaman) ada di branch `absensi-tahap4`, belum di-merge dan belum dideploy.**
 > **Belum boleh dipakai untuk penilaian nyata** sampai bagian 9 beres.
 
 ## 1. Mengapa modul ini ada
@@ -58,13 +60,14 @@ absensi/
   parser.py        pembaca "Kartu Laporan" .xlsx dan .xls
   services.py      impor_kartu_laporan() — penentuan waktu, pemetaan ID, dedup
   perhitungan.py   hitung_hari / hitung_periode / laporan_pengecualian
+  koreksi.py       tambah_cap / ubah_cap / hapus_cap — koreksi tangan + audit
   views.py/urls.py halaman /absensi/
   management/commands/{petakan_id_absensi,impor_absensi,laporan_absensi}.py
 templates/absensi/
-  index.html / staf.html
+  index.html / staf.html / koreksi.html
 ```
 
-82 test di `absensi/tests/`. Seluruh suite repo 831 lulus.
+159 test di `absensi/tests/`. Seluruh suite repo 911 lulus.
 
 ### Halaman dan hak akses
 
@@ -75,6 +78,7 @@ templates/absensi/
 | `/absensi/?tab=impor` | Unggah berkas ekspor mesin dan riwayat impor beserta peringatannya |
 | `/absensi/staf/<id>/` | Rincian harian satu staf: shift, cap, dan asal setiap angka |
 | `/absensi/saya/` | Jam kerja sendiri (D5). Tidak punya parameter staf, jadi tidak bisa diminta untuk orang lain |
+| `/absensi/koreksi/<id>/<tanggal>/` | Menambah, mengubah, atau menghapus satu cap pada satu hari kerja (Tahap 4). Tombolnya ada di baris "Perlu dicek" dan di rincian per staf |
 
 Tiga hak yang sengaja dipisah:
 
@@ -83,6 +87,9 @@ Tiga hak yang sengaja dipisah:
 | Membaca papan skor dan pengecualian | Direktur Operasional, Admin berakses penuh, Owner | `can_view_absensi` |
 | Mengimpor berkas mesin | Direktur Operasional, Admin berakses penuh | `can_edit_absensi` |
 | **Mengoreksi cap, skor, lembur** | Direktur Operasional, Direktur Utama, Owner (D4) | `can_correct_absensi` |
+
+Halaman koreksi adalah satu-satunya tempat Owner boleh mengirim perubahan di modul ini;
+di `core/peran.py` rutenya terdaftar untuk Owner tanpa masuk `OWNER_READ_ONLY`.
 
 Mengimpor hanya memasukkan apa yang dicatat mesin; mengoreksi mengubah angka yang
 dipakai menilai orang. Karena itu Admin boleh mengimpor tetapi tidak mengoreksi, dan
@@ -354,6 +361,27 @@ bisa tertafsir terbalik. Karena itu barisnya selalu muncul di daftar "Perlu dice
 Kedua cabang Asia/Jakarta, jadi hasilnya sama. Bila nanti ada cabang di zona lain,
 `perhitungan._aware()` dan `services.waktu_cap()` harus diubah memakai zona cabang.
 
+**Koreksi cap tidak mengubah `jenis` menjadi penentu.** `perhitungan.hitung_hari`
+mengurutkan cap menurut waktunya lalu memakai yang pertama sebagai masuk dan yang
+terakhir sebagai pulang; ia tidak pernah membaca `kind`. Jadi membetulkan label
+`TIDAK_PASTI` menjadi `KELUAR` merapikan catatan, bukan angkanya — yang menutup hari
+`CAP_TUNGGAL` adalah menambah cap yang hilang. Halaman koreksi menyebutkan ini, dan ada
+test penjaga yang gagal bila suatu saat `jenis` mulai menggeser skor.
+
+**Halaman koreksi tidak menghapus cap mesin.** Cap mesin adalah bukti apa yang dicatat
+alat; jamnya boleh diubah (nilai lamanya tersimpan di audit), tetapi penghapusannya
+tetap lewat Django admin dengan hak yang sama. Yang bisa dihapus dari halaman hanya cap
+bersumber `MANUAL` — supaya halaman yang bisa membuat cap juga bisa membereskan capnya
+sendiri.
+
+**Koreksi tidak memberi tahu yang bersangkutan.** Staf melihat angkanya berubah di
+"Absensi saya" tanpa pemberitahuan, dan belum ada tombol "cap saya kurang" untuk
+mengajukan koreksi (sisa Tahap 5). Untuk sekarang jalurnya tetap lisan.
+
+**Isian jam memakai format bawaan browser.** Sama dengan pemilih tanggal di modul lain:
+browser berbahasa Inggris menampilkan 13:55 sebagai "01:55 PM". Yang tersimpan tetap
+jam 24 yang benar; hanya tampilannya yang mengikuti browser.
+
 **Skor tidak punya riwayat.** Tidak ada "kunci periode": mengoreksi roster bulan lalu
 hari ini mengubah skor bulan lalu. Itu disengaja (bagian 3), tetapi menjadi masalah
 begitu skor dipakai membayar sesuatu. Lihat keputusan **D4**.
@@ -373,7 +401,7 @@ Pada verifikasi September satu baris semacam itu menggeser skor 127 menit.
 | **D2** | Hari off tetapi tetap ngecap dibayar? | **Dibayar.** Hari Minggu hari biasa, penggantinya hari off | Selesai. Sudah sesuai perilaku sebelumnya; ditambah test penjaga agar Minggu tidak pernah diberi perlakuan khusus |
 | **D3** | Lembur sangat panjang perlu persetujuan? | **Tidak, untuk saat ini** | Selesai. `LEMBUR_PANJANG` tetap hanya tanda, tidak memotong |
 | **D5** | Staf melihat jam kerjanya sendiri? | **Ya** | Selesai. `/absensi/saya/`, menu "Absensi saya". Tidak ada parameter staf di rute itu, jadi tidak ada cara meminta data orang lain |
-| **D4** | Siapa boleh mengoreksi absen, skor, dan lembur? | **Direktur Operasional, Direktur Utama, dan Owner.** Jadwal jaga tidak berubah: tetap Admin, Koordinator Shift, Direktur Operasional | Selesai. `core.permissions.can_correct_absensi`, ditegakkan di Django admin tempat koreksi dilakukan sekarang |
+| **D4** | Siapa boleh mengoreksi absen, skor, dan lembur? | **Direktur Operasional, Direktur Utama, dan Owner.** Jadwal jaga tidak berubah: tetap Admin, Koordinator Shift, Direktur Operasional | Selesai. `core.permissions.can_correct_absensi`, ditegakkan di halaman koreksi (Tahap 4), di Django admin, dan di `core/peran.py` |
 
 ### Masih terbuka
 
@@ -406,15 +434,33 @@ skor.
 
 Satu tahap satu kali, berhenti di setiap approval gate (`AGENTS.md`).
 
-**Tahap 4 — koreksi cap dari halaman.** Sekarang cap yang hilang atau salah tafsir
-diperbaiki lewat Django admin, yang sudah memakai `can_correct_absensi` (D4). Yang
-dibutuhkan: tombol pada baris "Perlu dicek" untuk menambah atau mengubah satu cap,
-tersimpan sebagai `SumberCap.MANUAL` dengan alasan wajib dan tercatat di audit, dengan
-hak yang sama. Bergantung pada: tidak ada.
+**Tahap 4 — koreksi cap dari halaman.** *Selesai di kode (branch `absensi-tahap4`),
+belum di-merge.* Tombol "Koreksi cap" pada baris "Perlu dicek" dan pada rincian per staf
+membuka `/absensi/koreksi/<id>/<tanggal>/`: menambah cap yang hilang, mengubah jam atau
+jenis satu cap, dan menghapus cap manual yang keliru. Semuanya tersimpan sebagai
+`SumberCap.MANUAL` dengan alasan wajib dan tercatat di audit sebagai
+`AuditAction.CORRECTION` lengkap dengan nilai sebelum dan sesudahnya.
+
+Dua hal yang membuatnya lebih aman daripada Django admin, dan karena itu sengaja
+dibangun meski admin sudah bisa:
+
+- Halaman meminta **jam dinding pada hari kerja itu**, lalu menjalankannya lewat
+  `services.waktu_cap` — jalur yang sama dengan importer. Di Django admin `occurred_at`
+  diisi langsung, sehingga pulang 00.28 untuk hari kerja tanggal 4 harus ditulis sebagai
+  tanggal 5; salah di situ tidak menghasilkan error, hanya angka yang keliru.
+- Sesudah menyimpan, pesannya langsung menyebut angka hari itu yang baru (terlambat,
+  lembur, datang awal, skor), jadi koreksi yang salah arah terlihat saat itu juga.
+
+Hari yang pernah dikoreksi tangan ditandai **"dikoreksi tangan"** di papan skor dan di
+rincian per staf (`HasilHarian.ada_koreksi_manual`), supaya angka hasil koreksi tidak
+pernah terlihat sama pastinya dengan angka yang datang langsung dari mesin. Tidak ada
+migrasi baru.
 
 **Tahap 5 — halaman "Absensi saya".** *Selesai.* Staf melihat rincian hariannya
 sendiri di `/absensi/saya/`. Yang belum ada: tombol "cap saya kurang" yang membuat
-permintaan koreksi. Itu menunggu Tahap 4 supaya permintaannya ada tempat mendarat.
+permintaan koreksi. Tahap 4 sudah menyediakan tempat mendaratnya, jadi ini tidak lagi
+terhalang — tinggal diputuskan apakah permintaan staf perlu antrean sendiri atau cukup
+muncul di daftar "Perlu dicek".
 
 **Tahap 6 — unduh CSV.** Papan skor dan daftar pengecualian, mengikuti pola unduh
 yang sudah ada di `direktur:kpi`. Bergantung pada: tidak ada.
@@ -466,6 +512,9 @@ sini lebih dulu:
 - [x] Semua ID mesin terpetakan (16 dari 16; tiga di antaranya rekam-saja per **D1**).
 - [ ] Daftar "Perlu dicek" bulan itu sudah ditinjau dan roster yang keliru dikoreksi.
       Pada September 2026 ada 69 hari; 17 di antaranya satu kekeliruan roster yang sama.
+      Sejak Tahap 4, hari yang kehilangan cap bisa ditutup langsung dari barisnya
+      (8 hari `CAP_TUNGGAL` pada September 2026); cabang yang keliru tetap dibetulkan
+      di Jadwal Jaga, bukan di sini.
 - [x] **D1**, **D2**, **D3**, **D5** dijawab product owner (Okt 2026).
 - [x] **D4** dijawab: koreksi absen hanya Direktur Operasional, Direktur Utama, Owner.
 - [ ] **D6** diputuskan: ambang penandaan `CABANG_BEDA` dipertahankan atau diubah.
@@ -503,6 +552,10 @@ cp data/db.sqlite3 "data/db.sqlite3.bak-$(date +%F)"
 
 Lewat halaman: **Evaluasi staf → Absensi**, tab **Impor berkas**. Batas ukuran 5 MB
 per berkas, dan beberapa berkas boleh sekaligus.
+
+Hari yang perlu dibetulkan capnya: buka tab **Perlu dicek**, tekan **Koreksi cap** pada
+barisnya, lalu tambah cap yang hilang atau betulkan jamnya. Alasan wajib diisi dan ikut
+tersimpan di audit beserta nama Anda.
 
 Impor aman diulang: cap dikunci unik pada (staf, waktu cap), jadi mengimpor berkas
 yang sama dua kali menghasilkan 0 cap baru. Berkas revisi hanya menambah

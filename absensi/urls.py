@@ -10,4 +10,5 @@ urlpatterns = [
     path("unggah/", views.unggah, name="unggah"),
     path("susun-jadwal/", views.susun_jadwal, name="susun_jadwal"),
     path("staf/<int:pk>/", views.staf, name="staf"),
+    path("koreksi/<int:pk>/<str:tanggal>/", views.koreksi, name="koreksi"),
 ]

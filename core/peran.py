@@ -68,6 +68,10 @@ OWNER_ALLOWED = COMMON | {
     "absensi:index",  # Absensi jam kerja, baca saja; unggah ditolak `can_edit_absensi`
     "absensi:staf",
     "absensi:saya",
+    # Satu-satunya halaman absensi yang boleh dikirimi perubahan oleh Owner, jadi
+    # sengaja TIDAK masuk OWNER_READ_ONLY: keputusan D4 memberi Owner dan Direktur
+    # Utama hak mengoreksi cap. Impor berkas tetap ditolak `can_edit_absensi`.
+    "absensi:koreksi",
     "jejak:devices",  # perangkat dikenal, baca saja (POST ditolak di view)
     "direktur:kanban",
     "direktur:matrix",
@@ -116,6 +120,7 @@ STAF_BLOCKED = {
     "absensi:index",
     "absensi:staf",
     "absensi:unggah",
+    "absensi:koreksi",
     # Fase 7 (staf sederhana): grid tim diganti halaman "saya". Hari Ini dan Checklist Saya tetap
     # bisa dibuka (aksi hari dan pengisian checklist), hanya tidak ada di menu staf.
     "jadwal:roster",
@@ -241,7 +246,8 @@ SUBNAV_GROUPS = {
 # Halaman detail yang menampilkan tab kelompoknya (tanpa tab aktif).
 SUBNAV_DETAIL = {
     "direktur:task_new": "task", "direktur:task_detail": "task", "direktur:kpi_staff": "evaluasi",
-    "jejak:devices": "evaluasi", "absensi:staf": "evaluasi", "direktur:decision_detail": "kebijakan",
+    "jejak:devices": "evaluasi", "absensi:staf": "evaluasi", "absensi:koreksi": "evaluasi",
+    "direktur:decision_detail": "kebijakan",
     "issues:detail": "dari_staf", "reports:laporan_page_detail": "dari_staf",
     "reports:masukan_page_detail": "dari_staf",
 }
