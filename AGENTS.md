@@ -20,24 +20,42 @@ Pemulihannya cherry-pick + rebase, dan hanya mudah karena belum ada yang di-push
 **Protokol:** satu pihak satu direktori kerja. Gunakan `git worktree`, bukan `git switch`
 bergantian di direktori yang sama.
 
+Contoh di bawah memakai nama nyata `absensi` supaya bisa langsung disalin; ganti kata
+itu dengan nama pekerjaan Anda. Jangan menulis tempat-isian bertanda `<...>` di dalam
+blok perintah: bash membaca `<` sebagai pengalihan input dan langsung gagal.
+
 ```bash
 # Direktori utama tetap di master dan dipegang product owner.
 cd ~/Desktop/joderma-operasional
-git worktree add ../joderma-<topik> -b <topik>   # agen bekerja di sini
-git worktree list                                # siapa memegang branch apa
-git worktree remove ../joderma-<topik>           # sesudah branch-nya di-merge
+git worktree list
+```
+
+```bash
+# Agen bekerja di direktori sendiri, pada branch baru.
+cd ~/Desktop/joderma-operasional && git worktree add ../joderma-absensi -b absensi
+```
+
+```bash
+# Sesudah branch-nya di-merge.
+cd ~/Desktop/joderma-operasional && git worktree remove ../joderma-absensi
+```
+
+Satu branch hanya bisa di-checkout satu worktree. Bila branch itu sudah dipegang
+direktori utama, `worktree add` menolak — yang perlu dipisahkan justru kebalikannya,
+yaitu membuat worktree untuk `master`:
+
+```bash
+cd ~/Desktop/joderma-operasional && git worktree add ../joderma-master master
 ```
 
 - **Sebelum commit pertama**, agen menjalankan `git worktree list` dan `git branch --show-current`,
   lalu menyebutkan di laporannya direktori dan branch mana yang ia pegang.
-- **Satu branch hanya boleh di-checkout satu worktree.** Git menolak yang kedua; penolakan itu
-  fitur, bukan halangan.
 - **Jangan `git switch` di direktori milik pihak lain.** Bila butuh branch lain, tambah worktree.
 - `data/`, `.venv/`, dan `private_media/` tidak ikut Git, jadi tetap tinggal di direktorinya
   masing-masing. Worktree baru tidak punya `.venv` dan tidak punya database; itu wajar, dan
   untuk pekerjaan Git saja memang tidak diperlukan.
 - Bila dua pekerjaan terlanjur tercampur dalam satu branch, periksa dulu apakah berkasnya
-  beririsan (`git show --name-only <commit>`). Bila tidak beririsan, pisahkan dengan
+  beririsan (mis. `git show --name-only 92c370f`). Bila tidak beririsan, pisahkan dengan
   cherry-pick ke `master` lalu `git rebase master` pada branch fitur — aman selama belum
   di-push.
 
