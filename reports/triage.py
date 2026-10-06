@@ -57,7 +57,33 @@ def _issue_followup(row, *, actor, action: str, text: str) -> None:
     add_update(issue, user=actor, note=text)
 
 
+def _existing_triage(row):
+    return (InboxTriage.objects.select_related("decision")
+            .filter(source_type=row["source_type"], source_id=row["source_id"]).first())
+
+
+def _waiting_owner_decision(triage):
+    """Perkara Owner dari pilahan sebelumnya yang masih menunggu, atau None."""
+    from direktur.models import DecisionStatus
+    from direktur.services import is_owner_decision
+
+    old = triage.decision if triage else None
+    if old and old.status == DecisionStatus.MENUNGGU and is_owner_decision(old):
+        return old
+    return None
+
+
+def _cancel_replaced_owner_decision(row, *, actor, new_decision) -> None:
+    """Pilah ulang: perkara Owner lama yang masih menunggu dibatalkan, bukan dibiarkan menggantung."""
+    from direktur.services import cancel_decision
+
+    old = _waiting_owner_decision(_existing_triage(row))
+    if old and (new_decision is None or new_decision.pk != old.pk):
+        cancel_decision(old, actor=actor, reason="Pilahan Inbox diubah oleh Direktur Operasional.")
+
+
 def _save(row, *, actor, action, note="", forwarded_to="", task=None, decision=None) -> InboxTriage:
+    _cancel_replaced_owner_decision(row, actor=actor, new_decision=decision)
     triage, created = InboxTriage.objects.update_or_create(
         source_type=row["source_type"], source_id=row["source_id"],
         defaults={"action": action, "note": note.strip(), "forwarded_to": forwarded_to, "task": task,
@@ -116,6 +142,21 @@ def assign(row, *, actor, title, clinic=None, target="", targets=None, descripti
     return triage
 
 
+def _owner_decision(row, *, actor, note: str):
+    """Teruskan ke Owner = perkara Keputusan berpemutus Owner, supaya Owner diberi tahu dan memutuskan."""
+    from direktur.models import Decider
+    from direktur.services import create_decision
+
+    lines = [
+        (row.get("description") or "").strip(),
+        f"Rujukan: {row['ref']} ({row['kind_label']}, dari {row.get('reporter') or '-'})",
+    ]
+    if note.strip():
+        lines.append(f"Catatan Direktur: {note.strip()}")
+    return create_decision(actor=actor, title=row["title"][:200], decider=Decider.OWNER, clinic=row.get("clinic"),
+                           background="\n\n".join(line for line in lines if line))
+
+
 @transaction.atomic
 def forward(row, *, actor, to: str, note: str = "") -> InboxTriage:
     _assert(actor)
@@ -123,7 +164,10 @@ def forward(row, *, actor, to: str, note: str = "") -> InboxTriage:
         raise ValidationError("Pilih diteruskan ke siapa.")
     if to == ForwardTo.LAINNYA and not note.strip():
         raise ValidationError("Tulis diteruskan ke siapa.")
-    triage = _save(row, actor=actor, action=TriageAction.TERUSKAN, forwarded_to=to, note=note)
+    decision = None
+    if to == ForwardTo.DIRUT:
+        decision = _waiting_owner_decision(_existing_triage(row)) or _owner_decision(row, actor=actor, note=note)
+    triage = _save(row, actor=actor, action=TriageAction.TERUSKAN, forwarded_to=to, note=note, decision=decision)
     label = ForwardTo(to).label.split(" (")[0]
     _issue_followup(row, actor=actor, action=TriageAction.TERUSKAN,
                     text=f"Dipilah Direktur Operasional: diteruskan ke {label}." + (f" {note.strip()}" if note.strip() else ""))

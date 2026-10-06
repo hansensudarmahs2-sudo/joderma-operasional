@@ -5,13 +5,14 @@
 <h1>{{ decision }}</h1>
 <p class="sub">{{ decision.clinic.name|default:"Lintas cabang" }} · diputuskan oleh {{ decision.get_decider_display }}
   · {% if decision.status == 'MENUNGGU' %}<span class="tag {% if decision.needed_by and decision.needed_by < today %}err{% else %}warn{% endif %}">Menunggu keputusan</span>{% if decision.needed_by %} sebelum {{ decision.needed_by|date:"d/m/Y" }}{% endif %}
-  {% elif decision.status == 'DITETAPKAN' %}<span class="tag ok">Ditetapkan {{ decision.decided_on|date:"d/m/Y" }}</span>{% if decision.is_policy %} <span class="tag info">Kebijakan berlaku</span>{% endif %}
+  {% elif decision.status == 'DITETAPKAN' %}<span class="tag ok">Ditetapkan {{ decision.decided_on|date:"d/m/Y" }}</span>{% if decision.is_policy %} <span class="tag info">Kebijakan berlaku</span>{% endif %} {% if decision.verdict == 'TOLAK' %}<span class="tag err">Ditolak</span>{% elif decision.verdict == 'SETUJU' %}<span class="tag ok">Disetujui</span>{% endif %}
   {% else %}<span class="tag muted">Dibatalkan</span>{% endif %}</p>
 
 {% if decision.background %}<div class="card"><strong>Latar / pertanyaan</strong><div style="white-space:pre-wrap">{{ decision.background }}</div></div>{% endif %}
 {% if decision.decision_text %}<div class="card" style="margin-top:.6rem"><strong>{% if decision.status == 'DIBATALKAN' %}Alasan pembatalan{% else %}Isi keputusan{% endif %}</strong><div style="white-space:pre-wrap">{{ decision.decision_text }}</div></div>{% endif %}
 <p class="meta">Dicatat {{ decision.created_at|date:"d/m/Y H:i" }} oleh {{ decision.created_by|default:"—" }}.</p>
 
+{% if can_owner_decide %}<p><a class="btn" href="{% url 'owner:decision' decision.pk %}">Putuskan</a></p>{% endif %}
 {% if waiting %}
 <h2>Task yang menunggu keputusan ini</h2>
 <p class="meta">{% if decision.status == 'MENUNGGU' %}Tenggat task ini tidak dihitung terlambat sampai keputusan diambil.{% else %}Penerima task sudah diberi tahu saat keputusan {{ decision.get_status_display|lower }}.{% endif %}</p>
@@ -30,7 +31,7 @@
 {% if is_director %}<p><a class="btn small" href="{% url 'direktur:task_new' %}?keputusan={{ decision.pk }}{% if decision.clinic_id %}&cabang={{ decision.clinic_id }}{% endif %}">Buat task tindak lanjut</a></p>{% endif %}
 {% endif %}
 
-{% if is_director and decision.status != 'DIBATALKAN' %}
+{% if is_director and decision.status != 'DIBATALKAN' and not decision.verdict %}
 <div class="card">
   <strong>{% if decision.status == 'MENUNGGU' %}Catat keputusan{% else %}Perbarui isi keputusan{% endif %}</strong>
   <form method="post">

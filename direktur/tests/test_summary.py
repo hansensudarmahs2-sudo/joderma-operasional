@@ -202,3 +202,13 @@ def test_requests_section_uses_effective_target_for_finding(jemur, hansen, owner
     items = _section(daily.compose(hansen), "Permintaan dan temuan Owner")["items"]
     meta = items[0]["meta"]
     assert f"paling lambat {local_today() + dt.timedelta(days=30):%d/%m}" in meta and "tanpa target" not in meta
+
+
+def test_rejected_owner_decision_reads_ditolak(hansen, owners):
+    from owner import services as owner_services
+
+    seed()
+    d = services.create_decision(actor=hansen, title="Anggaran spanduk", decider=Decider.OWNER)
+    owner_services.decide(d, actor=owners[0], verdict="tolak", note="belum perlu")
+    texts = [i["text"] for i in _section(daily.compose(hansen), "Keputusan dan task hari ini")["items"]]
+    assert "Ditolak: Anggaran spanduk" in texts and "Ditetapkan: Anggaran spanduk" not in texts

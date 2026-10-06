@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ decision.title }}{% endblock %}
+{% block content %}
+<p><a href="{% url 'home' %}">← Kembali</a></p>
+<h1>{{ decision.title }}</h1>
+<p class="sub">Diajukan {{ decision.created_by|default:"Direktur Operasional" }} · {{ decision.created_at|date:"d/m/Y" }} · {{ decision.clinic.name|default:"lintas cabang" }} · {% if decision.needed_by %}perlu diputuskan sebelum <strong>{{ decision.needed_by|date:"d/m/Y" }}</strong>{% else %}tanpa tenggat{% endif %}</p>
+<p><span class="tag {% if decision.status == 'DITETAPKAN' %}ok{% elif decision.status == 'DIBATALKAN' %}muted{% else %}warn{% endif %}">{{ decision.get_status_display }}</span> {% if decision.verdict == 'TOLAK' %}<span class="tag err">Ditolak</span>{% elif decision.verdict == 'SETUJU' %}<span class="tag ok">Disetujui</span>{% endif %} <span class="meta">Pemutus: {{ decision.get_decider_display }}</span></p>
+{% if decision.status == 'DIBATALKAN' and decision.decision_text %}<div class="card"><strong>Alasan pembatalan</strong><div style="white-space:pre-wrap">{{ decision.decision_text }}</div></div>{% endif %}
+{% if decision.background %}<div class="card" style="white-space:pre-wrap">{{ decision.background }}</div>{% endif %}
+{% if tasks %}
+<h2>Task yang menunggu keputusan ini</h2>
+<ul class="request-list card">
+  {% for t in tasks %}<li class="request-row"><span class="request-main"><strong>{{ t.title }}</strong><span class="meta">{{ t.clinic.name }} · {% for a in t.task_assignments.all %}{{ a.assignee }}{% if not forloop.last %}, {% endif %}{% empty %}belum ada penerima{% endfor %}</span></span></li>{% endfor %}
+</ul>
+{% endif %}
+{% if decision.status == 'DITETAPKAN' %}
+<div class="card"><strong>Keputusan</strong><div style="white-space:pre-wrap">{{ decision.decision_text }}</div>
+  <p class="meta" style="margin:.3rem 0 0">{% if decision.decided_by %}oleh {{ decision.decided_by }} · {% endif %}{{ decision.decided_on|date:"d/m/Y" }}</p></div>
+{% elif can_decide %}
+<form method="post" class="card">{% csrf_token %}
+  <label for="catatan">Catatan <span class="meta">(wajib bila menolak)</span></label>
+  <textarea id="catatan" name="catatan" rows="3" placeholder="Mis. boleh, maksimal Rp1,5 juta"></textarea>
+  <p class="inline-actions">
+    <button class="btn" type="submit" name="aksi" value="setuju">Setujui</button>
+    <button class="btn secondary" type="submit" name="aksi" value="tolak">Tolak</button>
+    <button class="btn secondary" type="submit" name="aksi" value="rapat">Bahas di rapat Kamis</button>
+  </p>
+</form>
+{% endif %}
+{% endblock %}

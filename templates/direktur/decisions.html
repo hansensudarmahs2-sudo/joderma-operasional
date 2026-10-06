@@ -42,7 +42,7 @@
       <td data-label="Tanggal">{% if d.status == 'DITETAPKAN' %}{{ d.decided_on|date:"d/m/Y" }}{% elif d.needed_by %}sebelum {{ d.needed_by|date:"d/m/Y" }}{% else %}—{% endif %}</td>
       <td data-label="Status">
         {% if d.status == 'MENUNGGU' %}<span class="tag {% if d.needed_by and d.needed_by < today %}err{% else %}warn{% endif %}">{{ d.get_status_display }}</span>
-        {% elif d.status == 'DITETAPKAN' %}<span class="tag ok">Ditetapkan</span>{% if d.is_policy %} <span class="tag info">Kebijakan</span>{% endif %}
+        {% elif d.status == 'DITETAPKAN' %}<span class="tag ok">Ditetapkan</span>{% if d.is_policy %} <span class="tag info">Kebijakan</span>{% endif %} {% if d.verdict == 'TOLAK' %}<span class="tag err">Ditolak</span>{% elif d.verdict == 'SETUJU' %}<span class="tag ok">Disetujui</span>{% endif %}
         {% else %}<span class="tag muted">Dibatalkan</span>{% endif %}
       </td>
     </tr>

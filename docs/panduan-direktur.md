@@ -112,7 +112,11 @@ Tombol **Pilah** membuka halaman satu item dengan lima pilihan, sesuai matriks w
     Owner menulis catatan).
 - **Teruskan dan pantau** — di luar bidang Anda (apotek/stok/harga obat → Apoteker, Omnicare,
   keuangan di atas batas, medis, strategis/SP → Dirut). Item tetap di tab **Dipantau** sampai
-  selesai.
+  selesai. Bila tujuannya **Direktur Utama / Owner**, tombol ini membuat perkara **Keputusan**
+  berpemutus Owner: latar belakangnya berisi uraian asli, "Rujukan: ...", dan "Catatan Direktur: ...",
+  dan semua Owner mendapat notifikasi. Owner memutuskannya dari Dashboard (Setujui, Tolak, atau
+  Bahas di rapat Kamis); Anda diberi tahu hasilnya dan dapat membuat task tindak lanjut dari
+  halaman Keputusan. Tujuan lain (Apoteker, Keuangan, dan seterusnya) tidak berubah.
 - **Bawa ke rapat Kamis** — menjadi perkara di Keputusan (pemutus Rapat bersama) dan tampil di
   Agenda rapat Kamis. Pilih **Berlaku untuk**: cabang asal, cabang lain, atau semua cabang.
 - **Jadikan kebijakan** — cukup ditetapkan sebagai aturan, tanpa penugasan. Tulis judul dan isi
@@ -187,12 +191,21 @@ beserta jamnya dan berapa kali diperbarui, dan notifikasinya tidak menumpuk. Isi
 salinan saat tombol ditekan; perubahan data sesudahnya baru masuk bila dikirim ulang. Riwayat per
 tanggal ada di menu **Summary Harian**, dengan tombol **Unduh PDF** per tanggal.
 
+Di halaman **Summary Harian** (sama untuk Direktur dan Owner), di bawah summary ada daftar
+**Dibaca** per Owner: "Dibaca <nama> <tanggal jam>", "membaca versi sebelumnya" bila summary
+dikirim ulang sesudah dibaca, atau "belum membaca". Hanya Owner yang membukanya yang dihitung
+membaca. Sesudahnya ada utas **Tanggapan**: Direktur dan Owner dapat menulis, entri tidak dapat
+diubah atau dihapus, dan setiap tanggapan memberi notifikasi ke pihak lain. Daftar summary terbaru
+menandai "belum dibaca" dan "<n> tanggapan".
+
 ## Ringkasan untuk Owner dan Direktur
 
 Owner cukup tahu apakah ada masalah, keputusan apa yang menggantung, dan kebijakan apa yang
 ditetapkan — tanpa sedetail pemeriksaan Direktur. Owner melihat isi Ringkasan yang sama di
-**Dashboard Owner**, ditambah Permintaan Owner (lihat [`panduan-owner.md`](panduan-owner.md)). Owner hanya membaca; semua tombol aksi hanya
-muncul, dan hanya diterima server, untuk Direktur.
+**Dashboard Owner**, ditambah Permintaan Owner (lihat [`panduan-owner.md`](panduan-owner.md)). Owner pada dasarnya membaca; tombol aksi hanya
+muncul, dan hanya diterima server, untuk Direktur. Pengecualiannya: Owner memutuskan perkara yang
+menunggunya (kartu **Menunggu keputusan Anda**, lihat [`panduan-owner.md`](panduan-owner.md)),
+menulis Permintaan Owner dan catatannya, serta menulis tanggapan Summary Harian.
 
 | Menu | Isi | Owner | Direktur |
 |---|---|---|---|
@@ -201,7 +214,7 @@ muncul, dan hanya diterima server, untuk Direktur.
 | **Jadwal Task** | Gantt: setiap bar dari task dibuat sampai targetnya, 7 hari ke belakang s.d. 21 hari ke depan. Task lewat target berwarna merah dan memanjang sampai hari ini; task tanpa target bergaris. **Permintaan Owner** tampil paling atas: satu baris per permintaan (dari diminta sampai target Owner, garis putus-putus oranye = target) dengan task turunannya di bawahnya (↳), atau "belum dipecah menjadi task"; task lain per cabang | baca | baca |
 | **Daftar Task** | Semua task dalam satu tabel: cari, saring (status, cabang, PIC, prioritas, sumber, tanggal dibuat), urutkan dengan mengetuk judul kolom, unduh CSV | baca + unduh | baca + unduh |
 | **Kanban** | Baru · Dikerjakan · Menunggu konfirmasi · Selesai 7 hari | baca | baca |
-| **Keputusan** | Register perkara: menunggu, ditetapkan, kebijakan berlaku, dibatalkan | baca | catat, tetapkan, batalkan |
+| **Keputusan** | Register perkara: menunggu, ditetapkan, kebijakan berlaku, dibatalkan | baca; putuskan perkara berpemutus Owner | catat, tetapkan, batalkan. Perkara berpemutus Owner tetap boleh Anda catat bila keputusannya diambil di luar aplikasi (mis. lewat WhatsApp), selama belum ada Owner yang memutuskannya di aplikasi; begitu Owner memutuskan, Anda tidak dapat mengubah atau membatalkannya |
 | **Tim** | Detail per orang dan per checklist | baca | baca + tutup temuan |
 
 Warna kartu cabang (di bagian **Per cabang**, diketuk membuka halaman Tim pada cabang itu):
@@ -247,11 +260,16 @@ notifikasi saat dikonfirmasi atau diminta revisi; pemeriksa mendapat notifikasi 
 
 **Keputusan.** Direktur mencatat perkara yang perlu diputuskan (siapa pemutusnya, tenggatnya),
 lalu menetapkannya setelah diputuskan — oleh Owner, Direktur Utama, atau Direktur sendiri.
+Perkara berpemutus Owner atau Direktur Utama yang Anda catat di sini memberi notifikasi ke semua
+Owner, dan Owner memutuskannya sendiri dari Dashboard (keputusan pertama yang berlaku, tertulis
+"Disetujui <nama>: <catatan>" atau "Ditolak <nama>: <catatan>"); Anda diberi tahu hasilnya.
+Halaman perkara itu dapat Anda baca, tetapi tidak dapat Anda putuskan atas nama Owner.
 Centang *Kebijakan berlaku* bila keputusan itu menjadi aturan bagi staf. Perkara tidak dihapus;
 yang tidak jadi diputuskan dibatalkan dengan alasan.
 
 **Keputusan bersama dan rapat Kamis (K-015, ditambahkan Oktober 2026).** Pilih pemutus
-*Rapat bersama (Kamis)* untuk perkara yang dibahas di rapat mingguan. Perkara ini tampil di
+*Rapat bersama (Kamis)* untuk perkara yang dibahas di rapat mingguan (Owner juga dapat memindahkan
+perkaranya ke sini lewat **Bahas di rapat Kamis**). Perkara ini tampil di
 bagian **Agenda rapat Kamis** paling atas Ringkasan Direktur dan Dashboard Owner, bersama task
 yang tertahan karenanya; perkara dengan pemutus lain (Owner, Dirut, …) dilipat di bawahnya.
 

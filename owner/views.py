@@ -12,11 +12,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from core.models import Clinic, local_today
 from core.photos import photos_for, save_optional_photo
-from core.permissions import is_aom, require, user_clinic_queryset
+from core.permissions import is_aom, is_owner, require, user_clinic_queryset
 from direktur import dashboard
 from direktur.models import DailySummary
 
@@ -56,6 +58,7 @@ def dashboard_page(request):
             "matrix": dashboard.eisenhower(user, limit=1),
             "counts": dashboard.headline_counts(user),
             "agenda": dashboard.meeting_agenda(user),
+            "awaiting": services.decisions_awaiting(user),
             "requests": services.request_rows(user),
             "verify": services.verification_queue(user),
             "achievements": services.recent_achievements(user),
@@ -196,18 +199,62 @@ def _request_task(request, req):
 
 
 @login_required
+@require(services.can_view_requests)
+def decision_page(request, pk: int):
+    """Permintaan keputusan Direktur untuk Owner (7 Okt 2026). Direktur boleh membaca; hanya Owner memutuskan."""
+    from direktur.dashboard import decisions_for
+    from direktur.models import DecisionStatus
+    from direktur.services import is_owner_decision
+
+    decision = get_object_or_404(decisions_for(request.user).select_related("created_by", "decided_by"), pk=pk)
+    if request.method == "POST":
+        try:
+            services.decide(decision, actor=request.user, verdict=request.POST.get("aksi", ""),
+                            note=request.POST.get("catatan", ""))
+            if request.POST.get("aksi", "") == "rapat":
+                messages.success(request, "Dibawa ke rapat Kamis; Direktur Operasional sudah diberi tahu.")
+            else:
+                messages.success(request, "Keputusan dikirim ke Direktur Operasional.")
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+        return redirect("owner:decision", pk=pk)
+    return render(request, "owner/decision.html", {
+        "decision": decision,
+        "tasks": list(decision.waiting_tasks.select_related("clinic").prefetch_related("task_assignments__assignee")),
+        "can_decide": is_owner(request.user) and decision.status == DecisionStatus.MENUNGGU
+        and is_owner_decision(decision),
+    })
+
+
+@login_required
 @require(services.can_view_summary)
 def summary(request):
     today = local_today()
-    day = _date(request.GET.get("tanggal"), today)
-    recent = list(DailySummary.objects.select_related("sent_by").order_by("-date")[:14])
+    day = _date(request.GET.get("tanggal") or request.POST.get("tanggal"), today)
+    item = DailySummary.objects.filter(date=day).select_related("sent_by").first()
+    if request.method == "POST":
+        if item is None:
+            messages.error(request, "Belum ada summary untuk tanggal ini.")
+        else:
+            try:
+                services.add_summary_note(item, actor=request.user, body=request.POST.get("isi", ""))
+                messages.success(request, "Tanggapan dikirim.")
+            except ValidationError as exc:
+                messages.error(request, " ".join(exc.messages))
+        return redirect(reverse("owner:summary") + f"?tanggal={day:%Y-%m-%d}")
+    services.record_summary_read(item, request.user)
+    recent = list(DailySummary.objects.select_related("sent_by").annotate(n_notes=Count("notes")).order_by("-date")[:14])
+    for r in recent:
+        r.is_read = services.summary_is_read(r)
     return render(
         request,
         "owner/summary.html",
         {
             "day": day,
             "day_label": _day_label(day),
-            "summary": DailySummary.objects.filter(date=day).select_related("sent_by").first(),
+            "summary": item,
+            "reads": services.summary_reads(item) if item else [],
+            "notes": list(item.notes.select_related("author")) if item else [],
             "prev": day - dt.timedelta(days=1),
             "next": day + dt.timedelta(days=1) if day < today else None,
             "today": today,

@@ -219,6 +219,13 @@ class Decider(models.TextChoices):
     LAINNYA = "LAINNYA", "Lainnya"
 
 
+class Verdict(models.TextChoices):
+    """Jawaban Owner atas permintaan keputusan Direktur Operasional (7 Okt 2026)."""
+
+    SETUJU = "SETUJU", "Disetujui"
+    TOLAK = "TOLAK", "Ditolak"
+
+
 class Decision(models.Model):
     """Register keputusan: yang masih menggantung dan kebijakan yang sudah ditetapkan.
 
@@ -245,6 +252,11 @@ class Decision(models.Model):
         "kebijakan berlaku", default=False, help_text="Keputusan ini menjadi aturan yang berlaku bagi staf."
     )
     decided_on = models.DateField("tanggal ditetapkan", null=True, blank=True)
+    verdict = models.CharField("jawaban Owner", max_length=10, choices=Verdict.choices, blank=True)
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+        help_text="Owner yang memutuskan lewat halaman Owner (7 Okt 2026).",
+    )
     waiting_tasks = models.ManyToManyField(
         "core.ActionItem",
         blank=True,
@@ -303,3 +315,33 @@ class DailySummary(models.Model):
     @property
     def sections(self) -> list[dict]:
         return list((self.content or {}).get("sections") or [])
+
+
+class DailySummaryRead(models.Model):
+    """Kapan seorang Owner terakhir membuka summary satu tanggal (7 Okt 2026)."""
+
+    summary = models.ForeignKey(DailySummary, on_delete=models.CASCADE, related_name="reads")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    read_at = models.DateTimeField("terakhir dibuka")
+
+    class Meta:
+        verbose_name = "tanda baca summary"
+        verbose_name_plural = "tanda baca summary"
+        constraints = [models.UniqueConstraint(fields=["summary", "user"], name="uniq_summary_read")]
+
+
+class DailySummaryNote(models.Model):
+    """Tanggapan Owner ↔ Direktur pada summary satu tanggal. Tidak diubah atau dihapus (7 Okt 2026)."""
+
+    summary = models.ForeignKey(DailySummary, on_delete=models.CASCADE, related_name="notes")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    body = models.TextField("tanggapan")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "tanggapan summary"
+        verbose_name_plural = "tanggapan summary"
+        ordering = ("created_at",)
+
+    def __str__(self) -> str:
+        return self.body[:80]

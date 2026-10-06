@@ -644,7 +644,10 @@ def inbox_triage(request, sumber: str, pk: int):
             elif aksi == "teruskan":
                 triage.forward(row, actor=request.user, to=request.POST.get("ke", ""),
                                note=request.POST.get("catatan", ""))
-                messages.success(request, "Dicatat sebagai diteruskan; tetap dipantau di tab Dipantau.")
+                if request.POST.get("ke", "") == ForwardTo.DIRUT:
+                    messages.success(request, "Diteruskan ke Owner sebagai permintaan keputusan; Owner sudah diberi tahu.")
+                else:
+                    messages.success(request, "Dicatat sebagai diteruskan; tetap dipantau di tab Dipantau.")
             elif aksi == "rapat":
                 raw = request.POST.get("cabang_rapat", "asal")
                 meeting_clinic = "asal" if raw == "asal" else next(

@@ -9,7 +9,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from accounts.models import PicAssignment, PicFunction, User
+from accounts.models import PicAssignment, PicFunction, Role, User
 from audit.models import AuditAction
 from audit.services import log_create, log_event, log_update, snapshot
 from core.models import ActionItem, ActionItemStatus, Priority, TaskAudienceType, local_today
@@ -28,6 +28,29 @@ from .models import (
     NoteSource,
     period_start,
 )
+
+OWNER_DECIDERS = {Decider.OWNER, Decider.DIRUT}
+
+
+def is_owner_decision(decision: Decision) -> bool:
+    """Perkara yang diputuskan siapa saja yang berperan Owner / Direktur Utama (7 Okt 2026)."""
+    return decision.decider in OWNER_DECIDERS
+
+
+def _notify_owners_of_request(decision: Decision, *, actor) -> None:
+    """Perkara berpemutus Owner/Direktur Utama: semua Owner aktif diberi tahu (7 Okt 2026)."""
+    from notifications.services import notify_user
+
+    where = decision.clinic.name if decision.clinic_id else "lintas cabang"
+    due = f"perlu diputuskan sebelum {decision.needed_by:%d/%m/%Y}" if decision.needed_by else "tanpa tenggat"
+    owners = User.objects.filter(is_active=True, user_roles__role=Role.OWNER).distinct()
+    for person in owners.exclude(pk=getattr(actor, "pk", None)):
+        notify_user(
+            person, type_code="DECISION_REQUESTED",
+            title=f"Direktur Operasional meminta keputusan: {decision.title}", body=f"{where} · {due}",
+            entity_ref=f"decision#{decision.pk}", url_name="owner:decision", url_args=[decision.pk],
+        )
+
 
 FINDING_SOURCE = "audit_direktur"
 NOTE_SOURCE = "catatan_direktur"
@@ -575,7 +598,19 @@ def create_decision(
         created_by=actor,
     )
     log_create(decision, actor=actor)
+    if is_owner_decision(decision):
+        _notify_owners_of_request(decision, actor=actor)
     return decision
+
+
+def _assert_no_owner_verdict(decision: Decision) -> None:
+    """Keputusan Owner yang pertama berlaku, juga terhadap Direktur (7 Okt 2026).
+
+    Baca ulang di bawah kunci: objek di tangan Direktur bisa basi bila Owner baru saja memutuskan.
+    """
+    fresh = Decision.objects.select_for_update().get(pk=decision.pk)
+    if fresh.verdict:
+        raise ValidationError("Perkara ini sudah diputuskan Owner; tidak dapat diubah atau dibatalkan Direktur.")
 
 
 @transaction.atomic
@@ -586,6 +621,7 @@ def settle_decision(
     assert_director(actor)
     if decision.clinic_id:
         _assert_clinic(actor, decision.clinic)
+    _assert_no_owner_verdict(decision)
     if decision.status == DecisionStatus.DIBATALKAN:
         raise ValidationError("Keputusan yang dibatalkan tidak dapat ditetapkan.")
     if not (decision_text or "").strip():
@@ -636,6 +672,7 @@ def cancel_decision(decision: Decision, *, actor, reason: str) -> Decision:
     assert_director(actor)
     if decision.clinic_id:
         _assert_clinic(actor, decision.clinic)
+    _assert_no_owner_verdict(decision)
     if not (reason or "").strip():
         raise ValidationError("Alasan pembatalan wajib diisi.")
     before = snapshot(decision)

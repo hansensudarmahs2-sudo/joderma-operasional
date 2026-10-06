@@ -287,6 +287,142 @@ def request_rows(user, *, include_done_days: int = 14) -> list[dict]:
     return rows
 
 
+# --- Keputusan Owner (7 Okt 2026) ------------------------------------------------------
+
+DECIDE_ACTIONS = ("setuju", "tolak", "rapat")
+
+
+def _notify_decision_outcome(decision, *, actor, text: str) -> None:
+    """Hasil keputusan Owner ke semua Direktur Operasional aktif dan pengaju perkara."""
+    from notifications.services import notify_user
+
+    people = {u.pk: u for u in _directors()}
+    if decision.created_by_id and decision.created_by.is_active:
+        people.setdefault(decision.created_by_id, decision.created_by)
+    for person in people.values():
+        if person.pk == actor.pk:
+            continue
+        notify_user(
+            person, type_code="DECISION_DECIDED", title=f"Keputusan Owner: {decision.title}", body=text,
+            entity_ref=f"decision#{decision.pk}", url_name="direktur:decision_detail", url_args=[decision.pk],
+        )
+
+
+@transaction.atomic
+def decide(decision, *, actor, verdict: str, note: str = ""):
+    """Owner menjawab permintaan keputusan Direktur: Setujui, Tolak (alasan wajib), atau Bahas di rapat."""
+    from direktur.models import Decider, Decision, DecisionStatus, Verdict
+    from direktur.services import _release_waiting, is_owner_decision
+
+    if not is_owner(actor):
+        raise PermissionDenied("Hanya Owner / Direktur Utama yang memutuskan perkara ini.")
+    if verdict not in DECIDE_ACTIONS:
+        raise ValidationError("Pilihan keputusan tidak dikenal.")
+    decision = Decision.objects.select_for_update().get(pk=decision.pk)
+    if decision.status != DecisionStatus.MENUNGGU or not is_owner_decision(decision):
+        raise ValidationError("Perkara ini sudah diputuskan, dibatalkan, atau dipindah ke rapat.")
+    note = (note or "").strip()
+    if verdict == "tolak" and not note:
+        raise ValidationError("Tulis alasan penolakan.")
+    before = snapshot(decision)
+    name = str(actor)
+    if verdict == "rapat":
+        decision.decider = Decider.RAPAT_BERSAMA
+        if note:
+            line = f"Catatan Owner ({name}, {local_today():%d/%m/%Y}): {note}"
+            decision.background = f"{decision.background}\n\n{line}".strip()
+        decision.save()
+        log_update(decision, before, actor=actor)
+        text = "Dibawa ke rapat Kamis" + (f": {note}" if note else "")
+    else:
+        decision.status = DecisionStatus.DITETAPKAN
+        decision.verdict = Verdict.SETUJU if verdict == "setuju" else Verdict.TOLAK
+        decision.decided_by = actor
+        decision.decided_on = local_today()
+        label = "Disetujui" if verdict == "setuju" else "Ditolak"
+        decision.decision_text = f"{label} {name}" + (f": {note}" if note else "")
+        decision.save()
+        log_update(decision, before, actor=actor, action=AuditAction.APPROVE)
+        _release_waiting(decision, actor=actor, verb="ditetapkan")
+        text = decision.decision_text
+    _notify_decision_outcome(decision, actor=actor, text=text)
+    return decision
+
+
+def decisions_awaiting(user) -> list[dict]:
+    """Kartu "Menunggu keputusan Anda": perkara Owner/Dirut yang masih menunggu, terlambat dulu."""
+    from direktur.dashboard import decisions_for
+    from direktur.models import DecisionStatus
+    from direktur.services import OWNER_DECIDERS
+
+    if not is_owner(user):
+        return []
+    today = local_today()
+    qs = decisions_for(user).filter(status=DecisionStatus.MENUNGGU, decider__in=OWNER_DECIDERS)
+    rows = [
+        {"decision": d, "late": d.is_overdue(today), "age_days": (today - timezone.localtime(d.created_at).date()).days}
+        for d in qs.select_related("created_by", "clinic")
+    ]
+    rows.sort(key=lambda r: (not r["late"], r["decision"].needed_by or dt.date.max, r["decision"].created_at))
+    return rows
+
+
+# --- Summary Harian dua arah (7 Okt 2026) -------------------------------------------------
+
+
+def record_summary_read(summary, user) -> None:
+    """Owner membuka summary satu tanggal: catat waktunya. Direktur sendiri tidak dicatat."""
+    from direktur.models import DailySummaryRead
+
+    if summary is None or not is_owner(user) or is_aom(user):
+        return
+    DailySummaryRead.objects.update_or_create(summary=summary, user=user, defaults={"read_at": timezone.now()})
+
+
+def summary_reads(summary) -> list[dict]:
+    """Status baca tiap Owner aktif: baca, lama (sebelum dikirim ulang), atau belum."""
+    reads = {r.user_id: r.read_at for r in summary.reads.all()}
+    rows = []
+    for owner in _owners().order_by("display_name", "username"):
+        at = reads.get(owner.pk)
+        state = "belum" if at is None else ("lama" if at < summary.sent_at else "baca")
+        rows.append({"user": owner, "read_at": at, "state": state})
+    return rows
+
+
+def summary_is_read(summary) -> bool:
+    return summary.reads.filter(read_at__gte=summary.sent_at).exists()
+
+
+@transaction.atomic
+def add_summary_note(summary, *, actor, body: str):
+    """Tanggapan pada summary: Owner → semua Direktur aktif, Direktur → semua Owner aktif."""
+    from django.urls import reverse
+
+    from direktur.models import DailySummaryNote
+    from notifications.services import notify_user
+
+    if not (is_owner(actor) or is_aom(actor)):
+        raise PermissionDenied("Tanggapan summary hanya dari Owner atau Direktur Operasional.")
+    body = (body or "").strip()
+    if not body:
+        raise ValidationError("Tanggapan kosong.")
+    note = DailySummaryNote.objects.create(summary=summary, author=actor, body=body)
+    log_event(action=AuditAction.CREATE, entity_type="dailysummarynote", entity_id=note.pk,
+              entity_label=f"Tanggapan Summary {summary.date:%d/%m/%Y}", actor=actor,
+              after={"summary": summary.pk, "body": body[:300]})
+    recipients = _directors() if is_owner(actor) and not is_aom(actor) else _owners()
+    url = reverse("owner:summary") + f"?tanggal={summary.date:%Y-%m-%d}"
+    for person in recipients.exclude(pk=actor.pk):
+        notif = notify_user(person, type_code="SUMMARY_NOTE",
+                            title=f"Tanggapan Summary {summary.date:%d/%m}: {body[:60]}", body=body[:200],
+                            entity_ref=f"dailysummary:{summary.pk}")
+        if notif is not None:
+            notif.url = url
+            notif.save(update_fields=["url"])
+    return note
+
+
 # --- Jadwal ringkas ----------------------------------------------------------
 
 

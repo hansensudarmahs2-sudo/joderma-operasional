@@ -24,7 +24,7 @@ from core.models import (
 )
 from core.permissions import is_aom, is_owner, user_clinic_queryset
 
-from .models import Decision, DecisionStatus
+from .models import Decision, DecisionStatus, Verdict
 
 OPEN_ITEM = (ActionItemStatus.BARU, ActionItemStatus.DIKERJAKAN)
 RECENT_DONE_DAYS = 7
@@ -318,7 +318,7 @@ def recent_policies(user, today: dt.date | None = None):
     since = today - dt.timedelta(days=POLICY_RECENT_DAYS)
     return decisions_for(user).filter(
         status=DecisionStatus.DITETAPKAN, decided_on__gte=since
-    ).order_by("-decided_on", "-updated_at")
+    ).exclude(verdict=Verdict.TOLAK).order_by("-decided_on", "-updated_at")
 
 
 # --- Bird view -------------------------------------------------------------------

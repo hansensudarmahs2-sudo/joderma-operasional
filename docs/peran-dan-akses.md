@@ -32,7 +32,7 @@ akses ke data sensitif. Seseorang dapat memegang beberapa peran sekaligus.
 | `PIC` | PIC fungsi di cabang | delegasi dan tindak lanjut operasional dalam cabangnya |
 | `AOM` | Direktur Operasional (kode peran tetap `AOM`) | koordinasi lintas cabang, jadwal jaga, pembagian tugas, laporan rahasia sesuai scope, dan publikasi masukan |
 | `ADMIN` | pengelola sistem | pengguna, peran, konfigurasi, template |
-| `OWNER` | Owner dan Direktur Utama (satu peran, satu tampilan) | membaca keadaan klinik: dashboard, keputusan, jadwal (`KEBUTUHAN_REDEFINISI_PERAN.md`) |
+| `OWNER` | Owner dan Direktur Utama (satu peran, satu tampilan) | membaca keadaan klinik (dashboard, keputusan, jadwal) dan memutuskan perkara yang menunggunya (`KEBUTUHAN_REDEFINISI_PERAN.md`) |
 
 **Admin tidak berada di atas Supervisor.** Keduanya sejajar dengan wewenang yang
 berbeda: admin mengurus sistem, supervisor mengurus operasional. Admin tanpa
@@ -54,7 +54,7 @@ yang ditentukan dari perannya, dengan urutan: Direktur Operasional (`AOM`) → O
 | Tampilan | Halaman pertama | Menu | Halaman yang boleh dibuka |
 |---|---|---|---|
 | Direktur Operasional | Ringkasan (dengan Tugas saya di atas) | semua, dikelompokkan: Ringkasan, Inbox, Dari staf, Tim, Task, Evaluasi staf, Kebijakan (Dari staf dan tiga terakhir menu kelompok dengan tab di atas halaman; Dari staf = Komplain, Masukan, Kerusakan, Laporan staf, Masukan privat staf), Direktur, Operasional, Laporan, Pengaturan | semua (izin per view tetap berlaku) |
-| Owner / Direktur Utama | Dashboard Owner | Dashboard, Inbox, Task, Evaluasi staf, Kebijakan, Summary Harian, Jadwal, Stok Apotek (Task = Daftar Task/Kanban/Prioritas/Jadwal Task, Evaluasi staf = KPI/Jejak, Kebijakan = Kebijakan/Keputusan/Bahan Rapat; dipilih lewat tab di atas halaman) | **hanya**: halaman Owner (`/owner/`: Dashboard, Permintaan dan temuan, Summary Harian, Jadwal), Inbox (baca), Tim, Daftar Task (baca + CSV), Bahan Rapat (baca), Jejak (baca), KPI (baca + CSV), Kanban, Prioritas, Jadwal Task, Detail task (baca), Keputusan, Kebijakan (baca), Jadwal Jaga (baca), Stok Apotek (baca), Notifikasi, Ganti password. Selain itu 403 |
+| Owner / Direktur Utama | Dashboard Owner | Dashboard, Inbox, Task, Evaluasi staf, Kebijakan, Summary Harian, Jadwal, Stok Apotek (Task = Daftar Task/Kanban/Prioritas/Jadwal Task, Evaluasi staf = KPI/Jejak, Kebijakan = Kebijakan/Keputusan/Bahan Rapat; dipilih lewat tab di atas halaman) | **hanya**: halaman Owner (`/owner/`: Dashboard, Keputusan yang menunggu, Permintaan dan temuan, Summary Harian, Jadwal), Inbox (baca), Tim, Daftar Task (baca + CSV), Bahan Rapat (baca), Jejak (baca), KPI (baca + CSV), Kanban, Prioritas, Jadwal Task, Detail task (baca), Keputusan, Kebijakan (baca), Jadwal Jaga (baca), Stok Apotek (baca), Notifikasi, Ganti password. Selain itu 403 |
 | PIC / Koordinator | Hari Ini | Hari Ini, Checklist Saya, Kas/Order/Stok Apotek bila perannya, Kebijakan, Jadwal (termasuk Pembagian Tugas), Lapor, Laporan Operasional | semua kecuali yang ditolak izin per view |
 | Staf | Tugas hari ini | Tugas hari ini, Jadwal saya, Istirahat saya, Tindakan saya (perawat), Kas **hanya pada hari ia kasir** (porsi kelompok Kas di Pembagian Tugas), Order/Stok Apotek bila perannya, Kebijakan, Lapor | semua **kecuali** grid tim (Jadwal Jaga, Jadwal Istirahat, papan Giliran Perawat beserta aksi koordinatornya), Pembagian Tugas tim, Laporan Operasional dan ekspor, halaman Direktur dan Owner, Audit, Jejak; Kas di luar hari kasir. Hari Ini dan Checklist tetap bisa dibuka (aksi hari, pengisian butir) walau tidak di menu. Tally hanya untuk dirinya sendiri (fase 7, 4 Okt 2026) |
 | Admin sistem | Pengguna | Pengguna, Reset peran, Konfigurasi, Template Checklist, Pengaturan Klinik, Jadwal Jaga, Pembagian Tugas | **hanya** halaman akun, konfigurasi, template, pengaturan klinik, jadwal. Admin dengan `admin.full_access` tidak dibatasi |
@@ -157,10 +157,12 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Membuat Permintaan Owner | owner | — |
 | Membaca Permintaan Owner dan menulis catatannya; membaca Summary Harian | owner, AOM | — |
 | Mengirim summary harian ke Owner | AOM | — |
+| Menulis tanggapan Summary Harian (utas; tidak dapat diubah atau dihapus, memberi notifikasi ke pihak lain). Waktu buka Owner tercatat sebagai tanda baca | owner, AOM | — |
+| Memutuskan permintaan keputusan berpemutus Owner/Direktur Utama (Setujui, Tolak, Bahas di rapat Kamis; `/owner/keputusan/<id>/`) | owner (siapa saja), keputusan pertama berlaku. AOM hanya membaca halamannya | — |
 | Stok Apotek: membuka | apoteker, asisten apoteker, AOM, owner | — |
 | Stok Apotek: unggah ekspor Omnicare, ubah parameter | apoteker, asisten apoteker, AOM (keputusan 1 Okt 2026) | — |
 | Inbox (dulu Laporan Masuk): semua komplain, masukan, kerusakan, laporan, masukan staf lintas cabang, permintaan/temuan Owner; catatan Direktur hanya untuk penulisnya | AOM (tindak lanjut), owner (baca saja) | `admin.full_access` |
-| Pilah item Inbox (tugaskan, teruskan, bawa ke rapat, tidak ditindaklanjuti); tambah task dari permintaan Owner | AOM | — |
+| Pilah item Inbox (tugaskan, teruskan, bawa ke rapat, tidak ditindaklanjuti); tambah task dari permintaan Owner. Teruskan ke Direktur Utama / Owner membuat perkara Keputusan berpemutus Owner dan memberi notifikasi ke semua Owner | AOM | — |
 | Catat temuan Owner (tanpa kolom target; Mendesak = paling lambat 3 hari, selain itu Direktur menentukan target maks. 30 hari) dan permintaan | owner | — |
 | Task besar, target, sub task, dan "Nyatakan selesai & terverifikasi" pada temuan Owner | AOM | — |
 | Konfirmasi selesai / minta revisi task yang pemeriksanya Direktur Utama / Owner (otomatis bila penerimanya Direktur Operasional), dan menulis catatan di task itu. Pengecualian: sub task temuan Owner, yang dikerjakan Direktur selesai tanpa verifikasi dan yang dikerjakan staf diverifikasi Direktur; Owner tidak memverifikasinya | owner | — |

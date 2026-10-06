@@ -24,7 +24,7 @@ from audit.services import log_event
 from core.models import ActionItem, ActionItemStatus, local_today
 from core.permissions import user_clinic_queryset
 
-from .models import AuditCheck, Cadence, CheckResult, DailySummary, Decision, DecisionStatus
+from .models import AuditCheck, Cadence, CheckResult, DailySummary, Decision, DecisionStatus, Verdict
 from .services import FINDING_SOURCE, assert_director, pending_summary
 
 LIST_LIMIT = 15
@@ -86,7 +86,7 @@ def _decisions_and_tasks_section(user, day: dt.date) -> dict:
     items = []
     decisions = decisions_for(user)
     for d in decisions.filter(status=DecisionStatus.DITETAPKAN, decided_on=day).order_by("updated_at"):
-        items.append(_item(f"Ditetapkan: {d.title}", d.decision_text[:160],
+        items.append(_item(f"{'Ditolak' if d.verdict == Verdict.TOLAK else 'Ditetapkan'}: {d.title}", d.decision_text[:160],
                            "Kebijakan" if d.is_policy else "Keputusan", "info"))
     for d in decisions.filter(created_at__gte=start, created_at__lt=end).exclude(decided_on=day).order_by("created_at"):
         meta = f"diputuskan oleh {d.get_decider_display()}"

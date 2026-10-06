@@ -237,6 +237,8 @@ def decision_detail(request, pk: int):
         {
             "decision": decision,
             "is_director": is_aom(request.user),
+            "can_owner_decide": is_owner(request.user) and decision.status == DecisionStatus.MENUNGGU
+            and services.is_owner_decision(decision),
             "today": local_today(),
             "waiting": decision.waiting_tasks.select_related("clinic").order_by("status", "due_at"),
             "followups": ActionItem.objects.filter(

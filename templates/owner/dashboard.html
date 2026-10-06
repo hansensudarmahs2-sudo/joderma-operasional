@@ -9,6 +9,20 @@
   {% if bird.any_problem %}<span class="tag warn">Perlu perhatian</span>{% else %}<span class="tag ok">Semua beres</span>{% endif %}
 </div>
 
+{% if awaiting %}
+<section class="card owner-requests" aria-labelledby="judul-keputusan">
+  <h2 id="judul-keputusan" style="margin:0">Menunggu keputusan Anda</h2>
+  <ul class="request-list">
+    {% for a in awaiting %}
+    <li><a class="request-row" href="{% url 'owner:decision' a.decision.pk %}">
+      <span class="request-main"><strong>{{ a.decision.title }}</strong>
+        <span class="meta">{{ a.decision.clinic.name|default:"Lintas cabang" }} · dari {{ a.decision.created_by|default:"Direktur Operasional" }} · {% if a.age_days %}{{ a.age_days }} hari lalu{% else %}hari ini{% endif %}{% if a.decision.needed_by %} · sebelum {{ a.decision.needed_by|date:"d/m/Y" }}{% endif %}</span></span>
+      <span class="request-state">{% if a.late %}<span class="tag err">Lewat tenggat</span>{% else %}<span class="tag warn">Putuskan</span>{% endif %}</span>
+    </a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
 <section class="card owner-requests" aria-labelledby="judul-permintaan">
   <div class="checklist-heading" style="margin:0">
     <h2 id="judul-permintaan" style="margin:0">Permintaan dan temuan</h2>
