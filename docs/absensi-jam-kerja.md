@@ -55,7 +55,7 @@ jatuh tepat di ambang itu (Lia, 13 Sep, masuk 13.00 untuk shift 14.00).
 ```
 absensi/
   models.py        AttendanceDevice, AttendanceImport, AttendancePunch
-  parser.py        pembaca .xlsx "Kartu Laporan" (zipfile + ElementTree, tanpa dependensi baru)
+  parser.py        pembaca "Kartu Laporan" .xlsx dan .xls
   services.py      impor_kartu_laporan() — penentuan waktu, pemetaan ID, dedup
   perhitungan.py   hitung_hari / hitung_periode / laporan_pengecualian
   views.py/urls.py halaman /absensi/
@@ -161,8 +161,20 @@ dengan mengedit berkas perintah.
 | 12 | Silvi | `silvi` | | | | |
 
 Yang ditebalkan ejaannya berbeda jauh; ID 14 bahkan nama yang lain sama sekali.
-Importer memperingatkan bila nama pada berkas tidak lagi cocok dengan pemetaan,
-karena ID yang berpindah orang adalah kesalahan mahal yang sulit terlihat.
+
+Menukar satu ID memindahkan jam kerja sebulan ke orang lain, dan **tidak ada angka
+mana pun yang akan terlihat janggal** — papan skor tetap wajar, hanya milik orang
+yang salah. Karena itu ada dua jaring:
+
+- Importer memperingatkan bila nama pada berkas tidak lagi sama dengan nama yang
+  tersimpan di pemetaan (ID berpindah orang di mesin).
+- Tab **Impor berkas** menampilkan tabel pemetaan beserta penilaian kemiripan nama
+  mesin dengan nama di aplikasi: `cocok`, `mirip`, atau `beda`. Yang `beda`
+  didahulukan. Pada data September hanya satu yang tertandai — ID 14 "Agustin" yang
+  dipetakan ke user `nanda`, dan itu memang benar, tetapi pantas dilihat manusia.
+
+Penilaian itu hanya penanda, bukan aturan: ia tidak pernah menolak impor dan tidak
+pernah mengubah angka.
 
 ID **2 (Izul)**, **6 (Isya)**, dan **9 (Lina)** tidak ada di jadwal jaga kedua
 cabang, jadi jam shift-nya tidak diketahui. Keputusan **D1**: capnya direkam, tidak
@@ -308,6 +320,13 @@ persis dengan besaran koreksi yang dihitung terpisah saat memeriksa PDF.
 ## 5. Batasan yang diketahui
 
 Ditulis supaya tidak ditemukan ulang dengan cara yang mahal.
+
+**Dukungan .xls belum diuji terhadap berkas asli.** Mesin bisa mengekspor .xlsx dan
+.xls; keduanya didukung, formatnya dikenali dari isi berkas bukan dari akhiran
+namanya. Jalur .xlsx tervalidasi terhadap ekspor September 2026. Jalur .xls memakai
+`xlrd` (sudah ada di requirements untuk modul stok) dan **baru diuji dengan sheet
+tiruan**, terutama untuk kasus jam yang tersimpan sebagai pecahan hari, bukan teks.
+Begitu ada satu berkas .xls asli dari mesin, jalur itu perlu dicoba sekali.
 
 **Parser terikat bentuk ekspor.** Blok dikenali dari sel `Minggu Tgl`, dan nama/ID
 dari label `Nama`/`ID` di dalam blok. Bila vendor mengubah tata letak, parser

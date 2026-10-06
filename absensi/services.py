@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import datetime as dt
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 
 from django.db import transaction
 from django.utils import timezone
@@ -277,3 +278,62 @@ def susun_jadwal_dari_absensi(
         },
     )
     return hasil
+
+
+# --- kecocokan nama mesin dengan nama di aplikasi -------------------------------
+
+#: Di bawah nilai ini, nama di mesin dianggap tidak mirip dengan nama di aplikasi.
+#: Bukan aturan, hanya penanda supaya pasangan yang mengejutkan tidak lolos tanpa dilihat.
+AMBANG_MIRIP = 0.6
+
+
+def _bersih(teks: str) -> str:
+    return "".join(ch for ch in (teks or "").lower() if ch.isalnum())
+
+
+def kecocokan_nama(label_mesin: str, user) -> tuple[str, str]:
+    """Seberapa mirip nama di mesin dengan nama orang itu di aplikasi.
+
+    Pemetaan ID mesin ke user adalah titik paling mudah salah di modul ini: menukar
+    satu ID memindahkan jam kerja sebulan ke orang lain, dan tidak ada di angka mana
+    pun yang akan terlihat janggal. Karena itu pasangannya ditampilkan apa adanya,
+    beserta penilaian sederhana apakah kedua nama memang mirip.
+
+    Mengembalikan `(tingkat, alasan)`; `tingkat` berisi "cocok", "mirip", atau "beda".
+    """
+    mesin = _bersih(label_mesin)
+    if not mesin:
+        return "beda", "Nama di mesin kosong."
+
+    kandidat = {
+        "username": _bersih(getattr(user, "username", "")),
+        "nama tampilan": _bersih(getattr(user, "display_name", "")),
+    }
+    for sebutan, nilai in kandidat.items():
+        if nilai and (mesin == nilai or mesin in nilai or nilai in mesin):
+            return "cocok", f"Sama dengan {sebutan}."
+
+    terbaik, sebutan = 0.0, ""
+    for nama, nilai in kandidat.items():
+        if nilai:
+            rasio = SequenceMatcher(None, mesin, nilai).ratio()
+            if rasio > terbaik:
+                terbaik, sebutan = rasio, nama
+    if terbaik >= AMBANG_MIRIP:
+        return "mirip", f"Mirip {sebutan} ({terbaik:.0%})."
+    return "beda", "Nama di mesin jauh berbeda dari nama di aplikasi; pastikan ID ini benar."
+
+
+def daftar_pemetaan_nama() -> list[dict]:
+    """Pemetaan ID mesin ke orang, beserta penilaian kemiripan namanya."""
+    baris = []
+    for alat in AttendanceDevice.objects.select_related("user").order_by("device_uid"):
+        tingkat, alasan = kecocokan_nama(alat.device_label, alat.user)
+        baris.append({
+            "alat": alat, "tingkat": tingkat, "alasan": alasan,
+            "jumlah_cap": alat.punches.count(),
+        })
+    # Yang perlu diperiksa didahulukan.
+    urut = {"beda": 0, "mirip": 1, "cocok": 2}
+    baris.sort(key=lambda b: (urut[b["tingkat"]], b["alat"].device_uid))
+    return baris

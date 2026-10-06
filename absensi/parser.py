@@ -21,9 +21,17 @@ Bentuk berkasnya tidak biasa, jadi aturan bacanya ditulis di sini:
 - Jam dikembalikan sebagai jam dinding mentah. Penentuan tanggal sebenarnya untuk cap
   lewat tengah malam dilakukan di `services`, yang tahu batas dini hari cabang.
 
-Berkas dibaca dengan zipfile + ElementTree dari pustaka standar; .xlsx adalah zip
-berisi XML. `xlrd` di requirements hanya membaca .xls lama (dipakai modul stok) dan
-tidak bisa membuka berkas ini.
+Dua format didukung, karena mesin bisa mengekspor keduanya:
+
+- **.xlsx** dibaca dengan zipfile + ElementTree pustaka standar; .xlsx adalah zip berisi
+  XML, jadi tidak perlu dependensi tambahan.
+- **.xls** lama dibaca dengan `xlrd`, yang sudah ada di requirements untuk modul stok.
+  `xlrd` 2.x memang hanya bisa membaca .xls, dan ekspor mesin kerap perlu
+  `ignore_workbook_corruption=True` seperti ekspor Omnicare di `stok/parser.py`.
+
+Formatnya dikenali dari isi berkas, bukan dari akhiran namanya: berkas .xlsx selalu
+diawali tanda zip `PK`, sedangkan .xls diawali tanda OLE2. Nama berkas kerap salah
+sebut, isinya tidak.
 """
 from __future__ import annotations
 
@@ -125,8 +133,56 @@ def _kolom(ref: str) -> int:
     return n
 
 
+TANDA_ZIP = b"PK\x03\x04"          # .xlsx
+TANDA_OLE2 = b"\xd0\xcf\x11\xe0"   # .xls lama
+
+
 def _sel(data: bytes) -> dict[tuple[int, int], str]:
-    """Isi sheet pertama sebagai {(baris, kolom): teks}. Sel kosong tidak dimasukkan."""
+    """Isi sheet pertama sebagai {(baris, kolom): teks}, apa pun formatnya.
+
+    Baris dan kolom dihitung mulai 1, mengikuti penomoran .xlsx, supaya sisa parser
+    tidak perlu tahu berkasnya .xls atau .xlsx.
+    """
+    if data.startswith(TANDA_OLE2):
+        return _sel_xls(data)
+    if not data.startswith(TANDA_ZIP):
+        raise FileTidakDikenal("Berkas bukan .xlsx maupun .xls yang dikenali.")
+    return _sel_xlsx(data)
+
+
+def _sel_xls(data: bytes) -> dict[tuple[int, int], str]:
+    """Sheet pertama berkas .xls lama, lewat `xlrd`."""
+    import xlrd
+
+    try:
+        buku = xlrd.open_workbook(
+            file_contents=data, ignore_workbook_corruption=True, logfile=io.StringIO()
+        )
+        sheet = buku.sheet_by_index(0)
+    except Exception as exc:  # xlrd melempar beragam jenis error untuk berkas rusak
+        raise FileTidakDikenal(f"Berkas .xls tidak bisa dibaca: {exc}") from exc
+
+    hasil: dict[tuple[int, int], str] = {}
+    for r in range(sheet.nrows):
+        for c in range(sheet.ncols):
+            sel = sheet.cell(r, c)
+            if sel.ctype in (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK):
+                continue
+            if sel.ctype == xlrd.XL_CELL_DATE:
+                # Jam di .xls bisa tersimpan sebagai angka pecahan hari, bukan teks.
+                _, _, _, jam, menit, _ = xlrd.xldate_as_tuple(sel.value, buku.datemode)
+                teks = f"{jam:02d}:{menit:02d}"
+            elif sel.ctype == xlrd.XL_CELL_NUMBER and float(sel.value).is_integer():
+                teks = str(int(sel.value))
+            else:
+                teks = str(sel.value).strip()
+            if teks:
+                hasil[(r + 1, c + 1)] = teks
+    return hasil
+
+
+def _sel_xlsx(data: bytes) -> dict[tuple[int, int], str]:
+    """Sheet pertama berkas .xlsx, lewat zipfile + ElementTree."""
     try:
         zf = zipfile.ZipFile(io.BytesIO(data))
     except zipfile.BadZipFile as exc:

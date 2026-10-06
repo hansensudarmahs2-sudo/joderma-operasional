@@ -399,3 +399,39 @@ def test_perintah_susun_jadwal_tidak_mengaku_berhasil_saat_tidak_mengubah_apa_pu
     keluaran = capsys.readouterr().out
     assert "Tidak ada hari baru" in keluaran
     assert "belum dikonfirmasi" not in keluaran
+
+
+# --- kecocokan nama mesin dengan nama di aplikasi --------------------------------
+
+
+@pytest.mark.parametrize(
+    "label, username, nama, tingkat",
+    [
+        ("Elvira", "elvira", "Elvira, Apt.", "cocok"),   # sama persis
+        ("Rahayu", "ayu", "Ayu (Rahayu)", "cocok"),      # ada di nama tampilan
+        ("Heny", "heni", "Heni", "mirip"),               # beda ejaan
+        ("Nadiya", "naya", "Naya", "mirip"),
+        ("Agustin", "nanda", "Nanda", "beda"),           # nama yang lain sama sekali
+        ("", "lina", "Lina", "beda"),                    # mesin tanpa nama
+    ],
+)
+def test_kecocokan_nama_mesin_dengan_aplikasi(label, username, nama, tingkat):
+    """ID yang berpindah orang tidak terlihat di angka mana pun, jadi namanya yang diperiksa."""
+    from types import SimpleNamespace
+
+    from absensi.services import kecocokan_nama
+
+    hasil, alasan = kecocokan_nama(
+        label, SimpleNamespace(username=username, display_name=nama)
+    )
+    assert hasil == tingkat, alasan
+
+
+def test_pemetaan_mendahulukan_yang_perlu_diperiksa(client, dunia):
+    AttendanceDevice.objects.create(device_uid="17", device_label="Elvira", user=dunia["staf"])
+    aneh = User.objects.create_user(username="nanda", password=SANDI, display_name="Nanda")
+    AttendanceDevice.objects.create(device_uid="14", device_label="Agustin", user=aneh)
+    _masuk(client, dunia["direktur"])
+    body = client.get(reverse("absensi:index"), {"tab": "impor", "bulan": BULAN}).content.decode()
+    tabel = body.split("Pemetaan ID mesin", 1)[1]
+    assert tabel.index("Agustin") < tabel.index("Elvira")   # yang "beda" lebih dulu

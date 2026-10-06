@@ -96,6 +96,7 @@ def index(request):
             "ambang_awal": AMBANG_DATANG_AWAL_MENIT,
             "bisa_impor": can_edit_absensi(request.user),
             "impor_terakhir": AttendanceImport.objects.select_related("imported_by")[:10],
+            "pemetaan_nama": services.daftar_pemetaan_nama() if tab == "impor" else None,
             "rencana_jadwal": rencana,
             "rincian_jadwal": sorted(
                 (nama, cabang, n)

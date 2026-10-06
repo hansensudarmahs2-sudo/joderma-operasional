@@ -124,3 +124,58 @@ def test_periode_lintas_bulan():
         )
     )
     assert [h.tanggal for h in hasil.kartu[0].hari] == [dt.date(2026, 9, 30), dt.date(2026, 10, 1)]
+
+
+# --- format berkas --------------------------------------------------------------
+
+
+def test_format_dikenali_dari_isi_bukan_dari_nama():
+    """Nama berkas kerap salah sebut; isinya tidak."""
+    xlsx = _berkas()
+    assert parser.baca(xlsx, "sebenarnya-xls.xls").kartu          # isi .xlsx, nama .xls
+    with pytest.raises(parser.FileTidakDikenal, match="bukan .xlsx maupun .xls"):
+        parser.baca(b"teks biasa", "kelihatan-rapi.xlsx")
+
+
+def test_xls_rusak_ditolak_dengan_pesan_yang_menyebut_formatnya():
+    rusak = parser.TANDA_OLE2 + b"isi tidak masuk akal"
+    with pytest.raises(parser.FileTidakDikenal, match=r"\.xls tidak bisa dibaca"):
+        parser.baca(rusak)
+
+
+class _SelPalsu:
+    def __init__(self, ctype, value):
+        self.ctype, self.value = ctype, value
+
+
+class _SheetPalsu:
+    def __init__(self, baris):
+        self._baris = baris
+        self.nrows = len(baris)
+        self.ncols = max(len(b) for b in baris)
+
+    def cell(self, r, c):
+        baris = self._baris[r]
+        return baris[c] if c < len(baris) else _SelPalsu(0, "")
+
+
+def test_sel_xls_mengubah_jam_angka_menjadi_teks(monkeypatch):
+    """Di .xls, jam bisa tersimpan sebagai pecahan hari, bukan teks "14:02"."""
+    import types
+
+    xlrd_palsu = types.SimpleNamespace(
+        XL_CELL_EMPTY=0, XL_CELL_BLANK=6, XL_CELL_DATE=3, XL_CELL_NUMBER=2,
+        open_workbook=lambda **_: types.SimpleNamespace(
+            datemode=0,
+            sheet_by_index=lambda _i: _SheetPalsu([[
+                _SelPalsu(3, 0.5847222),     # 14:02 sebagai pecahan hari
+                _SelPalsu(2, 17.0),          # angka bulat -> "17", bukan "17.0"
+                _SelPalsu(1, "  Elvira  "),  # teks dengan spasi
+                _SelPalsu(0, ""),            # kosong, dilewati
+            ]]),
+        ),
+        xldate_as_tuple=lambda v, m: (0, 0, 0, 14, 2, 0),
+    )
+    monkeypatch.setitem(__import__("sys").modules, "xlrd", xlrd_palsu)
+    hasil = parser._sel_xls(parser.TANDA_OLE2 + b"apa saja")
+    assert hasil == {(1, 1): "14:02", (1, 2): "17", (1, 3): "Elvira"}

@@ -143,6 +143,29 @@
   </div>
   {% endif %}
 
+  {% if pemetaan_nama %}
+  <h2 style="margin-top:1.2rem">Pemetaan ID mesin</h2>
+  <p class="meta">Menukar satu ID memindahkan jam kerja sebulan ke orang lain, dan tidak ada angka mana pun yang akan terlihat janggal. Pasangan yang namanya jauh berbeda ditandai supaya tidak lolos tanpa dilihat.</p>
+  <table class="responsive">
+    <thead><tr><th>ID</th><th>Nama di mesin</th><th>Orang di aplikasi</th><th>Cap</th><th>Kecocokan nama</th></tr></thead>
+    <tbody>
+    {% for b in pemetaan_nama %}
+      <tr>
+        <td data-label="ID">{{ b.alat.device_uid }}</td>
+        <td data-label="Nama di mesin">{{ b.alat.device_label|default:"—" }}</td>
+        <td data-label="Orang di aplikasi">{{ b.alat.user }}<span class="meta"> ({{ b.alat.user.username }})</span>{% if b.alat.recording_only %} <span class="tag muted">rekam saja</span>{% endif %}</td>
+        <td data-label="Cap">{{ b.jumlah_cap }}</td>
+        <td data-label="Kecocokan nama">
+          <span class="tag {% if b.tingkat == 'beda' %}err{% elif b.tingkat == 'mirip' %}warn{% else %}ok{% endif %}">{{ b.tingkat }}</span>
+          <div class="meta">{{ b.alasan }}</div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="meta">Mengubah pemetaan dilakukan lewat Django admin, dan termasuk koreksi absen — haknya Direktur Operasional, Direktur Utama, dan Owner.</p>
+  {% endif %}
+
   <h2 style="margin-top:1.2rem">Impor terakhir</h2>
   {% if impor_terakhir %}
   <table class="responsive">
