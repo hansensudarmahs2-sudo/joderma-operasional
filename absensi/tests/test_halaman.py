@@ -375,3 +375,14 @@ def test_owner_tidak_boleh_menyusun_jadwal(client, dunia):
 def test_staf_tidak_boleh_menyusun_jadwal(client, dunia):
     _masuk(client, dunia["staf"])
     assert client.post(reverse("absensi:susun_jadwal"), {"bulan": BULAN}).status_code == 403
+
+
+def test_kartu_susun_jadwal_merinci_per_staf(client, dunia):
+    """Sebelum menulis ratusan baris, yang perlu diperiksa adalah siapa ditaruh di mana."""
+    _cap_hari(dunia["staf"], dt.date(2026, 9, 10), dt.time(14, 2), dt.time(22, 5))
+    _cap_hari(dunia["staf"], dt.date(2026, 9, 11), dt.time(11, 50), dt.time(21, 5), tz="I")
+    _masuk(client, dunia["direktur"])
+    body = client.get(reverse("absensi:index"), {"tab": "impor", "bulan": BULAN}).content.decode()
+    assert "Rincian per staf" in body
+    rincian = body.split("Rincian per staf", 1)[1].split("</details>", 1)[0]
+    assert "JoDerma Jemur" in rincian and "JoDerma Citraland" in rincian

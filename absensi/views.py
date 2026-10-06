@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import calendar
 import datetime as dt
+from collections import Counter
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -71,6 +72,11 @@ def index(request):
     tahun, bulan = _bulan(request)
     mulai, selesai = _rentang(tahun, bulan)
 
+    rencana = (
+        services.susun_jadwal_dari_absensi(mulai, selesai)
+        if tab == "impor" and can_edit_roster(request.user)
+        else None
+    )
     semua = hitung_periode(mulai, selesai)
     ringkasan = [s for s in semua if s.dinilai]
     rekam_saja = [s for s in semua if not s.dinilai]
@@ -90,11 +96,13 @@ def index(request):
             "ambang_awal": AMBANG_DATANG_AWAL_MENIT,
             "bisa_impor": can_edit_absensi(request.user),
             "impor_terakhir": AttendanceImport.objects.select_related("imported_by")[:10],
-            "rencana_jadwal": (
-                services.susun_jadwal_dari_absensi(mulai, selesai)
-                if tab == "impor" and can_edit_roster(request.user)
-                else None
-            ),
+            "rencana_jadwal": rencana,
+            "rincian_jadwal": sorted(
+                (nama, cabang, n)
+                for (nama, cabang), n in Counter(
+                    (str(u.user), u.clinic.name) for u in rencana.usul
+                ).items()
+            ) if rencana else None,
         },
     )
 

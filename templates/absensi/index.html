@@ -111,6 +111,18 @@
       <strong>{{ rencana_jadwal.dari_pola }}</strong> dari pola jam ·
       <strong>{{ rencana_jadwal.gagal|length }}</strong> tidak bisa ditentukan
     </p>
+    {% if rincian_jadwal %}
+    <details style="margin:.3rem 0 .6rem"><summary class="meta">Rincian per staf</summary>
+      <table class="responsive" style="margin-top:.3rem">
+        <thead><tr><th>Nama</th><th>Cabang</th><th>Hari</th></tr></thead>
+        <tbody>
+        {% for nama, cabang, n in rincian_jadwal %}
+          <tr><td data-label="Nama">{{ nama }}</td><td data-label="Cabang">{{ cabang }}</td><td data-label="Hari">{{ n }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </details>
+    {% endif %}
     {% if rencana_jadwal.usul %}
     <form method="post" action="{% url 'absensi:susun_jadwal' %}">
       {% csrf_token %}

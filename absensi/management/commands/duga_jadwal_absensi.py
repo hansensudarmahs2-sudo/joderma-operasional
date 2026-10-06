@@ -11,6 +11,8 @@ from __future__ import annotations
 import calendar
 import datetime as dt
 
+from collections import Counter
+
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
@@ -47,6 +49,14 @@ class Command(BaseCommand):
         self.stdout.write(f"  Terbaca dari mesin     : {hasil.dari_mesin}")
         self.stdout.write(f"  Diduga dari pola jam   : {hasil.dari_pola}")
         self.stdout.write(f"  Tidak bisa ditentukan  : {len(hasil.gagal)}")
+
+        # Rincian per staf adalah yang paling layak diperiksa sebelum menulis: di sinilah
+        # terlihat bila seseorang ditaruh di cabang yang tidak masuk akal.
+        per_orang = Counter((str(u.user), u.clinic.name) for u in hasil.usul)
+        if per_orang:
+            self.stdout.write("\n  Rencana per staf:")
+            for (nama, cab), n in sorted(per_orang.items()):
+                self.stdout.write(f"    {nama:14} {cab:24} {n:2} hari")
 
         if hasil.gagal:
             self.stdout.write(self.style.WARNING("\n  Dibiarkan kosong:"))
