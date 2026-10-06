@@ -284,6 +284,22 @@ def can_assign_issue(user) -> bool:
     return is_supervisor(user) or is_pic(user) or is_aom(user)
 
 
+def can_change_issue_status(user, issue) -> bool:
+    """Ubah status Komplain/Masukan/Kerusakan (7 Okt 2026): supervisor, PIC, Direktur Operasional
+    cabang itu, atau staf yang sedang ditugaskan pada catatan ini. Staf lain dan pelapor tidak,
+    supaya catatan tidak keluar dari "Belum dipilah" Inbox sebelum ditangani yang berwenang."""
+    if not can_access_clinic(user, issue.clinic):
+        return False
+    if can_assign_issue(user):
+        return True
+    return issue.assignments.filter(assignee_id=user.pk, active=True).exists()
+
+
+def can_change_laporan_status(user, laporan) -> bool:
+    """Ubah status Laporan staf (7 Okt 2026): supervisor, PIC, Direktur Operasional cabang itu."""
+    return can_access_clinic(user, laporan.clinic) and can_assign_issue(user)
+
+
 def can_view_restricted_issue(user, issue) -> bool:
     """Komplain terbatas: pembuat, assignee, supervisor, owner (PRD 6.3)."""
     if not can_access_clinic(user, issue.clinic):

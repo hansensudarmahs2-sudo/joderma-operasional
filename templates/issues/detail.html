@@ -30,6 +30,7 @@
 </div>
 
 {% if not read_only %}
+{% if can_change_status %}
 <div class="card">
   <h3>Ubah status</h3>
   {% if next_statuses %}
@@ -51,6 +52,7 @@
   </form>
   {% else %}<p class="meta">Catatan sudah final; tidak ada transisi status berikutnya.</p>{% endif %}
 </div>
+{% endif %}
 
 {% if can_assign %}
 <div class="card">

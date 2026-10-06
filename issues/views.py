@@ -19,6 +19,7 @@ from core.models import Attachment, Priority
 from core.permissions import (
     can_access_clinic,
     can_assign_issue,
+    can_change_issue_status,
     can_view_restricted_issue,
     clinic_member_q,
     is_aom,
@@ -187,6 +188,7 @@ def detail(request, pk: int):
                 (s, dict(IssueStatus.choices).get(s, s)) for s in issue.allowed_next_statuses()
             ),
             "can_assign": can_assign_issue(request.user),
+            "can_change_status": can_change_issue_status(request.user, issue),
             "users": User.objects.filter(clinic_member_q(issue.clinic), is_active=True)
             .distinct()
             .order_by("username"),

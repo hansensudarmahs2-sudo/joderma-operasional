@@ -11,6 +11,7 @@ from core.permissions import (
     can_access_clinic,
     can_archive_laporan,
     can_archive_masukan,
+    can_change_laporan_status,
     can_create_laporan,
     can_publish_masukan,
     can_view_laporan,
@@ -102,6 +103,8 @@ def change_laporan_status(
 ) -> Laporan:
     if not can_view_laporan(user, laporan):
         raise PermissionDenied("Anda tidak memiliki akses ke laporan ini.")
+    if not can_change_laporan_status(user, laporan):
+        raise PermissionDenied("Status laporan diubah oleh supervisor, PIC, atau Direktur Operasional.")
     allowed = laporan.allowed_next_statuses()
     if to_status not in allowed:
         raise ValidationError("Perubahan status tidak diizinkan dari status saat ini.")

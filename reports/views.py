@@ -25,6 +25,7 @@ from core.models import Clinic, OperationalDay, local_today
 from core.permissions import (
     can_archive_laporan,
     can_archive_masukan,
+    can_change_laporan_status,
     can_create_laporan,
     can_export,
     can_publish_masukan,
@@ -499,7 +500,8 @@ def laporan_page_detail(request, pk: int):
         {
             "laporan": laporan,
             "can_archive": can_archive_laporan(request.user) and not _owner_view(request.user),
-            "allowed_next": [] if _owner_view(request.user) else laporan.allowed_next_statuses(),
+            "allowed_next": laporan.allowed_next_statuses()
+            if can_change_laporan_status(request.user, laporan) and not _owner_view(request.user) else [],
         },
     )
 

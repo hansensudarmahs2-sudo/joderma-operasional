@@ -55,21 +55,21 @@ def test_status_transition_open_to_under_review(clinic, staf, supervisor):
     assert laporan.updates.filter(status=ReportStatus.UNDER_REVIEW).exists()
 
 
-def test_illegal_status_transition_is_rejected(clinic, staf):
+def test_illegal_status_transition_is_rejected(clinic, staf, supervisor):
     laporan = create_laporan(clinic=clinic, user=staf, title="Isu operasional")
     with pytest.raises(ValidationError):
-        change_laporan_status(laporan, user=staf, to_status=ReportStatus.ARCHIVED)
+        change_laporan_status(laporan, user=supervisor, to_status=ReportStatus.ARCHIVED)
 
 
-def test_closing_report_requires_reason(clinic, staf):
+def test_closing_report_requires_reason(clinic, staf, supervisor):
     laporan = create_laporan(clinic=clinic, user=staf, title="Isu operasional")
     with pytest.raises(ValidationError):
-        change_laporan_status(laporan, user=staf, to_status=ReportStatus.CLOSED)
+        change_laporan_status(laporan, user=supervisor, to_status=ReportStatus.CLOSED)
 
 
-def test_closing_does_not_delete_report(clinic, staf):
+def test_closing_does_not_delete_report(clinic, staf, supervisor):
     laporan = create_laporan(clinic=clinic, user=staf, title="Isu operasional")
-    change_laporan_status(laporan, user=staf, to_status=ReportStatus.CLOSED, reason="selesai ditangani")
+    change_laporan_status(laporan, user=supervisor, to_status=ReportStatus.CLOSED, reason="selesai ditangani")
     laporan.refresh_from_db()
     assert laporan.status == ReportStatus.CLOSED
     assert Laporan.objects.filter(pk=laporan.pk).exists()

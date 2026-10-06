@@ -97,6 +97,10 @@ cabang tugas di jadwal jaga hari ini, atau cabang asal bila Anda sedang off.
   ditandai **Terbatas** — hanya pembuat, penanggung jawab, supervisor, dan owner
   yang bisa membukanya.
 
+  Status catatan dan laporan diubah oleh supervisor, PIC, atau Direktur Operasional.
+  Bila sebuah catatan **ditugaskan kepada Anda**, Anda sendiri yang mengubah statusnya
+  (mis. Dalam proses, lalu Selesai beserta ringkasannya); catatan lain cukup Anda lihat.
+
 ## Sore: menutup hari
 
 1. Front desk mencatat **Kas akhir**: hitung lembar per pecahan, lalu isi **Tunai masuk hari ini**

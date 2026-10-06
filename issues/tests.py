@@ -74,10 +74,10 @@ def test_critical_issue_notifies_supervisor(clinic, kasir, supervisor):
     assert Notification.objects.filter(user=supervisor, type_code="ISSUE_CRITICAL").exists()
 
 
-def test_invalid_workflow_transition_blocked(clinic, kasir):
+def test_invalid_workflow_transition_blocked(clinic, kasir, supervisor):
     issue = _complaint(clinic, kasir)
     with pytest.raises(ValidationError):
-        change_status(issue, user=kasir, to_status=IssueStatus.DITUTUP)
+        change_status(issue, user=supervisor, to_status=IssueStatus.DITUTUP)
 
 
 def test_complaint_full_workflow_requires_resolution(clinic, kasir, supervisor):

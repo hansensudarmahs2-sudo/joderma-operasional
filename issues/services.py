@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import Max
 from django.utils import timezone
@@ -207,6 +207,11 @@ def change_status(
     reason: str = "",
     expected_version: int | None = None,
 ) -> Issue:
+    from core.permissions import can_change_issue_status
+
+    if not can_change_issue_status(user, issue):
+        raise PermissionDenied("Status catatan diubah oleh supervisor, PIC, Direktur Operasional, "
+                               "atau staf yang ditugaskan.")
     assert_current_version(issue, expected_version)
 
     allowed = WORKFLOWS.get(issue.issue_type, {}).get(issue.status, set())
