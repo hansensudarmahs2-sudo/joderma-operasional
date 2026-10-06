@@ -2,7 +2,7 @@
 
 > **STATUS: Tahap 1-5 selesai — pemetaan ID, model cap, importer, mesin
 > perhitungan, laporan pengecualian, halaman web, dan "Absensi saya" untuk staf.**
-> Belum di-merge ke `master`; ada di branch `absensi-jam-kerja`.
+> Sudah di-merge ke `master` (6 Okt 2026).
 > **Belum boleh dipakai untuk penilaian nyata** sampai bagian 9 beres.
 
 ## 1. Mengapa modul ini ada
