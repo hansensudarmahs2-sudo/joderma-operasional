@@ -52,8 +52,26 @@ cd ~/Desktop/joderma-operasional && git worktree add ../joderma-master master
   lalu menyebutkan di laporannya direktori dan branch mana yang ia pegang.
 - **Jangan `git switch` di direktori milik pihak lain.** Bila butuh branch lain, tambah worktree.
 - `data/`, `.venv/`, dan `private_media/` tidak ikut Git, jadi tetap tinggal di direktorinya
-  masing-masing. Worktree baru tidak punya `.venv` dan tidak punya database; itu wajar, dan
-  untuk pekerjaan Git saja memang tidak diperlukan.
+  masing-masing. Worktree baru tidak punya database; itu wajar, dan untuk pekerjaan Git saja
+  memang tidak diperlukan.
+- **Periksa versi Python di worktree baru sebelum menjalankan test.** Sebuah `.venv` bisa
+  terbuat otomatis dengan Python bawaan sistem, yang belum tentu sama dengan yang dipakai
+  direktori utama. Pada 6 Okt 2026 worktree baru lahir dengan Python 3.14 sementara direktori
+  utama memakai 3.11; Django 5.1 hanya mendukung sampai 3.13, sehingga puluhan test gagal
+  dengan `AttributeError: 'super' object has no attribute 'dicts'` di dalam Django sendiri.
+  Kegagalan semacam itu tidak ada hubungannya dengan kode yang sedang dikerjakan, dan mudah
+  membuat orang mengejar bug yang tidak ada.
+
+```bash
+cd ~/Desktop/joderma-absensi && .venv/bin/python -V    # harus sama dengan direktori utama
+```
+
+  Bila berbeda, buat ulang dengan Python yang sama:
+
+```bash
+cd ~/Desktop/joderma-absensi && rm -rf .venv && python3.11 -m venv .venv && .venv/bin/pip install -q -r requirements-dev.txt
+```
+
 - Bila dua pekerjaan terlanjur tercampur dalam satu branch, periksa dulu apakah berkasnya
   beririsan (mis. `git show --name-only 92c370f`). Bila tidak beririsan, pisahkan dengan
   cherry-pick ke `master` lalu `git rebase master` pada branch fitur — aman selama belum
