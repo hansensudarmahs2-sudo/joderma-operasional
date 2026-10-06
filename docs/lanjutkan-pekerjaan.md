@@ -18,7 +18,7 @@ KPI (tahap 3); fase 6–9 redefinisi peran menyusul.
 
 | | |
 |---|---|
-| Kode di desktop (komputer kerja sejak 30 Sep 2026) | WSL: `/mnt/e/Claude/Projects/joderma-operasional` (Windows: `E:\Claude\Projects\joderma-operasional`) |
+| Kode di desktop (komputer kerja sejak 30 Sep 2026) | WSL: `~/joderma-operasional` (sejak 6 Okt 2026; sebelumnya `/mnt/e/Claude/Projects/joderma-operasional`, jangan dipakai lagi) |
 | Kode di laptop | `~/Desktop/joderma-operasional` |
 | Cadangan kode | https://github.com/hansensudarmahs2-sudo/joderma-operasional (private) |
 | Server klinik | `ssh joderma-jemur@joderma-jemur`, aplikasi di `~/joderma-ops` |
@@ -49,17 +49,19 @@ cd ~/Desktop/joderma-operasional && .venv/bin/python -m pytest 2>&1 | grep -E "p
 ```
 
 ```bash
-cd ~/Desktop/joderma-operasional    # desktop: /mnt/e/Claude/Projects/joderma-operasional
+cd ~/Desktop/joderma-operasional    # desktop: ~/joderma-operasional
 git pull                                  # samakan dengan GitHub
 git log --oneline -5                      # apa yang terakhir dikerjakan
 .venv/bin/python -m pytest                # pastikan semuanya masih hijau
 ```
 
-**Perintah untuk desktop tidak bisa dijalankan dari laptop.** Path `/mnt/e/...` hanya ada
-di WSL mesin desktop; dari laptop ia gagal di `cd`. Saat berpindah ke desktop:
+**Perintah untuk desktop tidak bisa dijalankan dari laptop.** Path `~/joderma-operasional`
+hanya ada di WSL mesin desktop; dari laptop ia gagal di `cd`. Desktop bekerja di dalam
+filesystem WSL, bukan di drive Windows `/mnt/e/...`: akses lintas sistem itu lambat dan
+merusak izin berkas serta akhir baris. Saat berpindah ke desktop:
 
 ```bash
-cd /mnt/e/Claude/Projects/joderma-operasional && git pull && cp data/db.sqlite3 "data/db.sqlite3.bak-$(date +%F-%H%M)" && .venv/bin/python manage.py migrate
+cd ~/joderma-operasional && git pull && cp data/db.sqlite3 "data/db.sqlite3.bak-$(date +%F-%H%M)" && .venv/bin/python manage.py migrate
 ```
 
 Database tidak ikut Git, jadi tiap mesin punya datanya sendiri dan migrasinya perlu

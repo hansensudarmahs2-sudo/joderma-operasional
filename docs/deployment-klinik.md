@@ -28,7 +28,7 @@ Dijalankan dari mesin pengembangan, dengan mini-PC dapat dijangkau lewat Tailsca
 
 ```bash
 # 1. Kirim kode (tanpa venv, database, lampiran, atau berkas rahasia)
-cd /mnt/e/Claude/Projects/joderma-operasional   # desktop (WSL) sejak 30 Sep
+cd ~/joderma-operasional   # desktop (WSL) sejak 6 Okt; laptop: ~/Desktop/joderma-operasional
 rsync -az --delete --chmod=D755,F644 \
   --exclude '/.venv/' --exclude '/data/' --exclude '/private_media/' \
   --exclude '/logs/' --exclude '/backups/' --exclude '/staticfiles/' \
@@ -94,7 +94,7 @@ docker compose exec app python manage.py pilot_check
 
 ```bash
 # Dari mesin pengembangan — pastikan test lulus lebih dulu
-cd /mnt/e/Claude/Projects/joderma-operasional && .venv/bin/python -m pytest   # desktop (WSL) sejak 30 Sep
+cd ~/joderma-operasional && .venv/bin/python -m pytest   # desktop (WSL) sejak 6 Okt
 
 rsync -az --delete --chmod=D755,F644 \
   --exclude '/.venv/' --exclude '/data/' --exclude '/private_media/' \
@@ -127,8 +127,10 @@ sehingga berkas `.git` di mini PC terhapus oleh `--delete` saat deploy 1 Oktober
 `/apotek/`, `/.claude-sync/`, dan `/Claude outputs/` adalah arsip kerja di desktop yang
 tidak di-commit (memuat harga modal) dan tidak boleh ikut ke mini PC.
 
-`--chmod=D755,F644` dipakai karena repo di desktop berada di drive NTFS (`/mnt/e/…`) yang
-membuat semua berkas tampil 0777. Akibatnya bit eksekusi skrip ikut hilang, jadi
+`--chmod=D755,F644` awalnya dipakai karena repo di desktop berada di drive NTFS (`/mnt/e/…`)
+yang membuat semua berkas tampil 0777. Sejak 6 Oktober 2026 desktop bekerja di filesystem
+WSL, tetapi flag ini tetap dipakai agar izin berkas di mini PC seragam dari mesin mana pun
+deploy dilakukan. Akibatnya bit eksekusi skrip ikut hilang, jadi
 `chmod +x scripts/*.sh` wajib sebelum `docker compose build`; container backup menjalankan
 `scripts/backup_loop.sh` langsung sebagai entrypoint.
 
