@@ -11,12 +11,13 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 | | |
 |---|---|
 | Produksi (mini PC, ops.joderma.id) | Commit `0d3d1c9` (dideploy 6 Oktober): menu Direktur Dari staf satu kelompok dengan tab, di atas `60808ea` (dideploy 5 Oktober malam): Unduh PDF Summary Harian (reportlab 4.5.1 di image), di atas `6e4f90c` (dideploy 5 Oktober malam): menu Direktur/Owner dikelompokkan dengan tab di atas halaman, di atas `86605b1` (dideploy 5 Oktober): Direktur Tugas saya di Ringkasan, Ajukan selesai di detail task, menu Dari staf semua cabang (dengan `1bcd2f6`), di atas `8cd539a` (dideploy 5 Oktober 16.25): Inbox jadi kebijakan, Direktur penerima task di kedua cabang (`reports 0004`), di atas `194240a` (dideploy 5 Oktober 16.00): uraian task bisa dibaca utuh, di atas `f92c47e`: penutupan tanpa batas jam, di atas `eec39fd`: daftar uji fase 9, di atas `9552fbb` (dideploy 4 Oktober): fase 8 PIC sesuai porsi fungsinya, di atas `6b0b589` (dideploy 4 Oktober): kas, daftar Selisih belum ditutup, di atas `e9735d2` (dideploy 4 Oktober): fase 6 Permintaan Owner di Jadwal Task, di atas `e0f53c5` (dideploy 4 Oktober): fase 7 tampilan staf sederhana, di atas `410e069` (dideploy 4 Oktober): kas, tutup selisih sebagai kekeliruan administratif, di atas `56fc3ba` (dideploy 3 Oktober): tahap 3 paket F, KPI per staf, di atas `c224394` (dideploy 3 Oktober): banner saran (password awal, izin lokasi), di atas `f0fabf8` (dideploy 3 Oktober 21.50): Unduh CSV di Jejak, di atas `8c48cde` (dideploy 3 Oktober 21.33): tahap 3 paket E (jejak kehadiran, koordinat cabang terisi, Semua cabang saat memilah), di atas `3056c3d`: tahap 2 paket D (Bahan Rapat), di atas `a1155a1`: tahap 2 paket C (pemeriksa task, verifikasi Dirut/Owner, lapor progres; migrasi `core 0006`; akun peran Owner di produksi: `jean`, `yohanes`), di atas `6273c6d` (paket B: Inbox pilah, temuan Owner; `owner 0002`, `reports 0003`), `3830f6f` (paket A: Daftar Task, agenda keputusan bersama; `direktur 0005`), `4e3864e` (tally masuk audit), `bdec50a` (ekspor audit CSV), `43f49eb` (Laporan Masuk) dan `523ca4d` (dua cabang, koreksi tally, tutup hari, foto, penugasan staf; migrasi `nurses 0005`, `accounts 0009`). Peran dirapikan lewat `rapikan_peran.sh` 3 Okt |
-| Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) dan GitHub | Komputer kerja sejak 30 Sep. Sejajar dengan `origin/master` di `e966da7` |
+| Laptop (`~/Desktop/joderma-operasional`) dan GitHub | Sejajar dengan `origin/master` di `7054772` (6 Okt). **Desktop (WSL, `/mnt/e/Claude/Projects/joderma-operasional`) belum ditarik** — perlu `git pull` lalu `migrate` (3 migrasi absensi) |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
-| Belum dideploy | Kas: angka diharapkan disusun sistem (migrasi `cash 0002`, tambah kolom). Berjalan: **uji coba fase 9 oleh staf**, lihat Task yang belum selesai ▸ Fase 9 |
-| Test | 748 (747 lulus, 1 dilewati) per 6 Okt: 727 di luar Stok Apotek ditambah 21 test Stok Apotek (`.venv/bin/python -m pytest`) |
+| Belum dideploy | **Absensi jam kerja** (modul baru, migrasi `absensi 0001-0003`) dan Kas: angka diharapkan disusun sistem (migrasi `cash 0002`, tambah kolom). Berjalan: **uji coba fase 9 oleh staf**, lihat Task yang belum selesai ▸ Fase 9 |
+| Test | 884 lulus per 6 Okt (`.venv/bin/python -m pytest`) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
+| Absensi jam kerja | [`docs/absensi-jam-kerja.md`](docs/absensi-jam-kerja.md) — aturan, batasan, keputusan D1–D6, dan tiga hal yang masih terbuka |
 
 ## Stok Apotek: status
 
@@ -174,7 +175,36 @@ sesudah 1–2 bulan data.
 
 # Riwayat
 
-## Kas: angka diharapkan disusun sistem (6 Oktober 2026) — belum di-commit
+## Absensi jam kerja (6 Oktober 2026) — `7054772`, belum dideploy
+
+Modul baru `absensi/`: impor ekspor mesin sidik jari (.xlsx dan .xls), hitung terlambat
+/ lembur / datang awal, papan skor bulanan, daftar hari yang perlu dicek, dan halaman
+"Absensi saya" untuk staf. Rinciannya di [`docs/absensi-jam-kerja.md`](docs/absensi-jam-kerja.md);
+yang di bawah ini hanya yang perlu diketahui untuk melanjutkan.
+
+**Kesalahan yang diperbaikinya.** Cara lama menghitung di Excel: cap pulang 00.28 pada
+shift tutup 22.00 menghasilkan −1292 menit, bukan +148. Pada September 2026 ada 10 cap
+semacam itu, dan hitungan naif membuat lima staf dengan lembur terbanyak jatuh ke dasar
+papan skor.
+
+**Sumber jam shift, berurutan:** jadwal jaga bila ada → jendela shift yang dicatat mesin
+(kolom Timezone pada ekspor; 100% terisi pada September) → dugaan pola jam. Jadwal yang
+diisi manusia tidak pernah ditimpa.
+
+**Keadaan data September 2026 di laptop:** 776 cap, 328 baris jadwal hasil pembacaan
+absensi (semua bertanda "belum dikonfirmasi"), papan skor cocok 13/13 dengan perhitungan
+manual terpisah, 17 hari perlu dicek (10 lewat tengah malam, 8 cap tunggal).
+
+**Tiga hal yang masih terbuka** (bagian 5 dan 9 dokumennya):
+
+1. Tinjau 328 baris jadwal September; tiga orang berbeda dari PDF jadwal — Naya
+   (Citraland 26 hari, PDF bilang Jemur 17), Luki, dan Rahayu. Pembacaan mesin yang benar.
+2. Jalur `.xls` belum diuji dengan berkas asli dari mesin; baru diuji dengan sheet tiruan.
+3. Tahap 4: koreksi cap dari halaman, untuk menutup 8 hari yang kehilangan cap masuk.
+   Haknya sudah terpasang (`can_correct_absensi`), tinggal tampilannya. Dikerjakan di
+   worktree `~/Desktop/joderma-absensi` pada branch `absensi-tahap4`.
+
+## Kas: angka diharapkan disusun sistem (6 Oktober 2026) — `005c7f5`, belum dideploy
 
 Temuan product owner (Kas 4–5 Okt Citraland: Selisih Rp 653.800, 821.800, 784.800; kas awal yang ia isi
 sendiri tanpa selisih): kolom "Uang modal diharapkan" dibiarkan 0 oleh kasir sehingga seluruh uang

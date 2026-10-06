@@ -28,7 +28,25 @@ KPI (tahap 3); fase 6–9 redefinisi peran menyusul.
 
 ## Memulai sesi baru
 
-Clone baru belum punya `.venv`: `python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt`.
+Clone baru belum punya `.venv`. **Sebut versinya eksplisit**: pada laptop (6 Okt 2026)
+`python3` menunjuk ke Python 3.14, sedangkan proyek ini memakai 3.11 dan produksi 3.12.
+Django 5.1 hanya mendukung sampai 3.13, jadi venv yang dibuat dengan `python3` saja
+menghasilkan puluhan test gagal di dalam Django sendiri — kegagalan yang tidak ada
+hubungannya dengan kode.
+
+```bash
+cd ~/Desktop/joderma-operasional && python3.11 -m venv .venv && .venv/bin/pip install -q -r requirements-dev.txt
+```
+
+Jalankan `pytest` sebagai **perintah terpisah**, jangan dirangkai dengan `&&` sesudah
+`pip install`: paket belum selesai ditulis ke disk saat pytest mulai membaca, dan
+hasilnya error palsu seperti `No module named pytest`. Ambil ringkasannya dengan
+`grep`, bukan `tail` — blok peringatan di akhir membuat `tail -2` justru memotong baris
+yang dicari.
+
+```bash
+cd ~/Desktop/joderma-operasional && .venv/bin/python -m pytest 2>&1 | grep -E "passed|failed" | tail -1
+```
 
 ```bash
 cd ~/Desktop/joderma-operasional    # desktop: /mnt/e/Claude/Projects/joderma-operasional
@@ -36,6 +54,20 @@ git pull                                  # samakan dengan GitHub
 git log --oneline -5                      # apa yang terakhir dikerjakan
 .venv/bin/python -m pytest                # pastikan semuanya masih hijau
 ```
+
+**Perintah untuk desktop tidak bisa dijalankan dari laptop.** Path `/mnt/e/...` hanya ada
+di WSL mesin desktop; dari laptop ia gagal di `cd`. Saat berpindah ke desktop:
+
+```bash
+cd /mnt/e/Claude/Projects/joderma-operasional && git pull && cp data/db.sqlite3 "data/db.sqlite3.bak-$(date +%F-%H%M)" && .venv/bin/python manage.py migrate
+```
+
+Database tidak ikut Git, jadi tiap mesin punya datanya sendiri dan migrasinya perlu
+dijalankan di masing-masing. Beri nama cadangan berikut jamnya; tanpa jam, menjalankannya
+dua kali di hari yang sama akan menimpa cadangan sebelumnya.
+
+Bekerja paralel dengan agen lain: lihat bagian **Bekerja paralel** di `AGENTS.md`. Satu
+pihak satu direktori kerja lewat `git worktree`, bukan `git switch` bergantian.
 
 Lalu periksa keadaan server klinik:
 
