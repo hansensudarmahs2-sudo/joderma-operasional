@@ -322,7 +322,7 @@ details > summary { cursor: pointer; padding: 0.5rem 0; font-weight: 600; min-he
 .gantt-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: #eef1f1; }
 .gantt-now { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); opacity: 0.55; z-index: 2; }
 .gantt-bar { position: absolute; top: 9px; height: 8px; border-radius: 4px; z-index: 1; }
-.bar-open, .lg-open { background: var(--teal); }
+.bar-open, .lg-open { background: #f2b705; } /* kuning: kontras dengan hijau Selesai (7 Okt 2026) */
 .bar-late, .lg-late { background: var(--err); }
 .bar-done, .lg-done { background: var(--ok); }
 .bar-nodue, .lg-nodue { background: repeating-linear-gradient(135deg, #9fb3b5 0 4px, #d5dfe0 4px 8px); }
