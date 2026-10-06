@@ -122,7 +122,8 @@ def _requests_section(user, day: dt.date) -> dict:
     items = []
     for r in request_rows(user, include_done_days=0):
         req = r["request"]
-        meta = [f"target {req.target_date:%d/%m}" if req.target_date else "tanpa target"]
+        when = f"target {r['target']:%d/%m}" if r["target_set"] else f"paling lambat {r['target']:%d/%m}"
+        meta = [when]
         if req.kind == "TEMUAN":
             meta.insert(0, "temuan")
         if r["total"]:

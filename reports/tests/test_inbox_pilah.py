@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from accounts.models import Role, User, UserRole
 from audit.models import AuditEvent
-from core.models import ActionItem, Clinic
+from core.models import ActionItem, Clinic, local_today
 from direktur import dashboard
 from direktur import services as direktur
 from direktur.models import Decider
@@ -69,11 +69,11 @@ def test_owner_finding_without_target_reaches_inbox(people, jemur):
     y, h = people["yohanes"], people["hansen"]
     finding = create_request(actor=y, kind=RequestKind.TEMUAN, title="Tempat sampah lobi penuh", clinic=jemur,
                              urgent=True)
-    assert finding.target_date is None and progress(finding)["late"] is False
+    assert finding.target_date == local_today() + dt.timedelta(days=3) and progress(finding)["late"] is False
     with pytest.raises(ValidationError):
         create_request(actor=y, title="Permintaan tanpa target")
     note = Notification.objects.get(user=h, entity_ref=f"permintaan_owner:{finding.pk}")
-    assert note.title == "Temuan Owner baru (mendesak): Tempat sampah lobi penuh" and "tanpa target" in note.body
+    assert note.title == "Temuan Owner baru (mendesak): Tempat sampah lobi penuh" and f"target {finding.target_date:%d/%m/%Y}" in note.body
     row = _rows(h)["Tempat sampah lobi penuh"]
     assert row["kind_label"] == "Temuan Owner" and row["state"] == "belum" and row["critical"]
     assert row["clinic"] == jemur and row["reporter"] == "Yohanes"
@@ -88,7 +88,7 @@ def test_owner_finding_form(client, people, jemur):
     req = OwnerRequest.objects.get(title="Kursi tunggu sobek")
     assert res.status_code == 302 and req.kind == RequestKind.TEMUAN and req.clinic == jemur and req.urgent
     dash = client.get(reverse("owner:dashboard")).content.decode()
-    assert "Kursi tunggu sobek" in dash and "Tanpa target" in dash and "Mendesak" in dash
+    assert "Kursi tunggu sobek" in dash and "Mendesak" in dash
     # Permintaan biasa tetap wajib target.
     client.post(reverse("owner:request_new"), {"jenis": "PERMINTAAN", "judul": "Tanpa target"})
     assert not OwnerRequest.objects.filter(title="Tanpa target").exists()

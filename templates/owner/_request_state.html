@@ -1,6 +1,6 @@
 {# Status satu permintaan: r = hasil owner.services.progress #}
-<span class="tag {% if r.state == 'done' %}ok{% elif r.state == 'running' %}info{% else %}muted{% endif %}">{{ r.label }}</span>
+<span class="tag {% if r.state == 'done' %}ok{% elif r.state == 'ready' %}warn{% elif r.state == 'running' %}info{% else %}muted{% endif %}">{{ r.label }}</span>
 {% if r.late %}<span class="tag err">Lewat target</span>{% endif %}
 {% if r.total %}
-<span class="request-meter"><span class="meter" role="img" aria-label="{{ r.done }} dari {{ r.total }} task selesai"><span style="width:{{ r.percent }}%"></span></span><span class="meta">{{ r.done }}/{{ r.total }} task</span></span>
+<span class="request-meter"><span class="meter" role="img" aria-label="{{ r.done }} dari {{ r.total }} {% if r.request.kind == 'TEMUAN' %}sub {% endif %}task selesai"><span style="width:{{ r.percent }}%"></span></span><span class="meta">{{ r.done }}/{{ r.total }} {% if r.request.kind == 'TEMUAN' %}sub {% endif %}task</span></span>
 {% endif %}

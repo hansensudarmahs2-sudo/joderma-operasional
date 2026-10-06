@@ -31,6 +31,14 @@ class OwnerRequest(models.Model):
         help_text="Kosong bila lintas cabang.",
     )
     urgent = models.BooleanField("mendesak", default=False)
+    plan_title = models.CharField(
+        "task besar", max_length=200, blank=True,
+        help_text="Nama penanganan temuan dari Direktur, mis. 'Membuat alur untuk temuan X'.",
+    )
+    completed_at = models.DateTimeField("dinyatakan selesai", null=True, blank=True)
+    completed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="+",
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="owner_requests"
     )

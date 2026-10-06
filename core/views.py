@@ -441,11 +441,14 @@ def assignment_submit(request, pk: int):
             # Bukti wajib berupa catatan; foto opsional (keputusan 3 Okt 2026, tahap 2 paket C).
             raise ValidationError("Tulis catatan bukti: apa yang sudah dikerjakan.")
         with transaction.atomic():
-            submit_assignment(assignment, user=request.user, note=note)
+            submitted = submit_assignment(assignment, user=request.user, note=note)
             save_optional_photo(request, entity_type="taskassignment", entity_id=assignment.pk)
         _stamp(request, "AJUKAN", clinic=assignment.action_item.clinic, entity=assignment)
-        who = "Direktur Utama / Owner" if assignment.action_item.reviewed_by_dirut else "pemeriksa"
-        messages.success(request, f"Task diajukan selesai, menunggu konfirmasi {who}.")
+        if submitted.status == TaskAssignmentStatus.CONFIRMED:
+            messages.success(request, "Sub task selesai (task Direktur pada temuan, tanpa verifikasi).")
+        else:
+            who = "Direktur Utama / Owner" if assignment.action_item.reviewed_by_dirut else "pemeriksa"
+            messages.success(request, f"Task diajukan selesai, menunggu konfirmasi {who}.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
     return _back(request, "core:action_items")

@@ -228,6 +228,19 @@ def submit_assignment(assignment: TaskAssignment, *, user, note: str = "") -> Ta
         actor=user,
         note=note.strip(),
     )
+    item = assignment.action_item
+    if item.is_temuan_subtask and is_aom(user):
+        # Pekerjaan Direktur sendiri pada temuan: tanpa verifikasi, tanggung jawabnya ada
+        # pada pernyataan "temuan selesai" (spec 2026-10-06).
+        assignment.status = TaskAssignmentStatus.CONFIRMED
+        assignment.confirmed_at = timezone.now()
+        assignment.save(update_fields=["status", "confirmed_at", "updated_at"])
+        TaskEvent.objects.create(
+            action_item=item, assignment=assignment, event_type=TaskEventType.CONFIRMED, actor=user,
+            note="Selesai tanpa verifikasi (task Direktur pada temuan).",
+        )
+        _finish_item_if_all_confirmed(item)
+        return assignment
     _notify_reviewers(assignment, actor=user, note=note)
     return assignment
 
@@ -306,6 +319,13 @@ def can_review_assignment(assignment: TaskAssignment, reviewer) -> bool:
 _can_review_task = can_review_assignment
 
 
+def _finish_item_if_all_confirmed(item: ActionItem) -> None:
+    """Task selesai bila semua penerimanya sudah dikonfirmasi."""
+    if not item.task_assignments.exclude(status=TaskAssignmentStatus.CONFIRMED).exists():
+        item.status = ActionItemStatus.SELESAI
+        item.save(update_fields=["status", "updated_at"])
+
+
 @transaction.atomic
 def confirm_assignment(assignment: TaskAssignment, *, reviewer, note: str = "") -> TaskAssignment:
     if assignment.status != TaskAssignmentStatus.SUBMITTED:
@@ -328,12 +348,7 @@ def confirm_assignment(assignment: TaskAssignment, *, reviewer, note: str = "") 
         body=f"oleh {reviewer}" + (f" — {note.strip()[:200]}" if note.strip() else ""),
         entity_ref=f"actionitem#{assignment.action_item_id}", url_name="core:action_items",
     )
-    if not assignment.action_item.task_assignments.exclude(
-        status=TaskAssignmentStatus.CONFIRMED
-    ).exists():
-        item = assignment.action_item
-        item.status = ActionItemStatus.SELESAI
-        item.save(update_fields=["status", "updated_at"])
+    _finish_item_if_all_confirmed(assignment.action_item)
     return assignment
 
 

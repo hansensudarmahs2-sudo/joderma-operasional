@@ -16,12 +16,12 @@
   <div class="inline">
     <div><label for="cabang">Cabang</label>
       <select id="cabang" name="cabang"><option value="">Lintas cabang</option>{% for c in clinics %}<option value="{{ c.pk }}"{% if form.cabang == c.pk|stringformat:"s" %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
-    <div><label for="target">Target selesai{% if temuan %} <span class="meta">(opsional)</span>{% endif %}</label>
-      <input id="target" type="date" name="target"{% if not temuan %} required{% endif %} min="{{ today|date:'Y-m-d' }}" value="{{ form.target }}"></div>
+    {% if not temuan %}<div><label for="target">Target selesai</label>
+      <input id="target" type="date" name="target" required min="{{ today|date:'Y-m-d' }}" value="{{ form.target }}"></div>{% endif %}
   </div>
   <label><input type="checkbox" name="mendesak" value="1" style="width:auto"{% if form.mendesak %} checked{% endif %}> Mendesak</label>
   {% foto_input "Foto (opsional)" "foto" "Misalnya kondisi di klinik yang perlu dibereskan." %}
-  <p class="help">Bila target perlu diubah atau tidak terpenuhi, Direktur membicarakannya langsung dengan Anda atau menulis catatan.</p>
+  <p class="help">{% if temuan %}Mendesak: dibereskan paling lambat 3 hari. Tidak mendesak: Direktur Operasional menentukan target, paling lambat 1 bulan.{% else %}Bila target perlu diubah atau tidak terpenuhi, Direktur membicarakannya langsung dengan Anda atau menulis catatan.{% endif %}</p>
   <p><button class="btn" type="submit">{% if temuan %}Kirim temuan{% else %}Kirim permintaan{% endif %}</button></p>
 </form>
 {% endblock %}

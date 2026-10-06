@@ -5,16 +5,19 @@ import datetime as dt
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.utils import timezone
 
 from accounts.models import Role, User
 from audit.models import AuditAction
-from audit.services import log_create, log_event
+from audit.services import log_create, log_event, log_update, snapshot
 from core.models import ActionItemStatus, local_today
 from core.permissions import is_aom, is_owner
 
 from .models import OwnerRequest, OwnerRequestNote, RequestKind
 
 TITLE_MAX = 200
+URGENT_DAYS = 3
+NORMAL_DAYS = 30
 
 
 # --- Izin --------------------------------------------------------------------
@@ -71,12 +74,37 @@ def parse_target(raw: str, *, required: bool = True) -> dt.date | None:
         raise ValidationError("Tanggal target wajib diisi.")
 
 
+def _cap_from(day: dt.date, urgent: bool) -> dt.date:
+    return day + dt.timedelta(days=URGENT_DAYS if urgent else NORMAL_DAYS)
+
+
+def recorded_on(req: OwnerRequest) -> dt.date:
+    """Tanggal temuan dicatat, menurut zona waktu klinik."""
+    return timezone.localtime(req.created_at).date() if req.created_at else local_today()
+
+
+def deadline_cap(req: OwnerRequest) -> dt.date | None:
+    """Batas target temuan: 3 hari bila mendesak, 30 hari bila tidak. Permintaan tidak berbatas."""
+    if req.kind != RequestKind.TEMUAN:
+        return None
+    return _cap_from(recorded_on(req), req.urgent)
+
+
+def effective_target(req: OwnerRequest) -> dt.date | None:
+    """Target dari Direktur bila ada; untuk temuan tanpa target, batasnya."""
+    return req.target_date or deadline_cap(req)
+
+
 @transaction.atomic
 def create_request(
     *, actor, title: str, description: str = "", target_date: dt.date | None = None,
     kind: str = RequestKind.PERMINTAAN, clinic=None, urgent: bool = False,
 ) -> OwnerRequest:
-    """Permintaan (target wajib) atau temuan (target opsional) dari Owner ke Inbox Direktur."""
+    """Permintaan (target wajib) atau temuan dari Owner ke Inbox Direktur.
+
+    Temuan mendesak otomatis bertarget hari ini + 3 hari; target temuan biasa ditetapkan Direktur
+    kemudian, paling lambat 30 hari sejak dicatat.
+    """
     if not can_create_request(actor):
         raise PermissionDenied("Permintaan hanya dibuat oleh Owner / Direktur Utama.")
     if kind not in dict(RequestKind.choices):
@@ -86,6 +114,12 @@ def create_request(
         raise ValidationError("Tulis apa yang diminta." if kind == RequestKind.PERMINTAAN else "Tulis temuannya.")
     if len(title) > TITLE_MAX:
         raise ValidationError(f"Judul terlalu panjang (maks. {TITLE_MAX} karakter); rinciannya tulis di kolom rincian.")
+    if kind == RequestKind.TEMUAN:
+        cap = _cap_from(local_today(), bool(urgent))
+        if urgent and target_date is None:
+            target_date = cap
+        if target_date is not None and target_date > cap:
+            raise ValidationError(f"Target temuan paling lambat {cap:%d/%m/%Y}.")
     if target_date is None and kind == RequestKind.PERMINTAAN:
         raise ValidationError("Tanggal target wajib diisi.")
     if target_date is not None and target_date < local_today():
@@ -119,19 +153,81 @@ def add_note(req: OwnerRequest, *, actor, body: str) -> OwnerRequestNote:
     return note
 
 
+@transaction.atomic
+def set_plan(req: OwnerRequest, *, actor, plan_title: str, target_date: dt.date | None) -> OwnerRequest:
+    """Direktur memberi nama task besar dan target, dalam batas 3/30 hari sejak temuan dicatat."""
+    if not is_aom(actor):
+        raise PermissionDenied("Hanya Direktur Operasional yang menyusun rencana penanganan.")
+    if req.kind != RequestKind.TEMUAN:
+        raise ValidationError("Rencana penanganan hanya untuk temuan.")
+    if req.completed_at:
+        raise ValidationError("Temuan ini sudah dinyatakan selesai.")
+    plan_title = (plan_title or "").strip()
+    if len(plan_title) > TITLE_MAX:
+        raise ValidationError(f"Nama task besar terlalu panjang (maks. {TITLE_MAX} karakter).")
+    cap = deadline_cap(req)
+    if target_date is None and req.urgent:
+        target_date = req.target_date or cap  # temuan mendesak selalu bertanggal
+    if target_date is not None and target_date != req.target_date:
+        if target_date < local_today():
+            raise ValidationError("Tanggal target tidak boleh sebelum hari ini.")
+        if target_date > cap:
+            reason = "mendesak, 3 hari" if req.urgent else "1 bulan"
+            raise ValidationError(f"Target paling lambat {cap:%d/%m/%Y} ({reason} sejak temuan dicatat).")
+    before = snapshot(req)
+    req.plan_title = plan_title
+    req.target_date = target_date
+    req.save(update_fields=["plan_title", "target_date", "updated_at"])
+    log_update(req, before, actor=actor)
+    return req
+
+
+@transaction.atomic
+def complete_finding(req: OwnerRequest, *, actor) -> OwnerRequest:
+    """Direktur menyatakan temuan selesai & terverifikasi. Tidak pernah otomatis."""
+    if not is_aom(actor):
+        raise PermissionDenied("Hanya Direktur Operasional yang menyatakan temuan selesai.")
+    if req.kind != RequestKind.TEMUAN:
+        raise ValidationError("Hanya temuan yang dinyatakan selesai oleh Direktur.")
+    if req.completed_at:
+        raise ValidationError("Temuan ini sudah dinyatakan selesai.")
+    tasks = list(req.tasks())
+    if not tasks:
+        raise ValidationError("Temuan belum punya sub task.")
+    if any(t.status != ActionItemStatus.SELESAI for t in tasks):
+        raise ValidationError("Masih ada sub task yang belum selesai.")
+    req.completed_at = timezone.now()
+    req.completed_by = actor
+    req.save(update_fields=["completed_at", "completed_by", "updated_at"])
+    log_event(action=AuditAction.UPDATE, entity_type="ownerrequest", entity_id=req.pk, entity_label=req.title,
+              actor=actor, after={"completed_at": req.completed_at.isoformat(), "completed_by": actor.pk})
+    _notify(_owners(), actor=actor, request=req, title=f"Temuan selesai & terverifikasi: {req.title}",
+            body=f"oleh {actor}")
+    return req
+
+
 def progress(req: OwnerRequest, today: dt.date | None = None) -> dict:
-    """Status permintaan dari task turunannya (dipecah Direktur)."""
+    """Status permintaan/temuan dari task turunannya.
+
+    Permintaan selesai otomatis bila semua task selesai. Temuan baru selesai bila Direktur
+    menyatakannya (`complete_finding`); sebelum itu, semua sub task selesai = "Siap ditutup".
+    """
     today = today or local_today()
     tasks = list(req.tasks())
     total = len(tasks)
     done = sum(1 for t in tasks if t.status == ActionItemStatus.SELESAI)
-    if total == 0:
+    temuan = req.kind == RequestKind.TEMUAN
+    if temuan and req.completed_at:
+        state, label = "done", "Selesai & terverifikasi"
+    elif total == 0:
         state, label = "waiting", "Menunggu Direktur"
     elif done == total:
-        state, label = "done", "Selesai"
+        state, label = ("ready", "Siap ditutup") if temuan else ("done", "Selesai")
     else:
         state, label = "running", "Berjalan"
-    late = state != "done" and req.target_date is not None and req.target_date < today
+    target = effective_target(req)
+    late = state != "done" and target is not None and target < today
+    finished_on = timezone.localtime(req.completed_at).date() if req.completed_at else None
     return {
         "request": req,
         "tasks": tasks,
@@ -141,9 +237,37 @@ def progress(req: OwnerRequest, today: dt.date | None = None) -> dict:
         "state": state,
         "label": label,
         "late": late,
-        "days_left": (req.target_date - today).days if req.target_date else None,
-        "days_late": max(0, (today - req.target_date).days) if req.target_date else 0,
+        "target": target,
+        "target_set": req.target_date is not None,
+        "days_left": (target - today).days if target else None,
+        "days_late": max(0, (today - target).days) if target else 0,
+        "finished_late_by": max(0, (finished_on - target).days) if finished_on and target else 0,
     }
+
+
+def subtask_rows(req: OwnerRequest) -> list[dict]:
+    """Sub task temuan untuk Owner: siapa yang mengerjakan dan status verifikasinya."""
+    from core.models import TaskAssignmentStatus
+
+    rows = []
+    for task in req.tasks().prefetch_related("task_assignments__assignee"):
+        active = [a for a in task.task_assignments.all() if a.status != TaskAssignmentStatus.CANCELLED]
+        confirmed = [a for a in active if a.status == TaskAssignmentStatus.CONFIRMED]
+        if task.status == ActionItemStatus.SELESAI:
+            self_done = not confirmed or any(a.reviewer_id in (None, a.assignee_id) for a in confirmed)
+            state, label = "done", ("Selesai oleh Direktur" if self_done else "Terverifikasi Direktur")
+        elif any(a.status == TaskAssignmentStatus.SUBMITTED for a in active):
+            state, label = "waiting", "Menunggu verifikasi"
+        else:
+            state, label = "running", "Berjalan"
+        rows.append({
+            "task": task,
+            "state": state,
+            "label": label,
+            "people": ", ".join(sorted({str(a.assignee) for a in (confirmed or active)})),
+            "finished_at": max((a.confirmed_at for a in confirmed if a.confirmed_at), default=None),
+        })
+    return rows
 
 
 def request_rows(user, *, include_done_days: int = 14) -> list[dict]:
@@ -155,9 +279,11 @@ def request_rows(user, *, include_done_days: int = 14) -> list[dict]:
     since = today - dt.timedelta(days=include_done_days)
     rows = [r for r in rows if r["state"] != "done" or r["request"].updated_at.date() >= since
             or any(t.updated_at.date() >= since for t in r["tasks"])]
-    order = {"waiting": 1, "running": 1, "done": 2}
+    order = {"waiting": 1, "running": 1, "ready": 1, "done": 2}
     far = dt.date.max
-    rows.sort(key=lambda r: (not r["late"], order[r["state"]], r["request"].target_date or far))
+    rows.sort(key=lambda r: (
+        not (r["request"].kind == RequestKind.TEMUAN and r["request"].urgent and r["state"] != "done"), not r["late"], order[r["state"]], r["target"] or far,
+    ))
     return rows
 
 

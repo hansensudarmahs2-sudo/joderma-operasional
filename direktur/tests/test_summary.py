@@ -193,3 +193,12 @@ def test_summary_can_be_downloaded_as_pdf(client, jemur, hansen, owners):
     staff = _user(jemur, "yani", Role.PERAWAT, Role.STAF)
     client.force_login(staff)
     assert client.get(reverse("owner:summary_pdf"), {"tanggal": day}).status_code == 403
+
+
+def test_requests_section_uses_effective_target_for_finding(jemur, hansen, owners):
+    from owner.models import RequestKind
+
+    owner_services.create_request(actor=owners[0], kind=RequestKind.TEMUAN, title="Alur belum seragam")
+    items = _section(daily.compose(hansen), "Permintaan dan temuan Owner")["items"]
+    meta = items[0]["meta"]
+    assert f"paling lambat {local_today() + dt.timedelta(days=30):%d/%m}" in meta and "tanpa target" not in meta

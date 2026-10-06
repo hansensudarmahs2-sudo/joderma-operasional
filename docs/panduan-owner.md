@@ -28,18 +28,33 @@ ada di menu Owner dan ditolak bila alamatnya dibuka langsung.
 
 ## Permintaan dan temuan Owner
 
-1. Di Dashboard, tekan **+ Catat temuan** untuk hal yang Anda lihat dan perlu dibereskan (target
-   **opsional**; Direktur yang menentukan PIC, prioritas, dan target), atau **+ Permintaan** untuk
-   permintaan dengan **tanggal target**. Pilih cabang (atau lintas cabang), centang **Mendesak**
-   bila perlu, dan lampirkan **foto** (opsional, dikecilkan otomatis).
+1. Di Dashboard, tekan **+ Catat temuan** untuk hal yang Anda lihat dan perlu dibereskan (form
+   temuan **tidak punya kolom target**; Direktur yang menentukan PIC dan target), atau
+   **+ Permintaan** untuk permintaan dengan **tanggal target**. Pilih cabang (atau lintas cabang),
+   centang **Mendesak** bila perlu, dan lampirkan **foto** (opsional, dikecilkan otomatis).
+   Temuan **Mendesak** harus dibereskan paling lambat **3 hari** sejak dicatat. Tanpa centang,
+   Direktur menentukan target dan paling lambat **1 bulan** (30 hari) sejak dicatat; selama target
+   belum diisi, Dashboard menampilkan "Paling lambat <tanggal>" dan keterlambatan dihitung dari
+   tanggal itu.
 2. Keduanya masuk **Inbox** Direktur Operasional dan memberi notifikasi. Direktur memilahnya:
-   dijadikan satu atau beberapa task, diteruskan ke pemegang wewenang lain, dibawa ke rapat Kamis,
+   dijadikan satu atau beberapa task (temuan menjadi satu task besar dengan sub task), diteruskan ke pemegang wewenang lain, dibawa ke rapat Kamis,
    atau tidak ditindaklanjuti (dengan alasan). Hasil pilah tampil di halaman permintaan.
 3. Di Dashboard setiap permintaan/temuan menampilkan status dan progres dari task-tasknya:
    - **Menunggu Direktur**: belum dipecah menjadi task.
    - **Berjalan**: sebagian task selesai, dengan batang progres (mis. 1/3 task).
    - **Selesai**: semua task selesai. Permintaan selesai tetap tampil 14 hari, lalu hilang dari Dashboard.
    - **Lewat target**: target sudah lewat dan belum selesai. Permintaan ini tampil paling atas.
+   **Temuan** punya tampilan sendiri: Direktur menjadikannya satu **task besar** yang dipecah
+   menjadi **sub task**. Temuan mendesak yang belum selesai tampil paling atas, dengan target atau
+   "Paling lambat", progres "x/y sub task", dan statusnya: **Menunggu Direktur**, **Berjalan**,
+   **Siap ditutup** (semua sub task selesai, menunggu pernyataan Direktur), dan **Selesai &
+   terverifikasi**. Temuan tidak pernah tertutup otomatis; bila sudah dinyatakan Direktur,
+   Dashboard menulis "selesai <tanggal> oleh <Direktur>, tepat waktu / terlambat n hari" dan Anda
+   mendapat notifikasi. Di detail temuan, tiap sub task menampilkan siapa yang mengerjakan dan
+   statusnya: **Berjalan**, **Menunggu verifikasi**, **Terverifikasi Direktur** (sub task staf),
+   atau **Selesai oleh Direktur** (sub task Direktur sendiri, tanpa verifikasi). Anda tidak
+   memverifikasi sub task temuan; tanggung jawab pernyataan "selesai" ada pada Direktur di hadapan
+   Anda. Tidak ada tombol buka kembali: bila hasilnya keliru, tulis catatan.
 4. Buka permintaan untuk melihat task-tasknya dan **catatan**. Bila target perlu diubah atau
    tidak terpenuhi, Direktur membicarakannya langsung (WhatsApp) atau menulis catatan di sini.
    Owner juga dapat menulis catatan, juga dengan foto. Setiap catatan memberi notifikasi ke pihak
@@ -49,7 +64,8 @@ Tidak ada tombol tolak atau kembalikan; permintaan hanya dibaca progresnya.
 
 ## Verifikasi pekerjaan Direktur Operasional
 
-Pekerjaan yang dikerjakan sendiri oleh Direktur Operasional diverifikasi Direktur Utama / Owner.
+Pekerjaan yang dikerjakan sendiri oleh Direktur Operasional diverifikasi Direktur Utama / Owner
+(kecuali sub task temuan Owner: lihat bagian di atas, tidak masuk antrean ini).
 Bila ia mengajukan selesai, Anda mendapat notifikasi dan bagian **Menunggu verifikasi Anda**
 muncul di atas Dashboard, lengkap dengan catatan buktinya. Buka task, periksa bukti (dan foto bila
 ada), lalu tekan **Konfirmasi selesai** atau **Minta revisi** (catatan wajib). Anda juga dapat

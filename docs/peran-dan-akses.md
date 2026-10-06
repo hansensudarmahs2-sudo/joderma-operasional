@@ -159,8 +159,9 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Stok Apotek: unggah ekspor Omnicare, ubah parameter | apoteker, asisten apoteker, AOM (keputusan 1 Okt 2026) | — |
 | Inbox (dulu Laporan Masuk): semua komplain, masukan, kerusakan, laporan, masukan staf lintas cabang, permintaan/temuan Owner; catatan Direktur hanya untuk penulisnya | AOM (tindak lanjut), owner (baca saja) | `admin.full_access` |
 | Pilah item Inbox (tugaskan, teruskan, bawa ke rapat, tidak ditindaklanjuti); tambah task dari permintaan Owner | AOM | — |
-| Catat temuan Owner (target opsional) dan permintaan | owner | — |
-| Konfirmasi selesai / minta revisi task yang pemeriksanya Direktur Utama / Owner (otomatis bila penerimanya Direktur Operasional), dan menulis catatan di task itu | owner | — |
+| Catat temuan Owner (tanpa kolom target; Mendesak = paling lambat 3 hari, selain itu Direktur menentukan target maks. 30 hari) dan permintaan | owner | — |
+| Task besar, target, sub task, dan "Nyatakan selesai & terverifikasi" pada temuan Owner | AOM | — |
+| Konfirmasi selesai / minta revisi task yang pemeriksanya Direktur Utama / Owner (otomatis bila penerimanya Direktur Operasional), dan menulis catatan di task itu. Pengecualian: sub task temuan Owner, yang dikerjakan Direktur selesai tanpa verifikasi dan yang dikerjakan staf diverifikasi Direktur; Owner tidak memverifikasinya | owner | — |
 | Lapor progres task sendiri; catatan bukti wajib saat ajukan selesai | penerima task | — |
 | Jejak kehadiran: daftar jejak, ringkasan per staf, IP lazim (baca), unduh CSV | AOM, owner | — |
 | KPI per staf per bulan dan rinciannya, unduh CSV | AOM, owner | — |

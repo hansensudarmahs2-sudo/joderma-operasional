@@ -38,7 +38,8 @@ detail keputusan, dan rincian KPI per staf juga menampilkan tab kelompoknya.
 - **Tugas saya** — task yang dikirim kepada Anda (termasuk yang Anda tugaskan ke diri sendiri) tampil
   paling atas di **Ringkasan** dan di **Hari Ini**, dengan tombol **Lapor progres** dan **Ajukan
   selesai**. Kedua tombol itu juga ada di halaman detail task, di baris nama Anda pada tabel
-  Penerima. Task yang penerimanya Anda diperiksa Direktur Utama / Owner: sesudah diajukan, statusnya
+  Penerima. Task yang penerimanya Anda diperiksa Direktur Utama / Owner (kecuali sub task temuan
+  Owner, lihat di bawah): sesudah diajukan, statusnya
   **Diajukan selesai** (menunggu konfirmasi) sampai Owner mengonfirmasi atau meminta revisi. Bila
   evaluasinya Anda sendiri, pakai Lapor progres dan geser Target ke tanggal evaluasi; ajukan selesai
   sesudahnya.
@@ -96,8 +97,19 @@ Tombol **Pilah** membuka halaman satu item dengan lima pilihan, sesuai matriks w
   PIC, prioritas, target → menjadi task bersumber item itu. Untuk hal yang berlaku di kedua cabang,
   pilih cabang **Semua cabang**: muncul satu pilihan PIC per cabang dan dibuat satu task per cabang
   (pilihan yang sama ada di Task baru, tindak lanjut keputusan, dan Tambah task permintaan Owner) (pelapornya ikut tercatat, judul sumber
-  di detail task bisa diketuk). Permintaan/temuan Owner yang perlu beberapa langkah: task berikutnya
+  di detail task bisa diketuk). Permintaan Owner yang perlu beberapa langkah: task berikutnya
   ditambah dari halaman permintaan (**Tambah task**).
+  **Temuan Owner** ditangani sebagai task besar di halaman detail temuan:
+  - Isi form **Task besar** (nama) dan **target**. Pada temuan Mendesak target otomatis terisi 3 hari sejak dicatat
+    dan hanya boleh Anda majukan; selain itu paling lambat 30 hari; target yang belum Anda ubah boleh dipertahankan walau sudah lewat.
+    Selama belum diisi, batas 30 hari berlaku dan keterlambatan dihitung darinya.
+  - **Tambah sub task**; penerimanya boleh Anda sendiri. Sub task untuk Anda sendiri selesai tanpa
+    verifikasi begitu Anda ajukan (tercatat di riwayat). Sub task staf Anda yang memverifikasi
+    (Konfirmasi selesai / Minta revisi); Owner tidak ikut memverifikasi.
+  - Tombol **Nyatakan selesai & terverifikasi** muncul hanya bila semua sub task selesai, dengan
+    konfirmasi, dan Owner mendapat notifikasi. Temuan tidak tertutup otomatis dan tidak bisa dibuka
+    kembali; pernyataan itu menjadi tanggung jawab Anda di hadapan Owner (bila hasilnya keliru,
+    Owner menulis catatan).
 - **Teruskan dan pantau** — di luar bidang Anda (apotek/stok/harga obat → Apoteker, Omnicare,
   keuangan di atas batas, medis, strategis/SP → Dirut). Item tetap di tab **Dipantau** sampai
   selesai.
@@ -225,7 +237,7 @@ tombol.
 Bawaannya Direktur Operasional. Bila salah satu penerima task adalah Direktur Operasional sendiri,
 pemeriksanya otomatis **Direktur Utama / Owner** (akun Owner, mis. jean dan yohanes): hanya mereka
 yang dapat Konfirmasi selesai / Minta revisi, notifikasi "Menunggu verifikasi" dikirim ke mereka,
-dan tombol **Tandai selesai** tidak tersedia. Direktur juga dapat memilih pemeriksa Dirut untuk
+dan tombol **Tandai selesai** tidak tersedia (kecuali sub task temuan Owner: pemeriksanya tetap Direktur, sub task staf Anda verifikasi, sub task Anda sendiri selesai tanpa verifikasi, dan **Tandai selesai** tersedia; lihat Pilah ▸ Putuskan dan tugaskan). Direktur juga dapat memilih pemeriksa Dirut untuk
 task lain lewat **Ubah task**. Owner dapat menulis catatan di task yang ia periksa, tetapi tidak
 dapat mengubah atau menutupnya.
 

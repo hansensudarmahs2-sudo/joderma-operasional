@@ -85,7 +85,7 @@ def request_new(request):
                     kind=RequestKind.TEMUAN if temuan else RequestKind.PERMINTAAN,
                     title=form["judul"],
                     description=form["rincian"],
-                    target_date=services.parse_target(form["target"], required=not temuan),
+                    target_date=None if temuan else services.parse_target(form["target"]),
                     clinic=clinic,
                     urgent=form["mendesak"] == "1",
                 )
@@ -102,6 +102,8 @@ def request_new(request):
 @require(services.can_view_requests)
 def request_detail(request, pk: int):
     req = get_object_or_404(OwnerRequest.objects.select_related("created_by", "clinic"), pk=pk)
+    if request.method == "POST" and request.POST.get("aksi") in ("rencana", "selesai"):
+        return _finding_action(request, req)
     if request.method == "POST" and request.POST.get("aksi") == "task":
         return _request_task(request, req)
     if request.method == "POST":
@@ -138,8 +140,29 @@ def request_detail(request, pk: int):
             "is_director": is_aom(request.user),
             "task_form": task_form,
             "triage": triage,
+            "subtasks": services.subtask_rows(req) if req.kind == "TEMUAN" else [],
+            "cap": services.deadline_cap(req),
+            "today": local_today(),
         },
     )
+
+
+def _finding_action(request, req):
+    """Direktur: simpan rencana penanganan temuan, atau nyatakan temuan selesai & terverifikasi."""
+    try:
+        with transaction.atomic():
+            if request.POST.get("aksi") == "rencana":
+                services.set_plan(
+                    req, actor=request.user, plan_title=request.POST.get("rencana", ""),
+                    target_date=services.parse_target(request.POST.get("target", ""), required=False),
+                )
+                messages.success(request, "Rencana penanganan disimpan.")
+            else:
+                services.complete_finding(req, actor=request.user)
+                messages.success(request, "Temuan dinyatakan selesai & terverifikasi.")
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    return redirect("owner:request_detail", pk=req.pk)
 
 
 def _request_task(request, req):

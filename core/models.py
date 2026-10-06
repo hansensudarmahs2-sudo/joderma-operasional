@@ -4,6 +4,7 @@ from __future__ import annotations
 import secrets
 from datetime import date as date_cls
 from datetime import timedelta
+from functools import cached_property
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -334,6 +335,15 @@ class ActionItem(models.Model):
     def __str__(self) -> str:
         return self.title
 
+    @cached_property
+    def is_temuan_subtask(self) -> bool:
+        """Sub task temuan Owner: task bersumber permintaan_owner yang jenisnya TEMUAN (6 Okt 2026)."""
+        if self.source_type != "permintaan_owner" or not self.source_id:
+            return False
+        from owner.models import OwnerRequest, RequestKind
+
+        return OwnerRequest.objects.filter(pk=self.source_id, kind=RequestKind.TEMUAN).exists()
+
     @property
     def effective_review_by(self) -> str:
         """Pemeriksa yang berlaku: Dirut/Owner bila salah satu penerima aktif adalah Direktur Operasional.
@@ -341,6 +351,10 @@ class ActionItem(models.Model):
         Aturan tambahan matriks wewenang (Okt 2026): pekerjaan Direktur Operasional sendiri
         diverifikasi Direktur Utama. Dihitung, bukan disimpan, supaya data lama tidak perlu diubah.
         """
+        if self.is_temuan_subtask:
+            # Sub task temuan selalu diverifikasi Direktur Operasional; sub task Direktur sendiri
+            # selesai tanpa verifikasi (task_services.submit_assignment).
+            return ReviewBy.DIREKTUR
         if self.review_by == ReviewBy.DIRUT:
             return ReviewBy.DIRUT
         from accounts.models import Role, UserRole

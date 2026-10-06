@@ -4,12 +4,32 @@
 {% block content %}
 <p><a href="{% url 'home' %}">← {% if is_director %}Kembali{% else %}Dashboard{% endif %}</a></p>
 <h1>{% if row.request.kind == 'TEMUAN' %}<span class="tag info">Temuan</span> {% endif %}{{ row.request.title }}</h1>
-<p class="sub">{% if row.request.kind == 'TEMUAN' %}Dicatat{% else %}Diminta{% endif %} {{ row.request.created_by }} · {{ row.request.created_at|date:"d/m/Y" }} · {{ row.request.clinic.name|default:"lintas cabang" }} · {% if row.request.target_date %}target <strong>{{ row.request.target_date|date:"d/m/Y" }}</strong>{% else %}tanpa target{% endif %}{% if row.request.urgent %} · <span class="tag err">Mendesak</span>{% endif %}</p>
+<p class="sub">{% if row.request.kind == 'TEMUAN' %}Dicatat{% else %}Diminta{% endif %} {{ row.request.created_by }} · {{ row.request.created_at|date:"d/m/Y" }} · {{ row.request.clinic.name|default:"lintas cabang" }} · {% if row.target %}{% if row.target_set %}target{% else %}paling lambat{% endif %} <strong>{{ row.target|date:"d/m/Y" }}</strong>{% else %}tanpa target{% endif %}{% if row.request.urgent %} · <span class="tag err">Mendesak</span>{% endif %}</p>
 <p>{% with r=row %}{% include "owner/_request_state.html" %}{% endwith %}</p>
+{% if row.request.kind == 'TEMUAN' %}
+<p><strong>Task besar:</strong> {{ row.request.plan_title|default:"belum diberi nama oleh Direktur" }}</p>
+{% if row.request.completed_at %}<p class="meta">Dinyatakan selesai &amp; terverifikasi oleh <strong>{{ row.request.completed_by }}</strong>, {{ row.request.completed_at|date:"d/m/Y H:i" }} · {% if row.finished_late_by %}terlambat {{ row.finished_late_by }} hari{% else %}tepat waktu{% endif %}</p>{% endif %}
+{% endif %}
 
 {% if row.request.description %}<div class="card" style="white-space:pre-wrap">{{ row.request.description }}</div>{% endif %}
 {% foto_thumbs photos %}
 
+{% if row.request.kind == 'TEMUAN' %}
+<h2>Sub task</h2>
+{% if subtasks %}
+<ul class="request-list card">
+  {% for s in subtasks %}
+  <li class="request-row">
+    <span class="request-main"><strong>{{ s.task.title }}</strong>
+      <span class="meta">Dikerjakan oleh {{ s.people|default:"belum ada penerima" }}{% if s.finished_at %} · selesai {{ s.finished_at|date:"d/m/Y" }}{% elif s.task.due_at %} · target {{ s.task.due_at|date:"d/m/Y" }}{% endif %}</span></span>
+    <span class="request-state"><span class="tag {% if s.state == 'done' %}ok{% elif s.state == 'waiting' %}warn{% else %}info{% endif %}">{{ s.label }}</span></span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="meta">Belum dipecah menjadi sub task oleh Direktur Operasional.</p>
+{% endif %}
+{% else %}
 <h2>Task dari Direktur</h2>
 {% if row.tasks %}
 <ul class="request-list card">
@@ -24,11 +44,28 @@
 {% else %}
 <p class="meta">Belum dipecah menjadi task oleh Direktur Operasional.</p>
 {% endif %}
+{% endif %}
 {% if triage %}<p class="meta">Dipilah di Inbox {{ triage.triaged_at|date:"d/m/Y" }}: <strong>{{ triage.get_action_display }}</strong>{% if triage.forwarded_to %} ke {{ triage.get_forwarded_to_display }}{% endif %}{% if triage.decision %} — <a href="{% url 'direktur:decision_detail' triage.decision.pk %}">{{ triage.decision.title }}</a>{% endif %}{% if triage.note %} — {{ triage.note }}{% endif %}</p>{% endif %}
 
 {% if is_director %}
+{% if row.request.kind == 'TEMUAN' and not row.request.completed_at %}
+<form method="post" class="card">{% csrf_token %}<input type="hidden" name="aksi" value="rencana">
+  <label for="rencana">Task besar <span class="meta">(nama penanganan)</span></label>
+  <input id="rencana" name="rencana" maxlength="200" value="{{ row.request.plan_title }}" placeholder="Mis. Membuat alur untuk temuan ini">
+  <label for="target-rencana">Target selesai <span class="meta">(paling lambat {{ cap|date:"d/m/Y" }})</span></label>
+  <input id="target-rencana" type="date" name="target"{% if not row.request.target_date or row.request.target_date >= today %} min="{{ today|date:'Y-m-d' }}"{% endif %}{% if cap >= today %} max="{{ cap|date:'Y-m-d' }}"{% endif %} value="{{ row.request.target_date|date:'Y-m-d' }}">
+  <p><button class="btn small secondary" type="submit">Simpan rencana</button></p>
+</form>
+{% if row.state == 'ready' %}
+<form method="post" class="card" onsubmit="return confirm('Nyatakan temuan ini selesai & terverifikasi? Owner akan diberi tahu.')">{% csrf_token %}
+  <input type="hidden" name="aksi" value="selesai">
+  <p>Semua sub task sudah selesai.</p>
+  <p><button class="btn small" type="submit">Nyatakan selesai &amp; terverifikasi</button></p>
+</form>
+{% endif %}
+{% endif %}
 <details class="card"{% if not row.tasks %} open{% endif %}>
-  <summary><strong>{% if row.tasks %}Tambah task{% else %}Pecah menjadi task{% endif %}</strong></summary>
+  <summary><strong>{% if row.tasks %}Tambah {% if row.request.kind == 'TEMUAN' %}sub {% endif %}task{% else %}Pecah menjadi {% if row.request.kind == 'TEMUAN' %}sub {% endif %}task{% endif %}</strong></summary>
   {% with all_branches=task_form.all_branches clinic=task_form.clinic clinics=task_form.clinics per_clinic=task_form.per_clinic targets=task_form.targets %}
   {% include "direktur/_branch_pic.html" %}
   <form method="post">{% csrf_token %}<input type="hidden" name="aksi" value="task">
@@ -40,7 +77,7 @@
       {% include "direktur/_branch_pic_fields.html" %}
       <div><label for="prioritas">Prioritas</label>
         <select id="prioritas" name="prioritas">{% for v, l in task_form.priorities %}<option value="{{ v }}"{% if v == 'TINGGI' and row.request.urgent or v == 'SEDANG' and not row.request.urgent %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
-      <div><label for="batas">Target</label><input id="batas" type="date" name="batas" value="{{ row.request.target_date|date:'Y-m-d' }}"></div>
+      <div><label for="batas">Target</label><input id="batas" type="date" name="batas" value="{{ row.target|date:'Y-m-d' }}"></div>
     </div>
     <p><button class="btn small" type="submit">Kirim task</button></p>
   </form>
