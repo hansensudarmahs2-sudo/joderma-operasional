@@ -386,3 +386,16 @@ def test_kartu_susun_jadwal_merinci_per_staf(client, dunia):
     assert "Rincian per staf" in body
     rincian = body.split("Rincian per staf", 1)[1].split("</details>", 1)[0]
     assert "JoDerma Jemur" in rincian and "JoDerma Citraland" in rincian
+
+
+def test_perintah_susun_jadwal_tidak_mengaku_berhasil_saat_tidak_mengubah_apa_pun(dunia, capsys):
+    """Dijalankan ulang, perintahnya harus terbaca jelas sebagai 'tidak ada perubahan'."""
+    from django.core.management import call_command
+
+    _cap_hari(dunia["staf"], dt.date(2026, 9, 10), dt.time(14, 2), dt.time(22, 5))
+    call_command("duga_jadwal_absensi", "2026-09", "--simpan")
+    capsys.readouterr()
+    call_command("duga_jadwal_absensi", "2026-09", "--simpan")
+    keluaran = capsys.readouterr().out
+    assert "Tidak ada hari baru" in keluaran
+    assert "belum dikonfirmasi" not in keluaran

@@ -69,5 +69,12 @@ class Command(BaseCommand):
         if not options["simpan"]:
             self.stdout.write(self.style.SUCCESS("\nRencana saja. Tambahkan --simpan untuk menulis."))
             return
+        if not hasil.disimpan:
+            # Menulis "setiap baris bercatat ..." padahal tidak ada baris yang dibuat
+            # membuat perintah ini terbaca seolah berhasil mengubah sesuatu.
+            self.stdout.write(
+                self.style.SUCCESS("\nTidak ada hari baru yang bisa diisi; jadwal tidak diubah.")
+            )
+            return
         self.stdout.write(self.style.SUCCESS(f"\n{hasil.disimpan} baris jadwal jaga dibuat."))
         self.stdout.write('Setiap baris bercatat "belum dikonfirmasi". Tinjau di Jadwal Jaga.')
