@@ -188,10 +188,8 @@ def test_status_and_transfer_match_workbook(data_30sep):
     assert hitung.hitung_status(per[ctl]) == {"Kosong": 43, "Di bawah buffer": 49, "Mendekati buffer": 19, "Aman": 149, "Tanpa pemakaian": 50}
     arah = [(t.dari.clinic, t.ke.clinic) for t in hasil.transfer]
     assert arah.count((ctl, jmr)) == 40 and arah.count((jmr, ctl)) == 19
-    # Nilai rupiah dari lembar Ringkasan workbook
-    assert sum(t.nilai for t in hasil.transfer) == pytest.approx(35_504_905.485, abs=0.01)
-    assert sum(b.nilai_order for b in per[jmr].baris.values()) == pytest.approx(230_648_447.375, abs=0.01)
-    assert sum(b.nilai_order for b in per[ctl].baris.values()) == pytest.approx(84_202_222.736, abs=0.01)
+    # Nilai rupiah workbook tidak lagi diuji: harga tidak disimpan sejak 6 Okt 2026.
+    assert Produk.objects.filter(produksi_sendiri=True).exists()
     assert per[jmr].periode == [(2026, 7), (2026, 8), (2026, 9)]
     assert len(hitung.prioritas(per[jmr])) + len(hitung.prioritas(per[ctl])) == 545
 
@@ -233,12 +231,13 @@ def test_pages_render_with_data(client, data_30sep, apoteker):
     assert "Kosong" in body and "Simpan parameter" in body
 
 
-def test_transfer_tab_hides_rupiah_value(client, data_30sep, apoteker):
-    """Keputusan 1 Okt: nilai modal tidak ditampilkan di tab Transfer."""
+def test_pages_show_no_price_or_manufacturer(client, data_30sep, apoteker):
+    """Keputusan 6 Okt: harga dan pabrikan/supplier tidak ada di ops.joderma.id."""
     client.force_login(apoteker)
-    body = client.get(reverse("stok:index"), {"tab": "transfer", "cabang": "semua"}).content.decode()
-    assert "Saran Transfer" in body
-    assert "Rp" not in body and "nilai modal" not in body.lower()
+    for tab in ("order", "transfer"):
+        body = client.get(reverse("stok:index"), {"tab": tab, "cabang": "semua"}).content.decode()
+        assert "Rp" not in body and "nilai modal" not in body.lower()
+        assert "pabrikan" not in body.lower()
 
 
 @pytest.mark.parametrize("roles", [(Role.APOTEKER,), (Role.ASISTEN_APOTEKER,), (Role.AOM,)])

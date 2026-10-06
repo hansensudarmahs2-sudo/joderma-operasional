@@ -5,9 +5,9 @@ from .models import Parameter, PergerakanBulanan, PosisiStok, Produk, StatusPeri
 
 @admin.register(Produk)
 class ProdukAdmin(admin.ModelAdmin):
-    list_display = ("nama", "dosis", "pabrikan", "kategori", "non_stok", "aktif")
-    search_fields = ("nama", "kunci", "pabrikan")
-    list_filter = ("non_stok", "aktif")
+    list_display = ("nama", "dosis", "kategori", "produksi_sendiri", "non_stok", "aktif")
+    search_fields = ("nama", "kunci")
+    list_filter = ("produksi_sendiri", "non_stok", "aktif")
 
 
 @admin.register(Unggahan)

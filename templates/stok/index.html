@@ -48,7 +48,7 @@
     <label>Cadangan cabang pengirim (bulan)<input type="number" name="cadangan_bulan" min="0" max="12" step="0.1" value="{{ param.cadangan_bulan|stringformat:'g' }}"></label>
     <button class="btn" type="submit">Simpan parameter</button>
   </form>
-  <p class="meta">Nilai awal adalah asumsi PRD. Buffer = rata-rata pemakaian × bulan buffer; idealnya mengikuti lead time distributor.</p>
+  <p class="meta">Nilai awal adalah asumsi PRD. Buffer = rata-rata pemakaian × bulan buffer; idealnya mengikuti lama pesanan sampai datang.</p>
 </details>
 {% endif %}
 
@@ -62,7 +62,6 @@
 <form method="get" class="inline" style="margin-top:.7rem">
   <input type="hidden" name="tab" value="{{ tab }}"><input type="hidden" name="cabang" value="{{ pilihan }}">
   <label>Cari nama<input type="search" name="q" value="{{ q }}" placeholder="mis. Stenirol"></label>
-  <label>Pabrikan<select name="pabrikan"><option value="">Semua</option>{% for p in daftar_pabrikan %}<option value="{{ p }}"{% if p == pabrikan %} selected{% endif %}>{{ p }}</option>{% endfor %}</select></label>
   {% if tab == "order" %}
   <label>Status<select name="status"><option value="">Semua</option>{% for s in status_list %}<option value="{{ s }}"{% if s == status_filter %} selected{% endif %}>{{ s }}</option>{% endfor %}</select></label>
   {% endif %}
@@ -78,7 +77,7 @@
   {% for b in baris_order %}
   <tr>
     {% if gabungan %}<td data-label="Cabang">{{ b.clinic.name }}</td>{% endif %}
-    <td data-label="Produk"><strong>{{ b.produk }}</strong><span class="meta" style="display:block">{{ b.produk.pabrikan|default:"—" }} · pakai {{ b.pakai_total|floatformat:"-1" }} dalam {{ b.pakai|length }} bln · {{ b.moving }}</span></td>
+    <td data-label="Produk"><strong>{{ b.produk }}</strong><span class="meta" style="display:block">pakai {{ b.pakai_total|floatformat:"-1" }} dalam {{ b.pakai|length }} bln · {{ b.moving }}</span></td>
     <td data-label="Status"><span class="tag {% if b.status == 'Kosong' %}err{% elif b.status == 'Di bawah buffer' %}warn{% elif b.status == 'Mendekati buffer' %}info{% else %}ok{% endif %}">{{ b.status }}</span></td>
     <td data-label="Stok">{{ b.stok|floatformat:"-1" }}</td>
     <td data-label="Rata-rata/bln">{{ b.rata|floatformat:"-1" }}</td>
@@ -101,7 +100,7 @@
   <tbody>
   {% for t in transfer %}
   <tr>
-    <td data-label="Produk"><strong>{{ t.produk }}</strong><span class="meta" style="display:block">{{ t.produk.pabrikan|default:"—" }}</span></td>
+    <td data-label="Produk"><strong>{{ t.produk }}</strong></td>
     <td data-label="Dari → ke">{{ t.dari.clinic.name }} → {{ t.ke.clinic.name }}</td>
     <td data-label="Saran"><strong>{{ t.jumlah|floatformat:"-1" }}</strong></td>
     <td data-label="Pengirim">{{ t.dari.stok|floatformat:"-1" }} / {{ t.dari.rata|floatformat:"-1" }} <span class="meta">kelebihan {{ t.dari.kelebihan|floatformat:"-1" }}</span></td>

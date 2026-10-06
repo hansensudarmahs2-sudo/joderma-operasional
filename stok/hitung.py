@@ -45,7 +45,6 @@ class Baris:
     rata: float
     bulan_aktif: int
     stok: float
-    nilai_modal: float
     buffer: float
     status: str
     moving: str
@@ -64,10 +63,6 @@ class Baris:
         return round(max(0.0, self.kebutuhan - self.transfer_masuk), 1)
 
     @property
-    def nilai_order(self) -> float:
-        return self.sisa_order * self.produk.harga_modal
-
-    @property
     def tindakan(self) -> str:
         return "Produksi sendiri" if self.produk.produksi_sendiri else "Order distributor"
 
@@ -78,10 +73,6 @@ class Transfer:
     dari: Baris
     ke: Baris
     jumlah: float
-
-    @property
-    def nilai(self) -> float:
-        return self.jumlah * self.produk.harga_modal
 
 
 @dataclass
@@ -106,24 +97,18 @@ class Hasil:
     transfer: list[Transfer]
 
 
-def _stok_cabang(clinic: Clinic) -> tuple[dt.date | None, dict[int, tuple[float, float]]]:
+def _stok_cabang(clinic: Clinic) -> tuple[dt.date | None, dict[int, float]]:
     tanggal = (
         PosisiStok.objects.filter(clinic=clinic).order_by("-tanggal").values_list("tanggal", flat=True).first()
     )
     if tanggal is None:
         return None, {}
-    stok = {
-        pid: (s, v)
-        for pid, s, v in PosisiStok.objects.filter(clinic=clinic, tanggal=tanggal).values_list(
-            "produk_id", "stok", "nilai_modal"
-        )
-    }
+    stok = dict(PosisiStok.objects.filter(clinic=clinic, tanggal=tanggal).values_list("produk_id", "stok"))
     if tanggal.day == calendar.monthrange(tanggal.year, tanggal.month)[1]:
         for pid, akhir in PergerakanBulanan.objects.filter(
             clinic=clinic, tahun=tanggal.year, bulan=tanggal.month
         ).values_list("produk_id", "stok_akhir"):
-            _, nilai = stok.get(pid, (0.0, 0.0))
-            stok[pid] = (akhir, nilai)
+            stok[pid] = akhir
     return tanggal, stok
 
 
@@ -155,7 +140,7 @@ def hitung(param: Parameter | None = None) -> Hasil:
         baris = {}
         for pid, p in produk.items():
             daftar = pakai[pid] if periode else []
-            s, nilai = stok.get(pid, (0.0, 0.0))
+            s = stok.get(pid, 0.0)
             rata = max(0.0, sum(daftar) / len(daftar)) if daftar else 0.0
             aktif = sum(1 for x in daftar if x > 0)
             buffer = rata * param.bulan_buffer
@@ -181,7 +166,7 @@ def hitung(param: Parameter | None = None) -> Hasil:
             kelebihan = round(max(0.0, s - param.cadangan_bulan * rata), 1)
             baris[pid] = Baris(
                 produk=p, clinic=clinic, pakai=list(daftar), rata=rata, bulan_aktif=aktif, stok=s,
-                nilai_modal=nilai, buffer=buffer, status=status, moving=moving,
+                buffer=buffer, status=status, moving=moving,
                 bulan_stok=(s / rata) if rata > 0 else None, kebutuhan=kebutuhan, kelebihan=kelebihan,
             )
         cabang.append(DataCabang(clinic, tanggal, periode, belum, baris))
@@ -205,7 +190,8 @@ def hitung(param: Parameter | None = None) -> Hasil:
                 perlu -= jumlah
                 if perlu <= 0:
                     break
-    transfer.sort(key=lambda t: -t.nilai)
+    # Urutan: penerima paling mendesak dulu (Kosong, lalu Di bawah, lalu Mendekati), lalu jumlah terbesar.
+    transfer.sort(key=lambda t: (URUT_STATUS.get(t.ke.status, 9), -t.jumlah, t.produk.nama))
     return Hasil(param, cabang, transfer)
 
 

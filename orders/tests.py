@@ -75,3 +75,19 @@ def test_order_form_has_product_search_and_dropdown(client, clinic):
     body = response.content.decode()
     assert 'id="id_product_search"' in body
     assert 'id="id_product"' in body
+
+
+def test_order_pages_show_no_price(client, clinic):
+    """Keputusan 6 Okt 2026: harga tidak ada di ops.joderma.id."""
+    from .models import Product
+
+    Product.objects.create(category="Topikal · Sunscreen", name="Sunscreen SPF 50")
+    assert "sale_price" not in {f.name for f in Product._meta.get_fields()}
+    assert not {"unit_price", "total_price"} & {f.name for f in OnlineOrder._meta.get_fields()}
+    online = _user(clinic, "online_harga", Role.ONLINE)
+    client.force_login(online)
+    client.post(reverse("orders:create"), {"customer_name": "P", "customer_contact": "08", "rm_number": "7548", "customer_address": "Alamat", "product_name": "Sunscreen", "quantity": 2})
+    order = OnlineOrder.objects.get()
+    for url in (reverse("orders:index"), reverse("orders:draft", args=[order.pk])):
+        body = client.get(url).content.decode()
+        assert "Rp" not in body and "Harga" not in body and "Total" not in body

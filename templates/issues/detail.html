@@ -74,11 +74,7 @@
     {% csrf_token %}
     <label for="tindakan">Tindakan perbaikan</label>
     <textarea id="tindakan" name="tindakan" rows="2">{{ issue.repair_action }}</textarea>
-    <div class="inline">
-      <div><label for="vendor">Pelaksana/vendor</label><input id="vendor" name="vendor" value="{{ issue.repair_vendor }}"></div>
-      <div><label for="biaya">Biaya (Rp, opsional)</label><input id="biaya" name="biaya" type="number" min="0" value="{{ issue.repair_cost|default_if_none:'' }}"></div>
-      <button class="btn" type="submit">Simpan</button>
-    </div>
+    <button class="btn" type="submit">Simpan</button>
   </form>
 </div>
 {% endif %}

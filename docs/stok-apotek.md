@@ -16,7 +16,7 @@ tidak mengikuti pemakaian.
 | Fase | Isi | Status |
 |---|---|---|
 | 1 | Impor tiga jenis file, penggabungan unduhan, uji kelengkapan, tab Prioritas Order, Transfer, Impor Data, parameter | Selesai 1 Okt 2026, commit `e966da7`, dideploy ke mini PC 1 Okt |
-| 2 | Tab Moving dan Kandidat Nonaktif, tanda tindak lanjut, unduh daftar order per pabrikan | Belum |
+| 2 | Tab Moving dan Kandidat Nonaktif, tanda tindak lanjut, unduh daftar order | Belum (ditahan product owner 6 Okt) |
 | 3 | Lead time per distributor, pemakaian bulan berjalan, ukuran kemasan | Belum |
 
 Layar parameter semula fase 2; ikut fase 1 karena keputusan akses 1 Okt.
@@ -36,7 +36,7 @@ Halaman ini milik operasional apotek. Diperiksa di server lewat
 
 Apoteker membuka cabangnya sendiri; Direktur dan Owner membuka "Kedua cabang". Semua peran
 yang boleh membuka bisa melihat kedua cabang, karena saran transfer butuh stok cabang lain.
-Owner hanya-baca masih asumsi PRD (pertanyaan A6). Setiap unggahan dan perubahan parameter
+Owner hanya-baca (dikonfirmasi 6 Okt, A6). Setiap unggahan dan perubahan parameter
 tercatat di audit log.
 
 ## Impor dari Omnicare
@@ -46,8 +46,8 @@ Daftar Produk selalu diproses lebih dulu.
 
 | File | Dikenali dari judul | Dipakai |
 |---|---|---|
-| Daftar Produk (`product_list`) | "DAFTAR PRODUK" | ID, nama, dosis, pabrikan, kategori, harga, MIN/MAX, penanda non-stok "~" |
-| Tingkat Persediaan (`stock_level`) | "TINGKAT PERSEDIAAN … PER <tanggal>" | stok dan nilai modal per produk |
+| Daftar Produk (`product_list`) | "DAFTAR PRODUK" | ID, nama, dosis, kategori, MIN/MAX, penanda non-stok "~", dan tanda produksi sendiri (dari kolom pabrikan; namanya tidak disimpan) |
+| Tingkat Persediaan (`stock_level`) | "TINGKAT PERSEDIAAN … PER <tanggal>" | stok per produk |
 | Ringkasan Pergerakan Stok (`stock_movement_summary`) | "PERGERAKAN STOK 01 … S/D <akhir bulan>" | stok awal, 10 jenis pergerakan, stok akhir |
 
 Aturan baca (`stok/parser.py`):
@@ -112,9 +112,12 @@ angkanya identik.
 - **Kelebihan** = stok − cadangan × rata-rata, minimal 0, 1 desimal.
 - **Saran transfer** = min(kebutuhan penerima, kelebihan pengirim), dibulatkan ke bawah per
   0,5 unit. **Sisa order** = kebutuhan − transfer masuk.
-- **Tampilan**: nilai Rupiah (harga modal) tidak ditampilkan di tab Transfer (keputusan
-  1 Okt 2026, sebelum peluncuran). Nilai tetap dihitung di `stok/hitung.py` untuk test.
-- **Tindakan**: pabrikan DRYN atau Joderma = Produksi sendiri; lainnya Order distributor.
+- **Tanpa harga dan supplier** (keputusan 6 Okt 2026, menggantikan keputusan 1 Okt yang
+  hanya menyembunyikan nilai di tab Transfer): harga modal, harga jual, nilai persediaan, dan
+  nama pabrikan tidak dibaca dari ekspor dan tidak disimpan (migrasi `stok 0002`). Saran
+  transfer diurutkan menurut penerima yang paling mendesak, lalu jumlah terbesar.
+- **Tindakan**: produk bertanda produksi sendiri (pabrikan DRYN atau Joderma saat impor) =
+  Produksi sendiri; lainnya Order distributor.
 - Produk non-stok ("~" di Daftar Produk) tidak dihitung.
 
 Parameter (model `stok.Parameter`, satu baris; nilai awal asumsi PRD): jumlah bulan
@@ -126,9 +129,8 @@ rata-rata 3, bulan buffer 1, ambang mendekati 25%, target 2 bulan, cadangan peng
 |---|---|---|
 | Kosong / Di bawah / Mendekati / Aman / Tanpa pemakaian | 48 / 90 / 14 / 133 / 67 | 43 / 49 / 19 / 149 / 50 |
 | Mutasi bersih Jul / Agu / Sep | 7.392 / 6.820 / 8.449 | kebalikannya |
-| Nilai order setelah transfer (Rp modal) | 230.648.447 | 84.202.223 |
 
-Saran transfer: 40 produk Citraland → Jemur, 19 Jemur → Citraland, senilai Rp 35.504.905.
+Saran transfer: 40 produk Citraland → Jemur, 19 Jemur → Citraland.
 
 ## Kriteria selesai fase 1
 
@@ -146,22 +148,38 @@ Test: `stok/tests/test_stok.py`, memakai ekspor asli di `stok/tests/fixtures/`.
 
 ## Celah yang dicatat
 
-- File uji di `stok/tests/fixtures/` memuat harga modal dan ikut repo (privat). Hapus dari
-  repo bila keputusan A3 berbeda.
-- Kesegaran data bergantung pada unggahan manual; penanggung jawab unggah harian belum ada.
+- Harga masih ada di luar database aplikasi: file uji di `stok/tests/fixtures/` (ikut repo
+  privat), berkas ekspor asli yang pernah diunggah (`private_media/stok/` di mini PC), backup
+  sebelum 6 Okt, dan catatan audit lama. Keputusan 6 Okt: database dulu; sisanya diputuskan
+  terpisah.
+- Kesegaran data bergantung pada unggahan manual oleh apoteker atau asisten apoteker (A7);
+  Omnicare tidak punya API (A9).
 - Produk yang sempat kosong tercatat pemakaiannya lebih rendah dari permintaan sebenarnya.
 - Satu angka bulan buffer untuk semua produk sampai lead time distributor ada (fase 3).
 - Saran dalam unit Omnicare, bukan box; satuan hampir kosong di master.
 - Tanggal kedaluwarsa tidak ada di ekspor, jadi saran transfer tidak mempertimbangkan ED.
-- Daftar Produk hanya dari akun Jemur; dianggap berlaku untuk kedua cabang (pertanyaan A5).
+- Daftar Produk hanya dari akun Jemur. MIN/MAX Omnicare ternyata berbeda per cabang (A5), jadi
+  MIN/MAX yang tersimpan adalah milik Jemur; keduanya tidak dipakai dalam perhitungan.
 - Belum ada cara menghapus unggahan yang salah dari halaman (lewat Django admin).
 - Di layar HP tabel menjadi kartu per baris (pola `table.responsive` yang sudah ada), bukan
   kolom terkunci seperti tertulis di PRD.
 
+## Keputusan product owner 6 Okt 2026
+
+| No | Pertanyaan | Jawaban |
+|---|---|---|
+| A5 | MIN/MAX Omnicare berbeda per cabang? | Ya, berbeda |
+| A6 | Owner cukup hanya-baca? | Ya |
+| A7 | Siapa yang mengunggah stok harian? | Apoteker atau asisten apoteker cabang |
+| A8 | Pembulatan transfer ke strip atau box? | Belum diketahui |
+| A9 | Omnicare punya API atau ekspor terjadwal? | Tidak ada API; unggah manual tetap |
+
+Tambahan: semua faktor harga dan supplier dihapus dari ops.joderma.id, yaitu Stok Apotek
+(harga, nilai Rp, pabrikan), Order Produk Online (harga jual, harga satuan, total), dan laporan
+kerusakan (pelaksana/vendor, biaya). Kolomnya dibuang dari database lewat migrasi `stok 0002`,
+`orders 0005`, dan `issues 0002`.
+
 ## Pertanyaan terbuka
 
-- Owner cukup hanya-baca? (A6)
-- Siapa yang mengunggah stok harian di tiap cabang? (A7)
 - Pembulatan transfer tablet/kapsul ke strip atau box? (A8)
-- Omnicare punya API atau ekspor terjadwal, dan sudahkah bug ekspor terpotong dilaporkan? (A9)
-- MIN/MAX Omnicare berbeda per cabang? (A5)
+- Apakah bug ekspor terpotong sudah dilaporkan ke Omnicare? (sisa A9)

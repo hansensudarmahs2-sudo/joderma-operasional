@@ -263,19 +263,10 @@ def repair(request, pk: int):
     if not can_view_restricted_issue(request.user, issue):
         raise PermissionDenied("Akses ditolak.")
     try:
-        cost = request.POST.get("biaya")
-        record_repair(
-            issue,
-            user=request.user,
-            repair_action=request.POST.get("tindakan", ""),
-            vendor=request.POST.get("vendor", ""),
-            cost=int(cost) if cost else None,
-        )
+        record_repair(issue, user=request.user, repair_action=request.POST.get("tindakan", ""))
         messages.success(request, "Data perbaikan tersimpan.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
-    except ValueError:
-        messages.error(request, "Biaya harus berupa angka.")
     return redirect("issues:detail", pk=issue.pk)
 
 

@@ -172,8 +172,6 @@ class Issue(models.Model):
     asset = models.ForeignKey(Asset, on_delete=models.SET_NULL, null=True, blank=True, related_name="issues")
     impact = models.CharField(max_length=20, choices=ImpactLevel.choices, blank=True)
     repair_action = models.TextField("tindakan perbaikan", blank=True)
-    repair_vendor = models.CharField("pelaksana/vendor", max_length=150, blank=True)
-    repair_cost = models.BigIntegerField("biaya (Rp)", null=True, blank=True)
     repaired_at = models.DateTimeField(null=True, blank=True)
     verified_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="issues_verified"

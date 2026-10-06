@@ -275,8 +275,6 @@ def record_repair(
     *,
     user,
     repair_action: str,
-    vendor: str = "",
-    cost: int | None = None,
     repaired_at=None,
 ) -> Issue:
     if issue.issue_type != IssueType.KERUSAKAN:
@@ -285,8 +283,6 @@ def record_repair(
         raise ValidationError("Tindakan perbaikan wajib diisi.")
     before = snapshot(issue)
     issue.repair_action = repair_action.strip()
-    issue.repair_vendor = vendor.strip()
-    issue.repair_cost = cost
     issue.repaired_at = repaired_at or timezone.now()
     issue.resolution_summary = issue.resolution_summary or repair_action.strip()
     issue.version += 1

@@ -117,12 +117,12 @@ def test_damage_workflow_with_verification(clinic, kasir, supervisor):
     change_status(issue, user=supervisor, to_status=IssueStatus.DITRIASE)
     assign_issue(issue, supervisor=supervisor, assignee=kasir)
     change_status(issue, user=kasir, to_status=IssueStatus.DALAM_PERBAIKAN)
-    record_repair(issue, user=kasir, repair_action="Ganti kabel daya", vendor="Toko IT", cost=150000)
+    record_repair(issue, user=kasir, repair_action="Ganti kabel daya")
     change_status(issue, user=kasir, to_status=IssueStatus.SELESAI)
     change_status(issue, user=supervisor, to_status=IssueStatus.DIVERIFIKASI)
     issue.refresh_from_db()
     assert issue.verified_by == supervisor and issue.verified_at is not None
-    assert issue.repair_cost == 150000
+    assert issue.repair_action == "Ganti kabel daya"
 
 
 def test_suggestion_rejection_requires_reason(clinic, staf, supervisor):
@@ -213,3 +213,18 @@ def test_issue_counters(clinic, kasir):
     create_issue(clinic=clinic, issue_type=IssueType.KERUSAKAN, title="AC rusak", user=kasir)
     counters = issue_counters(clinic)
     assert counters["komplain_open"] == 1 and counters["kerusakan_open"] == 1
+
+
+def test_damage_detail_has_no_vendor_or_cost_fields(client, clinic, kasir, supervisor):
+    """Keputusan 6 Okt 2026: pelaksana/vendor dan biaya perbaikan tidak dicatat."""
+    from django.urls import reverse
+
+    issue = create_issue(clinic=clinic, issue_type=IssueType.KERUSAKAN, title="AC ruang tunggu bocor", user=kasir)
+    client.force_login(supervisor)
+    resp = client.post(reverse("issues:repair", args=[issue.pk]), {"tindakan": "Ganti selang buangan", "vendor": "Toko AC", "biaya": "250000"})
+    assert resp.status_code == 302
+    issue.refresh_from_db()
+    assert issue.repair_action == "Ganti selang buangan"
+    assert not {"repair_vendor", "repair_cost"} & {f.name for f in Issue._meta.get_fields()}
+    body = client.get(reverse("issues:detail", args=[issue.pk])).content.decode()
+    assert 'name="vendor"' not in body and 'name="biaya"' not in body and "Biaya" not in body

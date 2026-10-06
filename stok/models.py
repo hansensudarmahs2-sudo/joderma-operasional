@@ -2,6 +2,10 @@
 
 Spesifikasi: `docs/stok-apotek.md`. Semua status, buffer, dan saran
 dihitung saat halaman dibuka (`stok/hitung.py`), jadi tidak ada tabel hasil.
+
+Harga (modal, jual, nilai persediaan) dan nama pabrikan/supplier sengaja tidak disimpan
+(keputusan product owner 6 Okt 2026). Dari kolom pabrikan hanya diambil satu tanda:
+produk buatan sendiri atau bukan.
 """
 from __future__ import annotations
 
@@ -25,12 +29,13 @@ class Produk(models.Model):
     dosis = models.CharField(max_length=60, blank=True)
     kunci = models.CharField("kunci pencocokan", max_length=260, unique=True)
     generik = models.CharField("nama generik", max_length=200, blank=True)
-    pabrikan = models.CharField(max_length=120, blank=True)
     kategori = models.CharField(max_length=80, blank=True)
     sediaan = models.CharField(max_length=60, blank=True)
     satuan = models.CharField(max_length=40, blank=True)
-    harga_modal = models.FloatField(default=0)
-    harga_jual = models.FloatField(default=0)
+    produksi_sendiri = models.BooleanField(
+        "produksi sendiri", default=False,
+        help_text="Dari kolom pabrikan Omnicare saat impor (DRYN atau Joderma). Nama pabrikan tidak disimpan.",
+    )
     min_omnicare = models.FloatField("MIN Omnicare", default=0)
     max_omnicare = models.FloatField("MAX Omnicare", default=0)
     non_stok = models.BooleanField("non-stok (racik/jasa)", default=False)
@@ -44,10 +49,6 @@ class Produk(models.Model):
 
     def __str__(self) -> str:
         return f"{self.nama} {self.dosis}".strip()
-
-    @property
-    def produksi_sendiri(self) -> bool:
-        return self.pabrikan.strip().lower() in {"dryn", "joderma"}
 
 
 class ProdukAlias(models.Model):
@@ -93,7 +94,6 @@ class PosisiStok(models.Model):
     produk = models.ForeignKey(Produk, on_delete=models.CASCADE, related_name="posisi")
     tanggal = models.DateField()
     stok = models.FloatField(default=0)
-    nilai_modal = models.FloatField(default=0)
     unggahan = models.ForeignKey(Unggahan, on_delete=models.SET_NULL, null=True, related_name="+")
 
     class Meta:

@@ -153,7 +153,7 @@ def _simpan_posisi(hasil, clinic, unggahan, peringatan) -> int:
     PosisiStok.objects.bulk_create(
         [
             PosisiStok(clinic=clinic, produk_id=pid, tanggal=hasil.tanggal, stok=b["stok"],
-                       nilai_modal=b["nilai_modal"], unggahan=unggahan)
+                       unggahan=unggahan)
             for pid, b in cocok
         ]
     )

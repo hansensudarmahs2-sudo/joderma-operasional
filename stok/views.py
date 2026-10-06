@@ -44,7 +44,6 @@ def index(request):
     pilihan = request.GET.get("cabang") or _cabang_awal(request.user)
     status_filter = request.GET.get("status", "")
     q = request.GET.get("q", "").strip().lower()
-    pabrikan = request.GET.get("pabrikan", "")
 
     hasil = hitung.hitung()
     cabang_semua = hasil.cabang
@@ -69,9 +68,7 @@ def index(request):
     transfer = [t for t in hasil.transfer if t.ke.clinic.pk in id_dipilih or t.dari.clinic.pk in id_dipilih]
 
     def cocok(produk) -> bool:
-        if q and q not in f"{produk.nama} {produk.dosis}".lower():
-            return False
-        return not pabrikan or produk.pabrikan == pabrikan
+        return not q or q in f"{produk.nama} {produk.dosis}".lower()
 
     baris_order = []
     for c in dipilih:
@@ -81,7 +78,6 @@ def index(request):
         baris_order = [b for b in baris_order if b.status == status_filter]
     baris_order = [b for b in baris_order if cocok(b.produk)]
     transfer_tampil = [t for t in transfer if cocok(t.produk)]
-    daftar_pabrikan = sorted({b.produk.pabrikan for c in dipilih for b in c.baris.values() if b.produk.pabrikan})
 
     konteks = {
         "tab": tab,
@@ -96,8 +92,6 @@ def index(request):
         "jumlah_transfer": len(transfer),
         "status_filter": status_filter,
         "q": request.GET.get("q", ""),
-        "pabrikan": pabrikan,
-        "daftar_pabrikan": daftar_pabrikan,
         "baris_order": baris_order,
         "transfer": transfer_tampil,
         "param": hasil.parameter,

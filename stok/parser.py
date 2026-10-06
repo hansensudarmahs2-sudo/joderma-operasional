@@ -117,6 +117,11 @@ def baca(data: bytes, nama_file: str = "") -> HasilBaca:
     )
 
 
+# Kolom pabrikan hanya dibaca untuk tanda "produksi sendiri"; namanya tidak disimpan.
+# Kolom harga (modal, jual, nilai persediaan) tidak dibaca sama sekali (keputusan 6 Okt 2026).
+PABRIKAN_SENDIRI = {"dryn", "joderma"}
+
+
 def _daftar_produk(judul: str, rows: list[list]) -> HasilBaca:
     hasil = HasilBaca(JenisFile.DAFTAR_PRODUK, judul, tanggal=_tanggal(judul))
     for r in rows[4:]:
@@ -129,11 +134,9 @@ def _daftar_produk(judul: str, rows: list[list]) -> HasilBaca:
                 "sediaan": _teks(r[3]),
                 "nama": _teks(r[4]),
                 "generik": "" if _teks(r[5]) == "-" else _teks(r[5]),
-                "pabrikan": "" if _teks(r[6]) == "-" else _teks(r[6]),
+                "produksi_sendiri": _teks(r[6]).lower() in PABRIKAN_SENDIRI,
                 "dosis": "" if dosis == "-" else dosis,
                 "kategori": "" if _teks(r[9]) == "-" else _teks(r[9]),
-                "harga_modal": angka(r[10]),
-                "harga_jual": angka(r[12]),
                 "non_stok": _teks(r[14]) == "~",
                 "satuan": "" if _teks(r[15]) in {"~", "-"} else _teks(r[15]),
                 "min_omnicare": angka(r[19]),
@@ -152,7 +155,7 @@ def _tingkat_persediaan(judul: str, rows: list[list], nama_file: str) -> HasilBa
     for r in rows[3:]:
         if len(r) < 9 or not _teks(r[2]) or not _teks(r[0]):
             continue  # baris TOTAL tidak punya kolom TIPE
-        hasil.baris.append({"nama": _teks(r[2]), "kunci": kunci(_teks(r[2])), "stok": angka(r[6]), "nilai_modal": angka(r[8])})
+        hasil.baris.append({"nama": _teks(r[2]), "kunci": kunci(_teks(r[2])), "stok": angka(r[6])})
     return hasil
 
 

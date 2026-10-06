@@ -73,12 +73,12 @@ class Command(BaseCommand):
                 continue
             header_index = next((i for i, row in enumerate(rows[:4]) if "sediaan topikal" in " ".join(str(v).lower() for v in row.values())), None)
             if header_index is not None:
-                kind, name_col, ingredient_col, price_col = "Topikal", 2, 3, 5
+                kind, name_col, ingredient_col = "Topikal", 2, 3
             else:
                 header_index = next((i for i, row in enumerate(rows[:4]) if "nama obat" in " ".join(str(v).lower() for v in row.values())), None)
                 if header_index is None:
                     continue
-                kind, name_col, ingredient_col, price_col = "Obat minum", 2, 3, 7
+                kind, name_col, ingredient_col = "Obat minum", 2, 3
             category = "Tidak diklasifikasikan"
             for row in rows[header_index + 1:]:
                 name = str(row.get(name_col, "")).strip()
@@ -86,16 +86,11 @@ class Command(BaseCommand):
                     continue
                 if row.get(1):
                     category = str(row[1]).strip()
-                raw_price = str(row.get(price_col, "")).replace(",", "").replace(".", "")
-                price = None
-                try:
-                    price = int(float(raw_price)) if raw_price else None
-                except ValueError:
-                    price = None
+                # Kolom harga di katalog sengaja tidak dibaca (keputusan 6 Okt 2026).
                 Product.objects.update_or_create(
                     category=f"{kind} · {category}",
                     name=name,
-                    defaults={"ingredient": str(row.get(ingredient_col, "") or "").strip(), "sale_price": price, "source": path.name, "active": "RACIKAN" not in category.upper()},
+                    defaults={"ingredient": str(row.get(ingredient_col, "") or "").strip(), "source": path.name, "active": "RACIKAN" not in category.upper()},
                 )
                 imported += 1
         self.stdout.write(self.style.SUCCESS(f"Produk diimpor/diperbarui: {imported}"))

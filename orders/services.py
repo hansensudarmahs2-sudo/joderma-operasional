@@ -52,7 +52,6 @@ def create_online_order(*, clinic, user, **data):
     data["rm_number"] = normalize_rm_number(clinic, data["rm_number"])
     order = OnlineOrder.objects.create(clinic=clinic, order_no=f"ONL-{clinic.code.upper()}-{sequence:05d}", created_by=user, status=OnlineOrderStatus.DRAFT, product_name=product_name or (product.name if product else "Draft"), **data)
     OnlineOrderItem.objects.create(order=order, product=product, product_name=product_name or (product.name if product else ""), quantity=quantity)
-    order.recalculate_totals()
     return order
 
 
@@ -61,7 +60,6 @@ def add_order_item(order, *, user, **data):
         raise PermissionDenied("Item hanya dapat ditambahkan pada draft order Anda.")
     product = data.get("product")
     item = OnlineOrderItem.objects.create(order=order, product=product, product_name=data.get("product_name") or (product.name if product else ""), quantity=data.get("quantity", 1))
-    order.recalculate_totals()
     return item
 
 
