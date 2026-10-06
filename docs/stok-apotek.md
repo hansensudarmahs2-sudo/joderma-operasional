@@ -55,6 +55,10 @@ Aturan baca (`stok/parser.py`):
 - `xlrd` menolak semua file Omnicare dengan setelan bawaan ("Workbook corruption"); file
   dibuka dengan `ignore_workbook_corruption=True`.
 - Kolom dibaca menurut posisi, bukan label (header pergerakan memuat salah ketik "DJIUAL").
+- Nama bulan di judul tidak seragam antar laporan Omnicare: Daftar Produk/Pergerakan memakai bahasa
+  Indonesia ("05 OKTOBER 2026"), Penjualan Produk bahasa Inggris ("01 OCTOBER 2026"), Penjualan Farmasi
+  singkatan ("01 SEP 2026"). Parser menerima ketiganya (`stok.parser.BULAN`); bulan yang tidak dikenal
+  menjadi pesan galat yang jelas, bukan error 500.
 - Angka dibulatkan 2 desimal (file memuat sisa pecahan seperti 7,499994 dan −0,015).
 - Laporan pergerakan harus satu bulan penuh; selain itu ditolak.
 - Kunci pencocokan = nama + dosis, huruf kecil tanpa spasi. Daftar Produk memisahkan nama

@@ -21,6 +21,17 @@ BULAN = {
     "JANUARI": 1, "FEBRUARI": 2, "MARET": 3, "APRIL": 4, "MEI": 5, "JUNI": 6, "JULI": 7,
     "AGUSTUS": 8, "SEPTEMBER": 9, "OKTOBER": 10, "NOVEMBER": 11, "DESEMBER": 12,
 }
+# 6 Okt 2026: judul ekspor Omnicare tidak seragam bahasanya. Daftar Produk dan Pergerakan Stok memakai
+# nama bulan Indonesia ("05 OKTOBER 2026"), tetapi Penjualan Produk memakai Inggris ("01 OCTOBER 2026")
+# dan Penjualan Farmasi singkatan ("01 SEP 2026"). Semua bentuk diterima; jangan mengandalkan satu bahasa.
+BULAN.update({
+    "JANUARY": 1, "FEBRUARY": 2, "MARCH": 3, "MAY": 5, "JUNE": 6, "JULY": 7, "AUGUST": 8,
+    "OCTOBER": 10, "DECEMBER": 12,
+})
+BULAN.update({
+    "JAN": 1, "FEB": 2, "MAR": 3, "APR": 4, "JUN": 6, "JUL": 7, "AGU": 8, "AGT": 8, "AGS": 8, "AUG": 8,
+    "SEP": 9, "SEPT": 9, "OKT": 10, "OCT": 10, "NOP": 11, "NOV": 11, "DES": 12, "DEC": 12,
+})
 KODE_CABANG = {"30376": "jemur", "31281": "citra"}
 
 _TANGGAL = r"(\d{1,2})\s+([A-Z]+)\s+(\d{4})"
@@ -156,6 +167,8 @@ def _pergerakan(judul: str, rows: list[list], nama_file: str) -> HasilBaca:
     if len(tanggal) != 2:
         raise FileTidakDikenal("Periode laporan pergerakan tidak terbaca dari judul.")
     (d1, m1, y1), (d2, m2, y2) = tanggal
+    if m1 not in BULAN or m2 not in BULAN:
+        raise FileTidakDikenal(f"Nama bulan di judul tidak dikenali: {m1} / {m2}.")
     awal = dt.date(int(y1), BULAN[m1], int(d1))
     akhir = dt.date(int(y2), BULAN[m2], int(d2))
     besok = akhir + dt.timedelta(days=1)
