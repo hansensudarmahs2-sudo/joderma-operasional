@@ -244,6 +244,41 @@ memberi notifikasi ke pihak lain. Selama usulan belum dijawab (atau laporan belu
 dapat memakai **Batalkan usulan** dengan alasan; semua Owner diberi tahu. Daftar usulan
 menampilkan "Perlu tindakan" (bawaan) atau "Semua".
 
+## Projects
+
+Menu **Projects** (`/projects/`) dipakai untuk pekerjaan yang terdiri dari banyak task kecil yang
+diberikan ke perorangan, misalnya renovasi ruang tunggu. Project adalah wadah; setiap task di
+dalamnya tetap muncul di **Tugas saya** staf dan di Daftar Task, Kanban, dan Jadwal Task Anda
+dengan sumber **Project**.
+
+- **Membuat project.** Tekan **+ Project baru**: isi nama, uraian, target, cabang (kosong =
+  lintas cabang), **Project leader** (satu orang), dan **Co-project leader** (boleh lebih dari
+  satu, staf pun boleh). Leader dan co-leader mendapat notifikasi. Hanya Owner dan Direktur yang
+  dapat membuat project; Anda melihat semua project.
+- **Hak per peran.** *Project leader*: menambah, mengubah, dan menugaskan task, membatalkan
+  status selesai (revisi), mengubah uraian dan target, serta mengatur co-leader. *Co-project
+  leader*: sama, kecuali mengubah uraian dan target serta mengatur co-leader. *Pembuat project, Owner, dan
+  Direktur*: semua itu ditambah menunjuk atau mengganti leader, **Tutup project**, dan
+  **Batalkan project**. Owner dan Direktur juga dapat menutup atau mengubah satu task project dari
+  halaman task Direktur (Daftar Task). Staf yang bukan leader atau co-leader tidak melihat menu Projects dan
+  halamannya ditolak (403).
+- **Menambah task.** Di halaman project buka **+ Task**: judul, uraian, penerima, target,
+  prioritas, dan cabang (penerima harus anggota cabang itu). Pilih mode penyelesaian:
+  **Semua harus selesai** (tiap penerima menyelesaikan bagiannya) atau **Cukup satu orang**
+  (penerima pertama yang menandai selesai otomatis mengambil task; yang lain tidak perlu).
+- **Selesai tanpa konfirmasi.** Staf menandai selesai dengan **bukti wajib** (minimal satu foto
+  atau dokumen, catatan opsional). Task langsung dihitung selesai; Anda tidak perlu
+  mengonfirmasi, dan leader, co-leader, serta pembuat project mendapat notifikasi.
+- **Batalkan selesai (revisi).** Bila bukti kurang tepat, buka detail task dan ketuk
+  **Batalkan selesai (revisi)** pada penerimanya dengan catatan wajib. Task kembali ke staf dan
+  ia diberi tahu.
+- **Progres.** Kartu dan halaman project menampilkan bar progres, mis. "5 dari 8 task · 63%".
+  Task yang baru sebagian selesai ikut dihitung sebagian. Galeri **Bukti dari staf** mengumpulkan
+  foto dan dokumen dari semua task.
+- **Menutup dan membatalkan.** **Tutup project** hanya bila semua task sudah selesai atau
+  dibatalkan. **Batalkan project** wajib beralasan dan ikut membatalkan task yang masih terbuka;
+  datanya tetap tersimpan, tidak dihapus.
+
 ## Ringkasan untuk Owner dan Direktur
 
 Owner cukup tahu apakah ada masalah, keputusan apa yang menggantung, dan kebijakan apa yang

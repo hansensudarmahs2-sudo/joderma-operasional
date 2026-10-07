@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load foto %}
+{% block title %}{{ item.title }}{% endblock %}
+{% block content %}
+<p><a href="{% url 'projects:detail' project.pk %}">← {{ project.name }}</a></p>
+<h1>{{ item.title }}</h1>
+<p class="sub">Project: {{ project.name }} · {{ item.clinic.name }} · {% if shared %}Cukup satu orang{% else %}Semua harus selesai{% endif %} · target {% if item.due_at %}{{ item.due_at|date:"d/m/Y" }}{% else %}—{% endif %} · prioritas {{ item.get_priority_display }}</p>
+<p><span class="tag {% if item.status == 'SELESAI' %}ok{% elif item.status == 'DIKERJAKAN' %}warn{% elif item.status == 'BATAL' %}muted{% else %}info{% endif %}">{{ item.get_status_display }}</span>{% if item.is_overdue %} <span class="tag err">Lewat target</span>{% endif %}</p>
+{% if item.description %}<div class="card" style="white-space:pre-wrap">{{ item.description }}</div>{% endif %}
+
+<section class="card" aria-labelledby="judul-penerima">
+  <h2 id="judul-penerima" style="margin:0 0 .4rem">Penerima</h2>
+  <ul class="request-list">
+    {% for r in rows %}
+    <li class="request-row">
+      <span class="request-main">
+        <strong>{{ r.a.assignee }}</strong>
+        {% if shared and r.a.claimed_by %}<span class="meta">Diambil oleh {{ r.a.claimed_by }}</span>{% endif %}
+        {% if r.a.confirmed_at %}<span class="meta">Selesai {{ r.a.confirmed_at|date:"d/m/Y H.i" }}</span>{% elif r.a.submitted_at %}<span class="meta">Diajukan {{ r.a.submitted_at|date:"d/m/Y H.i" }}</span>{% endif %}
+        {% if r.note %}<span class="meta">Catatan: {{ r.note }}</span>{% endif %}
+        {% if r.a.revision_note and r.a.status == 'REVISION_REQUIRED' %}<span class="meta">Catatan revisi: {{ r.a.revision_note }}</span>{% endif %}
+        {% foto_thumbs r.photos %}{% dokumen_list r.docs %}
+        {% if r.can_reopen %}
+        <details class="task-submit">
+          <summary class="btn small secondary">Batalkan selesai (revisi)</summary>
+          <form method="post" class="stack-form">{% csrf_token %}
+            <input type="hidden" name="aksi" value="revisi"><input type="hidden" name="assignment" value="{{ r.a.pk }}">
+            <label for="rev-{{ r.a.pk }}">Catatan revisi (wajib)</label>
+            <input id="rev-{{ r.a.pk }}" name="catatan" required placeholder="Mis. foto kurang jelas, ulangi">
+            <button class="btn small" type="submit">Kembalikan ke {{ r.a.assignee }}</button>
+          </form>
+        </details>
+        {% endif %}
+      </span>
+      <span class="request-state"><span class="tag {% if r.a.status == 'CONFIRMED' %}ok{% elif r.a.status == 'CANCELLED' %}muted{% elif r.a.status == 'REVISION_REQUIRED' %}warn{% else %}info{% endif %}">{% if r.a.status == 'CONFIRMED' %}Selesai{% else %}{{ r.a.get_status_display }}{% endif %}</span></span>
+    </li>
+    {% empty %}<li class="meta">Belum ada penerima.</li>{% endfor %}
+  </ul>
+</section>
+
+{% if can_manage %}
+<details class="card">
+  <summary>Batalkan task</summary>
+  <form method="post" class="stack-form">{% csrf_token %}
+    <input type="hidden" name="aksi" value="batal_task">
+    <label for="alasan-batal">Alasan pembatalan (wajib)</label>
+    <input id="alasan-batal" name="alasan" required>
+    <button class="btn small secondary" type="submit">Batalkan task</button>
+  </form>
+</details>
+{% endif %}
+
+<section class="card" aria-labelledby="judul-riwayat">
+  <h2 id="judul-riwayat" style="margin:0 0 .4rem">Riwayat</h2>
+  {% if can_comment %}
+  <form method="post" class="stack-form">{% csrf_token %}
+    <input type="hidden" name="aksi" value="komentar">
+    <label for="balas-task">Balas / tulis catatan</label>
+    <input id="balas-task" name="catatan" required placeholder="Mis. vendor minta DP dulu, silakan lanjut">
+    <button class="btn small" type="submit">Kirim</button>
+  </form>
+  {% endif %}
+  <ul class="timeline">
+    {% for e in events %}
+    <li><strong>{{ e.actor|default:"Sistem" }}</strong> <span class="meta">{{ e.created_at|date:"d/m/Y H.i" }} · {{ e.get_event_type_display }}{% if e.assignment %} · {{ e.assignment.assignee }}{% endif %}</span>
+      {% if e.note %}<div style="white-space:pre-wrap">{{ e.note }}</div>{% endif %}
+      {% foto_thumbs e.photos %}{% dokumen_list e.docs %}</li>
+    {% empty %}<li class="meta">Belum ada riwayat.</li>{% endfor %}
+  </ul>
+</section>
+{% endblock %}

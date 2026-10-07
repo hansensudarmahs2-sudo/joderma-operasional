@@ -108,6 +108,22 @@ Usulan yang Direktur Operasional ajukan atas inisiatifnya sendiri ada di menu **
 - Untuk keduanya, tulis di **Percakapan** bila perlu bertanya atau menanggapi; Direktur diberi
   notifikasi.
 
+## Projects
+
+Menu **Projects** (`/projects/`, sesudah Usulan Direktur) memperlihatkan semua project beserta
+bar progresnya ("5 dari 8 task · 63%"). Anda dapat membuat project sendiri dengan **+ Project
+baru**: nama, uraian, target, cabang, satu **Project leader**, dan **Co-project leader** (boleh
+banyak, staf pun boleh). Leader mengatur task: menambah, menugaskan (mode **Semua harus
+selesai** atau **Cukup satu orang**), dan membatalkan status selesai dengan catatan revisi
+(**Batalkan selesai (revisi)**). Co-leader punya hak yang sama kecuali mengubah uraian dan
+target serta mengatur co-leader. Anda, pembuat, dan Direktur juga dapat mengganti leader, **Tutup project**
+(bila semua task selesai), atau **Batalkan project** dengan alasan; data tidak dihapus. Satu task project juga dapat ditutup
+atau diubah dari halaman task Direktur (Daftar Task).
+
+Staf menandai task selesai dengan bukti foto atau dokumen yang wajib, dan task langsung dihitung
+selesai tanpa konfirmasi. Foto dan dokumen itu terkumpul di galeri **Bukti dari staf** pada
+halaman project.
+
 ## Verifikasi pekerjaan Direktur Operasional
 
 Pekerjaan yang dikerjakan sendiri oleh Direktur Operasional diverifikasi Direktur Utama / Owner

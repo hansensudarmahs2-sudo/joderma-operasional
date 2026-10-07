@@ -11,6 +11,7 @@
       <span class="request-main">
         <strong>{{ t.item.title }}</strong>
         <span class="meta">{% if t.item.created_by %}dari {{ t.item.created_by }} · {% endif %}{{ t.item.clinic.name }}{% if t.item.due_at %} · target {{ t.item.due_at|date:"d/m H.i" }}{% endif %}</span>
+        {% if t.project %}<span class="meta"><span class="tag info">Project: {{ t.project }}</span></span>{% endif %}
         {% include "core/_task_desc.html" with desc=t.item.description %}
         {% if t.revision and t.assignment.revision_note %}<span class="meta">Catatan revisi: {{ t.assignment.revision_note }}</span>{% endif %}
         {% if t.last_progress %}<span class="meta">Progres terakhir {{ t.last_progress.created_at|date:"d/m H.i" }}: {{ t.last_progress.note|truncatechars:120 }}</span>{% endif %}
@@ -29,13 +30,20 @@
           </form>
         </details>
         <details class="task-submit">
-          <summary class="btn small">Ajukan selesai</summary>
+          <summary class="btn small">{% if t.project %}Tandai selesai{% else %}Ajukan selesai{% endif %}</summary>
           <form method="post" data-jejak action="{% url 'core:assignment_submit' t.assignment.pk %}" enctype="multipart/form-data" class="stack-form">
             {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+            {% if t.project %}
+            <label for="catatan-task-{{ t.assignment.pk }}">Catatan <span class="meta">(opsional)</span></label>
+            <input id="catatan-task-{{ t.assignment.pk }}" name="catatan" placeholder="Mis. sudah terpasang, foto terlampir">
+            {% lampiran_input "Selesai — lampirkan bukti (wajib): foto atau dokumen" "foto" "" True %}
+            <button class="btn small" type="submit">Tandai selesai</button>
+            {% else %}
             <label for="catatan-task-{{ t.assignment.pk }}">Catatan bukti</label>
             <input id="catatan-task-{{ t.assignment.pk }}" name="catatan" required placeholder="Mis. limbah sudah ditimbang 2,4 kg">
             {% lampiran_input "Foto atau dokumen bukti (opsional)" "foto" %}
             <button class="btn small" type="submit">Kirim</button>
+            {% endif %}
           </form>
         </details>
         <details class="task-submit">

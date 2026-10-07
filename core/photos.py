@@ -196,6 +196,13 @@ def _can_view_task(user, item) -> bool:
         return True
     if item.task_assignments.filter(assignee=user).exists():
         return True
+    if item.source_type == "proyek":
+        # Pengatur project (mis. leader staf) boleh membuka bukti dari penerima task project.
+        from projects.services import can_view_project, project_for_item
+
+        project = project_for_item(item)
+        if project and can_view_project(user, project):
+            return True
     return is_supervisor(user) and can_access_clinic(user, item.clinic)
 
 

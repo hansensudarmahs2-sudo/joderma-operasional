@@ -58,6 +58,7 @@ COMMON = {
 # Jadwal Task dibuka dari dalam dashboard, bukan menu utama; Jadwal Jaga dari "Lihat jadwal penuh".
 OWNER_ALLOWED = COMMON | {
     "owner:*",
+    "projects:*",  # Projects: Owner membuat dan memantau; hak per project diperiksa di view
     "direktur:team",
     "direktur:tasks",  # Daftar Task, baca saja (unduh CSV lewat GET)
     "direktur:meeting",  # Bahan rapat Kamis, baca saja
@@ -293,6 +294,7 @@ def _flags(user) -> dict:
         is_nurse,
         is_supervisor,
     )
+    from projects.services import user_has_projects
 
     return {
         "cash": can_view_cash_amounts(user),
@@ -305,6 +307,7 @@ def _flags(user) -> dict:
         "config": can_manage_config(user),
         "templates": can_manage_templates(user),
         "stok": can_edit_stok(user),
+        "projects": user_has_projects(user),
     }
 
 
@@ -317,6 +320,7 @@ def nav_sections(user) -> list[NavSection]:
         main.add("Dashboard", "owner:dashboard")
         main.add("Inbox", "reports:inbox")
         main.add("Usulan Direktur", "owner:usulan_list")
+        main.add("Projects", "projects:list")
         main.add_group(user, "task")
         main.add_group(user, "evaluasi")
         main.add_group(user, "kebijakan")
@@ -346,6 +350,7 @@ def nav_sections(user) -> list[NavSection]:
         overview.add("Inbox", "reports:inbox")
         overview.add_group(user, "dari_staf")
         overview.add("Tim", "direktur:team")
+        overview.add("Projects", "projects:list")
         overview.add_group(user, "task")
         overview.add_group(user, "evaluasi")
         overview.add_group(user, "kebijakan")
@@ -397,6 +402,8 @@ def nav_sections(user) -> list[NavSection]:
         work.add("Order Produk Online", "orders:index")
     if flags["stok"]:
         work.add("Stok Apotek", "stok:index")
+    if flags["projects"]:
+        work.add("Projects", "projects:list")
     work.add("Kebijakan", "reports:policies")
     sections = [work, team, _report_section(user, flags)]
     if who == PIC:
@@ -431,5 +438,7 @@ def _staff_sections(user, flags) -> list[NavSection]:
         work.add("Order Produk Online", "orders:index")
     if flags["stok"]:
         work.add("Stok Apotek", "stok:index")
+    if flags["projects"]:
+        work.add("Projects", "projects:list")
     work.add("Kebijakan", "reports:policies")
     return [work, _report_section(user, flags)]

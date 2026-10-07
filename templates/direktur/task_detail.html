@@ -109,13 +109,20 @@
           <button class="btn small" type="submit">Simpan progres</button>
         </form>
       </details>
-      <details class="task-submit"><summary class="btn small">Ajukan selesai</summary>
+      <details class="task-submit"><summary class="btn small">{% if item.source_type == 'proyek' %}Tandai selesai{% else %}Ajukan selesai{% endif %}</summary>
         <form method="post" data-jejak action="{% url 'core:assignment_submit' r.a.pk %}" enctype="multipart/form-data" class="stack-form">
           {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+          {% if item.source_type == 'proyek' %}
+          <label for="bukti-{{ r.a.pk }}">Catatan <span class="meta">(opsional)</span></label>
+          <input id="bukti-{{ r.a.pk }}" name="catatan" placeholder="Mis. sudah terpasang, foto terlampir">
+          {% lampiran_input "Selesai — lampirkan bukti (wajib): foto atau dokumen" "foto" "" True %}
+          <button class="btn small" type="submit">Tandai selesai</button>
+          {% else %}
           <label for="bukti-{{ r.a.pk }}">Catatan bukti</label>
           <input id="bukti-{{ r.a.pk }}" name="catatan" required placeholder="Mis. alur baru sudah disosialisasikan ke staf">
           {% lampiran_input "Foto atau dokumen bukti (opsional)" "foto" %}
           <button class="btn small" type="submit">Kirim</button>
+          {% endif %}
         </form>
       </details>
       {% endif %}
@@ -146,7 +153,7 @@
     <label style="flex:1 1 16rem">Tandai selesai tanpa menunggu penerima<input name="catatan" required placeholder="Catatan penutupan (wajib)"></label>
     <button class="btn small" type="submit">Tandai selesai</button>
   </form>
-  {% else %}<p class="meta" style="margin:0">Task ini ditutup lewat ajukan selesai oleh penerima, lalu konfirmasi Direktur Utama / Owner.{% if i_receive %} Anda penerimanya: tekan <strong>Ajukan selesai</strong> di tabel Penerima di atas.{% endif %}</p>{% endif %}
+  {% else %}<p class="meta" style="margin:0">Task ini ditutup lewat ajukan selesai oleh penerima, lalu konfirmasi Direktur Utama / Owner.{% if i_receive %} Anda penerimanya: tekan <strong>{% if item.source_type == "proyek" %}Tandai selesai{% else %}Ajukan selesai{% endif %}</strong> di tabel Penerima di atas.{% endif %}</p>{% endif %}
   <details style="margin-top:.5rem"><summary class="meta">Batalkan task</summary>
     <form method="post" class="inline">{% csrf_token %}
       <input type="hidden" name="aksi" value="batal">

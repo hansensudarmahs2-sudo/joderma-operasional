@@ -119,6 +119,17 @@ cabang tugas di jadwal jaga hari ini, atau cabang asal bila Anda sedang off.
   Anda berubah sendiri menjadi **Selesai** (atau **Diterapkan** untuk masukan) dan Anda mendapat
   notifikasi; penutupan akhir tetap oleh pengelola.
 
+## Task project
+
+Task yang berasal dari sebuah project muncul di **Tugas saya** dengan tag **Project: nama
+project**. Tidak ada tahap konfirmasi: ketuk **Tandai selesai**, **lampirkan bukti (wajib)**
+berupa minimal satu foto atau dokumen (catatan boleh dikosongkan), lalu kirim. Tanpa berkas,
+sistem menolak dan task tetap terbuka. Pada task **Cukup satu orang**, siapa pun penerimanya
+boleh langsung menandai selesai; task otomatis menjadi miliknya. Bila pengatur project
+membatalkan status selesai, task kembali ke Anda dengan **Catatan revisi** dan tag **Perlu
+revisi**; perbaiki lalu tandai selesai lagi. Bila Anda Project leader atau Co-project leader,
+menu **Projects** muncul di menu Anda untuk mengatur task project itu.
+
 ## Sore: menutup hari
 
 1. Front desk mencatat **Kas akhir**: hitung lembar per pecahan, lalu isi **Tunai masuk hari ini**

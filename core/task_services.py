@@ -216,12 +216,29 @@ def claim_shared_task(assignment: TaskAssignment, *, user) -> TaskAssignment:
     return assignment
 
 
+def _assert_own_assignment(assignment: TaskAssignment, user) -> None:
+    """Hanya penerima pada baris assignment itu yang bertindak atasnya.
+
+    Pada task BERSAMA `claimed_by` terisi di semua baris (penerima yang mengambil), tetapi baris milik
+    penerima lain tidak boleh diajukan/dilaporkan atas namanya: baris pengambil sendiri yang menentukan
+    task selesai."""
+    if assignment.assignee_id != user.pk:
+        raise PermissionDenied("Anda bukan penerima task ini.")
+    if assignment.action_item.assignment_mode == TaskAssignmentMode.BERSAMA and assignment.claimed_by_id not in (
+        None, user.pk,
+    ):
+        raise ValidationError("Task bersama sudah diambil penerima lain.")
+
+
 @transaction.atomic
 def submit_assignment(assignment: TaskAssignment, *, user, note: str = "") -> TaskAssignment:
-    if assignment.assignee_id != user.pk and assignment.claimed_by_id != user.pk:
-        raise PermissionDenied("Anda bukan penerima task ini.")
+    _assert_own_assignment(assignment, user)
     if assignment.status in {TaskAssignmentStatus.CONFIRMED, TaskAssignmentStatus.CANCELLED}:
         raise ValidationError("Task ini sudah selesai atau dibatalkan.")
+    if assignment.action_item.source_type == "proyek" and assignment.action_item.assignment_mode == TaskAssignmentMode.BERSAMA:
+        if assignment.claimed_by_id != user.pk:
+            # "Cukup satu orang": penerima pertama yang menandai selesai otomatis mengambil task.
+            assignment = claim_shared_task(assignment, user=user)
     assignment.status = TaskAssignmentStatus.SUBMITTED
     assignment.submitted_at = timezone.now()
     assignment.save(update_fields=["status", "submitted_at", "updated_at"])
@@ -245,7 +262,29 @@ def submit_assignment(assignment: TaskAssignment, *, user, note: str = "") -> Ta
         )
         _finish_item_if_all_confirmed(item, user)
         return assignment
+    if item.source_type == "proyek":
+        return _complete_project_assignment(assignment, item, user)
     _notify_reviewers(assignment, actor=user, note=note)
+    return assignment
+
+
+def _complete_project_assignment(assignment: TaskAssignment, item: ActionItem, user) -> TaskAssignment:
+    """Task project: selesai langsung tanpa konfirmasi; pengatur dapat membatalkannya dengan catatan revisi."""
+    from projects.services import notify_task_done
+
+    assignment.status = TaskAssignmentStatus.CONFIRMED
+    assignment.confirmed_at = timezone.now()
+    assignment.reviewer = None
+    assignment.save(update_fields=["status", "confirmed_at", "reviewer", "updated_at"])
+    TaskEvent.objects.create(
+        action_item=item, assignment=assignment, event_type=TaskEventType.CONFIRMED, actor=user,
+        note="Selesai (task project, tanpa konfirmasi).",
+    )
+    _finish_item_if_all_confirmed(item, user)
+    if item.status == ActionItemStatus.BARU:
+        item.status = ActionItemStatus.DIKERJAKAN  # sebagian penerima sudah selesai
+        item.save(update_fields=["status", "updated_at"])
+    notify_task_done(item, actor=user)
     return assignment
 
 
@@ -302,6 +341,14 @@ def _watchers(item: ActionItem) -> list[User]:
     people = {u.pk: u for u in User.objects.filter(is_active=True, user_roles__role=Role.AOM).distinct()}
     if item.created_by_id and item.created_by.is_active:
         people.setdefault(item.created_by_id, item.created_by)
+    if item.source_type == "proyek":
+        from projects.services import project_for_item
+
+        project = project_for_item(item)
+        if project is not None:
+            for u in (project.leader, *project.co_leaders.all(), project.created_by):
+                if u.is_active:
+                    people.setdefault(u.pk, u)
     return list(people.values())
 
 
@@ -317,8 +364,18 @@ def _notify_task(people, *, actor, item: ActionItem, type_code: str, title: str,
     """Satu notifikasi per orang, tidak ke penulis. Staf ditautkan ke Hari Ini, pengamat ke detail task."""
     from django.urls import reverse
 
+    project = None
+    if not to_staff and item.source_type == "proyek":
+        from projects.services import project_for_item
+
+        project = project_for_item(item)
     for person in {p.pk: p for p in people}.values():
         if person.pk == actor.pk:
+            continue
+        if project is not None and not (is_aom(person) or is_owner(person)):
+            # Leader/co-leader staf tidak boleh membuka halaman Direktur: tautkan ke halaman project.
+            notify_user(person, type_code=type_code, title=title, body=body[:300], entity_ref=f"actionitem#{item.pk}",
+                        url_name="projects:task_detail", url_args=[project.pk, item.pk])
             continue
         if to_staff:
             notif = notify_user(person, type_code=type_code, title=title, body=body[:300],
@@ -337,8 +394,7 @@ def report_blocker(assignment: TaskAssignment, *, user, reason: str, proposed_du
     from audit.models import AuditAction
     from audit.services import log_event
 
-    if assignment.assignee_id != user.pk and assignment.claimed_by_id != user.pk:
-        raise PermissionDenied("Anda bukan penerima task ini.")
+    _assert_own_assignment(assignment, user)
     item = assignment.action_item
     workable = (TaskAssignmentStatus.OPEN, TaskAssignmentStatus.IN_PROGRESS, TaskAssignmentStatus.REVISION_REQUIRED)
     if assignment.status not in workable or item.status not in (ActionItemStatus.BARU, ActionItemStatus.DIKERJAKAN):
@@ -399,8 +455,7 @@ def approve_proposed_due(item: ActionItem, *, actor, expected_due=None) -> Actio
 @transaction.atomic
 def report_progress(assignment: TaskAssignment, *, user, note: str) -> TaskEvent:
     """PIC melaporkan kemajuan (teks; foto ditambahkan view). Status penerima menjadi Dikerjakan."""
-    if assignment.assignee_id != user.pk and assignment.claimed_by_id != user.pk:
-        raise PermissionDenied("Anda bukan penerima task ini.")
+    _assert_own_assignment(assignment, user)
     if assignment.status not in (
         TaskAssignmentStatus.OPEN, TaskAssignmentStatus.IN_PROGRESS, TaskAssignmentStatus.REVISION_REQUIRED
     ):
@@ -461,8 +516,22 @@ def _after_task_final(item: ActionItem, actor) -> None:
 
 
 def _finish_item_if_all_confirmed(item: ActionItem, actor=None) -> None:
-    """Task selesai bila semua penerimanya sudah dikonfirmasi."""
-    if not item.task_assignments.exclude(status=TaskAssignmentStatus.CONFIRMED).exists():
+    """Task selesai bila semua penerimanya sudah dikonfirmasi.
+
+    Task BERSAMA ("cukup satu orang"): selesai bila penerima yang mengambilnya sudah dikonfirmasi;
+    assignment penerima lain tetap terbuka dan tidak ikut dihitung.
+    """
+    assignments = item.task_assignments
+    claimed = None
+    if item.assignment_mode == TaskAssignmentMode.BERSAMA:
+        claimed = assignments.filter(claimed_by__isnull=False).values_list("claimed_by_id", flat=True).first()
+    if claimed is not None:
+        finished = assignments.filter(assignee_id=claimed, status=TaskAssignmentStatus.CONFIRMED).exists()
+    else:
+        live = assignments.exclude(status=TaskAssignmentStatus.CANCELLED)
+        # Penerima yang dicabut tidak dihitung; minimal satu penerima harus sudah dikonfirmasi.
+        finished = live.exists() and not live.exclude(status=TaskAssignmentStatus.CONFIRMED).exists()
+    if finished:
         item.status = ActionItemStatus.SELESAI
         item.save(update_fields=["status", *_clear_blocked(item), "updated_at"])
         _after_task_final(item, actor)
@@ -520,13 +589,21 @@ def request_revision(assignment: TaskAssignment, *, reviewer, note: str) -> Task
 
 
 @transaction.atomic
-def cancel_assignment(assignment: TaskAssignment, *, actor, reason: str) -> TaskAssignment:
+def cancel_assignment(
+    assignment: TaskAssignment, *, actor, reason: str, finish_item: bool = True
+) -> TaskAssignment:
     if not reason.strip():
         raise ValidationError("Alasan pembatalan wajib diisi.")
-    if assignment.action_item.created_by_id != actor.pk and not is_aom(actor):
+    item = assignment.action_item
+    if item.created_by_id != actor.pk and not is_aom(actor) and not _project_manages(item, actor):
         raise PermissionDenied("Hanya pemberi tugas atau Direktur Operasional yang dapat membatalkan task.")
+    was_claimer = item.assignment_mode == TaskAssignmentMode.BERSAMA and assignment.claimed_by_id == assignment.assignee_id
     assignment.status = TaskAssignmentStatus.CANCELLED
     assignment.save(update_fields=["status", "updated_at"])
+    if was_claimer:
+        # Pengambil dicabut: penerima lain boleh mengambil task ini.
+        TaskAssignment.objects.filter(action_item=item).update(claimed_by=None)
+        assignment.claimed_by = None
     TaskEvent.objects.create(
         action_item=assignment.action_item,
         assignment=assignment,
@@ -534,6 +611,9 @@ def cancel_assignment(assignment: TaskAssignment, *, actor, reason: str) -> Task
         actor=actor,
         note=reason.strip(),
     )
+    if finish_item and item.status in (ActionItemStatus.BARU, ActionItemStatus.DIKERJAKAN):
+        # Penerima yang dicabut bisa jadi yang terakhir ditunggu; cancel_task menutup item sendiri.
+        _finish_item_if_all_confirmed(item, actor)
     return assignment
 
 
@@ -547,9 +627,25 @@ OPEN_ASSIGNMENT_STATES = {
 }
 
 
+def _project_manages(item: ActionItem, user) -> bool:
+    """Pengatur project (leader, co-leader, pembuat, Owner, Direktur) atas task project."""
+    if item.source_type != "proyek" or not user or not user.is_authenticated:
+        return False
+    from projects.services import can_manage_tasks, project_for_item
+
+    project = project_for_item(item)
+    return bool(project and can_manage_tasks(user, project))
+
+
 def can_manage_task(item: ActionItem, user) -> bool:
-    """Pemberi tugas atau Direktur Operasional boleh mengubah, menutup, dan membatalkan task."""
-    if not user or not user.is_authenticated or not can_access_clinic(user, item.clinic):
+    """Pemberi tugas atau Direktur Operasional boleh mengubah, menutup, dan membatalkan task.
+
+    Task project: juga pengatur project-nya (Project leader, co-leader, pembuat, Owner)."""
+    if not user or not user.is_authenticated:
+        return False
+    if _project_manages(item, user):
+        return True
+    if not can_access_clinic(user, item.clinic):
         return False
     return item.created_by_id == user.pk or is_aom(user)
 
@@ -642,7 +738,7 @@ def cancel_task(item: ActionItem, *, actor, reason: str) -> ActionItem:
     if not reason:
         raise ValidationError("Alasan pembatalan wajib diisi.")
     for assignment in item.task_assignments.filter(status__in=OPEN_ASSIGNMENT_STATES):
-        cancel_assignment(assignment, actor=actor, reason=reason)
+        cancel_assignment(assignment, actor=actor, reason=reason, finish_item=False)
     before = snapshot(item)
     item.status = ActionItemStatus.BATAL
     item.progress_note = reason
@@ -701,7 +797,11 @@ def my_task_row(item: ActionItem, assignment: TaskAssignment | None, user, now) 
         "due_today": bool(local_due and local_due == timezone.localtime(now).date() and not item.is_overdue),
         "can_claim": bool(assignment and shared and assignment.claimed_by_id is None
                           and status == TaskAssignmentStatus.OPEN),
-        "can_submit": bool(assignment and workable and (not shared or assignment.claimed_by_id == user.pk)),
+        "can_submit": bool(assignment and workable and (
+            not shared or assignment.claimed_by_id == user.pk
+            # Task project "cukup satu orang": menandai selesai otomatis mengambil task.
+            or (item.source_type == "proyek" and assignment.claimed_by_id is None))),
+        "project": None,  # nama project; diisi oleh _attach_projects
         "last_progress": item.task_events.filter(event_type=TaskEventType.PROGRESS).order_by("-created_at").first(),
         "dirut": item.reviewed_by_dirut,
         "thread": thread,
@@ -748,7 +848,21 @@ def my_tasks(user) -> list[dict]:
     rows.sort(key=lambda r: (r["waiting"], not r["overdue"], not r["revision"], r["item"].due_at or far,
                              r["item"].created_at))
     _attach_documents(rows)
+    _attach_projects(rows)
     return rows
+
+
+def _attach_projects(rows: list[dict]) -> None:
+    """Nama project untuk task project di kartu Tugas saya: satu query untuk semua baris."""
+    ids = {r["item"].source_id for r in rows if r["item"].source_type == "proyek" and r["item"].source_id}
+    if not ids:
+        return
+    from projects.models import Project
+
+    names = dict(Project.objects.filter(pk__in=ids).values_list("pk", "name"))
+    for r in rows:
+        if r["item"].source_type == "proyek":
+            r["project"] = names.get(r["item"].source_id)
 
 
 def _attach_documents(rows: list[dict]) -> None:

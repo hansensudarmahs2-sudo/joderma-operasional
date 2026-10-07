@@ -28,8 +28,8 @@ def foto_input(label="Foto (opsional)", name="foto", help_text=""):
 
 
 @register.inclusion_tag("includes/attachment_field.html")
-def lampiran_input(label="Foto atau dokumen (opsional)", name="foto", help_text=""):
-    return {"label": label, "name": name, "help_text": help_text}
+def lampiran_input(label="Foto atau dokumen (opsional)", name="foto", help_text="", required=False):
+    return {"label": label, "name": name, "help_text": help_text, "required": required}
 
 
 @register.inclusion_tag("includes/document_links.html")

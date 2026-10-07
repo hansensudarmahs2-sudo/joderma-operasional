@@ -98,7 +98,8 @@ def test_owner_menu_is_short(client, clinic):
     client.force_login(_user(clinic, "yohanes", Role.OWNER))
     body = client.get(reverse("owner:dashboard")).content.decode()
     menu = _nav(body)
-    assert menu[:8] == ["Dashboard", "Inbox", "Usulan Direktur", "Task", "Evaluasi staf", "Kebijakan", "Summary Harian", "Jadwal"]
+    assert menu[:9] == ["Dashboard", "Inbox", "Usulan Direktur", "Projects", "Task", "Evaluasi staf", "Kebijakan",
+                        "Summary Harian", "Jadwal"]
     for label in OWNER_FORBIDDEN_MENU:
         assert label not in menu
     assert "Owner / Direktur Utama" in body
@@ -107,7 +108,7 @@ def test_owner_menu_is_short(client, clinic):
 def test_director_menu_keeps_everything(client, clinic):
     client.force_login(_user(clinic, "hansen1", Role.AOM))
     menu = _nav(client.get(reverse("direktur:overview")).content.decode())
-    assert menu[:7] == ["Ringkasan", "Inbox", "Dari staf", "Tim", "Task", "Evaluasi staf", "Kebijakan"]
+    assert menu[:8] == ["Ringkasan", "Inbox", "Dari staf", "Tim", "Projects", "Task", "Evaluasi staf", "Kebijakan"]
     for label in ("Komplain", "Kerusakan", "Laporan staf", "Masukan privat staf"):
         assert label not in menu  # tab di halaman Dari staf
     for label in ("Checklist Direktur",

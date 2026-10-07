@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Project baru{% endblock %}
+{% block content %}
+<p><a href="{% url 'projects:list' %}">← Projects</a></p>
+<h1>Project baru</h1>
+<form method="post" class="card stack-form" style="max-width:640px">{% csrf_token %}
+  <label for="nama">Nama project</label>
+  <input id="nama" name="nama" required maxlength="200" value="{{ values.name }}" placeholder="Mis. Renovasi ruang tunggu">
+  <label for="uraian">Uraian <span class="meta">(opsional)</span></label>
+  <textarea id="uraian" name="uraian" rows="3">{{ values.description }}</textarea>
+  <label for="target">Target selesai <span class="meta">(opsional)</span></label>
+  <input id="target" type="date" name="target" min="{{ today|date:'Y-m-d' }}" value="{{ values.target }}">
+  <label for="cabang">Cabang</label>
+  <select id="cabang" name="cabang">
+    <option value="">Lintas cabang</option>
+    {% for c in clinics %}<option value="{{ c.pk }}"{% if values.clinic == c.pk|stringformat:"s" %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+  </select>
+  <label for="leader">Project leader</label>
+  <select id="leader" name="leader" required>
+    <option value="">— pilih —</option>
+    {% for p in people %}<option value="{{ p.user.pk }}"{% if values.leader == p.user.pk|stringformat:"s" %} selected{% endif %}>{{ p.user }}</option>{% endfor %}
+  </select>
+  <label for="co_leaders">Co-project leader <span class="meta">(opsional; tahan Ctrl/Cmd untuk memilih lebih dari satu)</span></label>
+  <select id="co_leaders" name="co_leaders" multiple size="6">
+    {% for p in people %}<option value="{{ p.user.pk }}"{% if p.user.pk|stringformat:"s" in values.co_leaders %} selected{% endif %}>{{ p.user }}</option>{% endfor %}
+  </select>
+  <button class="btn" type="submit">Buat project</button>
+</form>
+{% endblock %}

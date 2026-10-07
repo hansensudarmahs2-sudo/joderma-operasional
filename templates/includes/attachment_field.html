@@ -1,5 +1,5 @@
 <div class="field-row photo-field">
   <label for="id_{{ name }}">{{ label }}</label>
-  <input id="id_{{ name }}" type="file" name="{{ name }}" accept="image/*,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" data-photo="1">
+  <input id="id_{{ name }}" type="file" name="{{ name }}" accept="image/*,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" data-photo="1"{% if required %} required{% endif %}>
   <p class="help">{% if help_text %}{{ help_text }} {% endif %}Foto dikecilkan otomatis; PDF atau DOCX maks. 10 MB.</p>
 </div>

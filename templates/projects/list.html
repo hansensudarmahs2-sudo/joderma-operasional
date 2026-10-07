@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+<div class="checklist-heading">
+  <h1 style="margin:0">Projects</h1>
+  {% if can_create %}<a class="btn" href="{% url 'projects:new' %}">+ Project baru</a>{% endif %}
+</div>
+<p class="tab-row">
+  <a class="btn small{% if selesai %} secondary{% endif %}" href="{% url 'projects:list' %}">Berjalan</a>
+  <a class="btn small{% if not selesai %} secondary{% endif %}" href="{% url 'projects:list' %}?semua=1">Selesai &amp; dibatalkan</a>
+</p>
+{% for r in rows %}
+{% with p=r.project pr=r.progress %}
+<section class="card" aria-label="{{ p.name }}">
+  <div class="checklist-heading" style="margin:0">
+    <h2 style="margin:0"><a href="{% url 'projects:detail' p.pk %}">{{ p.name }}</a></h2>
+    <span>
+      {% if r.overdue %}<span class="tag err">Lewat target</span> {% endif %}
+      <span class="tag {% if p.status == 'AKTIF' %}info{% elif p.status == 'SELESAI' %}ok{% else %}muted{% endif %}">{{ p.get_status_display }}</span>
+    </span>
+  </div>
+  <p class="meta" style="margin:.3rem 0">{{ p.clinic.name|default:"Lintas cabang" }} · Project leader: {{ p.leader }}{% if p.target_date %} · target {{ p.target_date|date:"d/m/Y" }}{% endif %}</p>
+  <div class="progress" role="progressbar" aria-valuenow="{{ pr.percent }}" aria-valuemin="0" aria-valuemax="100"><span style="width: {{ pr.percent }}%"></span></div>
+  <p class="meta" style="margin:.3rem 0 0">{{ pr.done }} dari {{ pr.total }} task · {{ pr.percent }}%</p>
+</section>
+{% endwith %}
+{% empty %}
+<p class="meta">Belum ada project.</p>
+{% endfor %}
+{% endblock %}

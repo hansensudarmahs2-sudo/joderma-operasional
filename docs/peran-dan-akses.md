@@ -133,6 +133,11 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Mengubah status Laporan staf (7 Okt 2026) | supervisor, PIC, AOM di cabang itu | — |
 | Menambah tanggapan pada Laporan staf | supervisor, PIC, AOM | — |
 | Menulis tanggapan pada Masukan privat | AOM | — |
+| Membuat project | Owner, AOM | — |
+| Melihat project dan task-nya | Owner, AOM, pembuat, Project leader, Co-project leader | — |
+| Menambah/mengubah/menugaskan task project dan membatalkan selesai (revisi) | Owner, AOM, pembuat, Project leader, Co-project leader | — |
+| Mengubah uraian dan target project, mengatur co-leader | Owner, AOM, pembuat, Project leader | — |
+| Menunjuk/mengganti leader, menutup, dan membatalkan project | Owner, AOM, pembuat | — |
 | Membuka komplain terbatas | supervisor, AOM, owner | `issue.view_restricted`, `report.view_confidential`, `admin.full_access` |
 | Menutup hari operasional | supervisor | — |
 | Membaca audit log | supervisor, AOM, owner | `audit.view`, `admin.full_access` |

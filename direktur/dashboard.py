@@ -39,6 +39,7 @@ SOURCE_LABELS = {
     "issue": "Komplain/masukan/kerusakan",
     "laporan": "Laporan staf",
     "masukan": "Masukan staf",
+    "proyek": "Project",
 }
 
 
@@ -68,6 +69,7 @@ SOURCE_CHOICES = [
     ("issue", "Komplain/masukan/kerusakan"),
     ("laporan", "Laporan staf"),
     ("masukan", "Masukan staf"),
+    ("proyek", "Project"),
     ("checklist", "Checklist staf"),
     ("lain", "Modul lain"),
 ]
@@ -83,6 +85,7 @@ def source_url(item: ActionItem) -> str:
         "masukan": "reports:masukan_page_detail",
         "permintaan_owner": "owner:request_detail",
         "keputusan": "direktur:decision_detail",
+        "proyek": "projects:detail",
     }
     route = routes.get(item.source_type)
     return reverse(route, args=[item.source_id]) if route and item.source_id else ""

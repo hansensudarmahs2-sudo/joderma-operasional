@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% load foto %}
+{% block title %}{{ project.name }}{% endblock %}
+{% block content %}
+<p><a href="{% url 'projects:list' %}">← Projects</a></p>
+<div class="checklist-heading" style="margin:0">
+  <h1 style="margin:0">{{ project.name }}</h1>
+  <span>
+    {% if overdue %}<span class="tag err">Lewat target</span> {% endif %}
+    <span class="tag {% if project.status == 'AKTIF' %}info{% elif project.status == 'SELESAI' %}ok{% else %}muted{% endif %}">{{ project.get_status_display }}</span>
+  </span>
+</div>
+<p class="sub">{{ project.clinic.name|default:"Lintas cabang" }} · dibuat {{ project.created_by }} · {{ project.created_at|date:"d/m/Y" }}{% if project.target_date %} · target <strong>{{ project.target_date|date:"d/m/Y" }}</strong>{% endif %}</p>
+
+<section class="card" aria-label="Ringkasan project">
+  <p style="margin:0 0 .3rem"><strong>Project leader:</strong> {{ project.leader }}</p>
+  <p style="margin:0 0 .6rem"><strong>Co-project leader:</strong> {% for u in co_leaders %}{{ u }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="meta">belum ada</span>{% endfor %}</p>
+  <div class="progress" role="progressbar" aria-valuenow="{{ progress.percent }}" aria-valuemin="0" aria-valuemax="100"><span style="width: {{ progress.percent }}%"></span></div>
+  <p class="meta" style="margin:.3rem 0 0">{{ progress.done }} dari {{ progress.total }} task · {{ progress.percent }}%</p>
+  {% if project.description %}<div style="white-space:pre-wrap;margin-top:.6rem">{{ project.description }}</div>{% endif %}
+  {% if project.close_note %}<p class="meta" style="margin:.6rem 0 0">Catatan penutupan: {{ project.close_note }}</p>{% endif %}
+</section>
+
+<section aria-labelledby="judul-task">
+  <h2 id="judul-task">Task</h2>
+  <table class="responsive">
+    <thead><tr><th>Task</th><th>Penerima</th><th>Status</th><th>Target</th><th>Prioritas</th><th>Bukti</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      {% with item=r.item %}
+      <tr>
+        <td data-label="Task"><span><a href="{% url 'projects:task_detail' project.pk item.pk %}"><strong>{{ item.title }}</strong></a>{% if item.assignment_mode == 'BERSAMA' %}<div class="meta">Cukup satu orang</div>{% endif %}</span></td>
+        <td data-label="Penerima">{{ r.who }}</td>
+        <td data-label="Status"><span><span class="tag {% if item.status == 'SELESAI' %}ok{% elif item.status == 'DIKERJAKAN' %}warn{% else %}info{% endif %}">{{ item.get_status_display }}</span>{% if r.counter %}<div class="meta">{{ r.counter }}</div>{% endif %}</span></td>
+        <td data-label="Target">{% if item.due_at %}{{ item.due_at|date:"d/m/Y" }}{% if item.is_overdue %} <span class="tag err">Lewat</span>{% endif %}{% else %}—{% endif %}</td>
+        <td data-label="Prioritas">{{ item.get_priority_display }}</td>
+        <td data-label="Bukti">{{ r.evidence.count }}</td>
+      </tr>
+      {% endwith %}
+    {% empty %}
+      <tr><td colspan="6" class="meta">Belum ada task.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if can_manage %}
+<details class="card" id="tambah-task">
+  <summary>+ Task</summary>
+  <form method="post" class="stack-form" style="max-width:640px">{% csrf_token %}
+    <input type="hidden" name="aksi" value="tambah_task">
+    <label for="t-judul">Judul task</label>
+    <input id="t-judul" name="judul" required maxlength="200" placeholder="Mis. Pasang rak buku">
+    <label for="t-uraian">Uraian <span class="meta">(opsional)</span></label>
+    <textarea id="t-uraian" name="uraian" rows="3"></textarea>
+    <label for="t-cabang">Cabang</label>
+    <select id="t-cabang" name="cabang">
+      <option value="">Otomatis{% if project.clinic %} (cabang project){% endif %}</option>
+      {% for c in clinics %}<option value="{{ c.pk }}"{% if project.clinic_id == c.pk %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+    <label for="t-penerima">Penerima <span class="meta">(hanya anggota cabang task; tahan Ctrl/Cmd untuk memilih lebih dari satu)</span></label>
+    <select id="t-penerima" name="penerima" multiple size="6" required>
+      {% for p in people %}{% if p.recipient %}<option value="{{ p.user.pk }}" data-clinics="{{ p.clinics }}">{{ p.user }}</option>{% endif %}{% endfor %}
+    </select>
+    <p style="margin:.2rem 0">
+      <label style="display:inline-block;margin-right:1rem"><input type="radio" name="mode" value="INDIVIDUAL" style="width:auto" checked> Semua harus selesai</label>
+      <label style="display:inline-block"><input type="radio" name="mode" value="BERSAMA" style="width:auto"> Cukup satu orang</label>
+    </p>
+    <label for="t-target">Target <span class="meta">(opsional)</span></label>
+    <input id="t-target" type="date" name="target" min="{{ today|date:'Y-m-d' }}">
+    <label for="t-prioritas">Prioritas</label>
+    <select id="t-prioritas" name="prioritas">
+      {% for v, l in priorities %}<option value="{{ v }}"{% if v == 'SEDANG' %} selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select>
+    <button class="btn" type="submit">Tambah task</button>
+  </form>
+  <script>
+  (function () {
+    var c = document.getElementById('t-cabang'), s = document.getElementById('t-penerima');
+    if (!c || !s) return;
+    function f() {
+      var v = c.value;
+      [].forEach.call(s.options, function (o) {
+        var k = o.getAttribute('data-clinics') || '';
+        var ok = !v || k === '*' || (',' + k + ',').indexOf(',' + v + ',') >= 0;
+        o.hidden = !ok; o.disabled = !ok;
+        if (!ok) o.selected = false;
+      });
+    }
+    c.addEventListener('change', f); f();
+  })();
+  </script>
+</details>
+{% endif %}
+
+<section class="card" aria-labelledby="judul-bukti">
+  <h2 id="judul-bukti" style="margin:0 0 .4rem">Bukti dari staf</h2>
+  {% for r in gallery %}
+  <div style="margin-bottom:.8rem">
+    <a href="{% url 'projects:task_detail' project.pk r.item.pk %}"><strong>{{ r.item.title }}</strong></a>
+    {% foto_thumbs r.evidence.photos %}{% dokumen_list r.evidence.docs %}
+  </div>
+  {% empty %}
+  <p class="meta">Belum ada bukti.</p>
+  {% endfor %}
+</section>
+
+{% if can_edit or can_admin %}
+<details class="card" id="pengaturan">
+  <summary>Pengaturan project</summary>
+  {% if can_edit %}
+  <form method="post" class="stack-form" style="max-width:640px">{% csrf_token %}
+    <input type="hidden" name="aksi" value="ubah">
+    <label for="p-uraian">Uraian</label>
+    <textarea id="p-uraian" name="uraian" rows="3">{{ project.description }}</textarea>
+    <label for="p-target">Target</label>
+    <input id="p-target" type="date" name="target" value="{{ project.target_date|date:'Y-m-d' }}">
+    <button class="btn small" type="submit">Simpan uraian dan target</button>
+  </form>
+  <h3>Co-project leader</h3>
+  <ul class="request-list">
+    {% for u in co_leaders %}
+    <li class="request-row"><span class="request-main">{{ u }}</span>
+      <span class="request-state"><form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="aksi" value="hapus_coleader"><input type="hidden" name="user" value="{{ u.pk }}"><button class="btn small secondary" type="submit">Hapus</button></form></span></li>
+    {% empty %}<li class="meta">Belum ada co-leader.</li>{% endfor %}
+  </ul>
+  <form method="post" class="stack-form">{% csrf_token %}
+    <input type="hidden" name="aksi" value="tambah_coleader">
+    <label for="p-co">Tambah co-leader</label>
+    <select id="p-co" name="user" required>
+      <option value="">— pilih —</option>
+      {% for p in people %}<option value="{{ p.user.pk }}">{{ p.user }}</option>{% endfor %}
+    </select>
+    <button class="btn small" type="submit">Tambah</button>
+  </form>
+  {% endif %}
+  {% if can_admin %}
+  <h3>Project leader</h3>
+  <form method="post" class="stack-form">{% csrf_token %}
+    <input type="hidden" name="aksi" value="ganti_leader">
+    <label for="p-leader">Ganti Project leader (sekarang: {{ project.leader }})</label>
+    <select id="p-leader" name="leader" required>
+      <option value="">— pilih —</option>
+      {% for p in people %}<option value="{{ p.user.pk }}">{{ p.user }}</option>{% endfor %}
+    </select>
+    <button class="btn small" type="submit">Ganti leader</button>
+  </form>
+  <h3>Tutup atau batalkan</h3>
+  <form method="post" class="stack-form">{% csrf_token %}
+    <input type="hidden" name="aksi" value="tutup">
+    <label for="p-tutup">Catatan penutupan <span class="meta">(opsional; semua task harus sudah selesai)</span></label>
+    <input id="p-tutup" name="catatan">
+    <button class="btn small" type="submit">Tutup project</button>
+  </form>
+  <form method="post" class="stack-form">{% csrf_token %}
+    <input type="hidden" name="aksi" value="batalkan">
+    <label for="p-batal">Alasan pembatalan <span class="meta">(wajib; task yang masih terbuka ikut dibatalkan)</span></label>
+    <input id="p-batal" name="alasan" required>
+    <button class="btn small secondary" type="submit">Batalkan project</button>
+  </form>
+  {% endif %}
+</details>
+{% endif %}
+{% endblock %}

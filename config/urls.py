@@ -23,6 +23,7 @@ urlpatterns = [
     path("owner/", include(("owner.urls", "owner"), namespace="owner")),
     path("audit/", include(("audit.urls", "audit"), namespace="audit")),
     path("jejak/", include(("jejak.urls", "jejak"), namespace="jejak")),
+    path("projects/", include(("projects.urls", "projects"), namespace="projects")),
     path("absensi/", include(("absensi.urls", "absensi"), namespace="absensi")),
     path("health/", core_views.health, name="health"),
     path("django-admin/", admin.site.urls),

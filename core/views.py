@@ -327,7 +327,7 @@ def action_items(request):
     for item in qs[:200]:
         assignments = list(item.task_assignments.all())
         my_assignment = next(
-            (a for a in assignments if a.assignee_id == user.pk or a.claimed_by_id == user.pk),
+            (a for a in assignments if a.assignee_id == user.pk),
             None,
         )
         can_claim = bool(
@@ -356,7 +356,12 @@ def action_items(request):
                 "item": item,
                 "my_assignment": my_assignment,
                 "can_claim": can_claim,
-                "can_submit": can_submit,
+                "can_submit": can_submit or bool(
+                    my_assignment and item.source_type == "proyek" and item.assignment_mode == "BERSAMA"
+                    and my_assignment.claimed_by_id is None
+                    and my_assignment.status in {TaskAssignmentStatus.OPEN, TaskAssignmentStatus.IN_PROGRESS,
+                                                 TaskAssignmentStatus.REVISION_REQUIRED}
+                ),
                 "review_assignments": review_assignments,
             }
         )
@@ -380,8 +385,19 @@ def action_item_update(request, pk: int):
         raise PermissionDenied("Anda bukan penanggung jawab action item ini.")
     from audit.services import log_update, snapshot
 
+    new_status = request.POST.get("status", item.status)
+    if new_status not in ActionItemStatus.values:
+        messages.error(request, "Status tidak dikenali.")
+        return redirect("core:action_items")
+    if item.source_type == "proyek" and new_status != item.status:
+        if new_status == ActionItemStatus.SELESAI:
+            messages.error(request, "Task project diselesaikan lewat Tandai selesai dengan bukti.")
+            return redirect("core:action_items")
+        if new_status == ActionItemStatus.BATAL or item.status in (ActionItemStatus.SELESAI, ActionItemStatus.BATAL):
+            messages.error(request, "Batalkan lewat halaman project.")
+            return redirect("core:action_items")
     before = snapshot(item)
-    item.status = request.POST.get("status", item.status)
+    item.status = new_status
     item.progress_note = request.POST.get("catatan", item.progress_note)
     item.save()
     log_update(item, before, actor=request.user)
@@ -436,15 +452,24 @@ def assignment_submit(request, pk: int):
     if not can_access_clinic(request.user, assignment.action_item.clinic):
         raise PermissionDenied("Anda tidak memiliki akses ke task cabang ini.")
     try:
+        from projects.services import is_project_item
+
         note = request.POST.get("catatan", "").strip()
-        if not note:
+        is_project = is_project_item(assignment.action_item)
+        if is_project:
+            # Task project langsung dihitung selesai (tanpa konfirmasi): bukti berkas wajib, catatan opsional.
+            if not request.FILES.get("foto"):
+                raise ValidationError("Bukti wajib: lampirkan foto atau dokumen.")
+        elif not note:
             # Bukti wajib berupa catatan; foto opsional (keputusan 3 Okt 2026, tahap 2 paket C).
             raise ValidationError("Tulis catatan bukti: apa yang sudah dikerjakan.")
         with transaction.atomic():
             submitted = submit_assignment(assignment, user=request.user, note=note)
             save_optional_attachment(request, entity_type="taskassignment", entity_id=assignment.pk)
         _stamp(request, "AJUKAN", clinic=assignment.action_item.clinic, entity=assignment)
-        if submitted.status == TaskAssignmentStatus.CONFIRMED:
+        if submitted.status == TaskAssignmentStatus.CONFIRMED and is_project:
+            messages.success(request, "Task selesai dan tercatat di project.")
+        elif submitted.status == TaskAssignmentStatus.CONFIRMED:
             messages.success(request, "Sub task selesai (task Direktur pada temuan, tanpa verifikasi).")
         else:
             who = "Direktur Utama / Owner" if assignment.action_item.reviewed_by_dirut else "pemeriksa"

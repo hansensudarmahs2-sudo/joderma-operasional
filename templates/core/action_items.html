@@ -40,9 +40,15 @@
         {% if row.can_submit %}
         <form method="post" data-jejak action="{% url 'core:assignment_submit' row.my_assignment.pk %}" style="margin-top:.3rem" enctype="multipart/form-data">
           {% csrf_token %}
+          {% if item.source_type == "proyek" %}
+          <input name="catatan" placeholder="Catatan (opsional)">
+          <input type="file" name="foto" accept="image/*,.pdf,.docx" data-photo="1" aria-label="Bukti (wajib): foto atau dokumen" required>
+          <button class="btn small" type="submit">Tandai selesai</button>
+          {% else %}
           <input name="catatan" placeholder="Catatan bukti (wajib)" required>
           <input type="file" name="foto" accept="image/*" data-photo="1" aria-label="Foto bukti (opsional)">
           <button class="btn small" type="submit">Ajukan selesai</button>
+          {% endif %}
         </form>
         <form method="post" data-jejak action="{% url 'core:assignment_progress' row.my_assignment.pk %}" style="margin-top:.3rem" enctype="multipart/form-data">
           {% csrf_token %}
