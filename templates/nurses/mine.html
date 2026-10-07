@@ -63,6 +63,6 @@
 
 <h2>Tally saya hari ini</h2>
 <table class="responsive"><thead><tr><th>RM</th><th>Nama pasien</th><th>Tindakan</th><th>Jumlah</th><th>Jam</th></tr></thead>
-<tbody>{% for t in tallies %}<tr><td data-label="RM">{{ t.rm_number }}</td><td data-label="Nama pasien">{{ t.patient_name }}</td><td data-label="Tindakan">{{ t.action_name }}</td><td data-label="Jumlah">{{ t.tally }}{% if t.corrected_at %} <span class="tag warn" title="{{ t.correction_reason }}">dikoreksi</span>{% endif %}</td><td data-label="Jam">{{ t.created_at|time:"H.i" }}</td></tr>{% empty %}<tr><td colspan="5" class="meta">Belum ada tally hari ini.</td></tr>{% endfor %}</tbody></table>
+<tbody>{% for t in tallies %}<tr><td data-label="RM">{{ t.rm_number|default:"—" }}</td><td data-label="Nama pasien">{% if t.susulan %}<span class="tag warn">susulan</span> <span class="meta">{{ t.susulan_reason }}</span>{% else %}{{ t.patient_name }}{% endif %}</td><td data-label="Tindakan">{{ t.action_name|default:"—" }}</td><td data-label="Jumlah">{{ t.tally }}{% if t.corrected_at %} <span class="tag warn" title="{{ t.correction_reason }}">dikoreksi</span>{% endif %}</td><td data-label="Jam">{{ t.created_at|time:"H.i" }}</td></tr>{% empty %}<tr><td colspan="5" class="meta">Belum ada tally hari ini.</td></tr>{% endfor %}</tbody></table>
 <p class="meta">Salah input? Minta Koordinator Shift mengoreksi.</p>
 {% endblock %}

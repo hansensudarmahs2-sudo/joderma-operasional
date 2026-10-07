@@ -83,6 +83,16 @@ perawat, atau tindakan, dan **alasan (wajib)**. Total bulanan ikut terkoreksi da
 perubahan tercatat di audit. Hanya Koordinator Shift cabang itu dan Direktur
 Operasional yang bisa mengoreksi.
 
+**Tally susulan.** Bila perawat lupa menulis tally-nya, buka **Giliran Perawat ▸
+Koreksi tally per tanggal**, pilih tanggalnya, lalu isi **Tambah tally susulan**:
+perawat, jumlah, dan **alasan (wajib)**. Nomor RM, pasien, dan tindakan tidak diisi;
+barisnya bertanda **susulan**. Tally susulan menambah total harian dan bulanan
+perawat itu tetapi **tidak menggeser urutan papan**; aturan mengejar (yang tertinggal
+didahulukan) ikut memakai total baru. Perawat yang bisa dipilih: perawat cabang itu
+dan yang ada di roster tanggal itu. Hanya untuk tanggal di bulan
+berjalan sampai hari ini; bulan yang sudah lewat terkunci. Salah catat? Koreksi
+barisnya seperti tally biasa (0 = batalkan).
+
 **Pindah urutan antrean.** Tersedia lewat **Pindah urutan** pada papan antrean,
 wajib alasan.
 

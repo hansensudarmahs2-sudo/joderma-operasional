@@ -133,6 +133,7 @@ STAF_BLOCKED = {
     "nurses:sync",
     "nurses:tally_day",
     "nurses:tally_correct",
+    "nurses:tally_backfill",
 }
 
 # Staf membuka Kas hanya pada hari ia ditugaskan sebagai kasir (porsi kelompok Kas di Pembagian Tugas).

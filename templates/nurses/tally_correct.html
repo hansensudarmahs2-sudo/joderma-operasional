@@ -3,7 +3,7 @@
 {% block content %}
 <p><a href="{% url 'nurses:tally_day' %}?cabang={{ day.clinic_id }}&tanggal={{ day.date|date:'Y-m-d' }}">← Tally {{ day.date|date:"d/m/Y" }}</a></p>
 <h1>Koreksi tally</h1>
-<p class="sub">{{ day.clinic.name }} · {{ day.date|date:"l, d/m/Y" }} · {{ tally.rm_number }} {{ tally.patient_name }} · dicatat {{ tally.entered_by }} pukul {{ tally.created_at|date:"H.i" }}</p>
+<p class="sub">{{ day.clinic.name }} · {{ day.date|date:"l, d/m/Y" }} · {% if tally.susulan %}tally susulan: {{ tally.susulan_reason }}{% else %}{{ tally.rm_number }} {{ tally.patient_name }}{% endif %} · dicatat {{ tally.entered_by }} pukul {{ tally.created_at|date:"H.i" }}</p>
 <form method="post" class="card">
   {% csrf_token %}
   <div class="inline">

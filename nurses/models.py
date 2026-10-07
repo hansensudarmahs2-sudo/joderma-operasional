@@ -204,10 +204,15 @@ class NurseActionTally(models.Model):
 
     operational_day = models.ForeignKey("core.OperationalDay", on_delete=models.CASCADE, related_name="nurse_tallies")
     nurse = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="nurse_tallies")
-    rm_number = models.CharField("nomor RM", max_length=32)
-    patient_name = models.CharField("nama pasien", max_length=120)
-    action_name = models.CharField("tindakan", max_length=160)
+    # Kosong hanya pada tally susulan; form tally biasa tetap mewajibkannya (forms.py).
+    rm_number = models.CharField("nomor RM", max_length=32, blank=True)
+    patient_name = models.CharField("nama pasien", max_length=120, blank=True)
+    action_name = models.CharField("tindakan", max_length=160, blank=True)
     tally = models.PositiveIntegerField("jumlah", default=1)
+    # Tally susulan (8 Okt 2026): dicatat Koordinator Shift untuk perawat yang lupa menulis,
+    # tanpa pasien dan tindakan. Alasan wajib; tidak menggeser urutan papan.
+    susulan = models.BooleanField("tally susulan", default=False)
+    susulan_reason = models.CharField("alasan susulan", max_length=250, blank=True)
     entered_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="nurse_tallies_entered")
     created_at = models.DateTimeField(auto_now_add=True)
     # Koreksi oleh Koordinator Shift / Direktur Operasional (riwayat lengkap ada di audit log).
@@ -221,4 +226,6 @@ class NurseActionTally(models.Model):
         ordering = ("-created_at", "-id")
 
     def __str__(self) -> str:
+        if self.susulan:
+            return f"Tally susulan · {self.nurse}"
         return f"{self.rm_number} · {self.patient_name} · {self.action_name}"

@@ -3,7 +3,7 @@
 {% block content %}
 <p><a href="{% url 'nurses:board' %}">← Giliran Perawat</a></p>
 <h1>Koreksi tally per tanggal</h1>
-<p class="sub">Untuk Koordinator Shift cabang dan Direktur Operasional. Setiap koreksi wajib beralasan dan tercatat di audit; total bulanan ikut terkoreksi.</p>
+<p class="sub">Untuk Koordinator Shift cabang dan Direktur Operasional. Setiap koreksi wajib beralasan dan tercatat di audit; total bulanan ikut terkoreksi. Perawat lupa menulis? <a href="#susulan">Tambah tally susulan</a>.</p>
 <form method="get" class="inline card">
   {% if clinics|length > 1 %}
   <div><label for="cabang">Cabang</label>
@@ -15,9 +15,33 @@
 <h2>{{ clinic.name }} · {{ date|date:"l, d/m/Y" }}</h2>
 <table class="responsive"><thead><tr><th>RM</th><th>Nama pasien</th><th>Tindakan</th><th>Jumlah</th><th>Perawat</th><th>Dicatat oleh</th><th></th></tr></thead>
 <tbody>{% for t in tallies %}<tr>
-  <td data-label="RM">{{ t.rm_number }}</td><td data-label="Nama pasien">{{ t.patient_name }}</td><td data-label="Tindakan">{{ t.action_name }}</td>
+  <td data-label="RM">{{ t.rm_number|default:"—" }}</td><td data-label="Nama pasien">{% if t.susulan %}<span class="tag warn">susulan</span> <span class="meta">{{ t.susulan_reason }}</span>{% else %}{{ t.patient_name }}{% endif %}</td><td data-label="Tindakan">{{ t.action_name|default:"—" }}</td>
   <td data-label="Jumlah">{{ t.tally }}{% if t.corrected_at %}<div class="meta">dikoreksi {{ t.corrected_by }} {{ t.corrected_at|date:"d/m H.i" }}: {{ t.correction_reason }}</div>{% endif %}</td>
   <td data-label="Perawat">{{ t.nurse }}</td><td data-label="Dicatat oleh">{{ t.entered_by }} <span class="meta">{{ t.created_at|date:"H.i" }}</span></td>
   <td><a class="btn small secondary" href="{% url 'nurses:tally_correct' t.pk %}">Koreksi</a></td>
 </tr>{% empty %}<tr><td colspan="7" class="meta">{% if has_day %}Belum ada tally pada tanggal ini.{% else %}Tidak ada sesi hari operasional pada tanggal ini.{% endif %}</td></tr>{% endfor %}</tbody></table>
+
+<section class="card" id="susulan">
+  <h2>Tambah tally susulan</h2>
+  {% if can_backfill %}
+  <p class="meta">Untuk perawat yang lupa menulis tally-nya. Tanpa nomor RM, pasien, dan tindakan; alasan wajib dan tercatat di audit. Menambah total harian dan bulanan perawat itu, tetapi tidak menggeser urutan papan. Aturan mengejar (yang tertinggal didahulukan) ikut memakai total baru.</p>
+  <form method="post" action="{% url 'nurses:tally_backfill' %}">{% csrf_token %}
+    <input type="hidden" name="cabang" value="{{ clinic.pk }}"><input type="hidden" name="tanggal" value="{{ date|date:'Y-m-d' }}">
+    <div class="inline">
+      <div><label for="susulan-perawat">Perawat</label>
+        <select id="susulan-perawat" name="perawat" required><option value="">— pilih —</option>{% for n in nurses %}<option value="{{ n.pk }}">{{ n }}</option>{% endfor %}</select></div>
+      <div><label for="susulan-jumlah">Jumlah</label><input id="susulan-jumlah" type="number" name="jumlah" min="1" max="20" value="1" required style="max-width:7rem"></div>
+    </div>
+    <label for="susulan-alasan">Alasan</label>
+    <input id="susulan-alasan" name="alasan" required maxlength="250" placeholder="Mis. perawat lupa menulis 2 tindakan sore">
+    <p><button class="btn" type="submit">Simpan tally susulan</button></p>
+  </form>
+  {% elif date < backfill_start %}
+  <p class="meta">Tally susulan hanya untuk bulan berjalan, mulai {{ backfill_start|date:"d/m/Y" }}. Bulan yang sudah lewat terkunci supaya rekap komisi tidak berubah.</p>
+  {% elif not has_day %}
+  <p class="meta">Tidak ada sesi hari operasional pada tanggal ini, jadi tally susulan tidak bisa dicatat.</p>
+  {% else %}
+  <p class="meta">Tally susulan tidak bisa dicatat untuk tanggal yang belum tiba.</p>
+  {% endif %}
+</section>
 {% endblock %}

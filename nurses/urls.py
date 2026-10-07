@@ -10,6 +10,7 @@ urlpatterns = [
     path("tally/", views.create_tally, name="tally_create"),
     path("tally/per-tanggal/", views.tally_day, name="tally_day"),
     path("tally/<int:pk>/koreksi/", views.tally_correct, name="tally_correct"),
+    path("tally/susulan/", views.tally_backfill, name="tally_backfill"),
     path("roster/", views.roster_form, name="roster"),
     path("tindakan/", views.assign, name="assign"),
     path("tindakan/<int:pk>/mulai/", views.start, name="start"),

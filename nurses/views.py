@@ -26,8 +26,11 @@ from .models import (
     NurseActionTally,
 )
 from .services import (
+    backfill_nurses,
+    backfill_window,
     can_correct_tally,
     correct_tally,
+    record_backfill_tally,
     after_tally,
     hand_over,
     move_entry,
@@ -313,7 +316,7 @@ def _parse_date(raw, default):
 @login_required
 def tally_day(request):
     """Daftar tally satu tanggal untuk dikoreksi (Koordinator Shift / Direktur)."""
-    from core.models import Clinic, OperationalDay, local_today
+    from core.models import Clinic, OperationalDay
     from core.permissions import can_access_clinic, user_clinic_queryset
 
     clinic = active_clinic(request.user)
@@ -322,17 +325,55 @@ def tally_day(request):
         clinic = get_object_or_404(Clinic, pk=raw_clinic if raw_clinic.isdigit() else 0)
     if not can_access_clinic(request.user, clinic) or not can_correct_tally(request.user, clinic):
         raise PermissionDenied("Koreksi tally hanya oleh Koordinator Shift cabang ini, Direktur Operasional, atau pemegang hak koreksi tally.")
-    the_date = _parse_date(request.GET.get("tanggal"), local_today())
+    start, today = backfill_window(clinic)
+    # Bawaan: hari operasional yang berjalan (kemarin bila penutupan molor lewat tengah malam).
+    the_date = _parse_date(request.GET.get("tanggal"), today)
     tallies = NurseActionTally.objects.filter(
         operational_day__clinic=clinic, operational_day__date=the_date
     ).select_related("nurse", "entered_by", "corrected_by")
+    day = OperationalDay.objects.filter(clinic=clinic, date=the_date).first()
+    has_day = day is not None
     return render(request, "nurses/tally_day.html", {
         "clinic": clinic,
         "clinics": [c for c in user_clinic_queryset(request.user).order_by("id") if can_correct_tally(request.user, c)],
         "date": the_date,
         "tallies": tallies,
-        "has_day": OperationalDay.objects.filter(clinic=clinic, date=the_date).exists(),
+        "has_day": has_day,
+        # Tally susulan: bulan berjalan sampai hari ini, pada tanggal yang punya sesi (hari ini selalu boleh).
+        "can_backfill": start <= the_date <= today and (has_day or the_date == today),
+        "backfill_start": start,
+        "nurses": backfill_nurses(clinic, day),
     })
+
+
+def _all_nurses():
+    return User.objects.filter(
+        is_active=True, user_roles__role=Role.PERAWAT
+    ).distinct().order_by("display_name", "username")
+
+
+@login_required
+@require_POST
+def tally_backfill(request):
+    """Tally susulan dari halaman per tanggal (Koordinator Shift / Direktur)."""
+    from django.urls import reverse
+
+    from core.models import Clinic
+
+    clinic = get_object_or_404(Clinic, pk=request.POST.get("cabang") if (request.POST.get("cabang") or "").isdigit() else 0)
+    if not can_correct_tally(request.user, clinic):
+        raise PermissionDenied("Tally susulan hanya oleh Koordinator Shift cabang ini, Direktur Operasional, atau pemegang hak koreksi tally.")
+    the_date = _parse_date(request.POST.get("tanggal"), None)
+    raw_nurse = request.POST.get("perawat") or ""
+    nurse = _all_nurses().filter(pk=raw_nurse).first() if raw_nurse.isdigit() else None
+    try:
+        record_backfill_tally(clinic, the_date, user=request.user, nurse=nurse,
+                              amount=request.POST.get("jumlah", ""), reason=request.POST.get("alasan", ""))
+        messages.success(request, "Tally susulan dicatat. Total harian dan bulanan ikut bertambah; urutan papan tidak bergeser.")
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    query = f"?cabang={clinic.pk}" + (f"&tanggal={the_date.isoformat()}" if the_date else "")
+    return redirect(reverse("nurses:tally_day") + query)
 
 
 @login_required
@@ -341,9 +382,7 @@ def tally_correct(request, pk: int):
     day = tally.operational_day
     if not can_correct_tally(request.user, day.clinic):
         raise PermissionDenied("Koreksi tally hanya oleh Koordinator Shift cabang ini, Direktur Operasional, atau pemegang hak koreksi tally.")
-    nurses = User.objects.filter(
-        is_active=True, user_roles__role=Role.PERAWAT
-    ).distinct().order_by("display_name", "username")
+    nurses = _all_nurses()
     if request.method == "POST":
         nurse = nurses.filter(pk=request.POST.get("perawat") or tally.nurse_id).first()
         try:

@@ -190,7 +190,9 @@ Unduhan itu sendiri tercatat di audit. Koordinator Shift hanya bisa membaca audi
 - **Selisih belum ditutup.** Halaman **Kas** mendaftar semua kas berstatus Selisih dari kedua cabang,
   termasuk dari hari yang sudah lewat. Ketuk untuk membuka Review dan menutup perkaranya.
 - **Koreksi tally.** Seperti Koordinator Shift, Anda dapat mengoreksi tally di kedua cabang lewat
-  **Giliran Perawat ▸ Koreksi tally per tanggal** (alasan wajib, tercatat di audit).
+  **Giliran Perawat ▸ Koreksi tally per tanggal** (alasan wajib, tercatat di audit). Di halaman
+  yang sama ada **Tambah tally susulan** untuk perawat yang lupa menulis: tanpa pasien dan
+  tindakan, alasan wajib, bulan berjalan saja, urutan papan tidak bergeser (aturan mengejar ikut memakai total baru).
 - **Cabang aktif.** Pilih cabang di kanan atas; pilihan berlaku untuk hari ini.
 - **Penugasan staf.** Harian: Pembagian Tugas ▸ klik tanggal ▸ **Siapa bertugas hari ini**,
   ubah status atau kirim perbantuan ke cabang lain. Bulanan: ketuk kotak di **Jadwal Jaga**.

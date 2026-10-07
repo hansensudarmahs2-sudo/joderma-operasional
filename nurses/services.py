@@ -679,3 +679,77 @@ def correct_tally(tally: NurseActionTally, *, user, amount: int, nurse=None, act
             entry.turns_taken = max(0, entry.turns_taken + delta)
             entry.save(update_fields=["turns_taken"])
     return tally
+
+
+def backfill_window(clinic):
+    """Rentang tanggal tally susulan: tanggal 1 bulan berjalan sampai hari operasional sekarang."""
+    from core.models import operational_date
+
+    today = operational_date(clinic)
+    return today.replace(day=1), today
+
+
+def backfill_nurses(clinic, day=None):
+    """Perawat yang boleh diberi tally susulan: pemegang peran Perawat di cabang itu, ditambah
+    yang ada di roster hari itu (perawat pinjaman cabang lain)."""
+    from django.db.models import Q
+
+    from accounts.models import Role, User
+
+    cond = Q(user_roles__role=Role.PERAWAT, user_roles__clinic=clinic)
+    if day is not None:
+        cond |= Q(roster_entries__operational_day=day)
+    return User.objects.filter(cond, is_active=True).distinct().order_by("display_name", "username")
+
+
+@transaction.atomic
+def record_backfill_tally(clinic, date, *, user, nurse, amount, reason: str) -> NurseActionTally:
+    """Tally susulan (8 Okt 2026) untuk perawat yang tidak menulis tally-nya sendiri.
+
+    Hanya pemegang hak koreksi tally cabang itu. Tanpa RM, pasien, dan tindakan; alasan wajib;
+    tanggal di bulan berjalan sampai hari ini. Menambah total harian dan bulanan, tetapi tidak
+    menggeser papan giliran (urutan dan ketersediaan tetap), sebab pekerjaannya sudah lewat.
+    """
+    from audit.services import log_create
+    from core.models import OperationalDay
+    from core.services import get_or_create_day
+
+    if not can_correct_tally(user, clinic):
+        raise PermissionDenied("Tally susulan hanya oleh Koordinator Shift cabang ini, Direktur Operasional, atau pemegang hak koreksi tally.")
+    reason = (reason or "").strip()
+    if not reason:
+        raise ValidationError("Tuliskan alasan tally susulan.")
+    if nurse is None:
+        raise ValidationError("Pilih perawat.")
+    try:
+        amount = int(amount)
+    except (TypeError, ValueError):
+        raise ValidationError("Jumlah tidak valid.")
+    if amount < 1 or amount > 20:
+        raise ValidationError("Jumlah harus antara 1 dan 20.")
+    start, today = backfill_window(clinic)
+    if date is None or not (start <= date <= today):
+        raise ValidationError(
+            f"Tally susulan hanya untuk tanggal {start:%d/%m/%Y} sampai {today:%d/%m/%Y} (bulan berjalan)."
+        )
+    if date == today:
+        day, _ = get_or_create_day(clinic, date=today, user=user)
+    else:
+        day = OperationalDay.objects.filter(clinic=clinic, date=date).first()
+        if day is None:
+            raise ValidationError("Tidak ada sesi hari operasional pada tanggal ini.")
+    if not backfill_nurses(clinic, day).filter(pk=nurse.pk).exists():
+        raise ValidationError(f"{nurse} bukan perawat cabang ini dan tidak ada di roster tanggal itu.")
+
+    tally = NurseActionTally.objects.create(
+        operational_day=day, nurse=nurse, tally=amount, entered_by=user,
+        susulan=True, susulan_reason=reason[:250],
+    )
+    log_create(tally, actor=user, reason=reason,
+               label=f"Tally susulan · {amount}x · {nurse} ({clinic.name}, {date:%d/%m/%Y})")
+    # Hitungan giliran hari itu ikut bertambah, tanpa memindahkan posisi di papan.
+    entry = NurseRosterEntry.objects.filter(operational_day=day, nurse=nurse).first()
+    if entry is not None:
+        entry.turns_taken += amount
+        entry.save(update_fields=["turns_taken"])
+    return tally

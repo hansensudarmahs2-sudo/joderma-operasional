@@ -188,6 +188,7 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Koordinat dan radius cabang (Pengaturan Klinik) | yang boleh mengubah pengaturan klinik | — |
 | Mengunduh audit (CSV, sesuai saringan; tercatat sebagai EXPORT) | AOM | `admin.full_access` |
 | Mengoreksi tally (jumlah, perawat, tindakan; alasan wajib) | supervisor (Koordinator Shift) cabang itu, AOM (keputusan 3 Okt 2026) | `tally.correct` |
+| Mencatat tally susulan tanpa pasien (alasan wajib, bulan berjalan, tidak menggeser papan) | supervisor (Koordinator Shift) cabang itu, AOM (keputusan 8 Okt 2026) | `tally.correct` |
 | Menutup hari sesudah kas akhir diajukan (verifikasi menyusul) | supervisor, AOM | — |
 | Melihat nominal, memverifikasi, mengoreksi kas | front desk (penghitung kedua), supervisor, AOM | — |
 

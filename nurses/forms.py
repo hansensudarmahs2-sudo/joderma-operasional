@@ -13,3 +13,6 @@ class NurseActionTallyForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if nurse_queryset is not None:
             self.fields["nurse"].queryset = nurse_queryset
+        # Kolom model boleh kosong untuk tally susulan; tally biasa tetap wajib lengkap.
+        for name in ("rm_number", "patient_name", "action_name"):
+            self.fields[name].required = True
