@@ -32,7 +32,7 @@ from .models import (
     TaskAssignmentStatus,
     local_today,
 )
-from .photos import save_optional_photo, task_photos
+from .photos import save_optional_attachment, task_photos
 from .permissions import (
     can_access_clinic,
     can_close_day,
@@ -442,7 +442,7 @@ def assignment_submit(request, pk: int):
             raise ValidationError("Tulis catatan bukti: apa yang sudah dikerjakan.")
         with transaction.atomic():
             submitted = submit_assignment(assignment, user=request.user, note=note)
-            save_optional_photo(request, entity_type="taskassignment", entity_id=assignment.pk)
+            save_optional_attachment(request, entity_type="taskassignment", entity_id=assignment.pk)
         _stamp(request, "AJUKAN", clinic=assignment.action_item.clinic, entity=assignment)
         if submitted.status == TaskAssignmentStatus.CONFIRMED:
             messages.success(request, "Sub task selesai (task Direktur pada temuan, tanpa verifikasi).")
@@ -466,7 +466,7 @@ def assignment_progress(request, pk: int):
     try:
         with transaction.atomic():
             event = report_progress(assignment, user=request.user, note=request.POST.get("catatan", ""))
-            save_optional_photo(request, entity_type="taskevent", entity_id=event.pk)
+            save_optional_attachment(request, entity_type="taskevent", entity_id=event.pk)
         _stamp(request, "PROGRES", clinic=assignment.action_item.clinic, entity=assignment)
         messages.success(request, "Progres dicatat.")
     except ValidationError as exc:

@@ -733,4 +733,18 @@ def my_tasks(user) -> list[dict]:
     far = dt.datetime.max.replace(tzinfo=dt.timezone.utc)
     rows.sort(key=lambda r: (r["waiting"], not r["overdue"], not r["revision"], r["item"].due_at or far,
                              r["item"].created_at))
+    _attach_documents(rows)
     return rows
+
+
+def _attach_documents(rows: list[dict]) -> None:
+    """Dokumen (PDF/DOCX) untuk kartu Tugas saya: satu query per jenis entitas, bukan per baris."""
+    from .photos import documents_for
+
+    events = [e for r in rows for e in r["thread"]]
+    event_docs = documents_for("taskevent", [e.pk for e in events])
+    for e in events:
+        e.docs = event_docs.get(e.pk, [])
+    assignment_docs = documents_for("taskassignment", [r["assignment"].pk for r in rows if r["assignment"]])
+    for r in rows:
+        r["evidence_docs"] = assignment_docs.get(r["assignment"].pk, []) if r["assignment"] else []

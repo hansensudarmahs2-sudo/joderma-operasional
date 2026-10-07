@@ -12,7 +12,7 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 
 from core import task_services
-from core.photos import SOURCE_PHOTO_ENTITY, photos_for, save_optional_photo
+from core.photos import SOURCE_PHOTO_ENTITY, documents_for, photos_for, save_optional_photo
 from core.models import (
     ActionItem,
     ActionItemStatus,
@@ -625,8 +625,10 @@ def task_detail(request, pk: int):
             "source_photos": photos_for(entity, [item.source_id]).get(item.source_id, [])
             if entity and item.source_id else [],
             "evidence_photos": photos_for("taskassignment", [a.pk for a in assignments]),
+            "evidence_docs": documents_for("taskassignment", [a.pk for a in assignments]),
             "events": events,
             "event_photos": photos_for("taskevent", [e.pk for e in events]),
+            "event_docs": documents_for("taskevent", [e.pk for e in events]),
             "dirut_review": item.reviewed_by_dirut,
             "review_choices": ReviewBy.choices,
             "source": dict(dashboard.SOURCE_CHOICES).get(dashboard.source_group(item), "Modul lain"),

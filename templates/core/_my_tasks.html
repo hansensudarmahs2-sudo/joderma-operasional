@@ -15,7 +15,7 @@
         {% if t.revision and t.assignment.revision_note %}<span class="meta">Catatan revisi: {{ t.assignment.revision_note }}</span>{% endif %}
         {% if t.last_progress %}<span class="meta">Progres terakhir {{ t.last_progress.created_at|date:"d/m H.i" }}: {{ t.last_progress.note|truncatechars:120 }}</span>{% endif %}
         {% if t.dirut %}<span class="meta">Diverifikasi Direktur Utama / Owner.</span>{% endif %}
-        {% foto_thumbs task_photos|ambil:t.item.pk %}
+        {% foto_thumbs task_photos|ambil:t.item.pk %}{% dokumen_list t.evidence_docs %}
         <span class="task-actions-row">
         {% if t.can_submit %}
         <details class="task-submit">
@@ -24,7 +24,7 @@
             {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
             <label for="progres-task-{{ t.assignment.pk }}">Kemajuan</label>
             <input id="progres-task-{{ t.assignment.pk }}" name="catatan" required placeholder="Mis. vendor dihubungi, datang Senin">
-            {% foto_input "Foto (opsional)" "foto" %}
+            {% lampiran_input "Foto atau dokumen (opsional)" "foto" %}
             <button class="btn small" type="submit">Simpan progres</button>
           </form>
         </details>
@@ -34,7 +34,7 @@
             {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
             <label for="catatan-task-{{ t.assignment.pk }}">Catatan bukti</label>
             <input id="catatan-task-{{ t.assignment.pk }}" name="catatan" required placeholder="Mis. limbah sudah ditimbang 2,4 kg">
-            {% foto_input "Foto bukti (opsional)" "foto" %}
+            {% lampiran_input "Foto atau dokumen bukti (opsional)" "foto" %}
             <button class="btn small" type="submit">Kirim</button>
           </form>
         </details>
@@ -56,7 +56,7 @@
           <div class="stack-form">
             {% if t.thread %}
             <ul class="timeline">
-              {% for e in t.thread %}<li><strong>{{ e.actor|default:"Sistem" }}</strong> <span class="meta">{{ e.created_at|date:"d/m H.i" }} · {{ e.get_event_type_display }}</span><div style="white-space:pre-wrap">{{ e.note }}</div></li>{% endfor %}
+              {% for e in t.thread %}<li><strong>{{ e.actor|default:"Sistem" }}</strong> <span class="meta">{{ e.created_at|date:"d/m H.i" }} · {{ e.get_event_type_display }}</span><div style="white-space:pre-wrap">{{ e.note }}</div>{% dokumen_list e.docs %}</li>{% endfor %}
             </ul>
             {% else %}<p class="meta">Belum ada percakapan.</p>{% endif %}
             <form method="post" action="{% url 'core:task_comment' t.item.pk %}" class="stack-form">

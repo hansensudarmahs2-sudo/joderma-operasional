@@ -233,7 +233,7 @@ def test_task_evidence_photo_from_hari_ini(client, clinic, director, perawat, st
     assignment = item.task_assignments.get()
     client.force_login(perawat)
     card = client.get(reverse("core:dashboard")).content.decode().split('id="tugas-saya"', 1)[1]
-    assert "Foto bukti (opsional)" in card.split("</section>", 1)[0]
+    assert "Foto atau dokumen bukti (opsional)" in card.split("</section>", 1)[0]
     client.post(reverse("core:assignment_submit", args=[assignment.pk]),
                 {"next": reverse("core:dashboard"), "catatan": "2,4 kg", "foto": _png()})
     assignment.refresh_from_db()

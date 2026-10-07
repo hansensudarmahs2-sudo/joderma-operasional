@@ -25,3 +25,13 @@ def foto_thumbs(photos):
 @register.inclusion_tag("includes/photo_field.html")
 def foto_input(label="Foto (opsional)", name="foto", help_text=""):
     return {"label": label, "name": name, "help_text": help_text}
+
+
+@register.inclusion_tag("includes/attachment_field.html")
+def lampiran_input(label="Foto atau dokumen (opsional)", name="foto", help_text=""):
+    return {"label": label, "name": name, "help_text": help_text}
+
+
+@register.inclusion_tag("includes/document_links.html")
+def dokumen_list(docs):
+    return {"docs": docs or []}

@@ -76,7 +76,7 @@
     <td data-label="Nama"><strong>{{ r.a.assignee }}</strong>{% if r.a.claimed_by and r.a.claimed_by_id != r.a.assignee_id %}<div class="meta">diambil {{ r.a.claimed_by }}</div>{% endif %}</td>
     <td data-label="Status"><span class="tag {% if r.a.status == 'CONFIRMED' %}ok{% elif r.a.status == 'SUBMITTED' %}info{% elif r.a.status == 'REVISION_REQUIRED' %}warn{% elif r.a.status == 'CANCELLED' %}muted{% endif %}">{{ r.a.get_status_display }}</span>
       {% if r.a.status == 'REVISION_REQUIRED' and r.a.revision_note %}<div class="meta">Revisi: {{ r.a.revision_note }}</div>{% endif %}
-      {% foto_thumbs evidence_photos|ambil:r.a.pk %}</td>
+      {% foto_thumbs evidence_photos|ambil:r.a.pk %}{% dokumen_list evidence_docs|ambil:r.a.pk %}</td>
     <td data-label="Waktu" class="meta">{% if r.a.confirmed_at %}dikonfirmasi {{ r.a.confirmed_at|date:"d/m H:i" }}{% if r.a.reviewer %} oleh {{ r.a.reviewer }}{% endif %}{% elif r.a.submitted_at %}diajukan {{ r.a.submitted_at|date:"d/m H:i" }}{% else %}dikirim {{ r.a.created_at|date:"d/m H:i" }}{% endif %}</td>
     <td data-label="Tindakan" class="stack"><div class="task-actions">
       {% if r.can_review %}
@@ -105,7 +105,7 @@
           {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
           <label for="progres-{{ r.a.pk }}">Kemajuan</label>
           <input id="progres-{{ r.a.pk }}" name="catatan" required placeholder="Mis. sudah disosialisasikan, evaluasi tgl 12/10">
-          {% foto_input "Foto (opsional)" "foto" %}
+          {% lampiran_input "Foto atau dokumen (opsional)" "foto" %}
           <button class="btn small" type="submit">Simpan progres</button>
         </form>
       </details>
@@ -114,7 +114,7 @@
           {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
           <label for="bukti-{{ r.a.pk }}">Catatan bukti</label>
           <input id="bukti-{{ r.a.pk }}" name="catatan" required placeholder="Mis. alur baru sudah disosialisasikan ke staf">
-          {% foto_input "Foto bukti (opsional)" "foto" %}
+          {% lampiran_input "Foto atau dokumen bukti (opsional)" "foto" %}
           <button class="btn small" type="submit">Kirim</button>
         </form>
       </details>
@@ -162,7 +162,7 @@
   {% for e in events %}
   <li><strong>{{ e.get_event_type_display }}</strong>{% if e.assignment %} · {{ e.assignment.assignee }}{% endif %}
     <span class="meta">· {{ e.created_at|date:"d/m/Y H:i" }}{% if e.actor %} · {{ e.actor }}{% endif %}</span>
-    {% if e.note %}<div style="white-space:pre-wrap">{{ e.note }}</div>{% endif %}{% foto_thumbs event_photos|ambil:e.pk %}</li>
+    {% if e.note %}<div style="white-space:pre-wrap">{{ e.note }}</div>{% endif %}{% foto_thumbs event_photos|ambil:e.pk %}{% dokumen_list event_docs|ambil:e.pk %}</li>
   {% empty %}<li class="meta">Belum ada riwayat.</li>{% endfor %}
 </ul>
 {% if can_comment %}

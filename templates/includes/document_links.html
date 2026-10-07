@@ -1,0 +1,1 @@
+{% if docs %}<div class="doc-links">{% for d in docs %}<a class="meta" style="display:block;overflow-wrap:anywhere" href="{% url 'core:attachment' d.pk %}" title="Dokumen oleh {{ d.uploaded_by }} · {{ d.uploaded_at|date:'d/m H:i' }}">📄 {{ d.original_name }} · {{ d.size_display }}</a>{% endfor %}</div>{% endif %}

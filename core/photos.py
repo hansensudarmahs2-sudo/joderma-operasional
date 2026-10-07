@@ -14,6 +14,9 @@ Foto disimpan sebagai `core.Attachment` (di luar folder publik) dan hanya bisa d
 from __future__ import annotations
 
 import io
+import os
+import re
+import zipfile
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.base import ContentFile
@@ -26,6 +29,11 @@ from .models import Attachment
 PHOTO_MAX_SIDE = 1600
 PHOTO_QUALITY = 75
 PHOTO_MAX_UPLOAD = 20 * 1024 * 1024  # sebelum kompresi; foto HP modern 3–12 MB
+DOC_MAX_UPLOAD = 10 * 1024 * 1024
+DOC_TYPES = {
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
 
 
 def compress_photo(upload) -> tuple[bytes, int, int]:
@@ -80,6 +88,82 @@ def save_optional_photo(request, field: str = "foto", **kwargs) -> Attachment | 
     if not upload:
         return None
     return save_photo(upload, user=request.user, **kwargs)
+
+
+def _doc_ext(upload) -> str:
+    return os.path.splitext(getattr(upload, "name", "") or "")[1].lower()
+
+
+def save_document(upload, *, entity_type: str, entity_id: int, user) -> Attachment:
+    """Simpan PDF atau DOCX apa adanya (tanpa kompresi) setelah memeriksa ekstensi, ukuran, dan isi."""
+    ext = _doc_ext(upload)
+    if ext not in DOC_TYPES:
+        raise ValidationError("Berkas bukan PDF atau DOCX yang sah.")
+    if upload.size > DOC_MAX_UPLOAD:
+        raise ValidationError("Dokumen terlalu besar (maks. 10 MB).")
+    upload.seek(0)
+    data = upload.read()
+    valid = False
+    if ext == ".pdf":
+        valid = data.startswith(b"%PDF-")
+    else:
+        buf = io.BytesIO(data)
+        if zipfile.is_zipfile(buf):
+            try:
+                with zipfile.ZipFile(buf) as z:
+                    valid = "word/document.xml" in z.namelist()
+            except zipfile.BadZipFile:
+                valid = False
+    if not valid:
+        raise ValidationError("Berkas bukan PDF atau DOCX yang sah.")
+    name = os.path.basename((getattr(upload, "name", "") or "").replace("\\", "/"))
+    name = re.sub(r"[\x00-\x1f\x7f]", "", name).strip()
+    base, clean_ext = os.path.splitext(name)
+    clean_ext = clean_ext.lower() or ext
+    if not base.strip():
+        name = "dokumen" + clean_ext
+    elif len(name) > 200:
+        name = base[: 200 - len(clean_ext)] + clean_ext
+    attachment = Attachment(
+        entity_type=entity_type,
+        entity_id=entity_id,
+        original_name=name,
+        mime_type=DOC_TYPES[ext],
+        size_bytes=len(data),
+        uploaded_by=user,
+    )
+    attachment.file.save("dokumen" + ext, ContentFile(data), save=False)
+    attachment.save()
+    log_event(action=AuditAction.CREATE, entity_type="attachment", entity_id=attachment.pk,
+              entity_label=f"dokumen {entity_type}#{entity_id}", actor=user)
+    return attachment
+
+
+def save_optional_attachment(request, field: str = "foto", **kwargs) -> Attachment | None:
+    """Foto (dikompres) atau dokumen PDF/DOCX dari ``request.FILES[field]``. ValidationError diteruskan."""
+    upload = request.FILES.get(field)
+    if not upload:
+        return None
+    if _doc_ext(upload) in DOC_TYPES:
+        return save_document(upload, user=request.user, **kwargs)
+    try:
+        return save_photo(upload, user=request.user, **kwargs)
+    except ValidationError as exc:
+        if "terlalu besar" in " ".join(exc.messages):
+            raise
+        raise ValidationError("Lampiran harus foto, PDF, atau DOCX.")
+
+
+def documents_for(entity_type: str, entity_ids) -> dict[int, list[Attachment]]:
+    """Dokumen (PDF/DOCX) per entitas, untuk ditampilkan sebagai tautan unduh."""
+    out: dict[int, list[Attachment]] = {}
+    ids = list(entity_ids)
+    if not ids:
+        return out
+    for a in Attachment.objects.filter(entity_type=entity_type, entity_id__in=ids,
+                                       mime_type__in=DOC_TYPES.values()).order_by("uploaded_at"):
+        out.setdefault(a.entity_id, []).append(a)
+    return out
 
 
 def photos_for(entity_type: str, entity_ids) -> dict[int, list[Attachment]]:
