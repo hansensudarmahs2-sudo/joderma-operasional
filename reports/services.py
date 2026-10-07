@@ -140,6 +140,14 @@ def change_laporan_status(
         raise PermissionDenied("Anda tidak memiliki akses ke laporan ini.")
     if not can_change_laporan_status(user, laporan):
         raise PermissionDenied("Status laporan diubah oleh supervisor, PIC, atau Direktur Operasional.")
+    return _apply_laporan_status(laporan, user=user, to_status=to_status, note=note, reason=reason)
+
+
+@transaction.atomic
+def _apply_laporan_status(
+    laporan: Laporan, *, user, to_status: str, note: str = "", reason: str = ""
+) -> Laporan:
+    """Inti perubahan status laporan tanpa cek izin pengguna (dipakai juga oleh status maju otomatis)."""
     allowed = laporan.allowed_next_statuses()
     if to_status not in allowed:
         raise ValidationError("Perubahan status tidak diizinkan dari status saat ini.")

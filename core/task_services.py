@@ -449,12 +449,15 @@ def can_review_assignment(assignment: TaskAssignment, reviewer) -> bool:
 _can_review_task = can_review_assignment
 
 
-def _notify_request_done(item: ActionItem, actor) -> None:
-    """Task turunan permintaan Owner berubah akhir: beri tahu Owner bila permintaannya jadi selesai."""
+def _after_task_final(item: ActionItem, actor) -> None:
+    """Task berubah akhir (selesai/batal): kabari Owner bila permintaannya jadi selesai, majukan status catatan asal."""
     if item.source_type == "permintaan_owner":
         from owner.services import notify_if_request_done
 
         notify_if_request_done(item, actor=actor)
+    from reports.followup import advance_source_from_tasks
+
+    advance_source_from_tasks(item, actor=actor)
 
 
 def _finish_item_if_all_confirmed(item: ActionItem, actor=None) -> None:
@@ -462,7 +465,7 @@ def _finish_item_if_all_confirmed(item: ActionItem, actor=None) -> None:
     if not item.task_assignments.exclude(status=TaskAssignmentStatus.CONFIRMED).exists():
         item.status = ActionItemStatus.SELESAI
         item.save(update_fields=["status", *_clear_blocked(item), "updated_at"])
-        _notify_request_done(item, actor)
+        _after_task_final(item, actor)
 
 
 @transaction.atomic
@@ -624,7 +627,7 @@ def close_task(item: ActionItem, *, actor, note: str) -> ActionItem:
     item.progress_note = note
     item.save(update_fields=["status", "progress_note", *_clear_blocked(item), "updated_at"])
     log_update(item, before, actor=actor, action=AuditAction.CLOSE, reason=note)
-    _notify_request_done(item, actor)
+    _after_task_final(item, actor)
     return item
 
 
@@ -645,7 +648,7 @@ def cancel_task(item: ActionItem, *, actor, reason: str) -> ActionItem:
     item.progress_note = reason
     item.save(update_fields=["status", "progress_note", *_clear_blocked(item), "updated_at"])
     log_update(item, before, actor=actor, action=AuditAction.CANCEL, reason=reason)
-    _notify_request_done(item, actor)
+    _after_task_final(item, actor)
     return item
 
 

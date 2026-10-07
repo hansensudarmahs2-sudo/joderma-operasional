@@ -235,7 +235,25 @@ def change_status(
         raise PermissionDenied("Status catatan diubah oleh supervisor, PIC, Direktur Operasional, "
                                "atau staf yang ditugaskan.")
     assert_current_version(issue, expected_version)
+    return _apply_status(
+        issue, user=user, to_status=to_status, note=note, resolution_summary=resolution_summary, reason=reason
+    )
 
+
+@transaction.atomic
+def _apply_status(
+    issue: Issue,
+    *,
+    user,
+    to_status: str,
+    note: str = "",
+    resolution_summary: str = "",
+    reason: str = "",
+) -> Issue:
+    """Inti perubahan status tanpa cek izin pengguna; alur, alasan, ringkasan, audit, dan pelapor tetap berlaku.
+
+    Dipakai ``change_status`` (setelah cek izin) dan tindakan sistem seperti status maju otomatis
+    saat task hasil pilah selesai (``reports.followup``)."""
     allowed = WORKFLOWS.get(issue.issue_type, {}).get(issue.status, set())
     if to_status not in allowed:
         raise ValidationError(

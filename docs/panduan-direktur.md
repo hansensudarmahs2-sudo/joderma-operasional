@@ -147,6 +147,17 @@ Laporan punya tombol **Tambah tanggapan**. Pada **Masukan privat**, hanya Direkt
 melihat tombol **Tulis tanggapan**. Catatan pilah terlihat oleh pengirim Masukan atau Laporan,
 jadi tulislah sebagai balasan kepada pelapor, bukan catatan internal.
 
+**Status maju otomatis.** Bila catatan sudah dijadikan task dan **semua** task aktifnya selesai
+(dikonfirmasi, ditutup pemberi tugas; task yang dibatalkan tidak dihitung, tetapi minimal harus ada
+satu yang selesai), statusnya maju sendiri sampai target: komplain dan kerusakan ke **Selesai**
+(ringkasan penyelesaian terisi dari judul task, penerima, dan catatan pengajuannya bila masih
+kosong), masukan ke **Diterapkan**, laporan staf ke **Selesai**. Pada hal yang ditugaskan ke
+beberapa cabang, status baru maju setelah task terakhir selesai. Riwayat mencatat "Otomatis: task
+hasil pilah selesai." dan pelapor diberi tahu. Status yang sudah melewati target atau sudah
+ditutup tidak diubah. **Verifikasi dan penutupan tetap manual**: sistem tidak pernah menutup
+catatan sendiri. Ringkasan penyelesaian itu disusun dari catatan pengajuan atau penutupan task dan
+nama penerimanya, dan dapat dibaca pelapor; tulislah catatan task dengan bahasa yang pantas dibaca pelapor.
+
 Anda bisa dipilih sebagai **penerima task** (dan penanggung jawab komplain/masukan/kerusakan) di
 kedua cabang, walau peran Anda tercatat di Jemur saja; pilihan nama Anda muncul di daftar PIC setiap
 cabang, termasuk saat **Semua cabang**.

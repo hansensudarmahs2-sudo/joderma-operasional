@@ -115,6 +115,10 @@ cabang tugas di jadwal jaga hari ini, atau cabang asal bila Anda sedang off.
   Laporan Rahasia, notifikasi hanya berbunyi "Ada tanggapan pada catatan Anda" tanpa isi;
   buka halamannya untuk membaca.
 
+  Bila laporan Anda dijadikan task oleh Direktur dan semua task-nya sudah selesai, status laporan
+  Anda berubah sendiri menjadi **Selesai** (atau **Diterapkan** untuk masukan) dan Anda mendapat
+  notifikasi; penutupan akhir tetap oleh pengelola.
+
 ## Sore: menutup hari
 
 1. Front desk mencatat **Kas akhir**: hitung lembar per pecahan, lalu isi **Tunai masuk hari ini**
