@@ -561,6 +561,11 @@ def task_detail(request, pk: int):
                 messages.success(request, f"Perkara dicatat untuk rapat Kamis: {decision}.")
             elif not can_manage:
                 raise PermissionDenied("Hanya pemberi tugas atau Direktur Operasional yang dapat mengubah task ini.")
+            elif aksi == "setujui_target":
+                task_services.approve_proposed_due(
+                    item, actor=request.user, expected_due=request.POST.get("usulan") or None
+                )
+                messages.success(request, "Target baru disetujui; penerima diberi tahu.")
             elif aksi == "ubah":
                 task_services.update_task(
                     item,

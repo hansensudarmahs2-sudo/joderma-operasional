@@ -417,6 +417,7 @@ def headline_counts(user, today: dt.date | None = None) -> dict:
         "open": len(open_items),
         "overdue": sum(1 for i in open_items if i.is_overdue),
         "waiting": waiting,
+        "blocked": sum(1 for i in open_items if i.blocked_at is not None),
         "due_week": sum(1 for i in open_items if i.due_at and now <= i.due_at <= week),
         "decisions": len(pending),
         "late_decisions": sum(1 for d in pending if d.is_overdue(today)),

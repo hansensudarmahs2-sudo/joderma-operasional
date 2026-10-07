@@ -476,6 +476,48 @@ def assignment_progress(request, pk: int):
 
 @login_required
 @require_POST
+def assignment_blocker(request, pk: int):
+    """Penerima menandai task terhambat: alasan wajib, usulan target opsional (tahap 3a)."""
+    import datetime as dt
+
+    from .task_services import report_blocker
+
+    assignment = _assignment_or_404(pk)
+    if not can_access_clinic(request.user, assignment.action_item.clinic):
+        raise PermissionDenied("Anda tidak memiliki akses ke task cabang ini.")
+    raw = (request.POST.get("target") or "").strip()
+    try:
+        proposed = dt.date.fromisoformat(raw) if raw else None
+    except ValueError:
+        messages.error(request, "Format tanggal target tidak valid.")
+        return _back(request, "core:action_items")
+    try:
+        report_blocker(assignment, user=request.user, reason=request.POST.get("alasan", ""), proposed_due=proposed)
+        messages.success(request, "Kendala dikirim ke pemberi tugas dan Direktur Operasional.")
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    return _back(request, "core:action_items")
+
+
+@login_required
+@require_POST
+def task_comment(request, pk: int):
+    """Balasan di percakapan task dari kartu "Tugas saya" (tahap 3a)."""
+    from .task_services import add_task_comment
+
+    item = get_object_or_404(ActionItem, pk=pk)
+    if not can_access_clinic(request.user, item.clinic):
+        raise PermissionDenied("Anda tidak memiliki akses ke task cabang ini.")
+    try:
+        add_task_comment(item, actor=request.user, note=request.POST.get("catatan", ""))
+        messages.success(request, "Balasan terkirim.")
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    return _back(request, "core:today")
+
+
+@login_required
+@require_POST
 def assignment_confirm(request, pk: int):
     """Reviewer mengonfirmasi task selesai ('Konfirmasi selesai') — final, bukan tombol yang sama dengan ajukan."""
     assignment = _assignment_or_404(pk)

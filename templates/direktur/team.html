@@ -69,7 +69,7 @@
     <tr>
       <td data-label="Nama"><strong>{{ p.user }}</strong>{% if p.pic %}<div class="meta">PIC {{ p.pic|join:", " }}</div>{% endif %}</td>
       <td data-label="Belum selesai">
-        {% for a in p.open %}<div><a href="{% url 'direktur:task_detail' a.action_item_id %}?dari=tim">{{ a.action_item.title }}</a>{% if a.action_item.due_at %} <span class="meta">· {{ a.action_item.due_at|date:"d/m" }}</span>{% endif %}{% if a.action_item.is_overdue %} <span class="tag err">Lewat</span>{% endif %}{% if a.status == 'REVISION_REQUIRED' %} <span class="tag warn">Revisi</span>{% endif %}</div>
+        {% for a in p.open %}<div><a href="{% url 'direktur:task_detail' a.action_item_id %}?dari=tim">{{ a.action_item.title }}</a>{% if a.action_item.due_at %} <span class="meta">· {{ a.action_item.due_at|date:"d/m" }}</span>{% endif %}{% if a.action_item.is_overdue %} <span class="tag err">Lewat</span>{% endif %}{% if a.action_item.is_blocked %} <span class="tag warn">Terhambat</span>{% endif %}{% if a.status == 'REVISION_REQUIRED' %} <span class="tag warn">Revisi</span>{% endif %}</div>
         {% empty %}<span class="meta">—</span>{% endfor %}</td>
       <td data-label="Menunggu konfirmasi">{% for a in p.waiting %}<div><a href="{% url 'direktur:task_detail' a.action_item_id %}?dari=tim">{{ a.action_item.title }}</a></div>{% empty %}<span class="meta">—</span>{% endfor %}</td>
       <td data-label="Selesai 7 hari">{{ p.done|length|default:"—" }}</td>

@@ -14,7 +14,7 @@ from audit.models import AuditAction
 from audit.services import log_create, log_event, log_update, snapshot
 from core.models import ActionItem, ActionItemStatus, Priority, TaskAudienceType, local_today
 from core.permissions import can_access_clinic, clinic_member_q, is_aom
-from core.task_services import create_task
+from core.task_services import _clear_blocked, create_task
 
 from .models import (
     AuditCheck,
@@ -362,7 +362,7 @@ def close_finding(item: ActionItem, *, actor, note: str) -> ActionItem:
     before = snapshot(item)
     item.status = ActionItemStatus.SELESAI
     item.progress_note = note.strip()
-    item.save(update_fields=["status", "progress_note", "updated_at"])
+    item.save(update_fields=["status", "progress_note", *_clear_blocked(item), "updated_at"])
     log_update(item, before, actor=actor, action=AuditAction.CLOSE, reason=note.strip())
     return item
 

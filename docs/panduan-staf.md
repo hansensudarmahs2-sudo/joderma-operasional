@@ -67,7 +67,13 @@ cabang tugas di jadwal jaga hari ini, atau cabang asal bila Anda sedang off.
   dari cabang mana pun, termasuk task yang dikirim ke beberapa orang atau ke satu peran. Tampil
   walau sesi hari operasional belum dibuat. Yang lewat target bertanda merah dan berada paling
   atas. Selama dikerjakan, tekan **Lapor progres** untuk mencatat kemajuan (teks wajib, foto
-  opsional); progres terakhir tampil di bawah judul task dan di riwayat task. Bila sudah selesai,
+  opsional); progres terakhir tampil di bawah judul task dan di riwayat task, dan laporan itu
+  langsung sampai ke pemberi tugas dan Direktur Operasional (notifikasi). Tekan **Percakapan (n)**
+  untuk membaca catatan Direktur pada task itu dan membalasnya. Bila ada yang menghalangi, tekan
+  **Ada kendala**, tulis alasannya (wajib) dan, bila perlu, usulan target baru (opsional); task
+  diberi label kuning **Terhambat** dan pemberi tugas serta Direktur diberi tahu. Label hilang
+  sendiri saat Anda **Lapor progres**, saat usulan target disetujui, atau saat task selesai atau
+  dibatalkan. Bila sudah selesai,
   tekan **Ajukan selesai**, tulis **catatan bukti** (wajib: apa yang sudah dikerjakan) dan
   lampirkan **foto bukti** bila ada (opsional), lalu **Kirim**; task tetap tampil dengan tanda
   **Menunggu konfirmasi** sampai pemeriksa mengonfirmasi atau meminta revisi (Anda mendapat

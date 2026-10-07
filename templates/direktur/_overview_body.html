@@ -36,7 +36,7 @@
 </section>
 {% endif %}
 <h2>Yang belum selesai</h2>
-<p class="meta">{{ counts.open }} task terbuka{% if counts.overdue %} · <span class="tag err">{{ counts.overdue }} lewat target</span>{% endif %}. Ketuk kotak untuk melihat isinya.</p>
+<p class="meta">{{ counts.open }} task terbuka{% if counts.overdue %} · <span class="tag err">{{ counts.overdue }} lewat target</span>{% endif %}{% if counts.blocked %} · <a class="tag warn" href="{% url 'direktur:tasks' %}">{{ counts.blocked }} task terhambat</a>{% endif %}. Ketuk kotak untuk melihat isinya.</p>
 <div class="matrix quad-tiles">
 {% for q in matrix %}
   <a class="quad quad-{{ q.key }} tile-link" href="{% url 'direktur:matrix' %}?kuadran={{ q.key }}">

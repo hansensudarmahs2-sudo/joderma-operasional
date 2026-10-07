@@ -50,7 +50,7 @@
       <td data-label="Pelapor">{{ r.reporter|default:"—" }}</td>
       <td data-label="PIC">{% if r.pics %}{{ r.pic_names }}{% else %}<span class="tag warn">belum ada</span>{% endif %}</td>
       <td data-label="Prioritas"><span class="tag {% if r.item.priority == 'KRITIS' %}err{% elif r.item.priority == 'TINGGI' %}warn{% else %}muted{% endif %}">{{ r.item.get_priority_display }}</span></td>
-      <td data-label="Status"><span><span class="tag {% if r.status == 'Selesai' %}ok{% elif r.status == 'Dibatalkan' %}muted{% elif r.status == 'Menunggu konfirmasi' %}info{% endif %}">{{ r.status }}</span>{% if r.on_hold %} <span class="tag info">Menunggu keputusan</span>{% endif %}</span></td>
+      <td data-label="Status"><span><span class="tag {% if r.status == 'Selesai' %}ok{% elif r.status == 'Dibatalkan' %}muted{% elif r.status == 'Menunggu konfirmasi' %}info{% endif %}">{{ r.status }}</span>{% if r.on_hold %} <span class="tag info">Menunggu keputusan</span>{% endif %}{% if r.item.is_blocked %} <span class="tag warn">Terhambat</span>{% endif %}</span></td>
       <td data-label="Target"><span>{% if r.item.due_at %}{{ r.item.due_at|date:"d/m/Y" }}{% if r.overdue %} <span class="tag err">Lewat</span>{% endif %}{% else %}<span class="meta">—</span>{% endif %}</span></td>
       <td data-label="Diperbarui" class="meta">{{ r.item.updated_at|date:"d/m H:i" }}</td>
     </tr>

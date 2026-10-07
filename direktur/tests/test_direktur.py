@@ -7,6 +7,7 @@ import pytest
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.management import call_command
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import PicAssignment, PicFunction, Role, User, UserRole
 from audit.models import AuditAction, AuditEvent
@@ -216,6 +217,21 @@ def test_close_finding(items, jemur, director):
     check.finding.refresh_from_db()
     assert check.finding.status == ActionItemStatus.SELESAI
     assert check.finding not in services.open_findings(jemur)
+
+
+def test_close_finding_clears_blocked(items, jemur, director):
+    check = services.record_check(
+        item=items["harian-komplain"], clinic=jemur, actor=director,
+        result=CheckResult.TEMUAN, note="Komplain WA belum dicatat", today=MONDAY,
+    )
+    finding = check.finding
+    finding.blocked_at = timezone.now()
+    finding.blocked_reason = "Menunggu vendor"
+    finding.save(update_fields=["blocked_at", "blocked_reason"])
+    services.close_finding(finding, actor=director, note="Sudah dicatat")
+    finding.refresh_from_db()
+    assert finding.status == ActionItemStatus.SELESAI and finding.blocked_at is None
+    assert finding.blocked_reason == ""
 
 
 def test_direct_suggestions_stable_per_day_and_clinic_scoped(items, jemur):

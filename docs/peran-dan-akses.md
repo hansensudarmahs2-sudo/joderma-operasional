@@ -167,6 +167,8 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Task besar, target, sub task, dan "Nyatakan selesai & terverifikasi" pada temuan Owner | AOM | — |
 | Konfirmasi selesai / minta revisi task yang pemeriksanya Direktur Utama / Owner (otomatis bila penerimanya Direktur Operasional), dan menulis catatan di task itu. Pengecualian: sub task temuan Owner, yang dikerjakan Direktur selesai tanpa verifikasi dan yang dikerjakan staf diverifikasi Direktur; Owner tidak memverifikasinya | owner | — |
 | Lapor progres task sendiri; catatan bukti wajib saat ajukan selesai | penerima task | — |
+| Lapor kendala (terhambat) dan membalas percakapan task | penerima task | — |
+| Menyetujui usulan target baru | pemberi tugas, AOM | — |
 | Jejak kehadiran: daftar jejak, ringkasan per staf, IP lazim (baca), unduh CSV | AOM, owner | — |
 | KPI per staf per bulan dan rinciannya, unduh CSV | AOM, owner | — |
 | Mengatur perangkat dikenal (IP Tailscale perangkat klinik) | AOM | — |

@@ -7,7 +7,7 @@
   {% if my_tasks or my_issues %}
   <ul class="request-list">
     {% for t in my_tasks %}
-    <li class="request-row{% if t.waiting %} is-waiting{% endif %}">
+    <li class="request-row{% if t.waiting %} is-waiting{% endif %}" id="task-{{ t.item.pk }}">
       <span class="request-main">
         <strong>{{ t.item.title }}</strong>
         <span class="meta">{% if t.item.created_by %}dari {{ t.item.created_by }} · {% endif %}{{ t.item.clinic.name }}{% if t.item.due_at %} · target {{ t.item.due_at|date:"d/m H.i" }}{% endif %}</span>
@@ -16,8 +16,8 @@
         {% if t.last_progress %}<span class="meta">Progres terakhir {{ t.last_progress.created_at|date:"d/m H.i" }}: {{ t.last_progress.note|truncatechars:120 }}</span>{% endif %}
         {% if t.dirut %}<span class="meta">Diverifikasi Direktur Utama / Owner.</span>{% endif %}
         {% foto_thumbs task_photos|ambil:t.item.pk %}
-        {% if t.can_submit %}
         <span class="task-actions-row">
+        {% if t.can_submit %}
         <details class="task-submit">
           <summary class="btn small secondary">Lapor progres</summary>
           <form method="post" data-jejak action="{% url 'core:assignment_progress' t.assignment.pk %}" enctype="multipart/form-data" class="stack-form">
@@ -38,10 +38,40 @@
             <button class="btn small" type="submit">Kirim</button>
           </form>
         </details>
-        </span>
+        <details class="task-submit">
+          <summary class="btn small secondary">Ada kendala</summary>
+          <form method="post" action="{% url 'core:assignment_blocker' t.assignment.pk %}" class="stack-form">
+            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <label for="kendala-task-{{ t.assignment.pk }}">Kendala</label>
+            <input id="kendala-task-{{ t.assignment.pk }}" name="alasan" required placeholder="Mis. vendor baru bisa datang Jumat">
+            <label for="target-task-{{ t.assignment.pk }}">Usulan target baru <span class="meta">(opsional)</span></label>
+            <input id="target-task-{{ t.assignment.pk }}" type="date" name="target" min="{% now 'Y-m-d' %}">
+            <button class="btn small" type="submit">Kirim kendala</button>
+          </form>
+        </details>
         {% endif %}
+        {% if t.assignment %}
+        <details class="task-submit">
+          <summary class="btn small secondary">Percakapan ({{ t.thread_count }})</summary>
+          <div class="stack-form">
+            {% if t.thread %}
+            <ul class="timeline">
+              {% for e in t.thread %}<li><strong>{{ e.actor|default:"Sistem" }}</strong> <span class="meta">{{ e.created_at|date:"d/m H.i" }} · {{ e.get_event_type_display }}</span><div style="white-space:pre-wrap">{{ e.note }}</div></li>{% endfor %}
+            </ul>
+            {% else %}<p class="meta">Belum ada percakapan.</p>{% endif %}
+            <form method="post" action="{% url 'core:task_comment' t.item.pk %}" class="stack-form">
+              {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <label for="balas-task-{{ t.item.pk }}">Balas</label>
+              <input id="balas-task-{{ t.item.pk }}" name="catatan" required placeholder="Mis. vendor minta DP dulu, boleh?">
+              <button class="btn small" type="submit">Kirim</button>
+            </form>
+          </div>
+        </details>
+        {% endif %}
+        </span>
       </span>
       <span class="request-state">
+        {% if t.blocked %}<span class="tag warn">Terhambat</span>{% endif %}
         {% if t.overdue %}<span class="tag err">Lewat target</span>{% elif t.due_today %}<span class="tag warn">Target hari ini</span>{% endif %}
         {% if t.revision %}<span class="tag warn">Perlu revisi</span>{% endif %}
         {% if t.waiting %}<span class="tag info">Menunggu konfirmasi</span>{% endif %}

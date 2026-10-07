@@ -258,6 +258,15 @@ Penerima melaporkan kemajuan lewat **Lapor progres** (tampil di riwayat sebagai 
 dengan foto bila ada) dan wajib menulis **catatan bukti** saat Ajukan selesai. Penerima mendapat
 notifikasi saat dikonfirmasi atau diminta revisi; pemeriksa mendapat notifikasi saat diajukan.
 
+**Arus balik dari staf.** Laporan progres, balasan percakapan, dan **Ada kendala** dari penerima
+memberi notifikasi (*Progres*, *Balasan*, *Kendala*) ke pemberi tugas dan semua Direktur
+Operasional aktif. Task yang dilapori kendala menampilkan kotak kuning **Terhambat** di detail
+task, berisi alasan dan usulan target; tombol **Setujui target dd/mm/yyyy** (hanya pemberi tugas
+atau Direktur) memindahkan target ke tanggal itu, menghapus label, dan memberi notifikasi ke
+penerima. **Simpan catatan** di detail task kini juga memberi notifikasi ke penerima task yang
+masih aktif; penerima membacanya di **Percakapan (n)** pada kartu Tugas saya. Label **Terhambat**
+tampil di Daftar Task dan halaman Tim, dan Ringkasan menunjukkan **n task terhambat**.
+
 **Keputusan.** Direktur mencatat perkara yang perlu diputuskan (siapa pemutusnya, tenggatnya),
 lalu menetapkannya setelah diputuskan — oleh Owner, Direktur Utama, atau Direktur sendiri.
 Perkara berpemutus Owner atau Direktur Utama yang Anda catat di sini memberi notifikasi ke semua

@@ -309,6 +309,13 @@ class ActionItem(models.Model):
         help_text="Siapa yang memverifikasi. Task yang dikerjakan Direktur Operasional sendiri selalu "
         "diperiksa Direktur Utama / Owner (lihat effective_review_by).",
     )
+    # Tahap 3a arus balik (7 Okt 2026): staf menandai task terhambat, opsional dengan usulan target.
+    blocked_at = models.DateTimeField("ditandai terhambat", null=True, blank=True)
+    blocked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    blocked_reason = models.TextField("alasan terhambat", blank=True)
+    proposed_due_at = models.DateTimeField("usulan target baru", null=True, blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -378,6 +385,11 @@ class ActionItem(models.Model):
         if cached is not None:
             return any(d.status == "MENUNGGU" for d in cached)
         return self.waiting_decisions.filter(status="MENUNGGU").exists()
+
+    @property
+    def is_blocked(self) -> bool:
+        """Terhambat menurut penerima dan task masih terbuka (tahap 3a)."""
+        return self.blocked_at is not None and self.status in (ActionItemStatus.BARU, ActionItemStatus.DIKERJAKAN)
 
     @property
     def is_overdue(self) -> bool:
@@ -486,6 +498,8 @@ class TaskEventType(models.TextChoices):
     CANCELLED = "CANCELLED", "Dibatalkan"
     COMMENT = "COMMENT", "Komentar"
     PROGRESS = "PROGRESS", "Laporan progres"
+    KENDALA = "KENDALA", "Kendala"
+    TARGET_DIUBAH = "TARGET_DIUBAH", "Target diubah"
 
 
 class TaskEvent(models.Model):
