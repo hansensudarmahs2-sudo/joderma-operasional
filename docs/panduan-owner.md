@@ -55,6 +55,10 @@ ada di menu Owner dan ditolak bila alamatnya dibuka langsung.
    atau **Selesai oleh Direktur** (sub task Direktur sendiri, tanpa verifikasi). Anda tidak
    memverifikasi sub task temuan; tanggung jawab pernyataan "selesai" ada pada Direktur di hadapan
    Anda. Tidak ada tombol buka kembali: bila hasilnya keliru, tulis catatan.
+   **Usulan target baru:** Direktur dapat mengusulkan tanggal target baru (untuk temuan, hanya yang melewati batas
+   3/30 hari) beserta alasannya. Anda mendapat notifikasi, dan di Dashboard permintaan itu bertanda **Usul target**.
+   Di halaman permintaan tekan **Setujui target** (target langsung berganti) atau **Tolak** dengan catatan alasan;
+   Direktur diberi tahu dan jawaban pertama yang berlaku. Task turunan tidak ikut berubah.
 4. Buka permintaan untuk melihat task-tasknya dan **catatan**. Bila target perlu diubah atau
    tidak terpenuhi, Direktur membicarakannya langsung (WhatsApp) atau menulis catatan di sini.
    Owner juga dapat menulis catatan, juga dengan foto. Setiap catatan memberi notifikasi ke pihak

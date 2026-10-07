@@ -47,13 +47,43 @@
 {% endif %}
 {% if triage %}<p class="meta">Dipilah di Inbox {{ triage.triaged_at|date:"d/m/Y" }}: <strong>{{ triage.get_action_display }}</strong>{% if triage.forwarded_to %} ke {{ triage.get_forwarded_to_display }}{% endif %}{% if triage.decision %} — <a href="{% url 'direktur:decision_detail' triage.decision.pk %}">{{ triage.decision.title }}</a>{% endif %}{% if triage.note %} — {{ triage.note }}{% endif %}</p>{% endif %}
 
+{% if pending_target %}
+<div class="card" id="usulan-target">
+  <p><strong>Usulan target baru: {{ row.request.proposed_target|date:"d/m/Y" }}</strong> (sekarang {% if row.request.target_date %}{{ row.request.target_date|date:"d/m/Y" }}{% else %}tanpa target{% endif %}) · oleh {{ row.request.proposed_by|default:"Direktur Operasional" }} · {{ row.request.proposed_at|date:"d/m/Y" }}</p>
+  <div style="white-space:pre-wrap">{{ row.request.proposed_reason }}</div>
+  {% if is_owner %}
+  <form method="post">{% csrf_token %}<input type="hidden" name="usulan" value="{{ row.request.proposed_at|date:'c' }}">
+    <label for="catatan-target">Catatan <span class="meta">(opsional untuk setuju; wajib untuk menolak)</span></label>
+    <textarea id="catatan-target" name="catatan" rows="2"></textarea>
+    <p><button class="btn small" type="submit" name="aksi" value="setujui_target">Setujui target {{ row.request.proposed_target|date:"d/m/Y" }}</button>
+      <button class="btn small secondary" type="submit" name="aksi" value="tolak_target">Tolak</button></p>
+  </form>
+  {% elif is_director %}
+  <p class="meta">Menunggu jawaban Owner.</p>
+  {% endif %}
+</div>
+{% endif %}
+
 {% if is_director %}
+{% if row.state != 'done' %}
+<details class="card">
+  <summary><strong>Usulkan target baru</strong></summary>
+  <form method="post">{% csrf_token %}<input type="hidden" name="aksi" value="usul_target">
+    <label for="target-baru">Target baru</label>
+    <input id="target-baru" type="date" name="target_baru" min="{{ today|date:'Y-m-d' }}" required>
+    {% if row.request.kind == 'TEMUAN' %}<p class="meta">Untuk target melewati batas {{ cap|date:"d/m/Y" }} (cap). Dalam batas, ubah langsung di Rencana penanganan.</p>{% endif %}
+    <label for="alasan-target">Alasan</label>
+    <textarea id="alasan-target" name="alasan" rows="2" required></textarea>
+    <p><button class="btn small" type="submit">Kirim usulan</button></p>
+  </form>
+</details>
+{% endif %}
 {% if row.request.kind == 'TEMUAN' and not row.request.completed_at %}
 <form method="post" class="card">{% csrf_token %}<input type="hidden" name="aksi" value="rencana">
   <label for="rencana">Task besar <span class="meta">(nama penanganan)</span></label>
   <input id="rencana" name="rencana" maxlength="200" value="{{ row.request.plan_title }}" placeholder="Mis. Membuat alur untuk temuan ini">
   <label for="target-rencana">Target selesai <span class="meta">(paling lambat {{ cap|date:"d/m/Y" }})</span></label>
-  <input id="target-rencana" type="date" name="target"{% if not row.request.target_date or row.request.target_date >= today %} min="{{ today|date:'Y-m-d' }}"{% endif %}{% if cap >= today %} max="{{ cap|date:'Y-m-d' }}"{% endif %} value="{{ row.request.target_date|date:'Y-m-d' }}">
+  <input id="target-rencana" type="date" name="target"{% if not row.request.target_date or row.request.target_date >= today %} min="{{ today|date:'Y-m-d' }}"{% endif %}{% if plan_max and plan_max >= today %} max="{{ plan_max|date:'Y-m-d' }}"{% endif %} value="{{ row.request.target_date|date:'Y-m-d' }}">
   <p><button class="btn small secondary" type="submit">Simpan rencana</button></p>
 </form>
 {% if row.state == 'ready' %}

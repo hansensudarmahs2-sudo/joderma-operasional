@@ -103,6 +103,12 @@ Tombol **Pilah** membuka halaman satu item dengan lima pilihan, sesuai matriks w
   - Isi form **Task besar** (nama) dan **target**. Pada temuan Mendesak target otomatis terisi 3 hari sejak dicatat
     dan hanya boleh Anda majukan; selain itu paling lambat 30 hari; target yang belum Anda ubah boleh dipertahankan walau sudah lewat.
     Selama belum diisi, batas 30 hari berlaku dan keterlambatan dihitung darinya.
+  - **Usulkan target baru** (kotak lipat di halaman detail permintaan/temuan): untuk permintaan, tanggal apa saja
+    mulai hari ini yang berbeda dari target sekarang; untuk temuan, hanya bila tanggalnya melewati batas 3/30 hari
+    (dalam batas, ubah langsung di form Task besar). Alasan wajib. Owner menyetujui dengan satu tombol atau menolak
+    dengan catatan, dan Anda mendapat notifikasi. Usulan baru menggantikan usulan yang masih menunggu; usulan dan
+    jawabannya tercatat di Catatan. Tidak bisa diajukan bila permintaan sudah selesai. Task turunan tidak ikut berubah;
+    ubah target di task bila perlu.
   - **Tambah sub task**; penerimanya boleh Anda sendiri. Sub task untuk Anda sendiri selesai tanpa
     verifikasi begitu Anda ajukan (tercatat di riwayat). Sub task staf Anda yang memverifikasi
     (Konfirmasi selesai / Minta revisi); Owner tidak ikut memverifikasi.

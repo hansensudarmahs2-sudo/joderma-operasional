@@ -50,7 +50,7 @@
     <li>
       <a class="request-row" href="{% url 'owner:request_detail' r.request.pk %}">
         <span class="request-main">
-          <strong>{% if r.request.kind == 'TEMUAN' %}<span class="tag info">Temuan</span> {% endif %}{% if r.request.urgent %}<span class="tag err">Mendesak</span> {% endif %}{{ r.request.title }}</strong>{% if r.request.plan_title %}<span class="meta">Task besar: {{ r.request.plan_title }}</span>{% endif %}
+          <strong>{% if r.request.kind == 'TEMUAN' %}<span class="tag info">Temuan</span> {% endif %}{% if r.request.urgent %}<span class="tag err">Mendesak</span> {% endif %}{{ r.request.title }}</strong>{% if r.request.proposed_target and r.state != 'done' %}<span class="meta"><span class="tag warn">Usul target {{ r.request.proposed_target|date:"d/m" }}</span></span>{% endif %}{% if r.request.plan_title %}<span class="meta">Task besar: {{ r.request.plan_title }}</span>{% endif %}
           <span class="meta">{% if r.target %}{% if r.target_set %}Target{% else %}Paling lambat{% endif %} {{ r.target|date:"d/m/Y" }}{% if r.state == 'done' %}{% if r.request.completed_at %} · selesai {{ r.request.completed_at|date:"d/m/Y" }} oleh {{ r.request.completed_by }}, {% if r.finished_late_by %}terlambat {{ r.finished_late_by }} hari{% else %}tepat waktu{% endif %}{% endif %}{% else %} · {% if r.days_left > 0 %}{{ r.days_left }} hari lagi{% elif r.days_left == 0 %}hari ini{% else %}lewat {{ r.days_late }} hari{% endif %}{% endif %}{% else %}Tanpa target{% endif %} · {{ r.request.clinic.name|default:"Lintas cabang" }} · {{ r.request.created_by }}</span>
         </span>
         <span class="request-state">{% include "owner/_request_state.html" %}</span>

@@ -170,6 +170,8 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Pilah item Inbox (tugaskan, teruskan, bawa ke rapat, tidak ditindaklanjuti); tambah task dari permintaan Owner. Teruskan ke Direktur Utama / Owner membuat perkara Keputusan berpemutus Owner dan memberi notifikasi ke semua Owner | AOM | — |
 | Catat temuan Owner (tanpa kolom target; Mendesak = paling lambat 3 hari, selain itu Direktur menentukan target maks. 30 hari) dan permintaan | owner | — |
 | Task besar, target, sub task, dan "Nyatakan selesai & terverifikasi" pada temuan Owner | AOM | — |
+| Mengusulkan target baru permintaan/temuan Owner | AOM | — |
+| Menyetujui/menolak usulan target | owner | — |
 | Konfirmasi selesai / minta revisi task yang pemeriksanya Direktur Utama / Owner (otomatis bila penerimanya Direktur Operasional), dan menulis catatan di task itu. Pengecualian: sub task temuan Owner, yang dikerjakan Direktur selesai tanpa verifikasi dan yang dikerjakan staf diverifikasi Direktur; Owner tidak memverifikasinya | owner | — |
 | Lapor progres task sendiri; catatan bukti wajib saat ajukan selesai | penerima task | — |
 | Lapor kendala (terhambat) dan membalas percakapan task | penerima task | — |

@@ -47,7 +47,7 @@ def _owners():
     return User.objects.filter(is_active=True, user_roles__role=Role.OWNER).distinct()
 
 
-def _notify(users, *, actor, request: OwnerRequest, title: str, body: str = "") -> None:
+def _notify(users, *, actor, request: OwnerRequest, title: str, body: str = "", entity_ref: str | None = None) -> None:
     from notifications.services import notify_user
 
     for u in users:
@@ -58,7 +58,7 @@ def _notify(users, *, actor, request: OwnerRequest, title: str, body: str = "") 
             type_code="permintaan_owner",
             title=title,
             body=body,
-            entity_ref=f"permintaan_owner:{request.pk}",
+            entity_ref=entity_ref or f"permintaan_owner:{request.pk}",
             url_name="owner:request_detail",
             url_args=[request.pk],
         )
@@ -179,6 +179,93 @@ def set_plan(req: OwnerRequest, *, actor, plan_title: str, target_date: dt.date 
     req.target_date = target_date
     req.save(update_fields=["plan_title", "target_date", "updated_at"])
     log_update(req, before, actor=actor)
+    return req
+
+
+def has_pending_target(req: OwnerRequest) -> bool:
+    return req.proposed_target is not None
+
+
+def _is_finished(req: OwnerRequest) -> bool:
+    return bool(req.completed_at) or progress(req)["state"] == "done"
+
+
+@transaction.atomic
+def propose_target(req: OwnerRequest, *, actor, target_date: dt.date | None, reason: str) -> OwnerRequest:
+    """Direktur mengusulkan target baru; Owner yang memutuskan. Usulan baru menggantikan yang menunggu."""
+    if not is_aom(actor):
+        raise PermissionDenied("Hanya Direktur Operasional yang mengusulkan target.")
+    req = OwnerRequest.objects.select_for_update().get(pk=req.pk)
+    if _is_finished(req):
+        raise ValidationError("Permintaan ini sudah selesai.")
+    if target_date is None:
+        raise ValidationError("Tanggal tidak valid.")
+    reason = (reason or "").strip()
+    if not reason:
+        raise ValidationError("Tulis alasan usulan.")
+    if target_date < local_today():
+        raise ValidationError("Tanggal target tidak boleh sebelum hari ini.")
+    if target_date == req.target_date:
+        raise ValidationError("Usulan sama dengan target sekarang.")
+    cap = deadline_cap(req)
+    if cap is not None and target_date <= cap:
+        raise ValidationError("Masih dalam batas; ubah langsung di Rencana penanganan.")
+    old = req.target_date
+    req.proposed_target = target_date
+    req.proposed_reason = reason
+    req.proposed_by = actor
+    req.proposed_at = timezone.now()
+    req.save(update_fields=["proposed_target", "proposed_reason", "proposed_by", "proposed_at", "updated_at"])
+    OwnerRequestNote.objects.create(
+        request=req, author=actor, body=f"Usul target baru {target_date:%d/%m/%Y}: {reason}")
+    log_event(action=AuditAction.UPDATE, entity_type="ownerrequest", entity_id=req.pk, entity_label=req.title,
+              actor=actor, after={"usul_target": target_date.isoformat(), "alasan": reason[:300]})
+    old_text = f"{old:%d/%m/%Y}" if old else "tanpa target"
+    _notify(_owners(), actor=actor, request=req, title=f"Usulan target baru: {req.title}",
+            body=f"{old_text} → {target_date:%d/%m/%Y} · {reason}", entity_ref=f"permintaan_owner:{req.pk}:target")
+    return req
+
+
+@transaction.atomic
+def decide_target(req: OwnerRequest, *, actor, approve: bool, note: str = "", expected: str | None = None) -> OwnerRequest:
+    """Owner menyetujui (target diganti) atau menolak (alasan wajib) usulan target. Jawaban pertama menang."""
+    if not is_owner(actor):
+        raise PermissionDenied("Hanya Owner / Direktur Utama yang memutuskan target.")
+    req = OwnerRequest.objects.select_for_update().get(pk=req.pk)
+    if not has_pending_target(req):
+        raise ValidationError("Tidak ada usulan target yang menunggu.")
+    if expected:
+        from django.utils.dateparse import parse_datetime
+
+        if parse_datetime(expected.strip()) != req.proposed_at:
+            raise ValidationError("Usulan target sudah berubah; periksa lagi.")
+    if _is_finished(req):
+        raise ValidationError("Permintaan ini sudah selesai.")
+    note = (note or "").strip()
+    if not approve and not note:
+        raise ValidationError("Tulis alasan penolakan.")
+    proposed = req.proposed_target
+    before = snapshot(req)
+    if approve:
+        req.target_date = proposed
+    req.proposed_target = None
+    req.proposed_reason = ""
+    req.proposed_by = None
+    req.proposed_at = None
+    req.save(update_fields=["target_date", "proposed_target", "proposed_reason", "proposed_by", "proposed_at",
+                            "updated_at"])
+    if approve:
+        body = (f"Target baru {proposed:%d/%m/%Y} disetujui." + (f" {note}" if note else "")
+                + " Target task turunan tidak ikut berubah; ubah di task bila perlu.")
+        log_update(req, before, actor=actor, action=AuditAction.APPROVE)
+    else:
+        body = f"Usulan target {proposed:%d/%m/%Y} ditolak: {note}"
+        log_event(action=AuditAction.UPDATE, entity_type="ownerrequest", entity_id=req.pk, entity_label=req.title,
+                  actor=actor, after={"usulan_target_ditolak": proposed.isoformat(), "catatan": note[:300]})
+    OwnerRequestNote.objects.create(request=req, author=actor, body=body)
+    _notify(_directors(), actor=actor, request=req,
+            title=f"Target {'disetujui' if approve else 'ditolak'}: {req.title}", body=body[:200],
+            entity_ref=f"permintaan_owner:{req.pk}:target")
     return req
 
 

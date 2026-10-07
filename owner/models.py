@@ -39,6 +39,12 @@ class OwnerRequest(models.Model):
     completed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="+",
     )
+    proposed_target = models.DateField("usulan target", null=True, blank=True)
+    proposed_reason = models.TextField("alasan usulan target", blank=True)
+    proposed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+    )
+    proposed_at = models.DateTimeField(null=True, blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="owner_requests"
     )

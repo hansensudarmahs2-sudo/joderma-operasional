@@ -110,6 +110,8 @@ def request_detail(request, pk: int):
         return _finding_action(request, req)
     if request.method == "POST" and request.POST.get("aksi") == "task":
         return _request_task(request, req)
+    if request.method == "POST" and request.POST.get("aksi") in ("usul_target", "setujui_target", "tolak_target"):
+        return _target_action(request, req)
     if request.method == "POST":
         try:
             with transaction.atomic():
@@ -120,6 +122,7 @@ def request_detail(request, pk: int):
             messages.error(request, " ".join(exc.messages))
         return redirect("owner:request_detail", pk=req.pk)
     notes = list(req.notes.select_related("author"))
+    cap = services.deadline_cap(req)
     task_form = {}
     if is_aom(request.user):
         from direktur.views import branch_context
@@ -145,10 +148,39 @@ def request_detail(request, pk: int):
             "task_form": task_form,
             "triage": triage,
             "subtasks": services.subtask_rows(req) if req.kind == "TEMUAN" else [],
-            "cap": services.deadline_cap(req),
+            "cap": cap,
+            "plan_max": max(filter(None, [cap, req.target_date]), default=None),
+            "pending_target": services.has_pending_target(req),
+            "is_owner": is_owner(request.user),
             "today": local_today(),
         },
     )
+
+
+def _target_action(request, req):
+    """Direktur mengusulkan target baru; Owner menyetujui atau menolaknya."""
+    aksi = request.POST.get("aksi")
+    try:
+        with transaction.atomic():
+            if aksi == "usul_target":
+                if not is_aom(request.user):
+                    raise PermissionDenied("Hanya Direktur Operasional yang mengusulkan target.")
+                try:
+                    day = dt.date.fromisoformat((request.POST.get("target_baru") or "").strip())
+                except ValueError:
+                    raise ValidationError("Tanggal tidak valid.")
+                services.propose_target(req, actor=request.user, target_date=day,
+                                        reason=request.POST.get("alasan", ""))
+                messages.success(request, "Usulan target dikirim ke Owner.")
+            else:
+                approve = aksi == "setujui_target"
+                services.decide_target(req, actor=request.user, approve=approve, note=request.POST.get("catatan", ""),
+                                        expected=request.POST.get("usulan") or None)
+                messages.success(request, "Target baru disetujui; Direktur Operasional diberi tahu." if approve
+                                 else "Usulan target ditolak; Direktur Operasional diberi tahu.")
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    return redirect("owner:request_detail", pk=req.pk)
 
 
 def _finding_action(request, req):
