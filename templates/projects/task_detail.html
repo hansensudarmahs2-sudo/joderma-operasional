@@ -18,6 +18,7 @@
         {% if shared and r.a.claimed_by %}<span class="meta">Diambil oleh {{ r.a.claimed_by }}</span>{% endif %}
         {% if r.a.confirmed_at %}<span class="meta">Selesai {{ r.a.confirmed_at|date:"d/m/Y H.i" }}</span>{% elif r.a.submitted_at %}<span class="meta">Diajukan {{ r.a.submitted_at|date:"d/m/Y H.i" }}</span>{% endif %}
         {% if r.note %}<span class="meta">Catatan: {{ r.note }}</span>{% endif %}
+        {% if r.declined %}<span class="meta">Alasan menolak: {{ r.decline_reason }}</span>{% endif %}
         {% if r.a.revision_note and r.a.status == 'REVISION_REQUIRED' %}<span class="meta">Catatan revisi: {{ r.a.revision_note }}</span>{% endif %}
         {% foto_thumbs r.photos %}{% dokumen_list r.docs %}
         {% if r.can_reopen %}
@@ -32,7 +33,7 @@
         </details>
         {% endif %}
       </span>
-      <span class="request-state"><span class="tag {% if r.a.status == 'CONFIRMED' %}ok{% elif r.a.status == 'CANCELLED' %}muted{% elif r.a.status == 'REVISION_REQUIRED' %}warn{% else %}info{% endif %}">{% if r.a.status == 'CONFIRMED' %}Selesai{% else %}{{ r.a.get_status_display }}{% endif %}</span></span>
+      <span class="request-state"><span class="tag {% if r.a.status == 'CONFIRMED' %}ok{% elif r.a.status == 'CANCELLED' %}muted{% elif r.a.status == 'REVISION_REQUIRED' %}warn{% else %}info{% endif %}">{% if r.a.status == 'CONFIRMED' %}Selesai{% elif r.declined %}Ditolak{% else %}{{ r.a.get_status_display }}{% endif %}</span></span>
     </li>
     {% empty %}<li class="meta">Belum ada penerima.</li>{% endfor %}
   </ul>

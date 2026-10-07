@@ -124,6 +124,21 @@ Staf menandai task selesai dengan bukti foto atau dokumen yang wajib, dan task l
 selesai tanpa konfirmasi. Foto dan dokumen itu terkumpul di galeri **Bukti dari staf** pada
 halaman project.
 
+### Tugas saya (project)
+
+Anda juga dapat ditunjuk sebagai penerima task project, di cabang mana pun. Task itu tampil di
+kartu **Tugas saya (project)** pada Dashboard (dan Anda mendapat notifikasi yang membuka kartu
+itu). Setiap task menampilkan nama project, target, dan catatan revisi bila ada, dengan tiga aksi:
+
+- **Tandai selesai**: lampirkan bukti (foto, PDF, atau DOCX; wajib), catatan boleh dikosongkan.
+  Task langsung dihitung selesai tanpa konfirmasi, sama seperti staf; pada mode "Cukup satu
+  orang" Anda otomatis mengambil task itu.
+- **Percakapan**: baca riwayat dan balas; leader, co-leader, dan pembuat project diberi tahu.
+- **Tolak**: bila task itu tidak seharusnya dikerjakan Anda, tulis **alasan** (wajib). Bagian Anda
+  dibatalkan, tercatat "Ditolak" di halaman task project, dan leader, co-leader, serta pembuat
+  project diberi tahu untuk menugaskan ulang. Hanya Owner yang dapat menolak; staf tidak.
+  Task yang sudah Anda selesaikan tidak dapat ditolak.
+
 ## Verifikasi pekerjaan Direktur Operasional
 
 Pekerjaan yang dikerjakan sendiri oleh Direktur Operasional diverifikasi Direktur Utama / Owner

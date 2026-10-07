@@ -43,6 +43,7 @@ from .permissions import (
     is_admin,
     is_aom,
     is_owner,
+    is_owner_only,
     is_pic,
     is_supervisor,
     require,
@@ -444,13 +445,11 @@ def assignment_claim(request, pk: int):
     return _back(request, "core:action_items")
 
 
-@login_required
-@require_POST
-def assignment_submit(request, pk: int):
-    """Penerima mengajukan task selesai ('Ajukan selesai') — belum final, menunggu konfirmasi."""
-    assignment = _assignment_or_404(pk)
-    if not can_access_clinic(request.user, assignment.action_item.clinic):
-        raise PermissionDenied("Anda tidak memiliki akses ke task cabang ini.")
+def submit_with_evidence(request, assignment: TaskAssignment) -> None:
+    """Penerima menandai/mengajukan task selesai dengan bukti; menulis pesan hasil ke `messages`.
+
+    Dipakai bersama oleh `assignment_submit` (staf) dan `projects:my_submit` (Owner), supaya aturan
+    bukti, lampiran, dan pesan tidak pernah berbeda. Kegagalan validasi menjadi pesan galat."""
     try:
         from projects.services import is_project_item
 
@@ -466,7 +465,8 @@ def assignment_submit(request, pk: int):
         with transaction.atomic():
             submitted = submit_assignment(assignment, user=request.user, note=note)
             save_optional_attachment(request, entity_type="taskassignment", entity_id=assignment.pk)
-        _stamp(request, "AJUKAN", clinic=assignment.action_item.clinic, entity=assignment)
+        if not is_owner_only(request.user):  # Owner tidak memakai jejak kehadiran
+            _stamp(request, "AJUKAN", clinic=assignment.action_item.clinic, entity=assignment)
         if submitted.status == TaskAssignmentStatus.CONFIRMED and is_project:
             messages.success(request, "Task selesai dan tercatat di project.")
         elif submitted.status == TaskAssignmentStatus.CONFIRMED:
@@ -476,6 +476,16 @@ def assignment_submit(request, pk: int):
             messages.success(request, f"Task diajukan selesai, menunggu konfirmasi {who}.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
+
+
+@login_required
+@require_POST
+def assignment_submit(request, pk: int):
+    """Penerima mengajukan task selesai ('Ajukan selesai') — belum final, menunggu konfirmasi."""
+    assignment = _assignment_or_404(pk)
+    if not can_access_clinic(request.user, assignment.action_item.clinic):
+        raise PermissionDenied("Anda tidak memiliki akses ke task cabang ini.")
+    submit_with_evidence(request, assignment)
     return _back(request, "core:action_items")
 
 

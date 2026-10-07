@@ -27,7 +27,7 @@ from core.models import (
     TaskEvent,
     TaskEventType,
 )
-from core.permissions import clinic_member_q, is_aom, is_owner, user_clinic_queryset
+from core.permissions import clinic_member_q, is_aom, is_owner, is_owner_only, user_clinic_queryset
 from notifications.services import notify_user
 
 from .models import SOURCE_TYPE, Project, ProjectStatus
@@ -290,7 +290,8 @@ def _pick_clinic(actor, project: Project, clinic, user_ids):
     if not clinics:
         raise ValidationError("Anda tidak terdaftar di cabang mana pun.")
     for candidate in clinics:
-        members = User.objects.filter(is_active=True).filter(clinic_member_q(candidate), pk__in=user_ids)
+        members = User.objects.filter(is_active=True).filter(
+            clinic_member_q(candidate, include_owners=True), pk__in=user_ids)
         if members.distinct().count() == len(user_ids):
             return candidate
     return clinics[0]
@@ -317,11 +318,9 @@ def add_task(
         raise ValidationError("Prioritas tidak dikenali.")
     if not (title or "").strip():
         raise ValidationError("Judul task wajib diisi.")
-    owners = User.objects.filter(pk__in=ids, user_roles__role=Role.OWNER).exclude(user_roles__role=Role.AOM)
-    if owners.exists():
-        raise ValidationError("Owner tidak dapat menjadi penerima task.")
     clinic = _pick_clinic(actor, project, clinic, ids)
-    valid = User.objects.filter(is_active=True).filter(clinic_member_q(clinic), pk__in=ids).distinct().count()
+    valid = User.objects.filter(is_active=True).filter(
+        clinic_member_q(clinic, include_owners=True), pk__in=ids).distinct().count()
     if valid != len(ids):
         raise ValidationError("Semua penerima harus pengguna aktif di cabang task.")
     return ts.create_task(
@@ -337,6 +336,7 @@ def add_task(
         source_type=SOURCE_TYPE,
         source_id=project.pk,
         source_label=f"Project: {project.name}"[:120],
+        include_owners=True,  # Owner dapat menerima task project di cabang mana pun
     )
 
 
@@ -386,16 +386,87 @@ def cancel_project_task(item: ActionItem, *, actor, reason: str) -> ActionItem:
     return ts.cancel_task(item, actor=actor, reason=reason)
 
 
+def _project_managers(project: Project) -> list[User]:
+    """Project leader, co-leader, dan pembuat (tanpa duplikat)."""
+    people = {project.leader_id: project.leader}
+    for u in project.co_leaders.all():
+        people.setdefault(u.pk, u)
+    people.setdefault(project.created_by_id, project.created_by)
+    return list(people.values())
+
+
+OPEN_ASSIGNMENT_STATES = (
+    TaskAssignmentStatus.OPEN,
+    TaskAssignmentStatus.IN_PROGRESS,
+    TaskAssignmentStatus.REVISION_REQUIRED,
+)
+
+
+@transaction.atomic
+def decline_assignment(assignment: TaskAssignment, *, actor, reason: str) -> TaskAssignment:
+    """Owner menolak task project yang ditugaskan kepadanya; pengatur project diberi tahu."""
+    from core.task_services import _finish_item_if_all_confirmed
+
+    _assert(assignment.assignee_id == getattr(actor, "pk", None) and is_owner_only(actor),
+            "Hanya Owner penerima task yang dapat menolak task ini.")
+    item = assignment.action_item
+    project = project_for_item(item)
+    if project is None:
+        raise ValidationError("Ini bukan task project.")
+    if item.status not in OPEN_ITEM_STATES or assignment.status not in OPEN_ASSIGNMENT_STATES:
+        raise ValidationError("Task ini sudah selesai atau dibatalkan, tidak dapat ditolak.")
+    reason = (reason or "").strip()
+    if not reason:
+        raise ValidationError("Tulis alasan menolak.")
+    was_claimer = item.assignment_mode == TaskAssignmentMode.BERSAMA and assignment.claimed_by_id == assignment.assignee_id
+    assignment.status = TaskAssignmentStatus.CANCELLED
+    assignment.save(update_fields=["status", "updated_at"])
+    if was_claimer:
+        TaskAssignment.objects.filter(action_item=item).update(claimed_by=None)
+        assignment.claimed_by = None
+    TaskEvent.objects.create(
+        action_item=item, assignment=assignment, event_type=TaskEventType.CANCELLED, actor=actor,
+        note=f"Ditolak: {reason}", metadata={"ditolak": True},
+    )
+    log_event(action=AuditAction.UPDATE, entity_type="actionitem", entity_id=item.pk,
+              entity_label=f"Task ditolak: {item.title}"[:200], actor=actor, reason=reason,
+              after={"assignment": assignment.pk, "status": assignment.status, "ditolak": True})
+    _finish_item_if_all_confirmed(item, actor)  # penerima lain bisa saja sudah selesai semua
+    people = {u.pk: u for u in _project_managers(project)}
+    for u in User.objects.filter(is_active=True, user_roles__role=Role.AOM).distinct():
+        people.setdefault(u.pk, u)
+    for person in people.values():
+        if person.pk == actor.pk:
+            continue
+        notify_user(
+            person,
+            type_code="PROJECT_TASK_DECLINED",
+            title=f"Task ditolak: {item.title}",
+            body=f"{actor}: {reason}",
+            entity_ref=f"actionitem#{item.pk}:ditolak#{assignment.pk}",
+            url_name="projects:task_detail",
+            url_args=[project.pk, item.pk],
+        )
+    return assignment
+
+
+def my_project_assignments(user) -> list[dict]:
+    """Task project yang masih harus dikerjakan `user` (baris `core.task_services.my_task_row`), untuk kartu Owner."""
+    from core.task_services import my_tasks
+
+    return [
+        r for r in my_tasks(user)
+        if r["assignment"] is not None and r["item"].source_type == SOURCE_TYPE
+        and r["assignment"].status in OPEN_ASSIGNMENT_STATES
+    ]
+
+
 def notify_task_done(item: ActionItem, *, actor) -> None:
     """Kabari leader, co-leader, dan pembuat project (bukan pelaku) bahwa satu penerima menyelesaikan task."""
     project = project_for_item(item)
     if project is None:
         return
-    people = {project.leader_id: project.leader}
-    for u in project.co_leaders.all():
-        people.setdefault(u.pk, u)
-    people.setdefault(project.created_by_id, project.created_by)
-    for person in people.values():
+    for person in _project_managers(project):
         if person.pk == actor.pk:
             continue
         notify_user(

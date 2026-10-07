@@ -13,7 +13,7 @@ from accounts.models import PicAssignment, PicFunction, Role, User
 from audit.models import AuditAction
 from audit.services import log_create, log_event, log_update, snapshot
 from core.models import ActionItem, ActionItemStatus, Priority, TaskAudienceType, local_today
-from core.permissions import can_access_clinic, clinic_member_q, is_aom
+from core.permissions import can_access_clinic, clinic_member_q, is_aom, is_owner_only
 from core.task_services import _clear_blocked, create_task
 
 from .models import (
@@ -770,9 +770,14 @@ def _release_waiting(decision: Decision, *, actor, verb: str) -> None:
             for a in item.task_assignments.exclude(status=TaskAssignmentStatus.CANCELLED).select_related("assignee")
         }
         for person in people:
-            notify_user(person, type_code="TASK_DECISION", title=f"Keputusan {verb}: {item.title}",
-                        body=decision.decision_text[:300], entity_ref=f"actionitem#{item.pk}",
-                        url_name="core:action_items")
+            notif = notify_user(person, type_code="TASK_DECISION", title=f"Keputusan {verb}: {item.title}",
+                                body=decision.decision_text[:300], entity_ref=f"actionitem#{item.pk}",
+                                url_name="core:action_items")
+            if notif is not None and is_owner_only(person):
+                from core.task_services import owner_tasks_url
+
+                notif.url = owner_tasks_url()
+                notif.save(update_fields=["url"])
 
 
 def _task_event_exists(item: ActionItem, decision: Decision, verb: str) -> bool:

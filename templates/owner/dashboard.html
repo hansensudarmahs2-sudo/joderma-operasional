@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load owner_extras %}
+{% load owner_extras foto %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 <div class="checklist-heading">
@@ -37,6 +37,70 @@
     {% endfor %}
   </ul>
   <p class="meta" style="margin:.5rem 0 0"><a href="{% url 'owner:usulan_list' %}">Semua usulan ›</a></p>
+</section>
+{% endif %}
+{% if my_project_tasks %}
+<section class="card my-tasks" id="tugas-project" aria-labelledby="judul-tugas-project">
+  <div class="checklist-heading" style="margin:0">
+    <h2 id="judul-tugas-project" style="margin:0">Tugas saya (project)</h2>
+    <span class="meta">{{ my_project_tasks|length }} task</span>
+  </div>
+  <ul class="request-list">
+    {% for t in my_project_tasks %}
+    <li class="request-row" id="task-{{ t.item.pk }}">
+      <span class="request-main">
+        <strong>{{ t.item.title }}</strong>
+        <span class="meta">{% if t.item.created_by %}dari {{ t.item.created_by }} · {% endif %}{{ t.item.clinic.name }}{% if t.item.due_at %} · target {{ t.item.due_at|date:"d/m H.i" }}{% endif %}</span>
+        <span class="meta"><a href="{% url 'projects:task_detail' t.item.source_id t.item.pk %}"><span class="tag info">Project: {{ t.project|default:"—" }}</span></a></span>
+        {% include "core/_task_desc.html" with desc=t.item.description %}
+        {% if t.revision and t.assignment.revision_note %}<span class="meta">Catatan revisi: {{ t.assignment.revision_note }}</span>{% endif %}
+        <span class="task-actions-row">
+        {% if t.can_submit %}
+        <details class="task-submit">
+          <summary class="btn small">Tandai selesai</summary>
+          <form method="post" action="{% url 'projects:my_submit' t.assignment.pk %}" enctype="multipart/form-data" class="stack-form">
+            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <label for="catatan-proyek-{{ t.assignment.pk }}">Catatan <span class="meta">(opsional)</span></label>
+            <input id="catatan-proyek-{{ t.assignment.pk }}" name="catatan" placeholder="Mis. sudah ditandatangani, foto terlampir">
+            {% lampiran_input "Selesai — lampirkan bukti (wajib): foto atau dokumen" "foto" "" True %}
+            <button class="btn small" type="submit">Tandai selesai</button>
+          </form>
+        </details>
+        {% endif %}
+        <details class="task-submit">
+          <summary class="btn small secondary">Percakapan ({{ t.thread_count }})</summary>
+          <div class="stack-form">
+            {% if t.thread %}
+            <ul class="timeline">
+              {% for e in t.thread %}<li><strong>{{ e.actor|default:"Sistem" }}</strong> <span class="meta">{{ e.created_at|date:"d/m H.i" }} · {{ e.get_event_type_display }}</span><div style="white-space:pre-wrap">{{ e.note }}</div>{% dokumen_list e.docs %}</li>{% endfor %}
+            </ul>
+            {% else %}<p class="meta">Belum ada percakapan.</p>{% endif %}
+            <form method="post" action="{% url 'projects:my_comment' t.item.pk %}" class="stack-form">
+              {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <label for="balas-proyek-{{ t.item.pk }}">Balas</label>
+              <input id="balas-proyek-{{ t.item.pk }}" name="catatan" required placeholder="Mis. vendor minta DP dulu, boleh?">
+              <button class="btn small" type="submit">Kirim</button>
+            </form>
+          </div>
+        </details>
+        <details class="task-submit">
+          <summary class="btn small secondary">Tolak</summary>
+          <form method="post" action="{% url 'projects:my_decline' t.assignment.pk %}" class="stack-form">
+            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <label for="tolak-proyek-{{ t.assignment.pk }}">Alasan menolak (wajib)</label>
+            <input id="tolak-proyek-{{ t.assignment.pk }}" name="alasan" required placeholder="Mis. sebaiknya dikerjakan Direktur">
+            <button class="btn small secondary" type="submit">Tolak task</button>
+          </form>
+        </details>
+        </span>
+      </span>
+      <span class="request-state">
+        {% if t.overdue %}<span class="tag err">Lewat target</span>{% elif t.due_today %}<span class="tag warn">Target hari ini</span>{% endif %}
+        {% if t.revision %}<span class="tag warn">Perlu revisi</span>{% endif %}
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
 </section>
 {% endif %}
 <section class="card owner-requests" aria-labelledby="judul-permintaan">

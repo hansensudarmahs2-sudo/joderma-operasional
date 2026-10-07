@@ -100,6 +100,9 @@
       </details>
       {% endif %}
       {% if r.can_submit %}
+      {% if r.owner_card %}
+      <a class="btn small secondary" href="{% url 'owner:dashboard' %}#tugas-project">Buka di Dashboard (Tugas saya)</a>
+      {% else %}
       <details class="task-submit"><summary class="btn small secondary">Lapor progres</summary>
         <form method="post" data-jejak action="{% url 'core:assignment_progress' r.a.pk %}" enctype="multipart/form-data" class="stack-form">
           {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
@@ -109,8 +112,9 @@
           <button class="btn small" type="submit">Simpan progres</button>
         </form>
       </details>
+      {% endif %}
       <details class="task-submit"><summary class="btn small">{% if item.source_type == 'proyek' %}Tandai selesai{% else %}Ajukan selesai{% endif %}</summary>
-        <form method="post" data-jejak action="{% url 'core:assignment_submit' r.a.pk %}" enctype="multipart/form-data" class="stack-form">
+        <form method="post"{% if not r.owner_card %} data-jejak{% endif %} action="{% if r.owner_card %}{% url 'projects:my_submit' r.a.pk %}{% else %}{% url 'core:assignment_submit' r.a.pk %}{% endif %}" enctype="multipart/form-data" class="stack-form">
           {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
           {% if item.source_type == 'proyek' %}
           <label for="bukti-{{ r.a.pk }}">Catatan <span class="meta">(opsional)</span></label>

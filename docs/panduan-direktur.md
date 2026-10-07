@@ -266,6 +266,13 @@ dengan sumber **Project**.
   prioritas, dan cabang (penerima harus anggota cabang itu). Pilih mode penyelesaian:
   **Semua harus selesai** (tiap penerima menyelesaikan bagiannya) atau **Cukup satu orang**
   (penerima pertama yang menandai selesai otomatis mengambil task; yang lain tidak perlu).
+- **Owner sebagai penerima.** Owner (dr. Yohanes, Jean) juga dapat dipilih sebagai penerima di
+  cabang mana pun. Mereka mengerjakannya dari kartu **Tugas saya (project)** di Dashboard Owner:
+  **Tandai selesai** dengan bukti, **Percakapan**, atau **Tolak** dengan alasan. Hanya Owner yang
+  dapat menolak. Penolakan membatalkan bagian Owner itu; Anda, leader, co-leader, dan pembuat
+  project mendapat notifikasi "Task ditolak". Di detail task penerimanya bertanda **Ditolak**
+  beserta alasannya, dan di tabel project task yang semua penerimanya menolak bertanda **Semua
+  penerima menolak** (task tetap terbuka sampai Anda menugaskan ulang atau membatalkannya).
 - **Selesai tanpa konfirmasi.** Staf menandai selesai dengan **bukti wajib** (minimal satu foto
   atau dokumen, catatan opsional). Task langsung dihitung selesai; Anda tidak perlu
   mengonfirmasi, dan leader, co-leader, serta pembuat project mendapat notifikasi.

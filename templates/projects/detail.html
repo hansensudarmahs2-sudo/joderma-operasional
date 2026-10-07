@@ -31,7 +31,7 @@
       <tr>
         <td data-label="Task"><span><a href="{% url 'projects:task_detail' project.pk item.pk %}"><strong>{{ item.title }}</strong></a>{% if item.assignment_mode == 'BERSAMA' %}<div class="meta">Cukup satu orang</div>{% endif %}</span></td>
         <td data-label="Penerima">{{ r.who }}</td>
-        <td data-label="Status"><span><span class="tag {% if item.status == 'SELESAI' %}ok{% elif item.status == 'DIKERJAKAN' %}warn{% else %}info{% endif %}">{{ item.get_status_display }}</span>{% if r.counter %}<div class="meta">{{ r.counter }}</div>{% endif %}</span></td>
+        <td data-label="Status"><span><span class="tag {% if item.status == 'SELESAI' %}ok{% elif item.status == 'DIKERJAKAN' %}warn{% else %}info{% endif %}">{{ item.get_status_display }}</span>{% if r.all_declined %} <span class="tag warn">Semua penerima menolak</span>{% endif %}{% if r.counter %}<div class="meta">{{ r.counter }}</div>{% endif %}</span></td>
         <td data-label="Target">{% if item.due_at %}{{ item.due_at|date:"d/m/Y" }}{% if item.is_overdue %} <span class="tag err">Lewat</span>{% endif %}{% else %}—{% endif %}</td>
         <td data-label="Prioritas">{{ item.get_priority_display }}</td>
         <td data-label="Bukti">{{ r.evidence.count }}</td>
@@ -60,7 +60,7 @@
     </select>
     <label for="t-penerima">Penerima <span class="meta">(hanya anggota cabang task; tahan Ctrl/Cmd untuk memilih lebih dari satu)</span></label>
     <select id="t-penerima" name="penerima" multiple size="6" required>
-      {% for p in people %}{% if p.recipient %}<option value="{{ p.user.pk }}" data-clinics="{{ p.clinics }}">{{ p.user }}</option>{% endif %}{% endfor %}
+      {% for p in people %}<option value="{{ p.user.pk }}" data-clinics="{{ p.clinics }}">{{ p.user }}</option>{% endfor %}
     </select>
     <p style="margin:.2rem 0">
       <label style="display:inline-block;margin-right:1rem"><input type="radio" name="mode" value="INDIVIDUAL" style="width:auto" checked> Semua harus selesai</label>

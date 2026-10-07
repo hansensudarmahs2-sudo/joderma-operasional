@@ -138,6 +138,7 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Menambah/mengubah/menugaskan task project dan membatalkan selesai (revisi) | Owner, AOM, pembuat, Project leader, Co-project leader | — |
 | Mengubah uraian dan target project, mengatur co-leader | Owner, AOM, pembuat, Project leader | — |
 | Menunjuk/mengganti leader, menutup, dan membatalkan project | Owner, AOM, pembuat | — |
+| Menolak task project yang ditugaskan kepadanya | owner | — |
 | Membuka komplain terbatas | supervisor, AOM, owner | `issue.view_restricted`, `report.view_confidential`, `admin.full_access` |
 | Menutup hari operasional | supervisor | — |
 | Membaca audit log | supervisor, AOM, owner | `audit.view`, `admin.full_access` |
@@ -146,7 +147,7 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Tahan task menunggu keputusan, bawa ke rapat, buat task tindak lanjut keputusan | AOM | — |
 | Jadikan item Inbox kebijakan (diumumkan ke semua orang di cabangnya, tanpa nama pelapor) | AOM | — |
 | Membaca Kebijakan (`/laporan/kebijakan/`): kebijakan cabangnya sendiri dan yang berlaku semua cabang | semua peran | — |
-| Dipilih sebagai penerima task / penanggung jawab catatan di **cabang mana pun** walau perannya tercatat di satu cabang (5 Okt 2026) | AOM | — |
+| Dipilih sebagai penerima task / penanggung jawab catatan di **cabang mana pun** walau perannya tercatat di satu cabang (5 Okt 2026) | AOM, owner (task project saja) | — |
 | Detail task: ubah status/target, tandai selesai, batalkan, keluarkan penerima | AOM, pembuat task | — |
 | Pengaturan klinik (nama, alamat, nomor HP, jam, DPJ, APJ): ubah | admin, AOM, superuser bootstrap | — |
 | Pengaturan klinik: baca | (owner dahulu; sejak fase 3 ditolak tampilan Owner) | — |

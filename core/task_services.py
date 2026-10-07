@@ -24,7 +24,14 @@ from .models import (
     TaskEventType,
     local_today,
 )
-from .permissions import can_access_clinic, clinic_member_q, is_aom, is_owner, is_pic
+from .permissions import can_access_clinic, clinic_member_q, is_aom, is_owner, is_owner_only, is_pic
+
+
+def owner_tasks_url() -> str:
+    """Tujuan notifikasi task untuk Owner: kartu "Tugas saya (project)" di dashboard Owner."""
+    from django.urls import reverse
+
+    return reverse("owner:dashboard") + "#tugas-project"
 
 
 def _recipient_payload(user: User) -> dict:
@@ -38,18 +45,19 @@ def resolve_task_recipients(
     user_ids=None,
     role: str = "",
     pic_function: str = "",
+    include_owners: bool = False,
 ) -> list[User]:
     qs = User.objects.filter(is_active=True)
     if audience_type == TaskAudienceType.USER:
         ids = list(user_ids or [])
         if len(ids) != 1:
             raise ValidationError("Target satu user membutuhkan tepat satu penerima.")
-        qs = qs.filter(clinic_member_q(clinic), pk=ids[0])
+        qs = qs.filter(clinic_member_q(clinic, include_owners=include_owners), pk=ids[0])
     elif audience_type == TaskAudienceType.USERS:
         ids = list(user_ids or [])
         if not ids:
             raise ValidationError("Target beberapa user membutuhkan minimal satu penerima.")
-        qs = qs.filter(clinic_member_q(clinic), pk__in=ids)
+        qs = qs.filter(clinic_member_q(clinic, include_owners=include_owners), pk__in=ids)
     elif audience_type == TaskAudienceType.PIC_FUNCTION:
         if not pic_function:
             raise ValidationError("Fungsi PIC wajib dipilih.")
@@ -91,6 +99,7 @@ def send_task(
     role: str = "",
     pic_function: str = "",
     mode: str = TaskAssignmentMode.INDIVIDUAL,
+    include_owners: bool = False,
 ) -> list[TaskAssignment]:
     if not can_access_clinic(actor, action_item.clinic):
         raise PermissionDenied("Anda tidak memiliki akses ke cabang task ini.")
@@ -103,6 +112,7 @@ def send_task(
         user_ids=user_ids,
         role=role,
         pic_function=pic_function,
+        include_owners=include_owners,
     )
     action_item.assignment_mode = mode
     if action_item.status == ActionItemStatus.BATAL:
@@ -135,13 +145,16 @@ def send_task(
                 actor=actor,
                 metadata={"assignee": recipient.username, "mode": mode},
             )
-            notify_user(
+            notif = notify_user(
                 recipient,
                 type_code="TASK_ASSIGNED",
                 title=f"Task baru: {action_item.title}",
                 entity_ref=f"actionitem#{action_item.pk}",
                 url_name="core:action_items",
             )
+            if notif is not None and is_owner_only(recipient):
+                notif.url = owner_tasks_url()
+                notif.save(update_fields=["url"])
     return assignments
 
 
@@ -162,6 +175,7 @@ def create_task(
     source_type: str = "manual",
     source_id=None,
     source_label: str = "",
+    include_owners: bool = False,
 ) -> ActionItem:
     if not title.strip():
         raise ValidationError("Judul task wajib diisi.")
@@ -185,6 +199,7 @@ def create_task(
         role=role,
         pic_function=pic_function,
         mode=mode,
+        include_owners=include_owners,
     )
     if len(assignments) == 1:
         item.owner = assignments[0].assignee
@@ -381,7 +396,7 @@ def _notify_task(people, *, actor, item: ActionItem, type_code: str, title: str,
             notif = notify_user(person, type_code=type_code, title=title, body=body[:300],
                                 entity_ref=f"actionitem#{item.pk}")
             if notif is not None:
-                notif.url = reverse("core:today") + f"#task-{item.pk}"
+                notif.url = owner_tasks_url() if is_owner_only(person) else reverse("core:today") + f"#task-{item.pk}"
                 notif.save(update_fields=["url"])
         else:
             notify_user(person, type_code=type_code, title=title, body=body[:300], entity_ref=f"actionitem#{item.pk}",
@@ -758,7 +773,17 @@ def add_task_comment(item: ActionItem, *, actor, note: str) -> TaskEvent:
     if not (can_manage_task(item, actor) or is_recipient or is_dirut_reviewer):
         raise PermissionDenied("Anda tidak terlibat di task ini.")
     event = TaskEvent.objects.create(action_item=item, event_type=TaskEventType.COMMENT, actor=actor, note=note)
-    if is_recipient and not can_manage_task(item, actor):
+    if is_recipient and is_owner_only(actor):
+        # Owner penerima bisa mengatur semua project, tetapi di sini ia bertindak sebagai penerima:
+        # kabari pengamat (leader, co-leader, pembuat) dan penerima lain.
+        watchers = _watchers(item)
+        watcher_ids = {w.pk for w in watchers}
+        _notify_task(watchers, actor=actor, item=item, type_code="TASK_COMMENT",
+                     title=f"Balasan di task: {item.title}", body=f"{actor}: {note}", to_staff=False)
+        _notify_task([p for p in _active_recipients(item) if p.pk not in watcher_ids], actor=actor, item=item,
+                     type_code="TASK_COMMENT", title=f"Catatan di task: {item.title}", body=f"{actor}: {note}",
+                     to_staff=True)
+    elif is_recipient and not can_manage_task(item, actor):
         _notify_task(_watchers(item), actor=actor, item=item, type_code="TASK_COMMENT",
                      title=f"Balasan di task: {item.title}", body=f"{actor}: {note}", to_staff=False)
     else:

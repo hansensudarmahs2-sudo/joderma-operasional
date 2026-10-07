@@ -11,6 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import F
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from accounts.models import Role, User, UserRole
 from core.models import (
@@ -24,7 +25,7 @@ from core.models import (
     TaskEventType,
     local_today,
 )
-from core.permissions import CROSS_BRANCH_ROLES, user_clinic_queryset
+from core.permissions import CROSS_BRANCH_ROLES, can_access_clinic, is_owner_only, user_clinic_queryset
 from core.photos import documents_for, photos_for
 
 from . import services as ps
@@ -91,14 +92,12 @@ def _people() -> list[dict]:
     out = []
     for u in users:
         roles = list(u.user_roles.all())
-        if any(r.role in CROSS_BRANCH_ROLES for r in roles):
+        # Direktur Operasional dan Owner menerima task di cabang mana pun (Owner lewat kartu di dashboard-nya).
+        if any(r.role in (*CROSS_BRANCH_ROLES, Role.OWNER) for r in roles):
             clinics = "*"
         else:
             clinics = ",".join(sorted({str(r.clinic_id) for r in roles}))
-        codes = {r.role for r in roles}
-        # Owner tidak memakai "Tandai selesai" (tampilan Owner), jadi bukan calon penerima task.
-        out.append({"user": u, "clinics": clinics,
-                    "recipient": not (Role.OWNER in codes and Role.AOM not in codes)})
+        out.append({"user": u, "clinics": clinics})
     return out
 
 
@@ -194,9 +193,17 @@ def _task_rows(project: Project) -> list[dict]:
         .order_by("due_at", "created_at")
     )
     evidence = _evidence(items)
+    declined = set(TaskEvent.objects.filter(
+        action_item_id__in=[i.pk for i in items], event_type=TaskEventType.CANCELLED, metadata__ditolak=True,
+    ).values_list("assignment_id", flat=True))
     rows = []
     for item in items:
-        active = [a for a in item.task_assignments.all() if a.status != TaskAssignmentStatus.CANCELLED]
+        everyone = list(item.task_assignments.all())
+        active = [a for a in everyone if a.status != TaskAssignmentStatus.CANCELLED]
+        all_declined = bool(
+            item.status in ps.OPEN_ITEM_STATES and everyone and not active
+            and any(a.pk in declined for a in everyone)
+        )
         names = ", ".join(str(a.assignee) for a in active)
         shared = item.assignment_mode == TaskAssignmentMode.BERSAMA
         claimer = next((a.claimed_by for a in active if a.claimed_by_id), None)
@@ -206,7 +213,8 @@ def _task_rows(project: Project) -> list[dict]:
             who = names
         confirmed = sum(a.status == TaskAssignmentStatus.CONFIRMED for a in active)
         counter = f"{confirmed}/{len(active)} selesai" if not shared and len(active) > 1 else ""
-        rows.append({"item": item, "who": who or "—", "counter": counter, "evidence": evidence[item.pk]})
+        rows.append({"item": item, "who": who or "—", "counter": counter, "evidence": evidence[item.pk],
+                     "all_declined": all_declined})
     return rows
 
 
@@ -312,15 +320,20 @@ def task_detail(request, pk: int, task_pk: int):
     e_photos = photos_for("taskevent", [e.pk for e in events])
     e_docs = documents_for("taskevent", [e.pk for e in events])
     last_submit = {}
+    decline_reason = {}
     for e in events:
         if e.event_type == TaskEventType.SUBMITTED and e.assignment_id and e.note:
             last_submit[e.assignment_id] = e.note
+        if e.event_type == TaskEventType.CANCELLED and e.assignment_id and e.metadata.get("ditolak"):
+            decline_reason[e.assignment_id] = e.note.removeprefix("Ditolak: ")
     can_manage = project.is_active and ps.can_manage_tasks(user, project) and item.status != ActionItemStatus.BATAL
     rows = [{
         "a": a,
         "photos": a_photos.get(a.pk, []),
         "docs": a_docs.get(a.pk, []),
         "note": last_submit.get(a.pk, ""),
+        "declined": a.status == TaskAssignmentStatus.CANCELLED and a.pk in decline_reason,
+        "decline_reason": decline_reason.get(a.pk, ""),
         "can_reopen": can_manage and a.status == TaskAssignmentStatus.CONFIRMED,
     } for a in assignments]
     for e in events:
@@ -357,3 +370,64 @@ def _handle_task_post(request, project: Project, item: ActionItem):
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
     return redirect("projects:task_detail", pk=project.pk, task_pk=item.pk)
+
+
+# --- Aksi penerima Owner (kartu "Tugas saya (project)" di dashboard Owner) -----------------
+
+
+def _my_assignment_or_404(request, pk: int) -> TaskAssignment:
+    """Assignment task project milik pengguna sendiri; yang lain 404."""
+    assignment = get_object_or_404(
+        TaskAssignment.objects.select_related("action_item", "action_item__clinic"),
+        pk=pk, assignee=request.user, action_item__source_type=SOURCE_TYPE,
+    )
+    if not can_access_clinic(request.user, assignment.action_item.clinic):
+        raise PermissionDenied("Anda tidak memiliki akses ke task cabang ini.")
+    return assignment
+
+
+def _back_to_card(request):
+    from core.views import _back
+
+    return _back(request, "owner:dashboard" if is_owner_only(request.user) else "core:today")
+
+
+@login_required
+@require_POST
+def my_submit(request, pk: int):
+    """Penerima menandai task project selesai dengan bukti (aturan sama dengan Hari Ini staf)."""
+    from core.views import submit_with_evidence
+
+    submit_with_evidence(request, _my_assignment_or_404(request, pk))
+    return _back_to_card(request)
+
+
+@login_required
+@require_POST
+def my_comment(request, pk: int):
+    """Balasan penerima di percakapan task project."""
+    from core.task_services import add_task_comment
+
+    item = get_object_or_404(
+        ActionItem.objects.filter(task_assignments__assignee=request.user).distinct(),
+        pk=pk, source_type=SOURCE_TYPE,
+    )
+    try:
+        add_task_comment(item, actor=request.user, note=request.POST.get("catatan", ""))
+        messages.success(request, "Balasan terkirim.")
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    return _back_to_card(request)
+
+
+@login_required
+@require_POST
+def my_decline(request, pk: int):
+    """Owner menolak task project yang ditugaskan kepadanya (alasan wajib); hanya Owner (diperiksa di service)."""
+    assignment = _my_assignment_or_404(request, pk)
+    try:
+        ps.decline_assignment(assignment, actor=request.user, reason=request.POST.get("alasan", ""))
+        messages.success(request, "Task ditolak; pengatur project diberi tahu.")
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    return _back_to_card(request)

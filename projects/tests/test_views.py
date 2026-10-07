@@ -764,16 +764,13 @@ def test_action_item_update_rejects_unknown_status(client, clinic, spv, sb):
     assert item.status != "NGAWUR" and "Status tidak dikenali." in _messages(response)
 
 
-def test_owner_is_not_a_task_recipient(client, project, owner, aom1, sa, sc):
-    from django.core.exceptions import ValidationError
-
-    with pytest.raises(ValidationError, match="Owner tidak dapat menjadi penerima task."):
-        _task(project, aom1, [owner, sc])
-    assert not project.tasks().exists()
-    assert _task(project, aom1, [aom1]).pk  # Direktur boleh menjadi penerima
+def test_owner_is_a_task_recipient(client, project, owner, aom1, sa, sc):
+    """Owner boleh menjadi penerima (7 Okt 2026): selesai lewat kartu di dashboard Owner; lihat test_owner_penerima."""
+    item = _task(project, aom1, [owner, sc])
+    assert set(item.task_assignments.values_list("assignee_id", flat=True)) == {owner.pk, sc.pk}
     body = _login(client, aom1).get(reverse("projects:detail", args=[project.pk])).content.decode()
     penerima = body.split('id="t-penerima"', 1)[1].split("</select>", 1)[0]
-    assert f'value="{owner.pk}"' not in penerima and f'value="{sc.pk}"' in penerima
+    assert f'value="{owner.pk}"' in penerima and f'value="{sc.pk}"' in penerima
     leader = body.split('id="p-leader"', 1)[1].split("</select>", 1)[0]
     assert f'value="{owner.pk}"' in leader
 

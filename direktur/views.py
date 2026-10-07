@@ -23,7 +23,7 @@ from core.models import (
     TaskAssignmentStatus,
     local_today,
 )
-from core.permissions import is_aom, is_owner, require, user_clinic_queryset
+from core.permissions import is_aom, is_owner, is_owner_only, require, user_clinic_queryset
 
 from . import dashboard, services
 from . import summary as daily_summary
@@ -591,6 +591,7 @@ def task_detail(request, pk: int):
 
     assignments = list(item.task_assignments.select_related("assignee", "claimed_by", "reviewer"))
     now = timezone.now()
+    owner_view = is_owner_only(request.user)
     rows = [
         {
             "a": a,
@@ -598,7 +599,10 @@ def task_detail(request, pk: int):
             # ajukan selesai dari halaman ini, tidak hanya dari Tugas saya.
             "can_submit": a.assignee_id == request.user.pk and item.status not in (
                 ActionItemStatus.SELESAI, ActionItemStatus.BATAL)
+            # Owner tidak boleh membuka rute core Hari Ini: hanya task project, lewat rute projects.
+            and (not owner_view or item.source_type == "proyek")
             and task_services.my_task_row(item, a, request.user, now)["can_submit"],
+            "owner_card": owner_view,
             "can_review": a.status == TaskAssignmentStatus.SUBMITTED
             and task_services.can_review_assignment(a, request.user),
             "can_remove": can_manage and a.status in task_services.OPEN_ASSIGNMENT_STATES,

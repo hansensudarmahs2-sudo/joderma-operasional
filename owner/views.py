@@ -65,8 +65,16 @@ def dashboard_page(request):
             "achievements": services.recent_achievements(user),
             "can_create": services.can_create_request(user),
             "today": local_today(),
+            "my_project_tasks": _my_project_tasks(user),
         },
     )
+
+
+def _my_project_tasks(user):
+    """Kartu "Tugas saya (project)": task project yang ditugaskan ke Owner dan belum selesai."""
+    from projects.services import my_project_assignments
+
+    return my_project_assignments(user) if is_owner(user) and not is_aom(user) else []
 
 
 @login_required

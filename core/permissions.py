@@ -62,11 +62,21 @@ def can_access_clinic(user, clinic) -> bool:
 CROSS_BRANCH_ROLES = (Role.AOM,)
 
 
-def clinic_member_q(clinic, prefix: str = ""):
-    """Filter User: anggota cabang `clinic`, termasuk Direktur Operasional (lintas cabang)."""
+def clinic_member_q(clinic, prefix: str = "", include_owners: bool = False):
+    """Filter User: anggota cabang `clinic`, termasuk Direktur Operasional (lintas cabang).
+
+    `include_owners=True` juga menyertakan Owner (task project boleh diberikan ke Owner di cabang mana pun)."""
     from django.db.models import Q
 
-    return Q(**{f"{prefix}user_roles__clinic": clinic}) | Q(**{f"{prefix}user_roles__role__in": CROSS_BRANCH_ROLES})
+    q = Q(**{f"{prefix}user_roles__clinic": clinic}) | Q(**{f"{prefix}user_roles__role__in": CROSS_BRANCH_ROLES})
+    if include_owners:
+        q |= Q(**{f"{prefix}user_roles__role": Role.OWNER})
+    return q
+
+
+def is_owner_only(user) -> bool:
+    """Owner / Direktur Utama yang bukan Direktur Operasional (tampilan Owner)."""
+    return is_owner(user) and not is_aom(user)
 
 
 def is_clinic_member(user, clinic) -> bool:
