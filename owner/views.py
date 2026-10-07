@@ -22,8 +22,8 @@ from core.permissions import is_aom, is_owner, require, user_clinic_queryset
 from direktur import dashboard
 from direktur.models import DailySummary
 
-from . import services
-from .models import OwnerRequest
+from . import services, usulan
+from .models import OwnerRequest, Usulan, UsulanKind, UsulanStatus
 
 DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
 
@@ -59,6 +59,7 @@ def dashboard_page(request):
             "counts": dashboard.headline_counts(user),
             "agenda": dashboard.meeting_agenda(user),
             "awaiting": services.decisions_awaiting(user),
+            "usulan": usulan.usulan_awaiting(user),
             "requests": services.request_rows(user),
             "verify": services.verification_queue(user),
             "achievements": services.recent_achievements(user),
@@ -80,7 +81,7 @@ def request_new(request):
     clinics = list(user_clinic_queryset(request.user).order_by("id"))
     if request.method == "POST":
         form = {k: request.POST.get(k, "") for k in form}
-        clinic = next((c for c in clinics if form["cabang"].isdigit() and c.pk == int(form["cabang"])), None)
+        clinic = next((c for c in clinics if form["cabang"].isascii() and form["cabang"].isdigit() and c.pk == int(form["cabang"])), None)
         try:
             with transaction.atomic():
                 req = services.create_request(
@@ -303,3 +304,100 @@ def jadwal(request):
             "duty": services.duty_today(clinic, day),
         },
     )
+
+
+# --- Usulan Direktur ke Owner (tahap 4) -------------------------------------------------
+
+NOMINAL_MAX = 999_999_999_999
+
+
+@login_required
+@require(usulan.can_view_usulan)
+def usulan_list(request):
+    semua = request.GET.get("semua") == "1"
+    rows = Usulan.objects.select_related("created_by", "clinic")
+    if not semua:
+        rows = rows.filter(status__in=(UsulanStatus.MENUNGGU, UsulanStatus.TERKIRIM))
+    return render(request, "owner/usulan_list.html", {
+        "rows": rows, "semua": semua, "can_create": is_aom(request.user), "today": local_today(),
+    })
+
+
+@login_required
+@require(usulan.can_view_usulan)
+def usulan_new(request):
+    if not is_aom(request.user):
+        raise PermissionDenied("Usulan dibuat oleh Direktur Operasional.")
+    form = {"jenis": UsulanKind.PERSETUJUAN, "judul": "", "uraian": "", "nominal": "", "cabang": "", "batas": ""}
+    clinics = list(user_clinic_queryset(request.user).order_by("id"))
+    if request.method == "POST":
+        form = {k: request.POST.get(k, "") for k in form}
+        clinic = next((c for c in clinics if form["cabang"].isascii() and form["cabang"].isdigit() and c.pk == int(form["cabang"])), None)
+        try:
+            amount = None
+            raw = form["nominal"].replace(".", "").replace(" ", "")
+            if raw:
+                if not (raw.isascii() and raw.isdigit()):
+                    raise ValidationError("Nominal harus angka.")
+                amount = int(raw)
+                if amount > NOMINAL_MAX:
+                    raise ValidationError("Nominal terlalu besar.")
+            needed_by = None
+            if form["batas"]:
+                try:
+                    needed_by = dt.date.fromisoformat(form["batas"])
+                except ValueError:
+                    raise ValidationError("Tanggal tidak valid.")
+            item = usulan.create_usulan(
+                actor=request.user, kind=form["jenis"], title=form["judul"], description=form["uraian"],
+                amount=amount, clinic=clinic, needed_by=needed_by,
+            )
+            messages.success(request, "Usulan dikirim ke Owner.")
+            return redirect("owner:usulan_detail", pk=item.pk)
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+    return render(request, "owner/usulan_form.html", {
+        "form": form, "clinics": clinics, "today": local_today(), "nominal_max": NOMINAL_MAX,
+        "kinds": UsulanKind.choices,
+    })
+
+
+@login_required
+@require(usulan.can_view_usulan)
+def usulan_detail(request, pk: int):
+    item = get_object_or_404(
+        Usulan.objects.select_related("created_by", "clinic", "decided_by", "read_by", "cancelled_by", "decision"),
+        pk=pk,
+    )
+    if request.method == "POST":
+        aksi = request.POST.get("aksi", "")
+        try:
+            if aksi in usulan.VERDICTS:
+                usulan.decide_usulan(item, actor=request.user, verdict=aksi, note=request.POST.get("catatan", ""))
+                messages.success(request, "Dibawa ke rapat Kamis; Direktur Operasional sudah diberi tahu."
+                                 if aksi == "rapat" else "Keputusan dikirim ke Direktur Operasional.")
+            elif aksi == "dibaca":
+                usulan.mark_read(item, actor=request.user)
+                messages.success(request, "Ditandai sudah dibaca.")
+            elif aksi == "catatan":
+                usulan.add_usulan_note(item, actor=request.user, note=request.POST.get("catatan", ""))
+                messages.success(request, "Catatan terkirim.")
+            elif aksi == "batal":
+                usulan.cancel_usulan(item, actor=request.user, reason=request.POST.get("alasan", ""))
+                messages.success(request, "Usulan dibatalkan.")
+            else:
+                messages.error(request, "Aksi tidak dikenal.")
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+        return redirect("owner:usulan_detail", pk=item.pk)
+    owner = is_owner(request.user)
+    director = is_aom(request.user)
+    return render(request, "owner/usulan_detail.html", {
+        "u": item,
+        "notes": list(item.notes.select_related("author")),
+        "overdue": item.is_overdue(local_today()),
+        "can_decide": owner and item.kind == UsulanKind.PERSETUJUAN and item.status == UsulanStatus.MENUNGGU,
+        "can_mark_read": owner and item.kind == UsulanKind.LAPORAN and item.status == UsulanStatus.TERKIRIM,
+        "can_cancel": director and item.is_open,
+        "can_note": owner or director,
+    })

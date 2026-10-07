@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Usulan baru{% endblock %}
+{% block content %}
+<p><a href="{% url 'owner:usulan_list' %}">← Usulan ke Owner</a></p>
+<h1>Usulan baru</h1>
+<p class="sub">Dikirim ke Owner / Direktur Utama. Pilih minta persetujuan bila butuh jawaban, atau laporan bila Owner cukup mengetahuinya.</p>
+<form method="post" class="card">
+  {% csrf_token %}
+  <p>{% for value, label in kinds %}<label style="display:inline-block;margin-right:1rem"><input type="radio" name="jenis" value="{{ value }}" style="width:auto"{% if form.jenis == value %} checked{% endif %}> {{ label }}</label>{% endfor %}</p>
+  <label for="judul">Judul</label>
+  <input id="judul" name="judul" maxlength="200" required value="{{ form.judul }}" placeholder="Mis. Beli AC ruang tindakan">
+  <label for="uraian">Uraian</label>
+  <textarea id="uraian" name="uraian" rows="5" required placeholder="Masalahnya apa, kenapa perlu, rencana Anda">{{ form.uraian }}</textarea>
+  <div class="inline">
+    <div><label for="nominal">Nominal (Rp) <span class="meta">(opsional)</span></label>
+      <input id="nominal" type="number" name="nominal" min="0" max="{{ nominal_max }}" inputmode="numeric" value="{{ form.nominal }}">
+      <p class="help">Hanya untuk minta persetujuan.</p></div>
+    <div><label for="cabang">Cabang</label>
+      <select id="cabang" name="cabang"><option value="">Lintas cabang</option>{% for c in clinics %}<option value="{{ c.pk }}"{% if form.cabang == c.pk|stringformat:"s" %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+    <div><label for="batas">Perlu jawaban sebelum <span class="meta">(opsional)</span></label>
+      <input id="batas" type="date" name="batas" min="{{ today|date:'Y-m-d' }}" value="{{ form.batas }}"></div>
+  </div>
+  <p><button class="btn" type="submit">Kirim ke Owner</button></p>
+</form>
+{% endblock %}

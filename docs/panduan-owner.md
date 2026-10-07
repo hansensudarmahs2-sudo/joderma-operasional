@@ -86,6 +86,19 @@ pertama yang berlaku**; sesudahnya halaman hanya menampilkan hasilnya. Direktur 
 membaca halaman ini tetapi tidak dapat memutuskan di sana. Direktur diberi tahu hasilnya dan dapat
 membuat task tindak lanjut dari halaman Keputusan.
 
+## Usulan Direktur
+
+Usulan yang Direktur Operasional ajukan atas inisiatifnya sendiri ada di menu **Usulan Direktur**
+(`/owner/usulan/`) dan di kartu **Usulan Direktur** pada Dashboard, dengan tag **Putuskan**,
+**Belum dibaca**, atau **Lewat tenggat**. Anda mendapat notifikasi saat usulan masuk. Buka usulannya:
+
+- **Minta persetujuan**: ketuk **Setujui**, **Tolak** (alasan wajib), atau **Bahas di rapat**
+  (catatan boleh; perkara Keputusan untuk rapat Kamis dibuat dan ditautkan dari usulan). Siapa pun
+  Owner yang menjawab lebih dulu, jawabannya yang berlaku; Direktur diberi tahu.
+- **Laporan masalah/risiko**: ketuk **Tandai sudah dibaca**.
+- Untuk keduanya, tulis di **Percakapan** bila perlu bertanya atau menanggapi; Direktur diberi
+  notifikasi.
+
 ## Verifikasi pekerjaan Direktur Operasional
 
 Pekerjaan yang dikerjakan sendiri oleh Direktur Operasional diverifikasi Direktur Utama / Owner

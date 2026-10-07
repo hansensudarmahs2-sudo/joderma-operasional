@@ -98,7 +98,7 @@ def test_owner_menu_is_short(client, clinic):
     client.force_login(_user(clinic, "yohanes", Role.OWNER))
     body = client.get(reverse("owner:dashboard")).content.decode()
     menu = _nav(body)
-    assert menu[:7] == ["Dashboard", "Inbox", "Task", "Evaluasi staf", "Kebijakan", "Summary Harian", "Jadwal"]
+    assert menu[:8] == ["Dashboard", "Inbox", "Usulan Direktur", "Task", "Evaluasi staf", "Kebijakan", "Summary Harian", "Jadwal"]
     for label in OWNER_FORBIDDEN_MENU:
         assert label not in menu
     assert "Owner / Direktur Utama" in body

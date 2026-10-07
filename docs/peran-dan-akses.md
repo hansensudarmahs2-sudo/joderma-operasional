@@ -161,6 +161,9 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Mengirim summary harian ke Owner | AOM | — |
 | Menulis tanggapan Summary Harian (utas; tidak dapat diubah atau dihapus, memberi notifikasi ke pihak lain). Waktu buka Owner tercatat sebagai tanda baca | owner, AOM | — |
 | Memutuskan permintaan keputusan berpemutus Owner/Direktur Utama (Setujui, Tolak, Bahas di rapat Kamis; `/owner/keputusan/<id>/`) | owner (siapa saja), keputusan pertama berlaku. AOM hanya membaca halamannya | — |
+| Membuat dan membatalkan Usulan ke Owner (`/owner/usulan/`) | AOM | — |
+| Memutuskan usulan (Setujui, Tolak, Bahas di rapat) dan menandai laporan sudah dibaca | owner | — |
+| Menulis di percakapan usulan | AOM, owner | — |
 | Stok Apotek: membuka | apoteker, asisten apoteker, AOM, owner | — |
 | Stok Apotek: unggah ekspor Omnicare, ubah parameter | apoteker, asisten apoteker, AOM (keputusan 1 Okt 2026) | — |
 | Inbox (dulu Laporan Masuk): semua komplain, masukan, kerusakan, laporan, masukan staf lintas cabang, permintaan/temuan Owner; catatan Direktur hanya untuk penulisnya | AOM (tindak lanjut), owner (baca saja) | `admin.full_access` |

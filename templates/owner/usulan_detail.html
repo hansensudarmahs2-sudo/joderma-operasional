@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load owner_extras %}
+{% block title %}{{ u.title }}{% endblock %}
+{% block content %}
+<p><a href="{% url 'owner:usulan_list' %}">← Usulan</a></p>
+<h1>{{ u.title }}</h1>
+<p class="sub">Diajukan {{ u.created_by }} · {{ u.created_at|date:"d/m/Y" }} · {{ u.clinic.name|default:"Lintas cabang" }} · {% if u.needed_by %}perlu jawaban sebelum <strong>{{ u.needed_by|date:"d/m/Y" }}</strong>{% else %}tanpa tenggat{% endif %}</p>
+<p><span class="tag info">{{ u.get_kind_display }}</span> <span class="tag {% if u.status == 'MENUNGGU' or u.status == 'TERKIRIM' %}warn{% elif u.status == 'DISETUJUI' or u.status == 'DIBACA' %}ok{% elif u.status == 'DITOLAK' %}err{% elif u.status == 'DIBATALKAN' %}muted{% else %}info{% endif %}">{{ u.get_status_display }}</span>{% if overdue %} <span class="tag err">Lewat tenggat</span>{% endif %}</p>
+{% if u.amount %}<p><strong>Nominal: {{ u.amount|rupiah }}</strong></p>{% endif %}
+<div class="card" style="white-space:pre-wrap">{{ u.description }}</div>
+
+{% if u.status == 'DISETUJUI' or u.status == 'DITOLAK' or u.status == 'RAPAT' %}
+<div class="card"><strong>{{ u.get_status_display }}</strong>{% if u.decision_note %}<div style="white-space:pre-wrap">{{ u.decision_note }}</div>{% endif %}
+  <p class="meta" style="margin:.3rem 0 0">oleh {{ u.decided_by }} · {{ u.decided_at|date:"d/m/Y H.i" }}</p>
+  {% if u.status == 'RAPAT' and u.decision %}<p style="margin:.3rem 0 0"><a href="{% url 'direktur:decision_detail' u.decision.pk %}">Lihat perkara rapat ›</a></p>{% endif %}</div>
+{% elif u.status == 'DIBACA' %}
+<div class="card"><strong>Dibaca Owner pukul {{ u.read_at|date:"H.i" }}</strong>
+  <p class="meta" style="margin:.3rem 0 0">oleh {{ u.read_by }} · {{ u.read_at|date:"d/m/Y" }}</p></div>
+{% elif u.status == 'DIBATALKAN' %}
+<div class="card"><strong>Dibatalkan</strong>{% if u.cancel_reason %}<div style="white-space:pre-wrap">{{ u.cancel_reason }}</div>{% endif %}
+  <p class="meta" style="margin:.3rem 0 0">oleh {{ u.cancelled_by }} · {{ u.cancelled_at|date:"d/m/Y H.i" }}</p></div>
+{% endif %}
+
+{% if can_decide %}
+<form method="post" class="card">{% csrf_token %}
+  <label for="catatan-putus">Catatan <span class="meta">(wajib bila menolak)</span></label>
+  <textarea id="catatan-putus" name="catatan" rows="3" placeholder="Mis. boleh, maksimal Rp1,5 juta"></textarea>
+  <p class="inline-actions">
+    <button class="btn" type="submit" name="aksi" value="setuju">Setujui</button>
+    <button class="btn secondary" type="submit" name="aksi" value="tolak">Tolak</button>
+    <button class="btn secondary" type="submit" name="aksi" value="rapat">Bahas di rapat Kamis</button>
+  </p>
+</form>
+{% endif %}
+{% if can_mark_read %}
+<form method="post" class="card">{% csrf_token %}
+  <button class="btn" type="submit" name="aksi" value="dibaca">Tandai sudah dibaca</button>
+</form>
+{% endif %}
+{% if can_cancel %}
+<details class="card">
+  <summary>Batalkan usulan</summary>
+  <form method="post">{% csrf_token %}
+    <label for="alasan">Alasan pembatalan</label>
+    <textarea id="alasan" name="alasan" rows="2" required></textarea>
+    <p><button class="btn secondary" type="submit" name="aksi" value="batal">Batalkan usulan</button></p>
+  </form>
+</details>
+{% endif %}
+
+<section class="card" aria-labelledby="judul-percakapan">
+  <h2 id="judul-percakapan" style="margin:0 0 .4rem">Percakapan</h2>
+  {% for n in notes %}
+  <div style="margin-bottom:.6rem"><span class="meta">{{ n.author }} · {{ n.created_at|date:"d/m/Y H.i" }}</span><div style="white-space:pre-wrap">{{ n.note }}</div></div>
+  {% empty %}
+  <p class="meta">Belum ada catatan.</p>
+  {% endfor %}
+  {% if can_note %}
+  <form method="post">{% csrf_token %}
+    <label for="catatan">Tulis catatan</label>
+    <textarea id="catatan" name="catatan" rows="3" required></textarea>
+    <p><button class="btn" type="submit" name="aksi" value="catatan">Kirim</button></p>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

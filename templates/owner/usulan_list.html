@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load owner_extras %}
+{% block title %}Usulan Direktur ke Owner{% endblock %}
+{% block content %}
+<div class="checklist-heading">
+  <div>
+    <h1>Usulan Direktur ke Owner</h1>
+    <p class="sub">Permintaan persetujuan dan laporan masalah yang diajukan Direktur Operasional atas inisiatif sendiri.</p>
+  </div>
+  {% if can_create %}<span class="inline-actions"><a class="btn small" href="{% url 'owner:usulan_new' %}">+ Usulan baru</a></span>{% endif %}
+</div>
+<p class="inline-actions">
+  <a class="btn small{% if semua %} secondary{% endif %}" href="{% url 'owner:usulan_list' %}">Perlu tindakan</a>
+  <a class="btn small{% if not semua %} secondary{% endif %}" href="{% url 'owner:usulan_list' %}?semua=1">Semua</a>
+</p>
+{% if rows %}
+<ul class="request-list card">
+  {% for u in rows %}
+  <li><a class="request-row" href="{% url 'owner:usulan_detail' u.pk %}">
+    <span class="request-main">
+      <strong><span class="tag info">{{ u.get_kind_display }}</span> {{ u.title }}{% if u.amount %} · {{ u.amount|rupiah }}{% endif %}</strong>
+      <span class="meta">{{ u.clinic.name|default:"Lintas cabang" }} · {{ u.created_by }} · {{ u.created_at|date:"d/m/Y" }}{% if u.needed_by %} · sebelum {{ u.needed_by|date:"d/m/Y" }}{% endif %}</span>
+    </span>
+    <span class="request-state">{% if u.is_open and u.needed_by and u.needed_by < today and u.status == 'MENUNGGU' %}<span class="tag err">Lewat tenggat</span> {% endif %}<span class="tag {% if u.status == 'MENUNGGU' or u.status == 'TERKIRIM' %}warn{% elif u.status == 'DISETUJUI' or u.status == 'DIBACA' %}ok{% elif u.status == 'DITOLAK' %}err{% elif u.status == 'DIBATALKAN' %}muted{% else %}info{% endif %}">{{ u.get_status_display }}</span></span>
+  </a></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="meta">Belum ada usulan.</p>
+{% endif %}
+{% endblock %}

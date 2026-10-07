@@ -205,6 +205,26 @@ membaca. Sesudahnya ada utas **Tanggapan**: Direktur dan Owner dapat menulis, en
 diubah atau dihapus, dan setiap tanggapan memberi notifikasi ke pihak lain. Daftar summary terbaru
 menandai "belum dibaca" dan "<n> tanggapan".
 
+## Usulan ke Owner
+
+Pakai menu **Direktur ▸ Usulan ke Owner** (`/owner/usulan/`) untuk hal yang Anda sendiri ingin
+sampaikan kepada Owner. Ini berbeda dari **Keputusan**: Keputusan adalah register perkara
+(termasuk yang datang dari Inbox atau rapat), sedangkan Usulan dipakai untuk inisiatif Anda ke
+Owner. Tekan **+ Usulan baru** dan pilih jenisnya:
+
+- **Minta persetujuan** — isi judul dan uraian; **nominal** (Rupiah) dan **perlu jawaban sebelum**
+  (tanggal) boleh dikosongkan, begitu juga cabang (kosong = lintas cabang). Semua Owner mendapat
+  notifikasi. Owner menjawab **Setujui**, **Tolak** (wajib beralasan), atau **Bahas di rapat**;
+  yang terakhir membuat perkara **Keputusan** untuk rapat Kamis dan usulan Anda menautkannya.
+  Jawaban Owner pertama yang berlaku, dan Anda mendapat notifikasi.
+- **Laporan masalah/risiko** — tanpa nominal dan tanpa jawaban Setuju/Tolak. Owner menandai
+  **sudah dibaca**; Anda melihat "Dibaca Owner pukul …" di halaman usulan.
+
+Di halaman detail ada **Percakapan** dua arah: Anda dan Owner dapat menulis, dan setiap catatan
+memberi notifikasi ke pihak lain. Selama usulan belum dijawab (atau laporan belum dibaca) Anda
+dapat memakai **Batalkan usulan** dengan alasan; semua Owner diberi tahu. Daftar usulan
+menampilkan "Perlu tindakan" (bawaan) atau "Semua".
+
 ## Ringkasan untuk Owner dan Direktur
 
 Owner cukup tahu apakah ada masalah, keputusan apa yang menggantung, dan kebijakan apa yang

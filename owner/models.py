@@ -79,3 +79,90 @@ class OwnerRequestNote(models.Model):
 
     def __str__(self) -> str:
         return self.body[:80]
+
+
+class UsulanKind(models.TextChoices):
+    PERSETUJUAN = "PERSETUJUAN", "Minta persetujuan"
+    LAPORAN = "LAPORAN", "Laporan masalah/risiko"
+
+
+class UsulanStatus(models.TextChoices):
+    MENUNGGU = "MENUNGGU", "Menunggu keputusan"
+    DISETUJUI = "DISETUJUI", "Disetujui"
+    DITOLAK = "DITOLAK", "Ditolak"
+    RAPAT = "RAPAT", "Dibawa ke rapat"
+    TERKIRIM = "TERKIRIM", "Terkirim"
+    DIBACA = "DIBACA", "Sudah dibaca"
+    DIBATALKAN = "DIBATALKAN", "Dibatalkan"
+
+
+class Usulan(models.Model):
+    """Usulan Direktur Operasional ke Owner atas inisiatif sendiri (tahap 4).
+
+    Minta persetujuan (Owner: setujui / tolak / bahas di rapat) atau laporan masalah/risiko
+    (Owner menandai sudah dibaca). Percakapan dua arah ada di `UsulanCatatan`.
+    """
+
+    kind = models.CharField("jenis", max_length=12, choices=UsulanKind.choices)
+    title = models.CharField("judul", max_length=200)
+    description = models.TextField("uraian")
+    amount = models.PositiveBigIntegerField("nominal anggaran (Rp)", null=True, blank=True)
+    clinic = models.ForeignKey(
+        "core.Clinic", on_delete=models.PROTECT, null=True, blank=True, related_name="usulan",
+        help_text="Kosong bila lintas cabang.",
+    )
+    needed_by = models.DateField("perlu jawaban sebelum", null=True, blank=True)
+    status = models.CharField(max_length=12, choices=UsulanStatus.choices)
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    decision_note = models.TextField("catatan keputusan", blank=True)
+    decision = models.ForeignKey(
+        "direktur.Decision", on_delete=models.SET_NULL, null=True, blank=True, related_name="usulan",
+        help_text="Perkara rapat bila usulan dibawa ke rapat.",
+    )
+    read_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    read_at = models.DateTimeField(null=True, blank=True)
+    cancelled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancel_reason = models.TextField("alasan pembatalan", blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="usulan_dibuat")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "usulan"
+        verbose_name_plural = "usulan"
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"Usulan#{self.pk} · {self.title}"
+
+    @property
+    def is_open(self) -> bool:
+        return self.status in (UsulanStatus.MENUNGGU, UsulanStatus.TERKIRIM)
+
+    def is_overdue(self, today) -> bool:
+        return bool(self.needed_by and self.needed_by < today and self.status == UsulanStatus.MENUNGGU)
+
+
+class UsulanCatatan(models.Model):
+    """Percakapan pada usulan (Owner atau Direktur). Tidak diubah atau dihapus."""
+
+    usulan = models.ForeignKey(Usulan, on_delete=models.CASCADE, related_name="notes")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    note = models.TextField("catatan")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "catatan usulan"
+        verbose_name_plural = "catatan usulan"
+        ordering = ("created_at", "id")
+
+    def __str__(self) -> str:
+        return self.note[:80]
