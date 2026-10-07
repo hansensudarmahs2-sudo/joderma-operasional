@@ -170,9 +170,19 @@ prune() {
     echo "[backup] hapus lama: $old"
   done
 }
+# Urut menurut nama berkas (joderma-ops-YYYYMMDD-HHMMSS...), bukan waktu berkas:
+# arsip lama yang dienkripsi ulang atau disalin ulang mendapat waktu berkas baru
+# dan, bila diurut waktu, justru bertahan menggantikan backup yang lebih baru.
+prune_by_name() {
+  local dir="$1" keep="$2"
+  ls -1 "$dir" 2>/dev/null | grep '^joderma-ops-' | LC_ALL=C sort -r | tail -n "+$((keep + 1))" | while read -r old; do
+    rm -f "$dir/$old"
+    echo "[backup] hapus lama: $old"
+  done
+}
 if [ "$KIND" = "predeploy" ]; then
   # Backup sebelum deploy tidak pernah menyentuh daily/weekly/monthly.
-  prune "$BACKUP_DIR/predeploy" "$KEEP_PREDEPLOY"
+  prune_by_name "$BACKUP_DIR/predeploy" "$KEEP_PREDEPLOY"
 else
   prune "$BACKUP_DIR/daily" 7
   prune "$BACKUP_DIR/weekly" 4

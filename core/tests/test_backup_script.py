@@ -113,6 +113,26 @@ def test_predeploy_keep_limit(env):
     assert len(list((env["backups"] / "predeploy").iterdir())) == 2
 
 
+def test_predeploy_prunes_by_name_not_file_time(env):
+    """Arsip lama yang dienkripsi ulang (waktu berkas baru) tetap terpangkas lebih dulu."""
+    pre = env["backups"] / "predeploy"
+    pre.mkdir(parents=True)
+    now = time.time()
+    for name in ("joderma-ops-20200101-010000.tar.gz.enc", "joderma-ops-20200102-010000.tar.gz.enc"):
+        f = pre / name
+        f.write_text("lama, dienkripsi ulang")
+        os.utime(f, (now + 3600, now + 3600))  # waktu berkas lebih baru dari arsip mana pun
+    newer = pre / "joderma-ops-20990101-010000.tar.gz.enc"
+    newer.write_text("nama paling baru")
+    os.utime(newer, (now - 86400, now - 86400))
+    r = run(BACKUP_SH, env, "--predeploy", extra={"BACKUP_KEEP_PREDEPLOY": "2"})
+    assert r.returncode == 0, r.stderr
+    left = sorted(p.name for p in pre.iterdir())
+    assert len(left) == 2
+    assert newer.name in left
+    assert not any(n.startswith("joderma-ops-2020") for n in left)
+
+
 def test_predeploy_reads_passphrase_from_dotenv_and_restores(env):
     (env["app"] / ".env").write_text('OTHER=1\nBACKUP_PASSPHRASE="secret"\r\n')
     r = run(BACKUP_SH, env, "--predeploy", passphrase=None)
