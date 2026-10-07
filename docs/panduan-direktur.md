@@ -116,6 +116,8 @@ Tombol **Pilah** membuka halaman satu item dengan lima pilihan, sesuai matriks w
     konfirmasi, dan Owner mendapat notifikasi. Temuan tidak tertutup otomatis dan tidak bisa dibuka
     kembali; pernyataan itu menjadi tanggung jawab Anda di hadapan Owner (bila hasilnya keliru,
     Owner menulis catatan).
+  - Owner otomatis diberi tahu saat Anda membuat task untuk permintaan/temuannya, saat rencana temuan
+    diatur atau berubah, dan saat permintaan selesai karena task terakhirnya selesai atau dibatalkan.
 - **Teruskan dan pantau** — di luar bidang Anda (apotek/stok/harga obat → Apoteker, Omnicare,
   keuangan di atas batas, medis, strategis/SP → Dirut). Item tetap di tab **Dipantau** sampai
   selesai. Bila tujuannya **Direktur Utama / Owner**, tombol ini membuat perkara **Keputusan**

@@ -190,11 +190,16 @@ def create_task_from_source(
         raise ValidationError("Pilih penerima task.")
     if priority not in dict(Priority.choices):
         priority = Priority.SEDANG
-    return _create_task_or_record(
+    item = _create_task_or_record(
         clinic=clinic, actor=actor, title=title, description=description or "", target=target,
         priority=priority, due_at=due_at, source_type=source_type, source_id=source_id,
         source_label=source_label,
     )
+    if source_type == "permintaan_owner":
+        from owner.services import notify_task_added_for
+
+        notify_task_added_for(source_id, item, actor=actor)
+    return item
 
 
 # --- Checklist Direktur --------------------------------------------------------

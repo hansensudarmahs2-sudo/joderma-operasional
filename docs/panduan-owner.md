@@ -63,6 +63,11 @@ ada di menu Owner dan ditolak bila alamatnya dibuka langsung.
    tidak terpenuhi, Direktur membicarakannya langsung (WhatsApp) atau menulis catatan di sini.
    Owner juga dapat menulis catatan, juga dengan foto. Setiap catatan memberi notifikasi ke pihak
    lain. Foto permintaan ikut terlihat oleh penerima task yang dibuat darinya.
+   Anda juga mendapat notifikasi saat Direktur membuat task untuk permintaan atau temuan Anda
+   (**Mulai dikerjakan** untuk task pertama, **Task baru** untuk berikutnya, digabung bila berdekatan),
+   saat Direktur menetapkan atau mengubah **rencana temuan** (nama task besar dan target), dan saat
+   sebuah **permintaan selesai** (semua task selesai), lengkap dengan keterangan tepat waktu atau terlambat.
+   Temuan tetap selesai hanya lewat pernyataan Direktur.
 
 Tidak ada tombol tolak atau kembalikan pada permintaan; permintaan hanya dibaca progresnya.
 Untuk perkara yang menunggu keputusan Anda, lihat bagian berikut.

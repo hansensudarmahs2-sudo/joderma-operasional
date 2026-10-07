@@ -175,11 +175,59 @@ def set_plan(req: OwnerRequest, *, actor, plan_title: str, target_date: dt.date 
             reason = "mendesak, 3 hari" if req.urgent else "1 bulan"
             raise ValidationError(f"Target paling lambat {cap:%d/%m/%Y} ({reason} sejak temuan dicatat).")
     before = snapshot(req)
+    changed = (req.plan_title, req.target_date) != (plan_title, target_date)
     req.plan_title = plan_title
     req.target_date = target_date
     req.save(update_fields=["plan_title", "target_date", "updated_at"])
     log_update(req, before, actor=actor)
+    if changed:
+        target = effective_target(req)
+        parts = []
+        if plan_title:
+            parts.append(f"Task besar: {plan_title}")
+        if target:
+            parts.append(f"target {target:%d/%m/%Y}" if req.target_date else f"batas {target:%d/%m/%Y}")
+        _notify(_owners(), actor=actor, request=req, title=f"Rencana temuan: {req.title}",
+                body=" · ".join(parts), entity_ref=f"permintaan_owner:{req.pk}:rencana")
     return req
+
+
+def notify_task_added_for(request_id, item, *, actor) -> None:
+    """Task baru untuk permintaan/temuan Owner: beri tahu Owner (lewati bila permintaannya sudah tak ada)."""
+    req = OwnerRequest.objects.filter(pk=request_id).first()
+    if req is not None:
+        notify_task_added(req, item, actor=actor)
+
+
+def notify_task_added(req: OwnerRequest, item, *, actor) -> None:
+    first = req.tasks().exclude(pk=item.pk).count() == 0
+    title = f"Mulai dikerjakan: {req.title}" if first else f"Task baru untuk: {req.title}"
+    people = ", ".join(str(a.assignee) for a in item.task_assignments.select_related("assignee")) \
+        or "belum ada penerima"
+    parts = [item.title, people]
+    if item.due_at:
+        parts.append(f"target {timezone.localtime(item.due_at):%d/%m/%Y}")
+    _notify(_owners(), actor=actor, request=req, title=title, body=" · ".join(parts),
+            entity_ref=f"permintaan_owner:{req.pk}:task")
+
+
+def notify_if_request_done(item, *, actor) -> None:
+    """Task terakhir permintaan selesai/dibatalkan: Owner diberi tahu bahwa permintaannya selesai."""
+    if item.source_type != "permintaan_owner":
+        return
+    req = OwnerRequest.objects.filter(pk=item.source_id).first()
+    if req is None or req.kind != RequestKind.PERMINTAAN:
+        return
+    info = progress(req)
+    if info["state"] != "done":
+        return
+    target = info["target"]
+    body = ""
+    if target:
+        late = (local_today() - target).days
+        body = f"terlambat {late} hari" if late > 0 else "tepat waktu"
+    _notify(_owners(), actor=actor, request=req, title=f"Permintaan selesai: {req.title}", body=body,
+            entity_ref=f"permintaan_owner:{req.pk}:selesai")
 
 
 def has_pending_target(req: OwnerRequest) -> bool:
