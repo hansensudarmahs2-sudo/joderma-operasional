@@ -1,7 +1,31 @@
 #!/usr/bin/env bash
 # Backup database + lampiran, terenkripsi, dengan rotasi (PRD 15.4).
-# Retensi: 7 harian, 4 mingguan, 12 bulanan.
+# Retensi: 7 harian, 4 mingguan, 12 bulanan, 10 sebelum-deploy.
+#
+# Pemakaian:
+#   scripts/backup.sh               backup harian (dijalankan container backup pukul 02.00)
+#   scripts/backup.sh --predeploy   backup sebelum deploy (atau BACKUP_KIND=predeploy)
+#
+# Backup sebelum deploy disimpan terpisah di backups/predeploy/ dan tidak ikut
+# rotasi harian/mingguan/bulanan. Tanpa pemisahan ini, tujuh deploy dalam sehari
+# menggusur semua backup malam, dan healthcheck container backup (yang membaca
+# backups/daily/) tertutup oleh backup manual. Backup sebelum deploy wajib
+# terenkripsi; passphrase dibaca dari BACKUP_PASSPHRASE atau dari baris
+# BACKUP_PASSPHRASE= di $APP_DIR/.env (tanpa meng-source berkas itu).
 set -euo pipefail
+umask 077
+
+KIND="${BACKUP_KIND:-daily}"
+if [ "${1:-}" = "--predeploy" ]; then
+  KIND="predeploy"
+elif [ -n "${1:-}" ]; then
+  echo "[backup] GAGAL: argumen tidak dikenal: $1 (gunakan --predeploy atau tanpa argumen)." >&2
+  exit 2
+fi
+case "$KIND" in
+  daily|predeploy) ;;
+  *) echo "[backup] GAGAL: BACKUP_KIND tidak dikenal: $KIND (daily|predeploy)." >&2; exit 2 ;;
+esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYBIN="${PYBIN:-python3}"
@@ -9,15 +33,55 @@ APP_DIR="${APP_DIR:-$(dirname "$SCRIPT_DIR")}"
 DB_PATH="${DJANGO_DB_PATH:-$APP_DIR/data/db.sqlite3}"
 MEDIA_DIR="${DJANGO_MEDIA_ROOT:-$APP_DIR/private_media}"
 BACKUP_DIR="${BACKUP_DIR:-$APP_DIR/backups}"
+KEEP_PREDEPLOY="${BACKUP_KEEP_PREDEPLOY:-10}"
+case "$KEEP_PREDEPLOY" in
+  ''|*[!0-9]*|0*)
+    echo "[backup] GAGAL: BACKUP_KEEP_PREDEPLOY harus bilangan bulat >= 1 (nilai: $KEEP_PREDEPLOY)." >&2
+    exit 2 ;;
+esac
 STAMP="$(date +%Y%m%d-%H%M%S)"
 DOW="$(date +%u)"     # 7 = Minggu
 DOM="$(date +%d)"
 
-mkdir -p "$BACKUP_DIR/daily" "$BACKUP_DIR/weekly" "$BACKUP_DIR/monthly" "$BACKUP_DIR/tmp"
-WORK="$BACKUP_DIR/tmp/$STAMP"
-mkdir -p "$WORK"
+# Passphrase: dari lingkungan; bila kosong (mis. dijalankan di host, bukan di
+# container) baca dari $APP_DIR/.env tanpa meng-source berkas itu. Nilainya
+# tidak pernah dicetak.
+if [ -z "${BACKUP_PASSPHRASE:-}" ] && [ -r "$APP_DIR/.env" ]; then
+  PASS_FROM_ENV="$(grep -m1 '^BACKUP_PASSPHRASE=' "$APP_DIR/.env" | cut -d= -f2- || true)"
+  PASS_FROM_ENV="${PASS_FROM_ENV%$'\r'}"
+  if [ "${#PASS_FROM_ENV}" -ge 2 ]; then
+    case "$PASS_FROM_ENV" in
+      \"*\") PASS_FROM_ENV="${PASS_FROM_ENV:1:${#PASS_FROM_ENV}-2}" ;;
+      \'*\') PASS_FROM_ENV="${PASS_FROM_ENV:1:${#PASS_FROM_ENV}-2}" ;;
+    esac
+  fi
+  # Compose menafsirkan $ dan komentar; shell host tidak. Nilai yang bisa
+  # ditafsirkan berbeda ditolak, bukan ditebak.
+  case "$PASS_FROM_ENV" in
+    *'$'*|*' #'*|[[:space:]]*|*[[:space:]])
+      echo "[backup] GAGAL: nilai BACKUP_PASSPHRASE di .env ambigu (berisi $, komentar, atau spasi tepi); ekspor BACKUP_PASSPHRASE secara manual." >&2
+      exit 1 ;;
+  esac
+  BACKUP_PASSPHRASE="$PASS_FROM_ENV"
+  unset PASS_FROM_ENV
+fi
+export BACKUP_PASSPHRASE="${BACKUP_PASSPHRASE:-}"
 
-echo "[backup] mulai $STAMP"
+if [ "$KIND" = "predeploy" ] && [ -z "$BACKUP_PASSPHRASE" ]; then
+  echo "[backup] GAGAL: BACKUP_PASSPHRASE tidak tersedia; backup sebelum deploy wajib terenkripsi." >&2
+  exit 1
+fi
+
+OUT_DIR="$BACKUP_DIR/daily"
+if [ "$KIND" = "predeploy" ]; then OUT_DIR="$BACKUP_DIR/predeploy"; fi
+mkdir -p "$OUT_DIR" "$BACKUP_DIR/tmp"
+if [ "$KIND" = "daily" ]; then
+  mkdir -p "$BACKUP_DIR/weekly" "$BACKUP_DIR/monthly"
+fi
+WORK="$(mktemp -d "$BACKUP_DIR/tmp/$STAMP.XXXXXX")"
+trap 'rm -rf "$WORK"' EXIT
+
+echo "[backup] mulai $STAMP ($KIND)"
 
 # 1. Snapshot database konsisten (aman meski WAL aktif dan aplikasi berjalan)
 "$PYBIN" "$SCRIPT_DIR/db_snapshot.py" backup "$DB_PATH" "$WORK/db.sqlite3"
@@ -51,6 +115,7 @@ fi
 # 4. Manifest (tanpa secret)
 cat > "$WORK/MANIFEST.txt" <<EOF
 backup_stamp=$STAMP
+kind=$KIND
 db_size_bytes=$(stat -c%s "$WORK/db.sqlite3")
 media_size_bytes=$(stat -c%s "$WORK/private_media.tar.gz")
 source_included=$CODE_INCLUDED
@@ -59,24 +124,43 @@ git_commit=$(git -C "$APP_DIR" rev-parse --short HEAD 2>/dev/null || echo "-")
 host=$(hostname)
 EOF
 
-ARCHIVE="$BACKUP_DIR/daily/joderma-ops-$STAMP.tar.gz"
-tar -czf "$ARCHIVE" -C "$WORK" db.sqlite3 private_media.tar.gz source.tar.gz MANIFEST.txt
-rm -rf "$WORK"
+# Arsip polos dibuat di folder kerja sementara, bukan di folder tujuan, supaya
+# arsip tak terenkripsi tidak pernah tertinggal di backups/daily atau predeploy.
+PLAIN="$WORK/joderma-ops.tar.gz"
+tar -czf "$PLAIN" -C "$WORK" db.sqlite3 private_media.tar.gz source.tar.gz MANIFEST.txt
 
-# 5. Enkripsi bila passphrase tersedia (minimal satu salinan terenkripsi wajib)
-if [ -n "${BACKUP_PASSPHRASE:-}" ]; then
-  openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
-    -in "$ARCHIVE" -out "$ARCHIVE.enc" -pass env:BACKUP_PASSPHRASE
-  rm -f "$ARCHIVE"
+# Nama unik: dua backup dalam detik yang sama tidak boleh saling menimpa.
+ARCHIVE="$OUT_DIR/joderma-ops-$STAMP.tar.gz"
+N=1
+while [ -e "$ARCHIVE" ] || [ -e "$ARCHIVE.enc" ]; do
+  N=$((N + 1))
+  ARCHIVE="$OUT_DIR/joderma-ops-$STAMP-$N.tar.gz"
+done
+
+# 5. Enkripsi bila passphrase tersedia (minimal satu salinan terenkripsi wajib;
+#    pada mode predeploy passphrase sudah dipastikan ada di atas)
+if [ -n "$BACKUP_PASSPHRASE" ]; then
+  # Ditulis dulu di folder kerja, baru dipindah: proses yang terputus tidak
+  # meninggalkan .enc terpotong di folder tujuan.
+  if ! openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+      -in "$PLAIN" -out "$WORK/joderma-ops.tar.gz.enc" -pass env:BACKUP_PASSPHRASE; then
+    echo "[backup] GAGAL: enkripsi arsip gagal." >&2
+    exit 1
+  fi
+  mv "$WORK/joderma-ops.tar.gz.enc" "$ARCHIVE.enc"
   ARCHIVE="$ARCHIVE.enc"
   echo "[backup] terenkripsi: $(basename "$ARCHIVE")"
 else
+  mv "$PLAIN" "$ARCHIVE"
   echo "[backup] PERINGATAN: BACKUP_PASSPHRASE kosong, arsip TIDAK terenkripsi."
 fi
+rm -rf "$WORK"
 
-# 6. Salin ke mingguan/bulanan
-[ "$DOW" = "7" ] && cp "$ARCHIVE" "$BACKUP_DIR/weekly/"
-[ "$DOM" = "01" ] && cp "$ARCHIVE" "$BACKUP_DIR/monthly/"
+# 6. Salin ke mingguan/bulanan (hanya backup harian)
+if [ "$KIND" = "daily" ]; then
+  if [ "$DOW" = "7" ]; then cp "$ARCHIVE" "$BACKUP_DIR/weekly/"; fi
+  if [ "$DOM" = "01" ]; then cp "$ARCHIVE" "$BACKUP_DIR/monthly/"; fi
+fi
 
 # 7. Rotasi
 prune() {
@@ -86,9 +170,14 @@ prune() {
     echo "[backup] hapus lama: $old"
   done
 }
-prune "$BACKUP_DIR/daily" 7
-prune "$BACKUP_DIR/weekly" 4
-prune "$BACKUP_DIR/monthly" 12
+if [ "$KIND" = "predeploy" ]; then
+  # Backup sebelum deploy tidak pernah menyentuh daily/weekly/monthly.
+  prune "$BACKUP_DIR/predeploy" "$KEEP_PREDEPLOY"
+else
+  prune "$BACKUP_DIR/daily" 7
+  prune "$BACKUP_DIR/weekly" 4
+  prune "$BACKUP_DIR/monthly" 12
+fi
 
 # 8. Salinan ke perangkat kedua bila di-mount
 if [ -n "${BACKUP_SECOND_COPY_DIR:-}" ] && [ -d "$BACKUP_SECOND_COPY_DIR" ]; then

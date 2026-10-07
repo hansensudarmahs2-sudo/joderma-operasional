@@ -1,0 +1,17 @@
+# Rahasia dan data tidak boleh masuk image (Dockerfile memakai COPY . .).
+.env
+.env.*
+!.env.example
+data/
+private_media/
+backups/
+logs/
+staticfiles/
+.venv/
+.git/
+**/__pycache__/
+.pytest_cache/
+apotek/
+.claude-sync/
+Claude outputs/
+*.sqlite3

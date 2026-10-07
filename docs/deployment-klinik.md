@@ -110,7 +110,7 @@ rsync -az --delete --chmod=D755,F644 \
 ssh joderma-jemur@joderma-jemur
 cd ~/joderma-ops
 
-bash scripts/backup.sh                              # backup dulu, selalu
+bash scripts/backup.sh --predeploy                  # backup dulu, selalu (terenkripsi, backups/predeploy)
 chmod +x scripts/*.sh                               # --chmod F644 mencabut bit eksekusi
 docker compose build app
 docker compose up -d --force-recreate app

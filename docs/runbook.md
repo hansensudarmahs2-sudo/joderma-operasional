@@ -105,12 +105,44 @@ token, dan isi komplain **tidak** ditulis ke log teknis.
 ## 4. Backup dan restore
 
 Backup otomatis setiap malam 02:00 WIB: snapshot SQLite konsisten (aman meski WAL
-aktif) + arsip lampiran, dienkripsi AES-256, retensi 7 harian / 4 mingguan / 12 bulanan.
+aktif) + arsip lampiran, dienkripsi AES-256, retensi 7 harian / 4 mingguan / 12 bulanan /
+10 sebelum-deploy.
 
 ```bash
-./scripts/backup.sh                    # backup manual
-ls -lt backups/daily/                  # daftar backup
+./scripts/backup.sh --predeploy        # backup sebelum deploy / manual (wajib terenkripsi)
+ls -lt backups/predeploy/              # daftar backup sebelum deploy
+ls -lt backups/daily/                  # daftar backup malam (dibuat container backup)
 ```
+
+Tata letak folder `backups/`:
+
+| Folder | Isi | Retensi |
+|--------|-----|---------|
+| `daily/` | backup malam 02:00 dari container `backup` | 7 terbaru |
+| `weekly/`, `monthly/` | salinan backup malam hari Minggu / tanggal 1 | 4 / 12 |
+| `predeploy/` | backup sebelum deploy (`--predeploy`) | 10 terbaru (`BACKUP_KEEP_PREDEPLOY`) |
+
+Backup sebelum deploy tidak pernah menghapus atau menggusur backup malam. Karena itu
+healthcheck container `backup` (yang memeriksa kesegaran `backups/daily/`, maksimal 48 jam)
+benar-benar mencerminkan backup malam, bukan tertutup oleh backup manual.
+
+`BACKUP_PASSPHRASE` hanya ada di container; di host, `backup.sh` membacanya dari baris
+`BACKUP_PASSPHRASE=` di `.env` (tanpa meng-source berkas itu, nilainya tidak dicetak).
+Bila passphrase tidak ditemukan, `--predeploy` berhenti dengan galat: backup sebelum deploy
+tidak pernah tersimpan tanpa enkripsi.
+
+Arsip `.tar.gz` polos yang terlanjur tertinggal di `backups/daily/` dienkripsi sekali jalan
+dengan helper berikut (verifikasi dekripsi dulu, baru arsip polos dihapus; hasilnya masuk
+`backups/predeploy/`):
+
+```bash
+bash scripts/encrypt_plain_backups.sh --dry-run     # lihat apa yang akan dikerjakan
+bash scripts/encrypt_plain_backups.sh               # enkripsi sungguhan
+```
+
+Image Docker lama (dibuat sebelum ada `.dockerignore`) dan build cache-nya dapat memuat
+`.env`, database, dan lampiran. Setelah deploy ini, hapus dengan `docker image prune` dan
+`docker builder prune` (tinjau daftar image dulu; image yang masih dipakai tidak dihapus).
 
 Salinan perangkat kedua: mount disk eksternal lalu set `BACKUP_SECOND_COPY_DIR`
 di `.env`. PRD mensyaratkan minimal satu salinan terenkripsi di media berbeda.

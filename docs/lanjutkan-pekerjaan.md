@@ -134,7 +134,7 @@ bernama sama di dalam app (mis. `jadwal/.../data/`) ikut terlewat; itu pernah te
 # Di server klinik
 ssh joderma-jemur@joderma-jemur
 cd ~/joderma-ops
-bash scripts/backup.sh                     # backup dulu, selalu
+bash scripts/backup.sh --predeploy         # backup dulu, selalu (terenkripsi, folder backups/predeploy)
 docker compose build app
 docker compose up -d --force-recreate app  # container menjalankan migrate saat start
 curl -sS http://127.0.0.1:8731/health/
