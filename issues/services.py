@@ -181,6 +181,11 @@ def assign_issue(issue: Issue, *, supervisor, assignee, due_at=None, note: str =
     issue.version += 1
     issue.save()
     log_update(issue, before, actor=supervisor, label=issue.number)
+    _notify_pelapor(
+        issue, actor=supervisor,
+        body=(f"Status: {issue.get_status_display()}. " if target_status != before["status"] else "")
+        + f"Ditugaskan kepada {assignee}.",
+    )
 
     from notifications.services import notify_user
 
@@ -194,6 +199,23 @@ def assign_issue(issue: Issue, *, supervisor, assignee, due_at=None, note: str =
         url_args=[issue.pk],
     )
     return issue
+
+
+def _notify_pelapor(issue: Issue, *, actor, body: str) -> None:
+    """Beri tahu pelapor (tahap 3b); catatan anonim/terbatas tanpa isi."""
+    from notifications.services import notify_reporter
+
+    notify_reporter(
+        issue.created_by,
+        actor=actor,
+        private=issue.is_anonymous or issue.is_restricted,
+        type_code="ISSUE_RESPONSE",
+        subject=f"Tanggapan atas laporan Anda: {issue.title}",
+        body=body,
+        entity_ref=f"issue#{issue.pk}",
+        url_name="issues:detail",
+        url_args=[issue.pk],
+    )
 
 
 @transaction.atomic
@@ -254,6 +276,10 @@ def change_status(
         IssueStatus.DIVERIFIKASI: AuditAction.VERIFY,
     }.get(to_status, AuditAction.UPDATE)
     log_update(issue, before, actor=user, reason=reason or note, action=action, label=issue.number)
+    _notify_pelapor(
+        issue, actor=user,
+        body=f"Status: {issue.get_status_display()}." + (f" {note.strip()}" if note.strip() else ""),
+    )
     return issue
 
 
@@ -271,6 +297,7 @@ def add_update(issue: Issue, *, user, note: str) -> IssueUpdate:
         actor=user,
         after={"note": note},
     )
+    _notify_pelapor(issue, actor=user, body=note)
     return update
 
 
@@ -320,6 +347,7 @@ def mark_duplicate(issue: Issue, *, user, original: Issue, reason: str = "") -> 
         issue=issue, author=user, status=issue.status, note=f"Ditandai duplikat dari {original.number}. {reason}".strip()
     )
     log_update(issue, before, actor=user, reason=reason, label=issue.number)
+    _notify_pelapor(issue, actor=user, body=f"Ditandai duplikat dari {original.number}. {reason}".strip())
     return issue
 
 

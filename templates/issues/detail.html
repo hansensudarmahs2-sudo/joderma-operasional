@@ -105,7 +105,7 @@
   <h3>Timeline</h3>
   <ul class="timeline">
     {% for u in updates %}
-      <li>{% if u.from_status %}{{ u.from_status }} → {% endif %}<strong>{{ u.status }}</strong>
+      <li>{% if u.from_status %}{{ u.from_status_label }} → {% endif %}<strong>{{ u.status_label }}</strong>
         <div>{{ u.note }}</div>
         <div class="meta">{{ u.author|default:"sistem" }} · {{ u.created_at|date:"d/m H:i" }}</div></li>
     {% endfor %}

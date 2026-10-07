@@ -13,6 +13,30 @@
   {% if masukan.archived_at %}<p class="meta">Diarsipkan {{ masukan.archived_at|date:"d/m/Y H:i" }} oleh {{ masukan.archived_by }} · alasan: {{ masukan.archive_reason }}</p>{% endif %}
 </div>
 
+<div class="card">
+  <h3>Tanggapan</h3>
+  {% if triage %}
+    <p><strong>Hasil pilah: {{ triage.get_action_display }}</strong></p>
+    {% if triage.note %}<p style="white-space:pre-wrap">{{ triage.note }}</p>{% endif %}
+    <p class="meta">{{ triage.triaged_by|default:"Direktur Operasional" }} · {{ triage.triaged_at|date:"d/m/Y" }}</p>
+  {% endif %}
+  {% for t in tanggapan %}
+    <p class="meta">{{ t.author|default:"Direktur Operasional" }} · {{ t.created_at|date:"d/m/Y H:i" }}</p>
+    <p style="white-space:pre-wrap">{{ t.note }}</p>
+  {% endfor %}
+  {% if not triage and not tanggapan %}<p class="meta">Belum ada tanggapan.</p>{% endif %}
+  {% if can_respond %}
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="aksi" value="tanggapan">
+    <label for="catatan_tanggapan">Tulis tanggapan</label>
+    <textarea id="catatan_tanggapan" name="catatan" rows="3" required></textarea>
+    <p></p>
+    <button class="btn small" type="submit">Kirim tanggapan</button>
+  </form>
+  {% endif %}
+</div>
+
 {% if masukan.publications.all %}
 <div class="card">
   <h3>Riwayat publikasi</h3>

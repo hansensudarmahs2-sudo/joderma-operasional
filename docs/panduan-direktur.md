@@ -132,6 +132,13 @@ statusnya maju dari Baru ke Ditinjau / Dipertimbangkan / Ditriase (ke Ditugaskan
 task dan alurnya mengizinkan). Memilah lagi menggantikan hasil sebelumnya; semuanya tercatat di
 audit log. Matriks hanya panduan: sistem tidak memaksa (PP belum disahkan).
 
+Pelapor ikut diberi tahu: perubahan status, catatan, penugasan, dan hasil pilah pada komplain,
+masukan, atau kerusakan memberi notifikasi ke pelapornya. Pada **Laporan staf**, pilah ditulis ke
+Riwayat laporan dan memajukan Baru ke Ditinjau (kecuali **Tidak ditindaklanjuti**); detail
+Laporan punya tombol **Tambah tanggapan**. Pada **Masukan privat**, hanya Direktur Operasional yang
+melihat tombol **Tulis tanggapan**. Catatan pilah terlihat oleh pengirim Masukan atau Laporan,
+jadi tulislah sebagai balasan kepada pelapor, bukan catatan internal.
+
 Anda bisa dipilih sebagai **penerima task** (dan penanggung jawab komplain/masukan/kerusakan) di
 kedua cabang, walau peran Anda tercatat di Jemur saja; pilihan nama Anda muncul di daftar PIC setiap
 cabang, termasuk saat **Semua cabang**.

@@ -12,6 +12,19 @@
   {% if laporan.archived_at %}<p class="meta">Diarsipkan {{ laporan.archived_at|date:"d/m/Y H:i" }} oleh {{ laporan.archived_by }} · alasan: {{ laporan.archive_reason }}</p>{% endif %}
 </div>
 
+<div class="card">
+  <h3>Riwayat</h3>
+  {% for u in updates %}
+  <div style="margin-bottom:.75rem">
+    <div>{% if u.from_status %}{{ u.from_status_label }} → {% endif %}<strong>{{ u.status_label }}</strong></div>
+    {% if u.note %}<div style="white-space:pre-wrap">{{ u.note }}</div>{% endif %}
+    <div class="meta">{{ u.author|default:"sistem" }} · {{ u.created_at|date:"d/m H:i" }}</div>
+  </div>
+  {% empty %}
+  <p class="meta">Belum ada tanggapan.</p>
+  {% endfor %}
+</div>
+
 {% if allowed_next %}
 <div class="card">
   <h3>Ubah status</h3>
@@ -19,7 +32,7 @@
     {% csrf_token %}
     <label for="status">Status berikutnya</label>
     <select id="status" name="status">
-      {% for s in allowed_next %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+      {% for code, label in allowed_next %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
     </select>
     <label for="catatan">Catatan</label>
     <textarea id="catatan" name="catatan" rows="2"></textarea>
@@ -27,6 +40,21 @@
     <textarea id="alasan" name="alasan" rows="2"></textarea>
     <p></p>
     <button class="btn small" type="submit">Simpan status</button>
+  </form>
+</div>
+{% endif %}
+
+{% if can_respond %}
+<div class="card">
+  <h3>Tambah tanggapan</h3>
+  <p class="meta">Tanggapan tidak mengubah status; pelapor diberi tahu.</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="aksi" value="tanggapan">
+    <label for="tanggapan">Tanggapan</label>
+    <textarea id="tanggapan" name="catatan" rows="2" required></textarea>
+    <p></p>
+    <button class="btn small" type="submit">Simpan tanggapan</button>
   </form>
 </div>
 {% endif %}

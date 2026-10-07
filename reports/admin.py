@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Laporan, LaporanUpdate, Masukan, MasukanPublication
+from .models import Laporan, LaporanUpdate, Masukan, MasukanPublication, MasukanTanggapan
 
 
 @admin.register(Laporan)
@@ -19,3 +19,4 @@ class MasukanAdmin(admin.ModelAdmin):
 
 
 admin.site.register(MasukanPublication)
+admin.site.register(MasukanTanggapan)

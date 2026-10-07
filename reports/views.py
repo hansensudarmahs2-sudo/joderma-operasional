@@ -40,10 +40,12 @@ from issues.models import Issue, IssueType, OPEN_STATUSES
 from nurses.models import CommissionTurnEvent, NurseRosterEntry, TurnAction
 from queueing.models import QueueEntry, QueueStatus
 
-from .models import Laporan, Masukan, ReportStatus
+from .models import InboxTriage, Laporan, Masukan, ReportStatus
 from .services import (
     archive_laporan,
     archive_masukan,
+    add_laporan_note,
+    add_masukan_tanggapan,
     change_laporan_status,
     create_laporan,
     create_masukan,
@@ -482,6 +484,9 @@ def laporan_page_detail(request, pk: int):
             if action == "arsip":
                 archive_laporan(laporan, user=request.user, reason=request.POST.get("alasan", ""))
                 messages.success(request, "Laporan diarsipkan.")
+            elif action == "tanggapan":
+                add_laporan_note(laporan, user=request.user, note=request.POST.get("catatan", ""))
+                messages.success(request, "Tanggapan tersimpan; pelapor diberi tahu.")
             else:
                 change_laporan_status(
                     laporan,
@@ -491,16 +496,24 @@ def laporan_page_detail(request, pk: int):
                     reason=request.POST.get("alasan", ""),
                 )
                 messages.success(request, "Status laporan diperbarui.")
-        except (ValidationError, PermissionDenied) as exc:
-            messages.error(request, str(exc) if isinstance(exc, PermissionDenied) else " ".join(exc.messages))
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+        except PermissionDenied as exc:
+            if action == "tanggapan":
+                raise
+            messages.error(request, str(exc))
         return redirect("reports:laporan_page_detail", pk=pk)
     return render(
         request,
         "reports/laporan_detail.html",
         {
             "laporan": laporan,
+            "updates": laporan.updates.select_related("author"),
+            "can_respond": can_change_laporan_status(request.user, laporan)
+            and not _owner_view(request.user) and laporan.status != ReportStatus.ARCHIVED,
             "can_archive": can_archive_laporan(request.user) and not _owner_view(request.user),
-            "allowed_next": laporan.allowed_next_statuses()
+            "allowed_next": [(code, label) for code, label in ReportStatus.choices
+                             if code in laporan.allowed_next_statuses()]
             if can_change_laporan_status(request.user, laporan) and not _owner_view(request.user) else [],
         },
     )
@@ -565,14 +578,31 @@ def masukan_page_detail(request, pk: int):
             elif action == "arsip":
                 archive_masukan(masukan, user=request.user, reason=request.POST.get("alasan", ""))
                 messages.success(request, "Masukan diarsipkan.")
-        except (ValidationError, PermissionDenied) as exc:
-            messages.error(request, str(exc) if isinstance(exc, PermissionDenied) else " ".join(exc.messages))
+            elif action == "tanggapan":
+                add_masukan_tanggapan(masukan, user=request.user, note=request.POST.get("catatan", ""))
+                messages.success(request, "Tanggapan tersimpan; pengirim diberi tahu.")
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+        except PermissionDenied as exc:
+            if action == "tanggapan":
+                raise
+            messages.error(request, str(exc))
         return redirect("reports:masukan_page_detail", pk=pk)
+    from . import inbox as inbox_module
+
+    triage = (
+        InboxTriage.objects.filter(source_type=inbox_module.SOURCE_MASUKAN, source_id=masukan.pk)
+        .select_related("triaged_by")
+        .first()
+    )
     return render(
         request,
         "reports/masukan_detail.html",
         {
             "masukan": masukan,
+            "triage": triage,
+            "tanggapan": masukan.tanggapan.select_related("author"),
+            "can_respond": is_aom(request.user) and not _owner_view(request.user),
             "can_publish": can_publish_masukan(request.user) and not _owner_view(request.user),
             "can_archive": can_archive_masukan(request.user) and not _owner_view(request.user),
             "clinics": Clinic.objects.filter(active=True),

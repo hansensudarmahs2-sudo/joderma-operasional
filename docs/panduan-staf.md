@@ -107,6 +107,14 @@ cabang tugas di jadwal jaga hari ini, atau cabang asal bila Anda sedang off.
   Bila sebuah catatan **ditugaskan kepada Anda**, Anda sendiri yang mengubah statusnya
   (mis. Dalam proses, lalu Selesai beserta ringkasannya); catatan lain cukup Anda lihat.
 
+  **Tanggapan atas laporan Anda.** Setiap kali laporan Anda ditanggapi (status berubah, ada
+  catatan atau tanggapan baru, penanggung jawab ditunjuk, ditandai duplikat, atau dipilah
+  Direktur), Anda mendapat notifikasi di lonceng. Isinya bisa dibaca di **Laporan Saya**
+  (tampil sebagai **Riwayat**) dan **Masukan Saya** (tampil sebagai **Tanggapan**, termasuk hasil
+  pilah, publikasi, arsip, dan tanggapan Direktur). Untuk catatan anonim atau terbatas dan
+  Laporan Rahasia, notifikasi hanya berbunyi "Ada tanggapan pada catatan Anda" tanpa isi;
+  buka halamannya untuk membaca.
+
 ## Sore: menutup hari
 
 1. Front desk mencatat **Kas akhir**: hitung lembar per pecahan, lalu isi **Tunai masuk hari ini**

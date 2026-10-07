@@ -44,6 +44,7 @@
       <select id="ke" name="ke" required><option value="">Pilih…</option>{% for v, l in forward_choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
       <label for="catatan-teruskan">Catatan</label>
       <input id="catatan-teruskan" name="catatan" maxlength="300" placeholder="Mis. sudah dikirim ke apt. Elvira lewat WA">
+      <p class="help">Catatan ini terlihat oleh pelapor dan, untuk laporan cabang, oleh staf cabang itu.</p>
       <p><button class="btn secondary" type="submit">Catat diteruskan</button></p>
     </form>
   </details>
@@ -94,6 +95,7 @@
     <form method="post">{% csrf_token %}<input type="hidden" name="aksi" value="tidak">
       <label for="alasan">Alasan</label>
       <input id="alasan" name="alasan" maxlength="300" required placeholder="Mis. sudah beres sendiri / dobel dengan K-012">
+      <p class="help">Catatan ini terlihat oleh pelapor dan, untuk laporan cabang, oleh staf cabang itu.</p>
       <p><button class="btn secondary" type="submit">Catat</button></p>
     </form>
   </details>

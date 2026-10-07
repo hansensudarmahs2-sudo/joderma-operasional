@@ -105,6 +105,18 @@ class LaporanUpdate(models.Model):
     def __str__(self) -> str:
         return f"Laporan#{self.laporan_id} {self.status}"
 
+    @staticmethod
+    def _label(code: str) -> str:
+        return dict(ReportStatus.choices).get(code, code) if code else ""
+
+    @property
+    def status_label(self) -> str:
+        return self._label(self.status)
+
+    @property
+    def from_status_label(self) -> str:
+        return self._label(self.from_status)
+
 
 class Masukan(models.Model):
     """Masukan/saran privat; dapat dipublikasikan AOM ke cabang (plan 10).
@@ -156,6 +168,25 @@ class Masukan(models.Model):
     @property
     def is_published(self) -> bool:
         return self.publications.exists()
+
+
+class MasukanTanggapan(models.Model):
+    """Tanggapan Direktur Operasional atas Masukan privat; pengirim diberi tahu (tahap 3b)."""
+
+    masukan = models.ForeignKey(Masukan, on_delete=models.CASCADE, related_name="tanggapan")
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    note = models.TextField("tanggapan")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "tanggapan masukan"
+        verbose_name_plural = "tanggapan masukan"
+        ordering = ("created_at", "id")
+
+    def __str__(self) -> str:
+        return f"Tanggapan Masukan#{self.masukan_id}"
 
 
 class MasukanPublication(models.Model):

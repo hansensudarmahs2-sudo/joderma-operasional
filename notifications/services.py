@@ -57,6 +57,34 @@ def notify_user(
     )
 
 
+def notify_reporter(
+    reporter,
+    *,
+    actor,
+    private: bool,
+    type_code: str,
+    subject: str,
+    body: str = "",
+    entity_ref: str,
+    url_name: str,
+    url_args,
+) -> Notification | None:
+    """Arus balik ke pelapor (tahap 3b): satu notifikasi, tidak ke pelaku sendiri; catatan terbatas tanpa isi."""
+    if reporter is None or (actor is not None and reporter.pk == actor.pk):
+        return None
+    if private:
+        subject, body = "Ada tanggapan pada catatan Anda", ""
+    return notify_user(
+        reporter,
+        type_code=type_code,
+        title=subject,
+        body=(body or "")[:300],
+        entity_ref=entity_ref,
+        url_name=url_name,
+        url_args=url_args,
+    )
+
+
 def notify_role(clinic, role: str, **kwargs) -> list[Notification]:
     from accounts.models import User
 

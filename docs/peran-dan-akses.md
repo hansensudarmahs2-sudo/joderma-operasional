@@ -131,6 +131,8 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Menugaskan penanggung jawab catatan | supervisor, PIC, AOM | — |
 | Mengubah status Komplain/Masukan/Kerusakan (7 Okt 2026) | supervisor, PIC, AOM di cabang itu; staf hanya pada catatan yang sedang ditugaskan kepadanya. Pelapor, staf lain, dan owner tidak | — |
 | Mengubah status Laporan staf (7 Okt 2026) | supervisor, PIC, AOM di cabang itu | — |
+| Menambah tanggapan pada Laporan staf | supervisor, PIC, AOM | — |
+| Menulis tanggapan pada Masukan privat | AOM | — |
 | Membuka komplain terbatas | supervisor, AOM, owner | `issue.view_restricted`, `report.view_confidential`, `admin.full_access` |
 | Menutup hari operasional | supervisor | — |
 | Membaca audit log | supervisor, AOM, owner | `audit.view`, `admin.full_access` |

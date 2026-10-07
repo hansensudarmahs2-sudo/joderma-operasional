@@ -14,7 +14,7 @@ Empat hasil, mengikuti matriks wewenang yang diusulkan (Okt 2026):
 
 Matriks tidak dipaksakan sistem (PP belum disahkan); halaman pilah hanya menampilkannya
 sebagai panduan. Semua pilah tercatat di audit log; pada komplain/masukan/kerusakan juga
-ditulis di riwayat catatan supaya cabang tahu.
+ditulis di riwayat catatan (issue dan laporan staf) supaya cabang tahu.
 """
 from __future__ import annotations
 
@@ -33,10 +33,32 @@ def _assert(user) -> None:
         raise PermissionDenied("Pilah Inbox hanya untuk Direktur Operasional.")
 
 
+def _source_followup(row, *, actor, action: str, text: str) -> None:
+    """Tulis hasil pilah di riwayat sumbernya (komplain/masukan/kerusakan, laporan staf) dan majukan statusnya bila boleh."""
+    if row["source_type"] == inbox.SOURCE_ISSUE:
+        _issue_followup(row, actor=actor, action=action, text=text)
+    elif row["source_type"] == inbox.SOURCE_LAPORAN:
+        _laporan_followup(row, actor=actor, action=action, text=text)
+    elif row["source_type"] == inbox.SOURCE_MASUKAN:
+        from .models import Masukan
+        from .services import _notify_masukan_sender
+
+        # Masukan privat tidak punya riwayat; halamannya membaca InboxTriage. Cukup beri tahu pengirim.
+        _notify_masukan_sender(Masukan.objects.get(pk=row["source_id"]), actor=actor, body=text)
+
+
+def _laporan_followup(row, *, actor, action: str, text: str) -> None:
+    from .models import Laporan, ReportStatus
+    from .services import add_laporan_note, change_laporan_status
+
+    laporan = Laporan.objects.get(pk=row["source_id"])
+    if action != TriageAction.TIDAK and laporan.status == ReportStatus.OPEN:
+        laporan = change_laporan_status(laporan, user=actor, to_status=ReportStatus.UNDER_REVIEW,
+                                        note="Dipilah Direktur Operasional.")
+    add_laporan_note(laporan, user=actor, note=text)
+
+
 def _issue_followup(row, *, actor, action: str, text: str) -> None:
-    """Tulis hasil pilah di riwayat komplain/masukan/kerusakan dan majukan statusnya bila boleh."""
-    if row["source_type"] != inbox.SOURCE_ISSUE:
-        return
     from issues.models import Issue, IssueStatus
     from issues.services import WORKFLOWS, add_update, change_status
 
@@ -137,7 +159,7 @@ def assign(row, *, actor, title, clinic=None, target="", targets=None, descripti
     for task in tasks:
         names = ", ".join(str(a.assignee) for a in task.task_assignments.all()) or "belum ada penerima"
         parts.append(f"{names} ({task.clinic.name})" if multi else names)
-    _issue_followup(row, actor=actor, action=TriageAction.TUGASKAN,
+    _source_followup(row, actor=actor, action=TriageAction.TUGASKAN,
                     text=f"Dipilah Direktur Operasional: dijadikan task \"{tasks[0].title}\" untuk {'; '.join(parts)}.")
     return triage
 
@@ -169,7 +191,7 @@ def forward(row, *, actor, to: str, note: str = "") -> InboxTriage:
         decision = _waiting_owner_decision(_existing_triage(row)) or _owner_decision(row, actor=actor, note=note)
     triage = _save(row, actor=actor, action=TriageAction.TERUSKAN, forwarded_to=to, note=note, decision=decision)
     label = ForwardTo(to).label.split(" (")[0]
-    _issue_followup(row, actor=actor, action=TriageAction.TERUSKAN,
+    _source_followup(row, actor=actor, action=TriageAction.TERUSKAN,
                     text=f"Dipilah Direktur Operasional: diteruskan ke {label}." + (f" {note.strip()}" if note.strip() else ""))
     return triage
 
@@ -188,7 +210,7 @@ def to_meeting(row, *, actor, title: str = "", background: str = "", needed_by=N
         reference=row["ref"][:30], background=background or row["description"], needed_by=needed_by,
     )
     triage = _save(row, actor=actor, action=TriageAction.RAPAT, decision=decision)
-    _issue_followup(row, actor=actor, action=TriageAction.RAPAT,
+    _source_followup(row, actor=actor, action=TriageAction.RAPAT,
                     text="Dipilah Direktur Operasional: dibawa ke rapat bersama (Kamis) untuk diputuskan.")
     return triage
 
@@ -214,7 +236,7 @@ def to_policy(row, *, actor, title: str, text: str, clinic="semua", effective_on
     direktur.settle_decision(decision, actor=actor, decision_text=text, is_policy=True, decided_on=effective_on)
     triage = _save(row, actor=actor, action=TriageAction.KEBIJAKAN, decision=decision,
                    note=f"Kebijakan \"{decision.title}\" untuk {target.name if target else 'semua cabang'}.")
-    _issue_followup(row, actor=actor, action=TriageAction.KEBIJAKAN,
+    _source_followup(row, actor=actor, action=TriageAction.KEBIJAKAN,
                     text=f"Dipilah Direktur Operasional: dijadikan kebijakan \"{decision.title}\" dan diumumkan.")
     return triage
 
@@ -225,6 +247,6 @@ def dismiss(row, *, actor, reason: str) -> InboxTriage:
     if not (reason or "").strip():
         raise ValidationError("Alasan wajib diisi.")
     triage = _save(row, actor=actor, action=TriageAction.TIDAK, note=reason)
-    _issue_followup(row, actor=actor, action=TriageAction.TIDAK,
+    _source_followup(row, actor=actor, action=TriageAction.TIDAK,
                     text=f"Dipilah Direktur Operasional: tidak ditindaklanjuti. Alasan: {reason.strip()}")
     return triage

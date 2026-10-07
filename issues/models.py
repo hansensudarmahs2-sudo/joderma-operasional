@@ -262,3 +262,11 @@ class IssueUpdate(models.Model):
 
     def __str__(self) -> str:
         return f"{self.issue.number} {self.status}"
+
+    @property
+    def status_label(self) -> str:
+        return IssueStatus(self.status).label if self.status in IssueStatus.values else self.status
+
+    @property
+    def from_status_label(self) -> str:
+        return IssueStatus(self.from_status).label if self.from_status in IssueStatus.values else self.from_status

@@ -23,11 +23,46 @@ from .models import (
     LaporanUpdate,
     Masukan,
     MasukanPublication,
+    MasukanTanggapan,
     ReportStatus,
     ReportVisibility,
 )
 
 REASON_REQUIRED_STATUSES = {ReportStatus.CLOSED}
+
+
+def _notify_laporan_reporter(laporan: Laporan, *, actor, body: str) -> None:
+    """Beri tahu pelapor (tahap 3b); laporan rahasia tanpa isi."""
+    from notifications.services import notify_reporter
+
+    notify_reporter(
+        laporan.created_by,
+        actor=actor,
+        private=laporan.visibility == ReportVisibility.RAHASIA_AOM,
+        type_code="LAPORAN_RESPONSE",
+        subject=f"Tanggapan atas laporan Anda: {laporan.title}",
+        body=body,
+        entity_ref=f"laporan#{laporan.pk}",
+        url_name="reports:laporan_page_detail",
+        url_args=[laporan.pk],
+    )
+
+
+def _notify_masukan_sender(masukan: Masukan, *, actor, body: str) -> None:
+    """Beri tahu pengirim masukan privat (tahap 3b)."""
+    from notifications.services import notify_reporter
+
+    notify_reporter(
+        masukan.created_by,
+        actor=actor,
+        private=False,
+        type_code="MASUKAN_RESPONSE",
+        subject=f"Tanggapan atas masukan Anda: {masukan.title}",
+        body=body,
+        entity_ref=f"masukan#{masukan.pk}",
+        url_name="reports:masukan_page_detail",
+        url_args=[masukan.pk],
+    )
 
 
 # --- Laporan ---------------------------------------------------------------
@@ -121,7 +156,35 @@ def change_laporan_status(
     )
     action = AuditAction.CLOSE if to_status == ReportStatus.CLOSED else AuditAction.UPDATE
     log_update(laporan, before, actor=user, reason=reason or note, action=action, label=f"Laporan#{laporan.pk}")
+    _notify_laporan_reporter(
+        laporan, actor=user, body=f"Status: {laporan.get_status_display()}." + (f" {note.strip()}" if note.strip() else "")
+    )
     return laporan
+
+
+@transaction.atomic
+def add_laporan_note(laporan: Laporan, *, user, note: str) -> LaporanUpdate:
+    """Tanggapan tanpa ubah status; pelapor diberi tahu."""
+    if not can_view_laporan(user, laporan):
+        raise PermissionDenied("Anda tidak memiliki akses ke laporan ini.")
+    if not can_change_laporan_status(user, laporan):
+        raise PermissionDenied("Status laporan diubah oleh supervisor, PIC, atau Direktur Operasional.")
+    note = (note or "").strip()
+    if not note:
+        raise ValidationError("Tanggapan tidak boleh kosong.")
+    update = LaporanUpdate.objects.create(
+        laporan=laporan, author=user, from_status="", status=laporan.status, note=note
+    )
+    log_event(
+        action=AuditAction.UPDATE,
+        entity_type="laporanupdate",
+        entity_id=update.pk,
+        entity_label=f"Laporan#{laporan.pk}",
+        actor=user,
+        after={"note": note},
+    )
+    _notify_laporan_reporter(laporan, actor=user, body=note)
+    return update
 
 
 @transaction.atomic
@@ -149,6 +212,7 @@ def archive_laporan(laporan: Laporan, *, user, reason: str) -> Laporan:
     log_update(
         laporan, before, actor=user, reason=reason, action=AuditAction.ARCHIVE, label=f"Laporan#{laporan.pk}"
     )
+    _notify_laporan_reporter(laporan, actor=user, body=f"Diarsipkan. Alasan: {reason.strip()}")
     return laporan
 
 
@@ -266,6 +330,9 @@ def publish_masukan(masukan: Masukan, *, user, clinics, note: str = "") -> Masuk
             body=masukan.title,
             entity_ref=f"masukanpublication#{publication.pk}",
         )
+    _notify_masukan_sender(
+        masukan, actor=user, body=f"Dipublikasikan ke {', '.join(c.name for c in clinic_list)}."
+    )
     return publication
 
 
@@ -289,4 +356,28 @@ def archive_masukan(masukan: Masukan, *, user, reason: str) -> Masukan:
     log_update(
         masukan, before, actor=user, reason=reason, action=AuditAction.ARCHIVE, label=f"Masukan#{masukan.pk}"
     )
+    _notify_masukan_sender(masukan, actor=user, body=f"Diarsipkan. Alasan: {reason.strip()}")
     return masukan
+
+
+@transaction.atomic
+def add_masukan_tanggapan(masukan: Masukan, *, user, note: str) -> MasukanTanggapan:
+    """Direktur Operasional menanggapi masukan privat; pengirim diberi tahu."""
+    from core.permissions import is_aom
+
+    if not (is_aom(user) and can_view_masukan(user, masukan)):
+        raise PermissionDenied("Tanggapan masukan ditulis Direktur Operasional.")
+    note = (note or "").strip()
+    if not note:
+        raise ValidationError("Tanggapan tidak boleh kosong.")
+    tanggapan = MasukanTanggapan.objects.create(masukan=masukan, author=user, note=note)
+    log_event(
+        action=AuditAction.UPDATE,
+        entity_type="masukantanggapan",
+        entity_id=tanggapan.pk,
+        entity_label=f"Masukan#{masukan.pk}",
+        actor=user,
+        after={"note": note},
+    )
+    _notify_masukan_sender(masukan, actor=user, body=note)
+    return tanggapan
