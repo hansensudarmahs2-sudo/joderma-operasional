@@ -37,8 +37,9 @@ SORTS = {
     "pic": "PIC",
     "prioritas": "Prioritas",
     "status": "Status",
+    # "Mulai" = tanggal task dibuat/diberikan (keputusan PO 8 Okt 2026), tampil di sebelah Target.
+    "dibuat": "Mulai",
     "target": "Target",
-    "dibuat": "Dibuat",
     "diperbarui": "Diperbarui",
 }
 DEFAULT_SORT = "target"

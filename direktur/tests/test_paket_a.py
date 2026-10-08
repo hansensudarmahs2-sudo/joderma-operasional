@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
 
 import pytest
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -154,6 +155,27 @@ def test_list_access(client, people, many):
         assert client.get(reverse("direktur:tasks")).status_code in (302, 403)
     with pytest.raises(PermissionDenied):
         task_list.rows(people["yani"], task_list.parse_filters({}))
+
+
+def test_list_search_in_popup_and_start_column(client, people, many, citraland):
+    """8 Okt 2026: cari dan saringan di pop up (tombol Cari di sebelah judul); kolom Mulai di sebelah Target."""
+    client.force_login(people["hansen"])
+    body = client.get(reverse("direktur:tasks")).content.decode()
+    head = body.split('<dialog id="cari-task"', 1)[0]
+    assert 'id="buka-cari"' in head and 'name="q"' not in head  # kotak cari tidak lagi di halaman
+    dialog = body.split('<dialog id="cari-task"', 1)[1].split("</dialog>", 1)[0]
+    assert 'name="q"' in dialog and 'name="status"' in dialog and 'name="dari"' in dialog and "Terapkan" in dialog
+    assert "Saringan:" not in body  # tanpa saringan aktif tidak ada ringkasan
+    heads = re.findall(r'class="sort[^"]*">([A-Za-z]+)', body)
+    assert heads[heads.index("Target") - 1] == "Mulai"
+    created = timezone.localtime(many["a"].created_at).strftime("%d/%m/%Y")
+    assert f'<td data-label="Mulai">{created}</td>' in body
+    assert _titles(people["hansen"], urut="dibuat")  # urut menurut tanggal mulai tetap berjalan
+
+    body = client.get(reverse("direktur:tasks"), {"q": "apar", "cabang": citraland.pk, "prioritas": "KRITIS"}).content.decode()
+    summary = body.split('class="filter-summary"', 1)[1].split("</p>", 1)[0]
+    assert "Cari: “apar”" in summary and citraland.name in summary and "Prioritas Kritis" in summary
+    assert "Hapus saringan" in summary and "Cari (3)" in body
 
 
 # --- Butir 6: keputusan bersama (K-015) ---------------------------------------------

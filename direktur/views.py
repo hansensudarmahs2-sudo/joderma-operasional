@@ -696,7 +696,8 @@ def task_list(request):
             "page": page,
             "total": len(rows),
             "f": f,
-            "columns": [h for h in headers if h["key"] not in ("cabang", "dibuat")],
+            "columns": [h for h in headers if h["key"] != "cabang"],
+            "active_filters": _active_filters(request.user, f),
             "base_query": params.urlencode(),
             "csv_query": link(unduh="csv"),
             "clinics": user_clinic_queryset(request.user).order_by("id"),
@@ -709,6 +710,36 @@ def task_list(request):
             or f["status"] != "terbuka",
         },
     )
+
+
+def _active_filters(user, f) -> list[str]:
+    """Ringkasan saringan aktif di bawah judul, karena saringannya kini ada di pop up."""
+    from accounts.models import User
+
+    from . import task_list as tl
+
+    out = []
+    if f["q"]:
+        out.append(f"Cari: “{f['q']}”")
+    if f["status"] != "terbuka":
+        out.append(dict(tl.STATUS_FILTERS).get(f["status"], f["status"]))
+    if f["cabang"]:
+        clinic = user_clinic_queryset(user).filter(pk=f["cabang"]).first()
+        if clinic:
+            out.append(clinic.name)
+    if f["pic"]:
+        pic = User.objects.filter(pk=f["pic"]).first()
+        if pic:
+            out.append(f"PIC: {pic}")
+    if f["prioritas"]:
+        out.append(f"Prioritas {dict(Priority.choices).get(f['prioritas'], f['prioritas'])}")
+    if f["sumber"]:
+        out.append(dict(dashboard.SOURCE_CHOICES).get(f["sumber"], f["sumber"]))
+    if f["dari"] or f["sampai"]:
+        dari = f["dari"].strftime("%d/%m/%Y") if f["dari"] else "awal"
+        sampai = f["sampai"].strftime("%d/%m/%Y") if f["sampai"] else "sekarang"
+        out.append(f"Mulai {dari}–{sampai}")
+    return out
 
 
 def _task_csv(request, rows, f):

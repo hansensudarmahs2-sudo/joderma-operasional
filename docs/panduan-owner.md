@@ -14,7 +14,7 @@ untuk pindah antarhalaman kelompoknya. Isi tiap halaman:
 |---|---|
 | **Dashboard** | Kartu **Menunggu keputusan Anda** di paling atas (lihat bagian *Keputusan yang menunggu Anda*), lalu Permintaan Owner, lalu **Agenda rapat Kamis** (perkara yang menunggu keputusan bersama dan task yang tertahan karenanya), lalu ringkasan yang sama dengan Ringkasan Direktur: kuadran prioritas gabungan dua cabang, keputusan menggantung, kebijakan baru, menunggu konfirmasi, jadwal task, dan kartu per cabang. Setiap kotak dapat diketuk untuk membuka Prioritas, Kanban, Jadwal Task, Keputusan, atau Tim |
 | **Inbox** | Semua yang masuk ke Direktur Operasional (komplain, masukan, kerusakan, laporan staf, permintaan dan temuan Anda) beserta hasil pilahnya, hanya baca (lihat di bawah) |
-| **Daftar Task** | Semua task kedua cabang dalam satu tabel: cari, saring, urutkan, unduh CSV. Hanya baca |
+| **Daftar Task** | Semua task kedua cabang dalam satu tabel, dengan kolom Mulai di sebelah Target. Tombol **Cari** di sebelah judul membuka pop up untuk mencari dan menyaring; urutkan, unduh CSV. Hanya baca |
 | **Keputusan** | Register keputusan dan kebijakan. Perkara yang menunggu Anda dapat diputuskan dari sini atau dari kartu di Dashboard |
 | **Bahan Rapat** | Bahan rapat Kamis yang tersusun otomatis (Kamis lalu s.d. Rabu): agenda keputusan, permintaan dan temuan, task selesai, task lewat target, Inbox per cabang. Bisa dicetak atau disalin ke WhatsApp |
 | **Jejak** | Jejak kehadiran staf (IP, perangkat, lokasi sesaat) dengan label Kuat/Sedang/Lemah, hanya baca |

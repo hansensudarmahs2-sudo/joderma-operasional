@@ -531,6 +531,11 @@ a.request-row:hover { background: #f7faf9; }
 .task-filters .inline { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: .5rem .75rem; }
 .task-filters .inline > div { min-width: 0; }
 .task-filters select, .task-filters input[type=date] { width: 100%; }
+/* Cari di pop up (8 Okt 2026) */
+.heading-with-action { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.filter-dialog { border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; width: min(44rem, 94vw); max-height: 90vh; overflow: auto; }
+.filter-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+.filter-summary { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin: 0 0 .6rem; }
 .inline-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 0; }
 th a.sort { color: inherit; text-decoration: none; white-space: nowrap; }
 th a.sort.on { color: var(--ink); }
