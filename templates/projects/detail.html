@@ -23,13 +23,14 @@
 
 <section aria-labelledby="judul-task">
   <h2 id="judul-task">Task</h2>
+  {% if viewer_only and project.is_active %}<p class="meta">Anda melihat project ini sebagai penerima task. Task bertanda <strong>Task saya</strong> dikerjakan dari <a href="{{ work_url }}">{{ work_label }}</a>.</p>{% endif %}
   <table class="responsive">
     <thead><tr><th>Task</th><th>Penerima</th><th>Status</th><th>Target</th><th>Prioritas</th><th>Bukti</th></tr></thead>
     <tbody>
     {% for r in rows %}
       {% with item=r.item %}
       <tr>
-        <td data-label="Task"><span><a href="{% url 'projects:task_detail' project.pk item.pk %}"><strong>{{ item.title }}</strong></a>{% if item.assignment_mode == 'BERSAMA' %}<div class="meta">Cukup satu orang</div>{% endif %}</span></td>
+        <td data-label="Task"><span><a href="{% url 'projects:task_detail' project.pk item.pk %}"><strong>{{ item.title }}</strong></a>{% if r.mine %} <span class="tag info">Task saya</span>{% endif %}{% if item.assignment_mode == 'BERSAMA' %}<div class="meta">Cukup satu orang</div>{% endif %}</span></td>
         <td data-label="Penerima">{{ r.who }}</td>
         <td data-label="Status"><span><span class="tag {% if item.status == 'SELESAI' %}ok{% elif item.status == 'DIKERJAKAN' %}warn{% else %}info{% endif %}">{{ item.get_status_display }}</span>{% if r.all_declined %} <span class="tag warn">Semua penerima menolak</span>{% endif %}{% if r.counter %}<div class="meta">{{ r.counter }}</div>{% endif %}</span></td>
         <td data-label="Target">{% if item.due_at %}{{ item.due_at|date:"d/m/Y" }}{% if item.is_overdue %} <span class="tag err">Lewat</span>{% endif %}{% else %}—{% endif %}</td>

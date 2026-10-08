@@ -127,8 +127,11 @@ berupa minimal satu foto atau dokumen (catatan boleh dikosongkan), lalu kirim. T
 sistem menolak dan task tetap terbuka. Pada task **Cukup satu orang**, siapa pun penerimanya
 boleh langsung menandai selesai; task otomatis menjadi miliknya. Bila pengatur project
 membatalkan status selesai, task kembali ke Anda dengan **Catatan revisi** dan tag **Perlu
-revisi**; perbaiki lalu tandai selesai lagi. Bila Anda Project leader atau Co-project leader,
-menu **Projects** muncul di menu Anda untuk mengatur task project itu.
+revisi**; perbaiki lalu tandai selesai lagi. Selama Anda menerima task di project yang masih
+berjalan, menu **Projects** muncul di menu Anda: Anda dapat melihat seluruh project (progres,
+semua task, dan bukti), task Anda bertanda **Task saya**, dan Anda dapat membalas di task milik
+Anda. Menandai selesai tetap dari **Tugas hari ini**. Bila Anda Project leader atau Co-project
+leader, dari menu yang sama Anda juga mengatur task project itu.
 
 ## Sore: menutup hari
 

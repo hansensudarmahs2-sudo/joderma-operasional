@@ -134,7 +134,7 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Menambah tanggapan pada Laporan staf | supervisor, PIC, AOM | — |
 | Menulis tanggapan pada Masukan privat | AOM | — |
 | Membuat project | Owner, AOM | — |
-| Melihat project dan task-nya | Owner, AOM, pembuat, Project leader, Co-project leader | — |
+| Melihat project dan task-nya | Owner, AOM, pembuat, Project leader, Co-project leader, penerima task di project itu (8 Okt 2026; hanya melihat dan membalas di task miliknya) | — |
 | Menambah/mengubah/menugaskan task project dan membatalkan selesai (revisi) | Owner, AOM, pembuat, Project leader, Co-project leader | — |
 | Mengubah uraian dan target project, mengatur co-leader | Owner, AOM, pembuat, Project leader | — |
 | Menunjuk/mengganti leader, menutup, dan membatalkan project | Owner, AOM, pembuat | — |

@@ -262,8 +262,10 @@ dengan sumber **Project**.
   leader*: sama, kecuali mengubah uraian dan target serta mengatur co-leader. *Pembuat project, Owner, dan
   Direktur*: semua itu ditambah menunjuk atau mengganti leader, **Tutup project**, dan
   **Batalkan project**. Owner dan Direktur juga dapat menutup atau mengubah satu task project dari
-  halaman task Direktur (Daftar Task). Staf yang bukan leader atau co-leader tidak melihat menu Projects dan
-  halamannya ditolak (403).
+  halaman task Direktur (Daftar Task). *Penerima task* (sejak 8 Okt 2026) melihat menu Projects
+  selama project berjalan dan dapat membuka seluruh project tempat ia menerima task (progres, semua
+  task, bukti), tetapi tidak dapat mengatur apa pun; ia hanya dapat membalas di task miliknya. Staf
+  yang bukan leader, co-leader, atau penerima tidak melihat menu Projects dan halamannya ditolak (403).
 - **Menambah task.** Di halaman project buka **+ Task**: judul, uraian, penerima, target,
   prioritas, dan cabang (penerima harus anggota cabang itu). Pilih mode penyelesaian:
   **Semua harus selesai** (tiap penerima menyelesaikan bagiannya) atau **Cukup satu orang**

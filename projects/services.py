@@ -58,15 +58,31 @@ def can_create_project(user) -> bool:
     return _authenticated(user) and (is_owner(user) or is_aom(user))
 
 
+def _recipient_project_ids(user):
+    """Project tempat `user` menerima task (penugasan yang tidak dibatalkan)."""
+    return (
+        TaskAssignment.objects.filter(assignee=user, action_item__source_type=SOURCE_TYPE)
+        .exclude(status=TaskAssignmentStatus.CANCELLED)
+        .values("action_item__source_id")
+    )
+
+
+def is_task_recipient(user, project: Project) -> bool:
+    return _recipient_project_ids(user).filter(action_item__source_id=project.pk).exists()
+
+
 def can_view_project(user, project: Project) -> bool:
+    """Lihat project: pengatur, atau penerima task di project itu (8 Okt 2026: hanya melihat)."""
     if not _authenticated(user):
         return False
-    return _is_admin_level(user, project) or _is_leader(user, project) or _is_co_leader(user, project)
+    return can_manage_tasks(user, project) or is_task_recipient(user, project)
 
 
 def can_manage_tasks(user, project: Project) -> bool:
-    """Tambah/ubah/tugaskan task, batalkan selesai dengan revisi."""
-    return can_view_project(user, project)
+    """Tambah/ubah/tugaskan task, batalkan selesai dengan revisi. Penerima task tidak termasuk."""
+    if not _authenticated(user):
+        return False
+    return _is_admin_level(user, project) or _is_leader(user, project) or _is_co_leader(user, project)
 
 
 def can_edit_project(user, project: Project) -> bool:
@@ -82,13 +98,13 @@ def can_admin_project(user, project: Project) -> bool:
 
 
 def user_has_projects(user) -> bool:
-    """Menu Projects: Owner/Direktur, atau leader/co-leader di project yang masih berjalan."""
+    """Menu Projects: Owner/Direktur, atau leader/co-leader/penerima task di project yang masih berjalan."""
     if not _authenticated(user):
         return False
     if is_owner(user) or is_aom(user):
         return True
     return Project.objects.filter(
-        Q(leader=user) | Q(co_leaders=user), status=ProjectStatus.AKTIF
+        Q(leader=user) | Q(co_leaders=user) | Q(pk__in=_recipient_project_ids(user)), status=ProjectStatus.AKTIF
     ).exists()
 
 
@@ -98,7 +114,9 @@ def visible_projects(user):
         return Project.objects.none()
     if is_owner(user) or is_aom(user):
         return Project.objects.all()
-    return Project.objects.filter(Q(created_by=user) | Q(leader=user) | Q(co_leaders=user)).distinct()
+    return Project.objects.filter(
+        Q(created_by=user) | Q(leader=user) | Q(co_leaders=user) | Q(pk__in=_recipient_project_ids(user))
+    ).distinct()
 
 
 def is_project_item(item: ActionItem) -> bool:

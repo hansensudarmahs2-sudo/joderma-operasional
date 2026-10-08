@@ -7,6 +7,7 @@
 <p class="sub">Project: {{ project.name }} · {{ item.clinic.name }} · {% if shared %}Cukup satu orang{% else %}Semua harus selesai{% endif %} · target {% if item.due_at %}{{ item.due_at|date:"d/m/Y" }}{% else %}—{% endif %} · prioritas {{ item.get_priority_display }}</p>
 <p><span class="tag {% if item.status == 'SELESAI' %}ok{% elif item.status == 'DIKERJAKAN' %}warn{% elif item.status == 'BATAL' %}muted{% else %}info{% endif %}">{{ item.get_status_display }}</span>{% if item.is_overdue %} <span class="tag err">Lewat target</span>{% endif %}</p>
 {% if item.description %}<div class="card" style="white-space:pre-wrap">{{ item.description }}</div>{% endif %}
+{% if my_open %}<p class="card">Ini task Anda. Tandai selesai dengan bukti dari <a href="{{ work_url }}">{{ work_label }}</a>.</p>{% endif %}
 
 <section class="card" aria-labelledby="judul-penerima">
   <h2 id="judul-penerima" style="margin:0 0 .4rem">Penerima</h2>

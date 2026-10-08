@@ -370,10 +370,9 @@ def test_task_detail_access_and_404(client, project, aom1, sa, sb, sc, spv):
     item = _task(project, aom1, [sc])
     other = ps.create_project(actor=aom1, name="Lain", leader=sa)
     url = reverse("projects:task_detail", args=[project.pk, item.pk])
-    for user in (aom1, sa, sb):
+    for user in (aom1, sa, sb, sc):  # sc penerima task: boleh melihat (8 Okt 2026)
         assert _login(client, user).get(url).status_code == 200
-    for user in (sc, spv):  # penerima dan supervisor bukan pengatur project
-        assert _login(client, user).get(url).status_code == 403
+    assert _login(client, spv).get(url).status_code == 403  # bukan pengatur dan bukan penerima
     _login(client, aom1)
     assert client.get(reverse("projects:task_detail", args=[other.pk, item.pk])).status_code == 404
     assert client.get(reverse("projects:task_detail", args=[project.pk, 99999])).status_code == 404
@@ -725,7 +724,9 @@ def test_leader_replies_from_task_detail(client, project, aom1, sa, sc):
     assert Notification.objects.filter(user=sc, type_code="TASK_COMMENT").exists()
     response = client.post(url, {"aksi": "komentar", "catatan": " "}, follow=True)
     assert "Catatan kosong." in _messages(response)
-    assert _login(client, sc).post(url, {"aksi": "komentar", "catatan": "x"}).status_code == 403
+    # Penerima boleh membalas di task miliknya sendiri (8 Okt 2026).
+    assert _login(client, sc).post(url, {"aksi": "komentar", "catatan": "x"}).status_code == 302
+    assert item.task_events.filter(event_type=TaskEventType.COMMENT, actor=sc).exists()
 
 
 def test_action_item_update_cannot_bypass_project_evidence(client, project, aom1, sa, sc):
@@ -802,3 +803,110 @@ def test_cancelling_non_claimer_keeps_claim(client, project, aom1, pair):
     _claim(claimer, item)
     cancel_assignment(item.task_assignments.get(assignee=other), actor=aom1, reason="Salah orang")
     assert item.task_assignments.get(assignee=claimer).claimed_by == claimer
+
+
+# --- Penerima task melihat project (8 Okt 2026) ----------------------------------------------
+
+
+def test_recipient_sees_menu_list_and_detail_read_only(client, project, aom1, sc, sd):
+    item = _task(project, aom1, [sc], title="SOP kop surat")
+    _task(project, aom1, [sd], title="Task orang lain")
+    _login(client, sc)
+    assert "Projects" in _nav_labels(client.get(reverse("core:today")).content.decode())
+    assert "Renovasi ruang tunggu" in client.get(reverse("projects:list")).content.decode()
+    body = client.get(reverse("projects:detail", args=[project.pk])).content.decode()
+    assert "SOP kop surat" in body and "Task orang lain" in body  # seluruh project terlihat
+    assert body.count("Task saya</span>") == 1 and "sebagai penerima task" in body
+    assert reverse("core:today") in body
+    assert 'id="tambah-task"' not in body and 'value="tutup"' not in body and 'name="penerima"' not in body
+    body = client.get(reverse("projects:task_detail", args=[project.pk, item.pk])).content.decode()
+    assert "Ini task Anda" in body and 'value="batal_task"' not in body
+    assert 'value="komentar"' in body
+
+
+def test_recipient_cannot_manage_project(client, project, aom1, sc, sd):
+    item = _task(project, aom1, [sc])
+    url = reverse("projects:detail", args=[project.pk])
+    _login(client, sc)
+    for aksi in ("ubah", "tambah_coleader", "hapus_coleader", "ganti_leader", "tutup", "batalkan"):
+        assert client.post(url, {"aksi": aksi, "user": sd.pk, "leader": sd.pk, "alasan": "x"}).status_code == 403
+    response = client.post(url, {"aksi": "tambah_task", "judul": "Tambahan", "penerima": [sc.pk]}, follow=True)
+    assert "Anda tidak dapat mengatur task project ini." in _messages(response)
+    assert project.tasks().count() == 1
+    task_url = reverse("projects:task_detail", args=[project.pk, item.pk])
+    client.post(task_url, {"aksi": "batal_task", "alasan": "x"})
+    item.refresh_from_db()
+    assert item.status != ActionItemStatus.BATAL
+    assert not ps.can_manage_tasks(sc, project) and ps.can_view_project(sc, project)
+
+
+def test_recipient_comment_only_on_own_task(client, project, aom1, sc, sd):
+    other = _task(project, aom1, [sd], title="Milik D")
+    _task(project, aom1, [sc])
+    _login(client, sc)
+    url = reverse("projects:task_detail", args=[project.pk, other.pk])
+    assert 'value="komentar"' not in client.get(url).content.decode()
+    assert client.post(url, {"aksi": "komentar", "catatan": "ikut campur"}).status_code == 403
+    assert not other.task_events.filter(event_type=TaskEventType.COMMENT).exists()
+
+
+def test_cancelled_recipient_cannot_comment_or_revise(client, project, aom1, sa, sc):
+    """Penugasan sc di T1 dibatalkan, tetapi sc masih menerima T2 sehingga tetap bisa membuka project."""
+    t1 = _task(project, aom1, [sc], title="T1")
+    _task(project, aom1, [sc], title="T2")
+    a1 = t1.task_assignments.get()
+    a1.status = TaskAssignmentStatus.CANCELLED
+    a1.save(update_fields=["status"])
+    url = reverse("projects:task_detail", args=[project.pk, t1.pk])
+    _login(client, sc)
+    assert client.get(url).status_code == 200 and 'value="komentar"' not in client.get(url).content.decode()
+    assert client.post(url, {"aksi": "komentar", "catatan": "x"}).status_code == 403
+    assert not t1.task_events.filter(event_type=TaskEventType.COMMENT, actor=sc).exists()
+    t2 = project.tasks().get(title="T2")
+    a2 = t2.task_assignments.get()
+    client.post(reverse("core:assignment_submit", args=[a2.pk]), {"catatan": "Beres", "foto": _png()})
+    a2.refresh_from_db()
+    assert a2.status == TaskAssignmentStatus.CONFIRMED
+    url2 = reverse("projects:task_detail", args=[project.pk, t2.pk])
+    with pytest.raises(PermissionDenied):
+        ps.reopen_assignment(a2, actor=sc, note="ulang sendiri")
+    response = client.post(url2, {"aksi": "revisi", "assignment": a2.pk, "catatan": "ulang"})
+    assert response.status_code == 403
+    a2.refresh_from_db()
+    assert a2.status == TaskAssignmentStatus.CONFIRMED
+
+
+def test_recipient_from_other_branch_sees_whole_project(client, project, aom1, clinic_b):
+    """Keputusan 8 Okt 2026: penerima melihat seluruh project, termasuk task cabang lain."""
+    lain = _user(clinic_b, "staf_kedung", Role.STAF)
+    _task(project, aom1, [lain], title="Task Kedung")
+    body = _login(client, lain).get(reverse("projects:detail", args=[project.pk])).content.decode()
+    assert "Task Kedung" in body and "Renovasi ruang tunggu" in body
+
+
+def test_removed_or_closed_recipient_loses_menu(client, project, aom1, sc):
+    item = _task(project, aom1, [sc])
+    assert ps.user_has_projects(sc)
+    a = item.task_assignments.get()
+    a.status = TaskAssignmentStatus.CANCELLED
+    a.save(update_fields=["status"])
+    assert not ps.user_has_projects(sc) and not ps.can_view_project(sc, project)
+    assert _login(client, sc).get(reverse("projects:detail", args=[project.pk])).status_code == 403
+    a.status = TaskAssignmentStatus.OPEN
+    a.save(update_fields=["status"])
+    _login(client, sc).post(reverse("core:assignment_submit", args=[a.pk]), {"catatan": "Beres", "foto": _png()})
+    ps.close_project(project, actor=aom1, note="Selesai")
+    sc = User.objects.get(pk=sc.pk)
+    assert not ps.user_has_projects(sc)  # menu hilang setelah project ditutup
+    assert ps.can_view_project(sc, project)  # tautan lama (notifikasi) tetap bisa dibuka
+
+
+def test_recipient_can_open_project_evidence(client, project, aom1, sc, sd):
+    item = _task(project, aom1, [sd])
+    _task(project, aom1, [sc])
+    a = item.task_assignments.get()
+    _login(client, sd).post(reverse("core:assignment_submit", args=[a.pk]), {"catatan": "Beres", "foto": _png()})
+    body = _login(client, sc).get(reverse("projects:task_detail", args=[project.pk, item.pk])).content.decode()
+    src = re.search(r"<img[^>]+src=\"([^\"]+)\"", body.split("judul-penerima", 1)[1])
+    assert src, "foto bukti tidak tampil"
+    assert client.get(src.group(1)).status_code == 200

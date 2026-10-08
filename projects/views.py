@@ -11,6 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import F
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from accounts.models import Role, User, UserRole
@@ -113,7 +114,7 @@ def _require_view(user, project: Project) -> None:
 def project_list(request):
     user = request.user
     if not ps.user_has_projects(user):
-        raise PermissionDenied("Anda bukan leader atau co-leader project yang sedang berjalan.")
+        raise PermissionDenied("Anda bukan leader, co-leader, atau penerima task project yang sedang berjalan.")
     selesai = request.GET.get("semua") == "1"
     qs = ps.visible_projects(user).select_related("leader", "clinic")
     if selesai:
@@ -186,7 +187,14 @@ def _evidence(items: list[ActionItem]) -> dict[int, dict]:
     return out
 
 
-def _task_rows(project: Project) -> list[dict]:
+def _work_link(user) -> dict:
+    """Tempat penerima mengerjakan task-nya: kartu dashboard Owner, atau Tugas hari ini."""
+    if is_owner_only(user):
+        return {"work_url": reverse("owner:dashboard") + "#tugas-project", "work_label": "Dashboard Owner"}
+    return {"work_url": reverse("core:today"), "work_label": "Tugas hari ini"}
+
+
+def _task_rows(project: Project, user=None) -> list[dict]:
     items = list(
         project.tasks().select_related("clinic").prefetch_related("task_assignments__assignee",
                                                                   "task_assignments__claimed_by")
@@ -214,7 +222,8 @@ def _task_rows(project: Project) -> list[dict]:
         confirmed = sum(a.status == TaskAssignmentStatus.CONFIRMED for a in active)
         counter = f"{confirmed}/{len(active)} selesai" if not shared and len(active) > 1 else ""
         rows.append({"item": item, "who": who or "—", "counter": counter, "evidence": evidence[item.pk],
-                     "all_declined": all_declined})
+                     "all_declined": all_declined,
+                     "mine": bool(user) and any(a.assignee_id == user.pk for a in active)})
     return rows
 
 
@@ -225,11 +234,12 @@ def project_detail(request, pk: int):
     _require_view(user, project)
     if request.method == "POST":
         return _handle_detail_post(request, project)
-    rows = _task_rows(project)
+    rows = _task_rows(project, user)
     gallery = sorted((r for r in rows if r["evidence"]["count"]),
                      key=lambda r: r["evidence"]["latest"], reverse=True)
     active = project.is_active
     clinics = user_clinic_queryset(user).order_by("name")
+    can_manage = active and ps.can_manage_tasks(user, project)
     return render(request, "projects/detail.html", {
         "project": project,
         "co_leaders": project.co_leaders.order_by("display_name", "username"),
@@ -237,10 +247,13 @@ def project_detail(request, pk: int):
         "overdue": project.is_overdue(),
         "rows": rows,
         "gallery": gallery,
-        "can_manage": active and ps.can_manage_tasks(user, project),
+        "can_manage": can_manage,
         "can_edit": active and ps.can_edit_project(user, project),
         "can_admin": active and ps.can_admin_project(user, project),
-        "people": _people(),
+        # Penerima task hanya melihat; pekerjaannya sendiri dikerjakan dari Tugas hari ini.
+        "viewer_only": not ps.can_manage_tasks(user, project),
+        **_work_link(user),
+        "people": _people() if can_manage else [],
         "clinics": clinics,
         "priorities": Priority.choices,
         "today": local_today(),
@@ -339,10 +352,15 @@ def task_detail(request, pk: int, task_pk: int):
     for e in events:
         e.photos = e_photos.get(e.pk, [])
         e.docs = e_docs.get(e.pk, [])
+    mine = [a for a in assignments if a.assignee_id == user.pk and a.status != TaskAssignmentStatus.CANCELLED]
+    my_open = next((a for a in mine if a.status in ps.OPEN_ASSIGNMENT_STATES), None)
     return render(request, "projects/task_detail.html", {
         "project": project, "item": item, "rows": rows, "events": events,
         "can_manage": can_manage,
-        "can_comment": ps.can_manage_tasks(user, project),
+        # Penerima boleh membalas di task miliknya sendiri (add_task_comment memeriksa keterlibatan).
+        "can_comment": ps.can_manage_tasks(user, project) or bool(mine),
+        "my_open": my_open if item.status in ps.OPEN_ITEM_STATES else None,
+        **_work_link(user),
         "shared": item.assignment_mode == TaskAssignmentMode.BERSAMA,
     })
 
@@ -363,6 +381,11 @@ def _handle_task_post(request, project: Project, item: ActionItem):
         elif aksi == "komentar":
             from core.task_services import add_task_comment
 
+            # Penerima yang hanya melihat project membalas di task miliknya yang masih berlaku saja.
+            if not ps.can_manage_tasks(request.user, project) and not item.task_assignments.filter(
+                assignee=request.user
+            ).exclude(status=TaskAssignmentStatus.CANCELLED).exists():
+                raise PermissionDenied("Anda hanya dapat membalas di task milik Anda.")
             add_task_comment(item, actor=request.user, note=request.POST.get("catatan", ""))
             messages.success(request, "Balasan terkirim.")
         else:
