@@ -1,0 +1,14 @@
+<fieldset class="bintang-input" data-bintang>
+  <legend>{{ label }} <span class="meta">(wajib)</span></legend>
+  <div class="bintang-pilih">{% for n in choices %}<input type="radio" id="{{ prefix }}-b{{ n }}" name="bintang" value="{{ n }}" required{% if current == n %} checked{% endif %}><label for="{{ prefix }}-b{{ n }}" title="{{ n }} bintang"><span aria-hidden="true">★</span><span class="visually-hidden">{{ n }} bintang</span></label>{% endfor %}</div>
+  <label for="{{ prefix }}-alasan">Alasan <span class="meta">(wajib untuk bintang 1–{{ note_max }})</span></label>
+  <input id="{{ prefix }}-alasan" name="catatan_bintang" maxlength="500" value="{{ note }}" data-bintang-alasan placeholder="Mis. bukti kurang lengkap, perlu lebih teliti">
+</fieldset>
+<script>(function(){
+  // Alasan wajib untuk bintang 1–3; server tetap memeriksa aturan ini.
+  if(window.__bintangInit)return;window.__bintangInit=true;
+  function sync(box){var r=box.querySelector("input[name=bintang]:checked"),a=box.querySelector("[data-bintang-alasan]");
+    if(a)a.required=!!r&&parseInt(r.value,10)<={{ note_max }};}
+  document.addEventListener("change",function(e){var box=e.target.closest&&e.target.closest("[data-bintang]");if(box)sync(box);});
+  document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll("[data-bintang]").forEach(sync);});
+})();</script>

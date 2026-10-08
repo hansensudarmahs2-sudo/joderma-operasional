@@ -13,10 +13,10 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
-from core.permissions import can_view_audit, has_admin_full_access, is_aom, require
+from core.permissions import can_view_audit, has_admin_full_access, is_aom, is_owner, require
 
 from .models import AuditAction, AuditEvent
-from .services import log_event
+from .services import RESTRICTED_ENTITY_TYPES, log_event
 
 FILTER_KEYS = ("aktor", "aksi", "entitas", "dari", "sampai")
 
@@ -30,8 +30,15 @@ def can_export_audit(user) -> bool:
     return is_aom(user) or has_admin_full_access(user)
 
 
+def can_view_ratings(user) -> bool:
+    """Jejak bintang task hanya untuk Direktur Operasional dan Owner (supervisor/admin tidak)."""
+    return is_aom(user) or is_owner(user)
+
+
 def _filtered(request):
     qs = AuditEvent.objects.select_related("actor")
+    if not can_view_ratings(request.user):
+        qs = qs.exclude(entity_type__in=RESTRICTED_ENTITY_TYPES)
     f = {k: (request.GET.get(k) or "").strip() for k in FILTER_KEYS}
     if f["aktor"]:
         qs = qs.filter(Q(actor_label__icontains=f["aktor"]) | Q(actor__username__icontains=f["aktor"])

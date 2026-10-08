@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load foto %}
+{% load foto bintang %}
 {% block title %}{{ item.title }}{% endblock %}
 {% block content %}
 <p><a href="{% url back.0 %}">← {{ back.1 }}</a></p>
@@ -11,6 +11,7 @@
   {% if waiting_on %}{% for d in waiting_on %}{% if d.status == 'MENUNGGU' %}<span class="tag info">Menunggu keputusan</span>{% endif %}{% endfor %}{% endif %}
   {% if item.is_blocked %}<span class="tag warn">Terhambat</span>{% endif %}
   <span class="tag {% if dirut_review %}info{% else %}muted{% endif %}">Pemeriksa: {% if dirut_review %}Direktur Utama / Owner{% else %}Direktur Operasional{% endif %}</span>
+  {% if item.category %}<span class="tag muted">Kategori: {{ item.category.name }}</span>{% endif %}
   {% if item.due_at %}<span class="tag {% if item.is_overdue %}err{% else %}muted{% endif %}">Target {{ item.due_at|date:"d/m/Y H:i" }}{% if item.is_overdue %} · lewat{% endif %}</span>{% else %}<span class="tag muted">Tanpa target</span>{% endif %}
 </p>
 
@@ -76,19 +77,39 @@
     <td data-label="Nama"><strong>{{ r.a.assignee }}</strong>{% if r.a.claimed_by and r.a.claimed_by_id != r.a.assignee_id %}<div class="meta">diambil {{ r.a.claimed_by }}</div>{% endif %}</td>
     <td data-label="Status"><span class="tag {% if r.a.status == 'CONFIRMED' %}ok{% elif r.a.status == 'SUBMITTED' %}info{% elif r.a.status == 'REVISION_REQUIRED' %}warn{% elif r.a.status == 'CANCELLED' %}muted{% endif %}">{{ r.a.get_status_display }}</span>
       {% if r.a.status == 'REVISION_REQUIRED' and r.a.revision_note %}<div class="meta">Revisi: {{ r.a.revision_note }}</div>{% endif %}
-      {% foto_thumbs evidence_photos|ambil:r.a.pk %}{% dokumen_list evidence_docs|ambil:r.a.pk %}</td>
+      {% foto_thumbs evidence_photos|ambil:r.a.pk %}{% dokumen_list evidence_docs|ambil:r.a.pk %}
+      {% if r.rated and r.a.status == 'CONFIRMED' %}<div>{% include "core/_bintang.html" with a=r.a %}</div>{% endif %}</td>
     <td data-label="Waktu" class="meta">{% if r.a.confirmed_at %}dikonfirmasi {{ r.a.confirmed_at|date:"d/m H:i" }}{% if r.a.reviewer %} oleh {{ r.a.reviewer }}{% endif %}{% elif r.a.submitted_at %}diajukan {{ r.a.submitted_at|date:"d/m H:i" }}{% else %}dikirim {{ r.a.created_at|date:"d/m H:i" }}{% endif %}</td>
     <td data-label="Tindakan" class="stack"><div class="task-actions">
       {% if r.can_review %}
+      {% if r.rated %}
+      <details class="task-submit"><summary class="btn small">Konfirmasi selesai</summary>
+        <form method="post" class="stack-form">{% csrf_token %}
+          <input type="hidden" name="assignment" value="{{ r.a.pk }}"><input type="hidden" name="aksi" value="konfirmasi">
+          {% bintang_input r.a.pk who=r.a.assignee %}
+          <button class="btn small" type="submit">Konfirmasi selesai</button>
+        </form>
+      </details>
+      {% else %}
       <form method="post" class="inline">{% csrf_token %}
         <input type="hidden" name="assignment" value="{{ r.a.pk }}"><input type="hidden" name="aksi" value="konfirmasi">
         <button class="btn small" type="submit">Konfirmasi selesai</button>
       </form>
+      {% endif %}
       <form method="post" class="inline">{% csrf_token %}
         <input type="hidden" name="assignment" value="{{ r.a.pk }}"><input type="hidden" name="aksi" value="revisi">
         <input name="catatan" placeholder="Catatan revisi (wajib)" required>
         <button class="btn small secondary" type="submit">Minta revisi</button>
       </form>
+      {% endif %}
+      {% if r.can_rate %}
+      <details class="task-submit"><summary class="btn small{% if r.a.rating %} secondary{% endif %}">{% if r.a.rating %}Ubah bintang{% else %}Beri bintang{% endif %}</summary>
+        <form method="post" class="stack-form">{% csrf_token %}
+          <input type="hidden" name="assignment" value="{{ r.a.pk }}"><input type="hidden" name="aksi" value="nilai">
+          {% bintang_input r.a.pk who=r.a.assignee current=r.a.rating note=r.a.rating_note %}
+          <button class="btn small" type="submit">Simpan bintang</button>
+        </form>
+      </details>
       {% endif %}
       {% if r.can_remove %}
       <details><summary class="meta">Keluarkan dari task</summary>
@@ -130,7 +151,7 @@
         </form>
       </details>
       {% endif %}
-      {% if not r.can_review and not r.can_remove and not r.can_submit %}<span class="meta">—</span>{% endif %}
+      {% if not r.can_review and not r.can_remove and not r.can_submit and not r.can_rate %}<span class="meta">—</span>{% endif %}
     </div></td>
   </tr>
   {% empty %}<tr><td colspan="4" class="meta">Belum ada penerima.</td></tr>{% endfor %}
@@ -148,13 +169,23 @@
   <label style="flex:1 1 16rem">Catatan progres<input name="progres" value="{{ item.progress_note }}" placeholder="mis. menunggu jadwal vendor limbah"></label>
   <button class="btn small" type="submit">Simpan</button>
 </form>
+{% endif %}
+{% if can_manage %}
+<form method="post" class="card inline" style="margin-top:.6rem">{% csrf_token %}
+  <input type="hidden" name="aksi" value="kategori">
+  <label>Kategori<select name="kategori"><option value="">Tanpa kategori</option>{% for c in categories %}<option value="{{ c.pk }}"{% if item.category_id == c.pk %} selected{% endif %}>{{ c.name }}{% if not c.active %} (nonaktif){% endif %}</option>{% endfor %}</select></label>
+  <button class="btn small secondary" type="submit">Simpan kategori</button>
+</form>
+{% endif %}
+{% if can_manage and is_open %}
 {% if dirut_review and item.review_by != 'DIRUT' %}<p class="help">Salah satu penerima adalah Direktur Operasional, jadi task ini tetap diperiksa Direktur Utama / Owner.</p>{% endif %}
 
 <div class="card" style="margin-top:.6rem">
   {% if not dirut_review %}
-  <form method="post" class="inline">{% csrf_token %}
+  <form method="post"{% if not close_needs_rating %} class="inline"{% endif %}>{% csrf_token %}
     <input type="hidden" name="aksi" value="selesai">
     <label style="flex:1 1 16rem">Tandai selesai tanpa menunggu penerima<input name="catatan" required placeholder="Catatan penutupan (wajib)"></label>
+    {% if close_needs_rating %}{% bintang_input "tutup" who=close_rating_names %}{% if item.assignment_mode == 'BERSAMA' %}<p class="help">Task bersama: hanya yang mengambil task yang dinilai.</p>{% endif %}{% elif close_shared_unclaimed %}<p class="help">Task bersama belum diambil siapa pun, jadi tidak ada yang dinilai. Sesudah ditutup, beri bintang kepada yang benar-benar mengerjakan lewat <strong>Beri bintang</strong>.</p>{% endif %}
     <button class="btn small" type="submit">Tandai selesai</button>
   </form>
   {% else %}<p class="meta" style="margin:0">Task ini ditutup lewat ajukan selesai oleh penerima, lalu konfirmasi Direktur Utama / Owner.{% if i_receive %} Anda penerimanya: tekan <strong>{% if item.source_type == "proyek" %}Tandai selesai{% else %}Ajukan selesai{% endif %}</strong> di tabel Penerima di atas.{% endif %}</p>{% endif %}

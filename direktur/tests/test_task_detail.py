@@ -74,7 +74,7 @@ def test_task_titles_link_to_detail(client, director, task):
 
 def test_director_closes_task_without_waiting_for_staff(client, director, desy, task):
     client.force_login(director)
-    resp = client.post(_url(task), {"aksi": "selesai", "catatan": "Vendor sudah dijadwalkan"})
+    resp = client.post(_url(task), {"aksi": "selesai", "bintang": "5", "catatan": "Vendor sudah dijadwalkan"})
     assert resp.status_code == 302
     task.refresh_from_db()
     a = task.task_assignments.get()
@@ -89,7 +89,7 @@ def test_director_closes_task_without_waiting_for_staff(client, director, desy, 
 
 def test_close_requires_note(client, director, task):
     client.force_login(director)
-    client.post(_url(task), {"aksi": "selesai", "catatan": " "})
+    client.post(_url(task), {"aksi": "selesai", "bintang": "5", "catatan": " "})
     task.refresh_from_db()
     assert task.status == ActionItemStatus.BARU
 
@@ -126,7 +126,7 @@ def test_confirm_and_revision_from_detail(client, director, desy, task):
     a.refresh_from_db()
     assert a.status == TaskAssignmentStatus.REVISION_REQUIRED
     submit_assignment(a, user=desy)
-    client.post(_url(task), {"aksi": "konfirmasi", "assignment": a.pk})
+    client.post(_url(task), {"aksi": "konfirmasi", "bintang": "5", "assignment": a.pk})
     task.refresh_from_db()
     assert task.status == ActionItemStatus.SELESAI
 
@@ -150,7 +150,7 @@ def test_owner_reads_only(client, jemur, task):
     client.force_login(owner)
     body = client.get(_url(task)).content.decode()
     assert task.title in body and "Ubah task" not in body and "Tandai selesai" not in body
-    assert client.post(_url(task), {"aksi": "selesai", "catatan": "x"}).status_code == 403
+    assert client.post(_url(task), {"aksi": "selesai", "bintang": "5", "catatan": "x"}).status_code == 403
     task.refresh_from_db()
     assert task.status == ActionItemStatus.BARU
 

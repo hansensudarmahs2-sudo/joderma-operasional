@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from accounts.models import Role, User, UserRole
 from audit.models import AuditEvent
-from core.models import ActionItem, ActionItemStatus, Clinic, local_today
+from core.models import ActionItem, ActionItemStatus, Clinic, TaskCategory, local_today
 from direktur.models import DailySummary
 from jadwal.models import DutyRoster, DutyStatus
 from notifications.models import Notification
@@ -69,7 +69,7 @@ def test_owner_creates_request_and_director_is_notified(client, yohanes, jean, h
     client.force_login(yohanes)
     target = (local_today() + dt.timedelta(days=10)).isoformat()
     response = client.post(reverse("owner:request_new"), {"judul": "Evaluasi harga paket", "rincian": "Bandingkan",
-                                                          "target": target})
+                                                          "target": target, "kategori": TaskCategory.objects.first().pk})
     req = OwnerRequest.objects.get()
     assert response["Location"] == reverse("owner:request_detail", args=[req.pk])
     assert req.created_by == yohanes and req.target_date.isoformat() == target
@@ -90,7 +90,7 @@ def test_owner_creates_request_and_director_is_notified(client, yohanes, jean, h
 )
 def test_request_validation(client, yohanes, form, message):
     client.force_login(yohanes)
-    body = client.post(reverse("owner:request_new"), form).content.decode()
+    body = client.post(reverse("owner:request_new"), {**form, "kategori": TaskCategory.objects.first().pk}).content.decode()
     assert message in body and not OwnerRequest.objects.exists()
 
 

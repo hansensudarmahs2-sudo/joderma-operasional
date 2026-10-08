@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Role, User, UserRole
-from core.models import ActionItem, ActionItemStatus, Clinic, TaskAssignmentStatus, local_today
+from core.models import ActionItem, ActionItemStatus, Clinic, TaskAssignmentStatus, TaskCategory, local_today
 from notifications.models import Notification
 from owner import services
 from owner.models import OwnerRequest, RequestKind
@@ -101,7 +101,7 @@ def test_finding_form_has_no_target_field(client, yohanes):
 def test_owner_posts_urgent_finding_without_target(client, yohanes, jemur):
     client.force_login(yohanes)
     client.post(reverse("owner:request_new"), {"jenis": "TEMUAN", "judul": "Wastafel bocor", "mendesak": "1",
-                                               "target": "2099-01-01"})
+                                               "target": "2099-01-01", "kategori": TaskCategory.objects.first().pk})
     req = OwnerRequest.objects.get()
     assert req.urgent and req.target_date == local_today() + dt.timedelta(days=3)
 
@@ -272,7 +272,7 @@ def test_staff_subtask_on_finding_is_reviewed_by_director_not_owner(jemur, yohan
     assert assignment.status == TaskAssignmentStatus.SUBMITTED
     assert can_review_assignment(assignment, hansen) and not can_review_assignment(assignment, yohanes)
     assert services.verification_queue(yohanes) == []
-    confirm_assignment(assignment, reviewer=hansen)
+    confirm_assignment(assignment, reviewer=hansen, rating=5)
     item.refresh_from_db()
     assert item.status == ActionItemStatus.SELESAI
 
@@ -316,7 +316,7 @@ def test_subtask_rows_labels(jemur, yohanes, hansen, desy):
     rows = {r["task"].title: r for r in services.subtask_rows(req)}
     assert rows["Menulis alur"]["label"] == "Selesai oleh Direktur"
     assert rows["Sosialisasi"]["label"] == "Menunggu verifikasi"
-    confirm_assignment(a, reviewer=hansen)
+    confirm_assignment(a, reviewer=hansen, rating=5)
     rows = {r["task"].title: r for r in services.subtask_rows(req)}
     assert rows["Sosialisasi"]["label"] == "Terverifikasi Direktur"
     assert rows["Sosialisasi"]["people"] == str(desy) and rows["Sosialisasi"]["finished_at"] is not None

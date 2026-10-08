@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load foto %}
+{% load foto bintang %}
 {% block title %}{{ item.title }}{% endblock %}
 {% block content %}
 <p><a href="{% url 'projects:detail' project.pk %}">← {{ project.name }}</a></p>
@@ -22,6 +22,17 @@
         {% if r.declined %}<span class="meta">Alasan menolak: {{ r.decline_reason }}</span>{% endif %}
         {% if r.a.revision_note and r.a.status == 'REVISION_REQUIRED' %}<span class="meta">Catatan revisi: {{ r.a.revision_note }}</span>{% endif %}
         {% foto_thumbs r.photos %}{% dokumen_list r.docs %}
+        {% if r.show_rating %}<span class="meta">Bintang: {% include "core/_bintang.html" with a=r.a %}</span>{% endif %}
+        {% if r.can_rate %}
+        <details class="task-submit"{% if not r.a.rating %} open{% endif %}>
+          <summary class="btn small{% if r.a.rating %} secondary{% endif %}">{% if r.a.rating %}Ubah bintang{% else %}Beri bintang{% endif %}</summary>
+          <form method="post" class="stack-form">{% csrf_token %}
+            <input type="hidden" name="aksi" value="nilai"><input type="hidden" name="assignment" value="{{ r.a.pk }}">
+            {% bintang_input r.a.pk who=r.a.assignee current=r.a.rating note=r.a.rating_note %}
+            <button class="btn small" type="submit">Simpan bintang</button>
+          </form>
+        </details>
+        {% endif %}
         {% if r.can_reopen %}
         <details class="task-submit">
           <summary class="btn small secondary">Batalkan selesai (revisi)</summary>

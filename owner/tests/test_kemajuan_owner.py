@@ -73,7 +73,7 @@ def _finish(item, hansen, person):
 
     a = item.task_assignments.get()
     submit_assignment(a, user=person, note="beres")
-    confirm_assignment(a, reviewer=hansen)
+    confirm_assignment(a, reviewer=hansen, rating=5)
 
 
 # --- Pemicu 1: task dibuat -------------------------------------------------------
@@ -180,7 +180,7 @@ def test_close_task_path_notifies(yohanes, hansen, desy, jemur):
     from core.task_services import close_task
 
     req = _request(yohanes)
-    close_task(_task(req, hansen, jemur, desy), actor=hansen, note="selesai langsung")
+    close_task(_task(req, hansen, jemur, desy), actor=hansen, note="selesai langsung", rating=5)
     assert _notes(yohanes, "selesai", req).get().title.startswith("Permintaan selesai")
 
 
@@ -218,5 +218,5 @@ def test_deleted_request_is_ignored(yohanes, hansen, desy, jemur):
     req = _request(yohanes)
     item = _task(req, hansen, jemur, desy)
     OwnerRequest.objects.filter(pk=req.pk).delete()
-    close_task(item, actor=hansen, note="selesai")
+    close_task(item, actor=hansen, note="selesai", rating=5)
     assert ActionItem.objects.get(pk=item.pk).status == "SELESAI"

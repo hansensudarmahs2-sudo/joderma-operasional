@@ -178,7 +178,7 @@ def test_finish_and_cancel_clear_blocked(jemur, hansen, desy):
     a = done.task_assignments.get()
     ts.report_blocker(a, user=desy, reason="Telat")
     ts.submit_assignment(a, user=desy, note="Beres")
-    ts.confirm_assignment(ActionItem.objects.get(pk=done.pk).task_assignments.get(), reviewer=hansen)
+    ts.confirm_assignment(ActionItem.objects.get(pk=done.pk).task_assignments.get(), reviewer=hansen, rating=5)
     done.refresh_from_db()
     assert done.status == ActionItemStatus.SELESAI and done.blocked_at is None
     cancelled = _task(hansen, jemur, desy, title="Batal")

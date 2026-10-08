@@ -12,6 +12,9 @@ from accounts.models import PicAssignment, Role, User
 from notifications.services import notify_user
 
 from .models import (
+    RATING_MAX,
+    RATING_MIN,
+    RATING_NOTE_REQUIRED_MAX,
     ActionItem,
     ActionItemStatus,
     Priority,
@@ -552,14 +555,138 @@ def _finish_item_if_all_confirmed(item: ActionItem, actor=None) -> None:
         _after_task_final(item, actor)
 
 
+# --- Bintang 1–5 untuk penerima staf (8 Okt 2026) ---------------------------------------
+# Yang mengonfirmasi memberi bintang. Penerima Direktur Operasional atau Owner tidak dinilai.
+# Task project selesai tanpa konfirmasi: "Belum dinilai" sampai pengatur project menilainya.
+
+RATING_FIELDS = ["rating", "rating_note", "rated_by", "rated_at", "rating_auto"]
+
+
+def needs_rating(assignee) -> bool:
+    """Penerima yang dinilai bintang: semua kecuali Direktur Operasional dan Owner."""
+    return not (is_aom(assignee) or is_owner(assignee))
+
+
+def stars(rating: int) -> str:
+    return "★" * rating + "☆" * (RATING_MAX - rating)
+
+
+def parse_rating(raw) -> int | None:
+    """Nilai dari formulir (radio `bintang`); kosong/tidak valid -> None (ditolak `validate_rating`)."""
+    raw = str(raw or "").strip()
+    return int(raw) if raw.isascii() and raw.isdigit() else None
+
+
+def validate_rating(rating, note: str = "") -> tuple[int, str]:
+    """Bintang wajib 1–5; bintang 1–3 wajib disertai alasan."""
+    if rating in (None, ""):
+        raise ValidationError("Pilih bintang 1–5 untuk penerima.")
+    try:
+        rating = int(rating)
+    except (TypeError, ValueError):
+        raise ValidationError("Bintang harus 1–5.")
+    if not RATING_MIN <= rating <= RATING_MAX:
+        raise ValidationError("Bintang harus 1–5.")
+    note = (note or "").strip()
+    if rating <= RATING_NOTE_REQUIRED_MAX and not note:
+        raise ValidationError("Tulis alasan untuk bintang 1–3.")
+    return rating, note
+
+
+def rated_url() -> str:
+    """Tempat penerima melihat bintangnya: kartu "Nilai saya" di Tugas hari ini."""
+    from django.urls import reverse
+
+    return reverse("core:today") + "#nilai-saya"
+
+
+RATING_AUDIT_FIELDS = ["rating", "rating_note", "rated_by", "rating_auto"]
+
+
+def log_rating(assignment: TaskAssignment, before: dict | None, *, actor, reason: str = "") -> None:
+    """Jejak audit bintang dengan entitas khusus `RATING_AUDIT_ENTITY`.
+
+    Hanya Direktur Operasional dan Owner yang melihatnya di Audit dan ekspor CSV (`audit.views`);
+    supervisor dan admin tidak, karena staf tidak boleh melihat bintang orang lain."""
+    from audit.models import AuditAction
+    from audit.services import RATING_AUDIT_ENTITY, log_event, snapshot
+
+    log_event(action=AuditAction.UPDATE, entity_type=RATING_AUDIT_ENTITY, entity_id=assignment.pk,
+              entity_label=f"Bintang: {assignment.action_item.title} · {assignment.assignee}"[:200], actor=actor,
+              before=before, after=snapshot(assignment, RATING_AUDIT_FIELDS), reason=reason)
+
+
+def _apply_rating(assignment: TaskAssignment, *, rating: int, note: str, actor, now=None) -> None:
+    """Simpan bintang (menimpa yang lama), catat audit, dan kabari penerima."""
+    from audit.services import snapshot
+
+    before = snapshot(assignment, RATING_AUDIT_FIELDS)
+    assignment.rating = rating
+    assignment.rating_note = note
+    assignment.rated_by = actor
+    assignment.rated_at = now or timezone.now()
+    assignment.rating_auto = False
+    assignment.save(update_fields=[*RATING_FIELDS, "updated_at"])
+    log_rating(assignment, before, actor=actor)
+    item = assignment.action_item
+    notif = notify_user(
+        assignment.assignee, type_code="TASK_RATED",
+        title=f"Task dinilai: {stars(rating)} ({rating}/{RATING_MAX}) · {item.title}",
+        body=note[:300] if note else f"oleh {actor}",
+        entity_ref=f"actionitem#{item.pk}:bintang#{assignment.pk}",
+    )
+    if notif is not None:
+        notif.url = rated_url()
+        notif.save(update_fields=["url"])
+
+
+def can_rate_assignment(assignment: TaskAssignment, user) -> bool:
+    """Siapa yang boleh menilai/mengubah bintang sesudah selesai.
+
+    Task yang diperiksa Dirut: hanya Owner. Task project: pengatur project saat ini. Lainnya:
+    pemberi tugas, Direktur Operasional, atau yang mengonfirmasi. Penerima tidak pernah menilai
+    dirinya sendiri."""
+    if not user or not user.is_authenticated or user.pk in {assignment.assignee_id, assignment.claimed_by_id}:
+        return False
+    item = assignment.action_item
+    if item.reviewed_by_dirut:
+        return is_owner(user)  # pemeriksanya Dirut: Direktur Operasional tidak menimpa bintangnya
+    if item.source_type == "proyek":
+        return _project_manages(item, user)  # hak saat ini saja, bukan karena pernah mengonfirmasi
+    return can_manage_task(item, user) or assignment.reviewer_id == user.pk
+
+
 @transaction.atomic
-def confirm_assignment(assignment: TaskAssignment, *, reviewer, note: str = "") -> TaskAssignment:
+def rate_assignment(assignment: TaskAssignment, *, actor, rating, note: str = "") -> TaskAssignment:
+    """Nilai atau ubah bintang assignment yang sudah selesai (task project, atau yang belum dinilai)."""
+    assignment = TaskAssignment.objects.select_for_update().select_related("action_item", "assignee").get(
+        pk=assignment.pk)
+    if not can_rate_assignment(assignment, actor):
+        raise PermissionDenied("Anda tidak dapat menilai pekerjaan ini.")
+    if assignment.status != TaskAssignmentStatus.CONFIRMED:
+        raise ValidationError("Hanya pekerjaan yang sudah selesai yang dinilai.")
+    if not needs_rating(assignment.assignee):
+        raise ValidationError("Direktur Operasional dan Owner tidak dinilai bintang.")
+    rating, note = validate_rating(rating, note)
+    _apply_rating(assignment, rating=rating, note=note, actor=actor)
+    return assignment
+
+
+@transaction.atomic
+def confirm_assignment(
+    assignment: TaskAssignment, *, reviewer, note: str = "", rating=None, rating_note: str = "",
+) -> TaskAssignment:
+    """Konfirmasi selesai. Bintang wajib bila penerimanya staf (bukan Direktur/Owner)."""
     if assignment.status != TaskAssignmentStatus.SUBMITTED:
         raise ValidationError("Task harus diajukan selesai sebelum dikonfirmasi.")
     if not _can_review_task(assignment, reviewer):
         raise PermissionDenied("Penerima task tidak dapat mengonfirmasi task sendiri.")
+    rated = needs_rating(assignment.assignee)
+    if rated:
+        rating, rating_note = validate_rating(rating, rating_note)
+    now = timezone.now()
     assignment.status = TaskAssignmentStatus.CONFIRMED
-    assignment.confirmed_at = timezone.now()
+    assignment.confirmed_at = now
     assignment.reviewer = reviewer
     assignment.save(update_fields=["status", "confirmed_at", "reviewer", "updated_at"])
     TaskEvent.objects.create(
@@ -568,12 +695,18 @@ def confirm_assignment(assignment: TaskAssignment, *, reviewer, note: str = "") 
         event_type=TaskEventType.CONFIRMED,
         actor=reviewer,
         note=note.strip(),
+        metadata={"bintang": rating} if rated else {},
     )
-    notify_user(
-        assignment.assignee, type_code="TASK_CONFIRMED", title=f"Dikonfirmasi selesai: {assignment.action_item.title}",
-        body=f"oleh {reviewer}" + (f" — {note.strip()[:200]}" if note.strip() else ""),
-        entity_ref=f"actionitem#{assignment.action_item_id}", url_name="core:action_items",
-    )
+    if rated:
+        # Satu notifikasi: konfirmasi beserta bintangnya.
+        _apply_rating(assignment, rating=rating, note=rating_note, actor=reviewer, now=now)
+    else:
+        notify_user(
+            assignment.assignee, type_code="TASK_CONFIRMED",
+            title=f"Dikonfirmasi selesai: {assignment.action_item.title}",
+            body=f"oleh {reviewer}" + (f" — {note.strip()[:200]}" if note.strip() else ""),
+            entity_ref=f"actionitem#{assignment.action_item_id}", url_name="core:action_items",
+        )
     _finish_item_if_all_confirmed(assignment.action_item, reviewer)
     return assignment
 
@@ -704,12 +837,27 @@ def update_task(
     return item
 
 
+def close_rating_targets(item: ActionItem, open_assignments, actor) -> set[int]:
+    """Assignment yang mendapat bintang saat "Tandai selesai".
+
+    - Penerima staf saja; penutup yang juga penerima tidak menilai dirinya sendiri.
+    - Task BERSAMA ("cukup satu orang"): hanya pengambilnya, karena dialah yang mengerjakan
+      (sama dengan `_finish_item_if_all_confirmed`). Belum ada yang mengambil: tidak ada yang
+      dinilai; pemberi tugas menilai yang benar-benar mengerjakan lewat Beri bintang sesudahnya."""
+    people = [a for a in open_assignments if needs_rating(a.assignee) and a.assignee_id != actor.pk]
+    if item.assignment_mode == TaskAssignmentMode.BERSAMA:
+        claimer = next((a.claimed_by_id for a in item.task_assignments.all() if a.claimed_by_id), None)
+        people = [a for a in people if claimer is not None and a.assignee_id == claimer]
+    return {a.pk for a in people}
+
+
 @transaction.atomic
-def close_task(item: ActionItem, *, actor, note: str) -> ActionItem:
+def close_task(item: ActionItem, *, actor, note: str, rating=None, rating_note: str = "") -> ActionItem:
     """Pemberi tugas menyatakan task selesai tanpa menunggu penerima mengajukan.
 
     Penerima yang masih terbuka dikonfirmasi oleh penutup task, supaya task hilang
-    dari daftar kerja mereka dan jejaknya tercatat di riwayat.
+    dari daftar kerja mereka dan jejaknya tercatat di riwayat. Satu bintang berlaku untuk
+    semua penerima staf yang dikonfirmasi di sini (wajib bila ada penerima staf).
     """
     from audit.models import AuditAction
     from audit.services import log_update, snapshot
@@ -723,16 +871,24 @@ def close_task(item: ActionItem, *, actor, note: str) -> ActionItem:
     note = (note or "").strip()
     if not note:
         raise ValidationError("Tuliskan catatan penutupan.")
+    open_assignments = list(item.task_assignments.filter(status__in=OPEN_ASSIGNMENT_STATES).select_related("assignee"))
+    to_rate = close_rating_targets(item, open_assignments, actor)
+    if to_rate:
+        rating, rating_note = validate_rating(rating, rating_note)
     now = timezone.now()
-    for assignment in item.task_assignments.filter(status__in=OPEN_ASSIGNMENT_STATES):
+    for assignment in open_assignments:
         assignment.status = TaskAssignmentStatus.CONFIRMED
         assignment.confirmed_at = now
         assignment.reviewer = actor
         assignment.save(update_fields=["status", "confirmed_at", "reviewer", "updated_at"])
+        rated = assignment.pk in to_rate
         TaskEvent.objects.create(
             action_item=item, assignment=assignment, event_type=TaskEventType.CONFIRMED,
             actor=actor, note=f"Ditutup oleh pemberi tugas: {note}",
+            metadata={"bintang": rating} if rated else {},
         )
+        if rated:
+            _apply_rating(assignment, rating=rating, note=rating_note, actor=actor, now=now)
     before = snapshot(item)
     item.status = ActionItemStatus.SELESAI
     item.progress_note = note
@@ -875,6 +1031,30 @@ def my_tasks(user) -> list[dict]:
     _attach_documents(rows)
     _attach_projects(rows)
     return rows
+
+
+def my_ratings(user, limit: int = 10) -> dict | None:
+    """Kartu "Nilai saya" di Tugas hari ini: bintang terakhir milik pengguna sendiri dan rata-rata bulan ini.
+
+    Hanya assignment miliknya; bintang orang lain tidak pernah tampil di sini. Rata-rata bulan ini
+    dihitung dari task yang dikonfirmasi bulan ini (termasuk bintang otomatis), sama dengan KPI."""
+    if not needs_rating(user):
+        return None
+    from django.db.models import Avg, Count
+
+    rated = TaskAssignment.objects.filter(assignee=user, status=TaskAssignmentStatus.CONFIRMED, rating__isnull=False)
+    recent = list(rated.select_related("action_item", "action_item__clinic", "rated_by")
+                  .order_by("-rated_at", "-pk")[:limit])
+    today = local_today()
+    first = today.replace(day=1)
+    start = timezone.make_aware(dt.datetime.combine(first, dt.time.min))
+    month = rated.filter(confirmed_at__gte=start).aggregate(avg=Avg("rating"), n=Count("pk"))
+    return {
+        "recent": recent,
+        "month": first,
+        "average": round(month["avg"], 1) if month["avg"] is not None else None,
+        "count": month["n"],
+    }
 
 
 def _attach_projects(rows: list[dict]) -> None:

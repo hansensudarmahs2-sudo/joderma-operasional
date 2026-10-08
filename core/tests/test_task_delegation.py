@@ -109,7 +109,7 @@ def test_assignee_cannot_confirm_own_task(role_branch_matrix):
     submit_assignment(assignment, user=assignee)
 
     with pytest.raises(PermissionDenied, match="mengonfirmasi task sendiri"):
-        confirm_assignment(assignment, reviewer=assignee)
+        confirm_assignment(assignment, reviewer=assignee, rating=5)
 
 
 def test_creator_can_confirm_submitted_task(role_branch_matrix):
@@ -126,7 +126,7 @@ def test_creator_can_confirm_submitted_task(role_branch_matrix):
     assignment = item.task_assignments.get()
 
     submit_assignment(assignment, user=assignee)
-    confirm_assignment(assignment, reviewer=reviewer)
+    confirm_assignment(assignment, reviewer=reviewer, rating=5)
     item.refresh_from_db()
 
     assert assignment.status == TaskAssignmentStatus.CONFIRMED
@@ -193,7 +193,7 @@ def test_completed_task_stays_visible_in_history_filter(client, role_branch_matr
     )
     assignment = item.task_assignments.get()
     submit_assignment(assignment, user=assignee)
-    confirm_assignment(assignment, reviewer=reviewer)
+    confirm_assignment(assignment, reviewer=reviewer, rating=5)
 
     client.login(username="a_staf", password="TestPassword123!")
     response = client.get(reverse("core:action_items"), {"status": ActionItemStatus.SELESAI})

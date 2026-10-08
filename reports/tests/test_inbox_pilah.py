@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from accounts.models import Role, User, UserRole
 from audit.models import AuditEvent
-from core.models import ActionItem, Clinic, local_today
+from core.models import ActionItem, Clinic, TaskCategory, local_today
 from direktur import dashboard
 from direktur import services as direktur
 from direktur.models import Decider
@@ -84,7 +84,7 @@ def test_owner_finding_form(client, people, jemur):
     page = client.get(reverse("owner:request_new"), {"jenis": "TEMUAN"}).content.decode()
     assert "Catat temuan" in page and 'name="target" required' not in page
     res = client.post(reverse("owner:request_new"), {"jenis": "TEMUAN", "judul": "Kursi tunggu sobek",
-                                                     "cabang": jemur.pk, "mendesak": "1"})
+                                                     "cabang": jemur.pk, "mendesak": "1", "kategori": TaskCategory.objects.first().pk})
     req = OwnerRequest.objects.get(title="Kursi tunggu sobek")
     assert res.status_code == 302 and req.kind == RequestKind.TEMUAN and req.clinic == jemur and req.urgent
     dash = client.get(reverse("owner:dashboard")).content.decode()

@@ -163,6 +163,12 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Mengubah konfigurasi | admin, superuser bootstrap | — |
 | Mengelola template checklist | admin, supervisor, superuser bootstrap | — |
 | Membuat Permintaan Owner | owner | — |
+| Atur kategori permintaan/temuan dan task (`/direktur/kategori/`: tambah, ganti nama, urutan, aktif/nonaktif; tidak ada hapus) | owner, AOM | — |
+| Mengubah kategori satu task (detail task) | AOM, pembuat task | — |
+| Memberi bintang 1–5 saat konfirmasi selesai / tandai selesai (wajib untuk penerima staf; alasan wajib untuk 1–3) | yang mengonfirmasi: pemberi tugas, AOM, PIC pemberi tugas sesuai scope, owner untuk task yang pemeriksanya Dirut. Penerima AOM dan owner tidak dinilai | — |
+| Memberi/mengubah bintang sesudah selesai (task project, atau yang belum dinilai) | task yang pemeriksanya Dirut: owner saja; task project: pengatur project saat ini (Owner, AOM, pembuat, Project leader, Co-project leader); task lain: pemberi tugas, AOM, yang mengonfirmasi. Penerima tidak pernah menilai dirinya sendiri | — |
+| Membaca jejak audit bintang (entitas `bintang_task`, di Audit dan ekspor CSV) | AOM (owner berhak, tetapi tampilan Owner tidak membuka Audit); supervisor dan admin tidak | — |
+| Melihat bintang | penerima: bintangnya sendiri (Tugas hari ini ▸ Nilai saya); AOM dan owner: semua (detail task, KPI); pengatur project: penerima di project-nya | — |
 | Membaca Permintaan Owner dan menulis catatannya; membaca Summary Harian | owner, AOM | — |
 | Mengirim summary harian ke Owner | AOM | — |
 | Menulis tanggapan Summary Harian (utas; tidak dapat diubah atau dihapus, memberi notifikasi ke pihak lain). Waktu buka Owner tercatat sebagai tanda baca | owner, AOM | — |
@@ -235,7 +241,8 @@ histori task tersebut.
 
 Penerima hanya dapat mengajukan selesai. Konfirmasi final dilakukan pemberi
 tugas, AOM berwenang, atau PIC pemberi tugas sesuai scope; penerima task tidak
-dapat mengonfirmasi pekerjaannya sendiri.
+dapat mengonfirmasi pekerjaannya sendiri. Yang mengonfirmasi memberi bintang 1–5
+(`TaskAssignment.rating`, 8 Okt 2026) kepada penerima staf.
 
 ## Dual-control kas
 

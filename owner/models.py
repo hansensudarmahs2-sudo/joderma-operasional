@@ -31,6 +31,11 @@ class OwnerRequest(models.Model):
         help_text="Kosong bila lintas cabang.",
     )
     urgent = models.BooleanField("mendesak", default=False)
+    # 8 Okt 2026: wajib untuk permintaan baru (diperiksa di form); data lama boleh kosong ("Tanpa kategori").
+    category = models.ForeignKey(
+        "core.TaskCategory", on_delete=models.PROTECT, null=True, blank=True, related_name="owner_requests",
+        verbose_name="kategori",
+    )
     plan_title = models.CharField(
         "task besar", max_length=200, blank=True,
         help_text="Nama penanganan temuan dari Direktur, mis. 'Membuat alur untuk temuan X'.",

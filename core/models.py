@@ -8,6 +8,7 @@ from functools import cached_property
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -279,6 +280,41 @@ class ReviewBy(models.TextChoices):
     DIRUT = "DIRUT", "Direktur Utama / Owner"
 
 
+# Kategori bawaan (keputusan PO 8 Okt 2026), diisi data migration dengan urutan ini.
+DEFAULT_TASK_CATEGORIES = (
+    "Pelayanan pasien",
+    "Kebersihan & kerapian",
+    "Fasilitas & peralatan",
+    "SDM & disiplin",
+    "Keuangan & kas",
+    "Stok & obat",
+    "Pemasaran",
+    "Administrasi & sistem",
+    "Lainnya",
+)
+
+
+class TaskCategory(models.Model):
+    """Kategori permintaan/temuan Owner dan task turunannya (8 Okt 2026).
+
+    Diatur Owner dan Direktur Operasional. Kategori yang dinonaktifkan tetap melekat pada data
+    lama, hanya tidak bisa dipilih lagi; kategori yang sudah dipakai tidak dihapus.
+    """
+
+    name = models.CharField("nama", max_length=80, unique=True)
+    active = models.BooleanField("aktif", default=True)
+    sort_order = models.PositiveIntegerField("urutan", default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "kategori task"
+        verbose_name_plural = "kategori task"
+        ordering = ("sort_order", "name")
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class ActionItem(models.Model):
     """Tindak lanjut lintas modul (PRD 9.1)."""
 
@@ -316,6 +352,11 @@ class ActionItem(models.Model):
     )
     blocked_reason = models.TextField("alasan terhambat", blank=True)
     proposed_due_at = models.DateTimeField("usulan target baru", null=True, blank=True)
+    # 8 Okt 2026: diwarisi dari permintaan/temuan Owner asalnya; boleh diubah Direktur di detail task.
+    category = models.ForeignKey(
+        TaskCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name="action_items",
+        verbose_name="kategori",
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -445,6 +486,10 @@ class TaskAssignmentStatus(models.TextChoices):
     CANCELLED = "CANCELLED", "Dibatalkan"
 
 
+RATING_MIN, RATING_MAX = 1, 5
+RATING_NOTE_REQUIRED_MAX = 3  # bintang 1–3 wajib disertai alasan
+
+
 class TaskAssignment(models.Model):
     action_item = models.ForeignKey(
         ActionItem, on_delete=models.CASCADE, related_name="task_assignments"
@@ -472,6 +517,19 @@ class TaskAssignment(models.Model):
         related_name="reviewed_task_assignments",
     )
     revision_note = models.TextField(blank=True)
+    # Bintang 1–5 dari yang mengonfirmasi (8 Okt 2026). Kosong = belum dinilai; Direktur Operasional
+    # dan Owner sebagai penerima tidak dinilai. `rating_auto`: bintang 5 otomatis untuk task yang
+    # sudah selesai sebelum fitur ini ada (data migration core 0011).
+    rating = models.PositiveSmallIntegerField(
+        "bintang", null=True, blank=True,
+        validators=[MinValueValidator(RATING_MIN), MaxValueValidator(RATING_MAX)],
+    )
+    rating_note = models.TextField("alasan bintang", blank=True)
+    rated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+    )
+    rated_at = models.DateTimeField(null=True, blank=True)
+    rating_auto = models.BooleanField("bintang otomatis", default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

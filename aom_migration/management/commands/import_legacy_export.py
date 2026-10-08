@@ -16,6 +16,7 @@ from django.utils.dateparse import parse_datetime
 from accounts.models import User
 from audit.models import AuditAction, AuditEvent as CoreAuditEvent
 from core.models import ActionItem, Clinic, Priority, TaskAssignment, TaskAssignmentStatus
+from core.task_services import needs_rating
 from aom_migration.models import LegacyActor, LegacyArchive, LegacyIdMap, LegacyImportBatch
 from aom_migration.schema import ARCHIVE_TABLES, record_checksum
 
@@ -151,6 +152,12 @@ class Command(BaseCommand):
                         ),
                         confirmed_at=item.legacy_completed_at if is_done else None,
                     )
+                    if is_done and needs_rating(assignee_user):
+                        # Task lama yang sudah selesai: bintang 5 otomatis, sama dengan data migration core 0011.
+                        assignment.rating = 5
+                        assignment.rating_auto = True
+                        assignment.rated_at = assignment.confirmed_at or assignment.created_at
+                        assignment.save(update_fields=["rating", "rating_auto", "rated_at"])
                     LegacyIdMap.objects.get_or_create(
                         source_model="Task",
                         legacy_id=legacy_id,

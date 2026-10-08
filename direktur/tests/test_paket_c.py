@@ -79,13 +79,13 @@ def test_directors_own_task_is_verified_by_dirut(people, jemur):
     assert not can_review_assignment(a, h) and not can_review_assignment(a, people["heni"])
     assert can_review_assignment(a, y) and can_review_assignment(a, j)
     with pytest.raises(PermissionDenied):
-        confirm_assignment(a, reviewer=people["heni"])
+        confirm_assignment(a, reviewer=people["heni"], rating=5)
     # Notifikasi ke Owner/Dirut, bukan ke Direktur.
     assert {n.user.username for n in Notification.objects.filter(type_code="TASK_SUBMITTED")} == {"yohanes", "jean"}
     request_revision(a, reviewer=j, note="Tambahkan jadwal jemput vendor")
     assert Notification.objects.filter(user=h, type_code="TASK_REVISION").exists()
     submit_assignment(a, user=h, note="Jadwal jemput Selasa dan Jumat ditambahkan")
-    confirm_assignment(a, reviewer=j)
+    confirm_assignment(a, reviewer=j, rating=5)
     item.refresh_from_db()
     assert item.status == ActionItemStatus.SELESAI
     assert Notification.objects.filter(user=h, type_code="TASK_CONFIRMED").exists()
@@ -95,9 +95,9 @@ def test_director_cannot_close_own_task_directly(people, jemur):
     h = people["hansen"]
     item = _task(jemur, h, "Rapikan arsip", h)
     with pytest.raises(ValidationError):
-        close_task(item, actor=h, note="beres")
+        close_task(item, actor=h, note="beres", rating=5)
     other = _task(jemur, h, "Cek APAR", people["yani"])
-    close_task(other, actor=h, note="sudah dicek bersama")
+    close_task(other, actor=h, note="sudah dicek bersama", rating=5)
     assert other.status == ActionItemStatus.SELESAI
 
 
@@ -131,10 +131,10 @@ def test_owner_verifies_from_task_detail_and_dashboard(client, people, jemur):
     page = client.get(reverse("direktur:task_detail", args=[item.pk])).content.decode()
     assert "Pemeriksa: Direktur Utama / Owner" in page and "Konfirmasi selesai" in page
     # Owner tetap tidak bisa mengubah atau menutup task.
-    client.post(reverse("direktur:task_detail", args=[item.pk]), {"aksi": "selesai", "catatan": "x"})
+    client.post(reverse("direktur:task_detail", args=[item.pk]), {"aksi": "selesai", "bintang": "5", "catatan": "x"})
     client.post(reverse("direktur:task_detail", args=[item.pk]), {"aksi": "catatan", "catatan": "Bagus, lanjut"})
     assert TaskEvent.objects.filter(action_item=item, event_type=TaskEventType.COMMENT, actor=j).exists()
-    client.post(reverse("direktur:task_detail", args=[item.pk]), {"aksi": "konfirmasi", "assignment": a.pk})
+    client.post(reverse("direktur:task_detail", args=[item.pk]), {"aksi": "konfirmasi", "bintang": "5", "assignment": a.pk})
     a.refresh_from_db()
     assert a.status == TaskAssignmentStatus.CONFIRMED and a.reviewer == j
     dash = client.get(reverse("owner:dashboard")).content.decode()

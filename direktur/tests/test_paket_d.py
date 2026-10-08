@@ -73,7 +73,7 @@ def week(people, jemur, citraland):
                        user_ids=[people["heni"].pk])
     a = done.task_assignments.get()
     submit_assignment(a, user=people["heni"], note="AC dingin lagi")
-    confirm_assignment(a, reviewer=h)
+    confirm_assignment(a, reviewer=h, rating=5)
     create_task(clinic=citraland, actor=h, title="Rapikan rak obat", audience_type=TaskAudienceType.USER,
                 user_ids=[people["regita"].pk], due_at=timezone.now() - dt.timedelta(days=3))
     create_issue(clinic=citraland, issue_type=IssueType.KERUSAKAN, title="Lampu lobi mati", user=people["regita"],

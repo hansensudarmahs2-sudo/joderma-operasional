@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 
 from django.utils import timezone
 
-from core import task_services
+from core import kategori, task_services
 from core.photos import SOURCE_PHOTO_ENTITY, documents_for, photos_for, save_optional_photo
 from core.models import (
     ActionItem,
@@ -21,6 +21,7 @@ from core.models import (
     ReviewBy,
     TaskAssignment,
     TaskAssignmentStatus,
+    TaskCategory,
     local_today,
 )
 from core.permissions import is_aom, is_owner, is_owner_only, require, user_clinic_queryset
@@ -511,9 +512,15 @@ def _due_from_form(item: ActionItem, value: str):
 def _assignment_action(request, item: ActionItem, aksi: str) -> str:
     assignment = get_object_or_404(TaskAssignment, pk=request.POST.get("assignment"), action_item=item)
     note = request.POST.get("catatan", "")
+    rating = task_services.parse_rating(request.POST.get("bintang"))
+    rating_note = request.POST.get("catatan_bintang", "")
     if aksi == "konfirmasi":
-        task_services.confirm_assignment(assignment, reviewer=request.user, note=note)
+        task_services.confirm_assignment(assignment, reviewer=request.user, note=note, rating=rating,
+                                         rating_note=rating_note)
         return f"Pekerjaan {assignment.assignee} dikonfirmasi."
+    if aksi == "nilai":
+        task_services.rate_assignment(assignment, actor=request.user, rating=rating, note=rating_note)
+        return f"Bintang untuk {assignment.assignee} disimpan."
     if aksi == "revisi":
         task_services.request_revision(assignment, reviewer=request.user, note=note)
         return f"Revisi diminta ke {assignment.assignee}."
@@ -523,12 +530,23 @@ def _assignment_action(request, item: ActionItem, aksi: str) -> str:
     return f"{assignment.assignee} dikeluarkan dari task."
 
 
+def _close_rating_context(item, assignments, user) -> dict:
+    """Formulir "Tandai selesai": siapa yang mendapat bintang (task bersama: hanya pengambilnya)."""
+    open_rows = [a for a in assignments if a.status in task_services.OPEN_ASSIGNMENT_STATES]
+    targets = task_services.close_rating_targets(item, open_rows, user)
+    names = ", ".join(str(a.assignee) for a in open_rows if a.pk in targets)
+    shared_unclaimed = (item.assignment_mode == "BERSAMA" and not any(a.claimed_by_id for a in assignments)
+                        and any(task_services.needs_rating(a.assignee) for a in open_rows))
+    return {"close_needs_rating": bool(targets), "close_rating_names": names,
+            "close_shared_unclaimed": shared_unclaimed}
+
+
 @login_required
 @require(dashboard.can_view_overview)
 def task_detail(request, pk: int):
     item = get_object_or_404(
         ActionItem.objects.filter(clinic__in=user_clinic_queryset(request.user)).select_related(
-            "clinic", "owner", "created_by"
+            "clinic", "owner", "created_by", "category"
         ),
         pk=pk,
     )
@@ -536,7 +554,7 @@ def task_detail(request, pk: int):
     if request.method == "POST":
         aksi = request.POST.get("aksi", "")
         try:
-            if aksi in {"konfirmasi", "revisi", "keluarkan"}:
+            if aksi in {"konfirmasi", "revisi", "keluarkan", "nilai"}:
                 messages.success(request, _assignment_action(request, item, aksi))
             elif aksi == "catatan":
                 task_services.add_task_comment(item, actor=request.user, note=request.POST.get("catatan", ""))
@@ -578,8 +596,13 @@ def task_detail(request, pk: int):
                 )
                 messages.success(request, "Task diperbarui.")
             elif aksi == "selesai":
-                task_services.close_task(item, actor=request.user, note=request.POST.get("catatan", ""))
+                task_services.close_task(item, actor=request.user, note=request.POST.get("catatan", ""),
+                                         rating=task_services.parse_rating(request.POST.get("bintang")),
+                                         rating_note=request.POST.get("catatan_bintang", ""))
                 messages.success(request, "Task ditandai selesai.")
+            elif aksi == "kategori":
+                kategori.set_task_category(item, actor=request.user, raw=request.POST.get("kategori", ""))
+                messages.success(request, "Kategori task disimpan.")
             elif aksi == "batal":
                 task_services.cancel_task(item, actor=request.user, reason=request.POST.get("catatan", ""))
                 messages.warning(request, "Task dibatalkan.")
@@ -589,7 +612,7 @@ def task_detail(request, pk: int):
             _errors(request, exc)
         return redirect("direktur:task_detail", pk=item.pk)
 
-    assignments = list(item.task_assignments.select_related("assignee", "claimed_by", "reviewer"))
+    assignments = list(item.task_assignments.select_related("assignee", "claimed_by", "reviewer", "rated_by"))
     now = timezone.now()
     owner_view = is_owner_only(request.user)
     rows = [
@@ -606,6 +629,10 @@ def task_detail(request, pk: int):
             "can_review": a.status == TaskAssignmentStatus.SUBMITTED
             and task_services.can_review_assignment(a, request.user),
             "can_remove": can_manage and a.status in task_services.OPEN_ASSIGNMENT_STATES,
+            # Bintang (8 Okt 2026): halaman ini hanya untuk Direktur/Owner, jadi semua bintang tampil.
+            "rated": task_services.needs_rating(a.assignee),
+            "can_rate": a.status == TaskAssignmentStatus.CONFIRMED and task_services.needs_rating(a.assignee)
+            and task_services.can_rate_assignment(a, request.user),
         }
         for a in assignments
     ]
@@ -647,6 +674,9 @@ def task_detail(request, pk: int):
             or (is_owner(request.user) and item.reviewed_by_dirut),
             "is_open": is_open,
             "i_receive": any(r["can_submit"] for r in rows),
+            # Tandai selesai: bintang wajib bila ada penerima staf yang ikut dikonfirmasi.
+            **_close_rating_context(item, assignments, request.user),
+            "categories": kategori.category_choices(item.category),
             "priorities": Priority.choices,
             "statuses": [(ActionItemStatus.BARU, "Baru"), (ActionItemStatus.DIKERJAKAN, "Dikerjakan")],
             "due_value": timezone.localtime(item.due_at).date().isoformat() if item.due_at else "",
@@ -705,8 +735,10 @@ def task_list(request):
             "priorities": Priority.choices,
             "sources": dashboard.SOURCE_CHOICES,
             "pics": tl.pic_choices(request.user),
+            "categories": TaskCategory.objects.order_by("sort_order", "name"),
+            "no_category": tl.NO_CATEGORY,
             "is_director": is_aom(request.user),
-            "filtered": any(f[k] for k in ("q", "cabang", "pic", "prioritas", "sumber", "dari", "sampai"))
+            "filtered": any(f[k] for k in ("q", "cabang", "pic", "prioritas", "sumber", "kategori", "dari", "sampai"))
             or f["status"] != "terbuka",
         },
     )
@@ -735,6 +767,12 @@ def _active_filters(user, f) -> list[str]:
         out.append(f"Prioritas {dict(Priority.choices).get(f['prioritas'], f['prioritas'])}")
     if f["sumber"]:
         out.append(dict(dashboard.SOURCE_CHOICES).get(f["sumber"], f["sumber"]))
+    if f["kategori"] == tl.NO_CATEGORY:
+        out.append(f"Kategori: {kategori.NONE_LABEL}")
+    elif f["kategori"]:
+        cat = TaskCategory.objects.filter(pk=f["kategori"]).first()
+        if cat:
+            out.append(f"Kategori: {cat.name}")
     if f["dari"] or f["sampai"]:
         dari = f["dari"].strftime("%d/%m/%Y") if f["dari"] else "awal"
         sampai = f["sampai"].strftime("%d/%m/%Y") if f["sampai"] else "sekarang"
@@ -761,12 +799,14 @@ def _task_csv(request, rows, f):
 
     def lines():
         yield "﻿"
-        yield writer.writerow(["ID", "Task", "Cabang", "Sumber", "Pelapor", "Dibuat oleh", "PIC", "Prioritas",
-                               "Status", "Menunggu keputusan", "Lewat target", "Target", "Dibuat", "Diperbarui"])
+        yield writer.writerow(["ID", "Task", "Cabang", "Sumber", "Kategori", "Pelapor", "Dibuat oleh", "PIC",
+                               "Prioritas", "Status", "Menunggu keputusan", "Lewat target", "Target", "Dibuat",
+                               "Diperbarui"])
         for r in rows:
             i = r["item"]
             yield writer.writerow([
-                i.pk, _cell(i.title), _cell(i.clinic.name), _cell(r["source"]), _cell(r["reporter"] or ""),
+                i.pk, _cell(i.title), _cell(i.clinic.name), _cell(r["source"]),
+                _cell(i.category.name if i.category else ""), _cell(r["reporter"] or ""),
                 _cell(i.created_by or ""), _cell(r["pic_names"]), i.get_priority_display(), r["status"],
                 "ya" if r["on_hold"] else "", "ya" if r["overdue"] else "", fmt(i.due_at), fmt(i.created_at),
                 fmt(i.updated_at),
@@ -879,6 +919,37 @@ def _kpi_csv(request, first, clinic, rows):
     for p in rows:
         writer.writerow([_cell(v) if isinstance(v, str) else v for v in kpi.csv_row(first, p)])
     return response
+
+
+# --- Kategori permintaan/temuan dan task (8 Okt 2026) ------------------------------------
+
+@login_required
+@require(kategori.can_manage_categories)
+def categories(request):
+    """Atur kategori: tambah, ganti nama, urutan, aktif/nonaktif. Hanya Owner dan Direktur Operasional.
+
+    Tidak ada hapus: kategori yang tidak dipakai lagi dinonaktifkan, data lama tetap berkategori sama."""
+    from core.models import TaskCategory
+
+    if request.method == "POST":
+        try:
+            if request.POST.get("aksi") == "tambah":
+                cat = kategori.create_category(actor=request.user, name=request.POST.get("nama", ""),
+                                               sort_order=request.POST.get("urutan"))
+                messages.success(request, f"Kategori {cat.name} ditambahkan.")
+            elif request.POST.get("aksi") == "ubah":
+                ref = request.POST.get("kategori", "")
+                cat = get_object_or_404(TaskCategory, pk=int(ref) if ref.isascii() and ref.isdigit() else 0)
+                cat = kategori.update_category(cat, actor=request.user, name=request.POST.get("nama", ""),
+                                               sort_order=request.POST.get("urutan"),
+                                               active=request.POST.get("aktif") == "1")
+                messages.success(request, f"Kategori {cat.name} disimpan{'' if cat.active else ' (nonaktif)'}.")
+            else:
+                messages.error(request, "Aksi tidak dikenali.")
+        except ValidationError as exc:
+            _errors(request, exc)
+        return redirect("direktur:kategori")
+    return render(request, "direktur/categories.html", {"rows": kategori.categories_with_usage()})
 
 
 # --- Pilihan cabang untuk task baru: satu cabang atau semua cabang -------------------

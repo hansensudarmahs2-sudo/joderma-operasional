@@ -157,7 +157,7 @@ def _request_rows(clinic, kind, only_open, q, limit, pk=None):
     from owner.models import OwnerRequest, RequestKind
     from owner.services import progress
 
-    qs = OwnerRequest.objects.select_related("clinic", "created_by")
+    qs = OwnerRequest.objects.select_related("clinic", "created_by", "category")
     if pk is not None:
         qs = qs.filter(pk=pk)
     if clinic is not None:
@@ -184,6 +184,7 @@ def _request_rows(clinic, kind, only_open, q, limit, pk=None):
             "source_type": SOURCE_REQUEST, "source_id": req.pk,
             "handled": f"sudah dipecah menjadi {p['total']} task" if p["total"] else "",
             "target_date": req.target_date,
+            "category": req.category.name if req.category else "Tanpa kategori",
         })
     return rows
 

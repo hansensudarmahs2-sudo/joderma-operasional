@@ -62,7 +62,7 @@ def _assign(people, clinic, source_type, source, title="Perbaiki alur", who="yan
 def _finish(task, people, who="yani", note="Sudah beres di lapangan."):
     a = task.task_assignments.get()
     submit_assignment(a, user=people[who], note=note)
-    confirm_assignment(a, reviewer=people["hansen"])
+    confirm_assignment(a, reviewer=people["hansen"], rating=5)
 
 
 def _responses(user, type_code="ISSUE_RESPONSE"):
@@ -143,7 +143,7 @@ def test_two_branches_advance_only_when_last_done(people, jemur, citraland):
 def test_close_task_path(people, jemur):
     issue = _issue(jemur, people["heni"], IssueType.KOMPLAIN)
     task = _assign(people, jemur, "issue", issue)
-    close_task(task, actor=people["hansen"], note="ditangani langsung")
+    close_task(task, actor=people["hansen"], note="ditangani langsung", rating=5)
     issue.refresh_from_db()
     assert issue.status == IssueStatus.SELESAI
     assert "ditangani langsung" in issue.resolution_summary
@@ -202,7 +202,7 @@ def test_owner_confirming_directors_task_still_advances(people, jemur):
                          target=f"user:{h.pk}").task
     a = task.task_assignments.get()
     submit_assignment(a, user=h, note="Pasien sudah ditelepon.")
-    confirm_assignment(a, reviewer=y)
+    confirm_assignment(a, reviewer=y, rating=5)
     issue.refresh_from_db()
     assert issue.status == IssueStatus.SELESAI
     assert "Pasien sudah ditelepon." in issue.resolution_summary

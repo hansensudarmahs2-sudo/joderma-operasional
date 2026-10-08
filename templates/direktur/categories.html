@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Kategori task{% endblock %}
+{% block content %}
+<h1>Kategori task</h1>
+<p class="sub">Kategori untuk permintaan dan temuan Owner; task turunannya mengikuti kategori itu. Diatur Owner dan Direktur Operasional. Kategori yang tidak dipakai lagi dinonaktifkan: data lama tetap berkategori sama, hanya tidak bisa dipilih untuk permintaan baru.</p>
+
+<ul class="request-list card">
+  {% for c in rows %}
+  <li class="request-row">
+    <form method="post" class="inline" style="flex:1">{% csrf_token %}
+      <input type="hidden" name="aksi" value="ubah"><input type="hidden" name="kategori" value="{{ c.pk }}">
+      <label style="flex:1 1 14rem">Nama<input name="nama" maxlength="80" required value="{{ c.name }}"></label>
+      <label style="flex:0 1 6rem">Urutan<input name="urutan" inputmode="numeric" pattern="[0-9]*" value="{{ c.sort_order }}"></label>
+      <label class="check-line"><input type="checkbox" name="aktif" value="1" style="width:auto"{% if c.active %} checked{% endif %}> Aktif</label>
+      <span class="meta">{{ c.n_requests }} permintaan · {{ c.n_tasks }} task{% if not c.active %} · <span class="tag muted">Nonaktif</span>{% endif %}</span>
+      <button class="btn small secondary" type="submit">Simpan</button>
+    </form>
+  </li>
+  {% empty %}<li class="meta">Belum ada kategori.</li>{% endfor %}
+</ul>
+
+<form method="post" class="card inline" style="margin-top:.8rem">{% csrf_token %}
+  <input type="hidden" name="aksi" value="tambah">
+  <label style="flex:1 1 14rem">Kategori baru<input name="nama" maxlength="80" required placeholder="Mis. Keamanan"></label>
+  <label style="flex:0 1 6rem">Urutan<input name="urutan" inputmode="numeric" pattern="[0-9]*" placeholder="otomatis"></label>
+  <button class="btn small" type="submit">Tambah</button>
+</form>
+<p class="help">Urutan kecil tampil lebih dulu di pilihan formulir. Kategori yang sudah dipakai tidak dihapus.</p>
+{% endblock %}

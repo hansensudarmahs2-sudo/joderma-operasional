@@ -49,6 +49,7 @@ def _inbox_counts(user):
 @require(dashboard.can_view_overview)
 def dashboard_page(request):
     user = request.user
+    everything = services.all_progress(user)
     return render(
         request,
         "owner/dashboard.html",
@@ -60,7 +61,8 @@ def dashboard_page(request):
             "agenda": dashboard.meeting_agenda(user),
             "awaiting": services.decisions_awaiting(user),
             "usulan": usulan.usulan_awaiting(user),
-            "requests": services.request_rows(user),
+            "requests": services.request_rows(user, rows=everything),
+            "per_category": services.category_rows(user, rows=everything),
             "verify": services.verification_queue(user),
             "achievements": services.recent_achievements(user),
             "can_create": services.can_create_request(user),
@@ -84,7 +86,9 @@ def request_new(request):
 
     from .models import RequestKind
 
-    form = {"judul": "", "rincian": "", "target": "", "cabang": "", "mendesak": ""}
+    from core.kategori import active_categories, can_manage_categories, parse_category
+
+    form = {"judul": "", "rincian": "", "target": "", "cabang": "", "mendesak": "", "kategori": ""}
     temuan = (request.POST.get("jenis") or request.GET.get("jenis")) == RequestKind.TEMUAN
     clinics = list(user_clinic_queryset(request.user).order_by("id"))
     if request.method == "POST":
@@ -100,6 +104,8 @@ def request_new(request):
                     target_date=None if temuan else services.parse_target(form["target"]),
                     clinic=clinic,
                     urgent=form["mendesak"] == "1",
+                    # Wajib untuk permintaan dan temuan baru; hanya kategori aktif (8 Okt 2026).
+                    category=parse_category(form["kategori"], required=True),
                 )
                 save_optional_photo(request, entity_type="ownerrequest", entity_id=req.pk)
             messages.success(request, ("Temuan" if temuan else "Permintaan") + " dikirim ke Direktur Operasional.")
@@ -107,13 +113,14 @@ def request_new(request):
         except ValidationError as exc:
             messages.error(request, " ".join(exc.messages))
     return render(request, "owner/request_form.html",
-                  {"form": form, "today": local_today(), "temuan": temuan, "clinics": clinics})
+                  {"form": form, "today": local_today(), "temuan": temuan, "clinics": clinics,
+                   "categories": active_categories(), "can_manage_categories": can_manage_categories(request.user)})
 
 
 @login_required
 @require(services.can_view_requests)
 def request_detail(request, pk: int):
-    req = get_object_or_404(OwnerRequest.objects.select_related("created_by", "clinic"), pk=pk)
+    req = get_object_or_404(OwnerRequest.objects.select_related("created_by", "clinic", "category"), pk=pk)
     if request.method == "POST" and request.POST.get("aksi") in ("rencana", "selesai"):
         return _finding_action(request, req)
     if request.method == "POST" and request.POST.get("aksi") == "task":

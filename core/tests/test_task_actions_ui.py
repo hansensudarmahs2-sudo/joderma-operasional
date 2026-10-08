@@ -78,7 +78,7 @@ def test_reviewer_can_confirm_via_view(client, role_branch_matrix):
     submit_assignment(assignment, user=assignee)
 
     client.login(username="a_supervisor", password="TestPassword123!")
-    response = client.post(reverse("core:assignment_confirm", args=[assignment.pk]))
+    response = client.post(reverse("core:assignment_confirm", args=[assignment.pk]), {"bintang": "5"})
     assert response.status_code == 302
     assignment.refresh_from_db()
     assert assignment.status == TaskAssignmentStatus.CONFIRMED

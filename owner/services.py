@@ -98,12 +98,13 @@ def effective_target(req: OwnerRequest) -> dt.date | None:
 @transaction.atomic
 def create_request(
     *, actor, title: str, description: str = "", target_date: dt.date | None = None,
-    kind: str = RequestKind.PERMINTAAN, clinic=None, urgent: bool = False,
+    kind: str = RequestKind.PERMINTAAN, clinic=None, urgent: bool = False, category=None,
 ) -> OwnerRequest:
     """Permintaan (target wajib) atau temuan dari Owner ke Inbox Direktur.
 
     Temuan mendesak otomatis bertarget hari ini + 3 hari; target temuan biasa ditetapkan Direktur
-    kemudian, paling lambat 30 hari sejak dicatat.
+    kemudian, paling lambat 30 hari sejak dicatat. Kategori wajib dipilih di formulir
+    (`owner.views.request_new`); yang dipilih harus aktif.
     """
     if not can_create_request(actor):
         raise PermissionDenied("Permintaan hanya dibuat oleh Owner / Direktur Utama.")
@@ -124,14 +125,16 @@ def create_request(
         raise ValidationError("Tanggal target wajib diisi.")
     if target_date is not None and target_date < local_today():
         raise ValidationError("Tanggal target tidak boleh sebelum hari ini.")
+    if category is not None and not category.active:
+        raise ValidationError(f"Kategori {category.name} sudah tidak aktif; pilih kategori lain.")
     req = OwnerRequest.objects.create(
         kind=kind, title=title, description=(description or "").strip(), target_date=target_date,
-        clinic=clinic, urgent=bool(urgent), created_by=actor,
+        clinic=clinic, urgent=bool(urgent), created_by=actor, category=category,
     )
     log_create(req, actor=actor, label=title)
     label = "Temuan Owner" if kind == RequestKind.TEMUAN else "Permintaan Owner"
     detail = [f"target {target_date:%d/%m/%Y}" if target_date else "tanpa target",
-              clinic.name if clinic else "lintas cabang", f"dari {actor}"]
+              clinic.name if clinic else "lintas cabang", *([category.name] if category else []), f"dari {actor}"]
     _notify(_directors(), actor=actor, request=req,
             title=f"{label} baru{' (mendesak)' if urgent else ''}: {title}", body=" · ".join(detail))
     return req
@@ -405,12 +408,18 @@ def subtask_rows(req: OwnerRequest) -> list[dict]:
     return rows
 
 
-def request_rows(user, *, include_done_days: int = 14) -> list[dict]:
-    """Permintaan yang masih berjalan, ditambah yang selesai belakangan ini."""
+def all_progress(user) -> list[dict]:
+    """`progress` untuk semua permintaan/temuan, sekali hitung untuk kartu Permintaan dan Per kategori."""
     if not can_view_requests(user):
         raise PermissionDenied("Permintaan Owner hanya untuk Owner dan Direktur Operasional.")
     today = local_today()
-    rows = [progress(r, today) for r in OwnerRequest.objects.select_related("created_by", "clinic")]
+    return [progress(r, today) for r in OwnerRequest.objects.select_related("created_by", "clinic", "category")]
+
+
+def request_rows(user, *, include_done_days: int = 14, rows: list[dict] | None = None) -> list[dict]:
+    """Permintaan yang masih berjalan, ditambah yang selesai belakangan ini. `rows`: hasil `all_progress`."""
+    rows = list(all_progress(user) if rows is None else rows)
+    today = local_today()
     since = today - dt.timedelta(days=include_done_days)
     rows = [r for r in rows if r["state"] != "done" or r["request"].updated_at.date() >= since
             or any(t.updated_at.date() >= since for t in r["tasks"])]
@@ -420,6 +429,13 @@ def request_rows(user, *, include_done_days: int = 14) -> list[dict]:
         not (r["request"].kind == RequestKind.TEMUAN and r["request"].urgent and r["state"] != "done"), not r["late"], order[r["state"]], r["target"] or far,
     ))
     return rows
+
+
+def category_rows(user, rows: list[dict] | None = None) -> list[dict]:
+    """Kartu "Per kategori" di Dashboard Owner: semua permintaan/temuan, terbuka vs selesai (8 Okt 2026)."""
+    from core.kategori import request_counts
+
+    return request_counts(all_progress(user) if rows is None else rows)
 
 
 # --- Keputusan Owner (7 Okt 2026) ------------------------------------------------------

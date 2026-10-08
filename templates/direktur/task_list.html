@@ -36,6 +36,8 @@
       <select id="prioritas" name="prioritas"><option value="">Semua</option>{% for v, l in priorities %}<option value="{{ v }}" {% if v == f.prioritas %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
     <div><label for="sumber">Sumber</label>
       <select id="sumber" name="sumber"><option value="">Semua sumber</option>{% for v, l in sources %}<option value="{{ v }}" {% if v == f.sumber %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div><label for="kategori">Kategori</label>
+      <select id="kategori" name="kategori"><option value="">Semua kategori</option>{% for c in categories %}<option value="{{ c.pk }}" {% if c.pk == f.kategori %}selected{% endif %}>{{ c.name }}{% if not c.active %} (nonaktif){% endif %}</option>{% endfor %}<option value="{{ no_category }}" {% if f.kategori == no_category %}selected{% endif %}>Tanpa kategori</option></select></div>
     <div><label for="dari">Mulai dari</label><input id="dari" type="date" name="dari" value="{{ f.dari|date:'Y-m-d' }}"></div>
     <div><label for="sampai">sampai</label><input id="sampai" type="date" name="sampai" value="{{ f.sampai|date:'Y-m-d' }}"></div>
   </div>
@@ -63,7 +65,7 @@
   {% for r in page %}
     <tr class="{% if r.overdue %}row-late{% endif %}">
       <td data-label="Task"><div><a href="{% url 'direktur:task_detail' r.item.pk %}?dari=daftar"><strong>{{ r.item.title }}</strong></a>
-        <div class="meta">{{ r.item.clinic.name }} · {{ r.source }}</div></div></td>
+        <div class="meta">{{ r.item.clinic.name }} · {{ r.source }}{% if r.item.category %} · {{ r.item.category.name }}{% endif %}</div></div></td>
       <td data-label="Pelapor">{{ r.reporter|default:"—" }}</td>
       <td data-label="PIC">{% if r.pics %}{{ r.pic_names }}{% else %}<span class="tag warn">belum ada</span>{% endif %}</td>
       <td data-label="Prioritas"><span class="tag {% if r.item.priority == 'KRITIS' %}err{% elif r.item.priority == 'TINGGI' %}warn{% else %}muted{% endif %}">{{ r.item.get_priority_display }}</span></td>

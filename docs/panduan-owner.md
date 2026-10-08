@@ -30,7 +30,8 @@ ada di menu Owner dan ditolak bila alamatnya dibuka langsung.
 
 1. Di Dashboard, tekan **+ Catat temuan** untuk hal yang Anda lihat dan perlu dibereskan (form
    temuan **tidak punya kolom target**; Direktur yang menentukan PIC dan target), atau
-   **+ Permintaan** untuk permintaan dengan **tanggal target**. Pilih cabang (atau lintas cabang),
+   **+ Permintaan** untuk permintaan dengan **tanggal target**. Pilih **kategori** (wajib, mis.
+   Pelayanan pasien, Kebersihan & kerapian, Fasilitas & peralatan), pilih cabang (atau lintas cabang),
    centang **Mendesak** bila perlu, dan lampirkan **foto** (opsional, dikecilkan otomatis).
    Temuan **Mendesak** harus dibereskan paling lambat **3 hari** sejak dicatat. Tanpa centang,
    Direktur menentukan target dan paling lambat **1 bulan** (30 hari) sejak dicatat; selama target
@@ -71,6 +72,22 @@ ada di menu Owner dan ditolak bila alamatnya dibuka langsung.
 
 Tidak ada tombol tolak atau kembalikan pada permintaan; permintaan hanya dibaca progresnya.
 Untuk perkara yang menunggu keputusan Anda, lihat bagian berikut.
+
+### Kategori dan kartu Per kategori
+
+Setiap permintaan dan temuan baru wajib berkategori. Kategorinya tampil di Dashboard, di halaman
+permintaan, di Inbox dan Jadwal Task Direktur, dan ikut ke task yang dibuat Direktur dari
+permintaan itu (Direktur masih boleh menggantinya di detail task). Permintaan lama yang dibuat
+sebelum ada kategori tertulis **Tanpa kategori**.
+
+Kartu **Per kategori** di Dashboard menghitung semua permintaan dan temuan per kategori:
+**Terbuka** dan **Selesai** (permintaan: semua task selesai; temuan: dinyatakan selesai oleh
+Direktur). Hanya kategori yang punya permintaan yang tampil, ditambah baris Tanpa kategori bila ada.
+
+**Atur kategori** (tautan di formulir permintaan dan di kartu Per kategori, `/direktur/kategori/`):
+Anda dan Direktur Operasional dapat menambah kategori, mengganti nama, mengatur urutan (angka kecil
+tampil lebih dulu), dan menonaktifkan kategori. Kategori nonaktif tetap melekat pada permintaan
+lama, tetapi tidak bisa dipilih lagi untuk permintaan baru. Kategori tidak dihapus; nonaktifkan saja.
 
 ## Keputusan yang menunggu Anda
 
@@ -147,6 +164,9 @@ Bila ia mengajukan selesai, Anda mendapat notifikasi dan bagian **Menunggu verif
 muncul di atas Dashboard, lengkap dengan catatan buktinya. Buka task, periksa bukti (dan foto bila
 ada), lalu tekan **Konfirmasi selesai** atau **Minta revisi** (catatan wajib). Anda juga dapat
 menambah catatan di riwayat task itu. Akun jean dan yohanes sama-sama dapat memverifikasi.
+Pekerjaan Direktur Operasional sendiri tidak diberi bintang. Bila pemeriksa sebuah task staf
+ditetapkan Direktur Utama / Owner, Anda yang mengonfirmasi juga memilih **bintang 1–5** (lihat
+panduan Direktur, bagian Bintang).
 
 Di bagian bawah Dashboard, **Capaian 7 hari terakhir** memuat task yang selesai dan terverifikasi,
 siapa yang mengerjakan, dan siapa yang memverifikasi.

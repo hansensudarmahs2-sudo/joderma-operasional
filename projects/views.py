@@ -340,6 +340,9 @@ def task_detail(request, pk: int, task_pk: int):
         if e.event_type == TaskEventType.CANCELLED and e.assignment_id and e.metadata.get("ditolak"):
             decline_reason[e.assignment_id] = e.note.removeprefix("Ditolak: ")
     can_manage = project.is_active and ps.can_manage_tasks(user, project) and item.status != ActionItemStatus.BATAL
+    from core.task_services import can_rate_assignment, needs_rating
+
+    managers_view = ps.can_manage_tasks(user, project)
     rows = [{
         "a": a,
         "photos": a_photos.get(a.pk, []),
@@ -348,6 +351,11 @@ def task_detail(request, pk: int, task_pk: int):
         "declined": a.status == TaskAssignmentStatus.CANCELLED and a.pk in decline_reason,
         "decline_reason": decline_reason.get(a.pk, ""),
         "can_reopen": can_manage and a.status == TaskAssignmentStatus.CONFIRMED,
+        # Bintang: pengatur melihat semua penerima; penerima lain hanya bintangnya sendiri.
+        "show_rating": a.status == TaskAssignmentStatus.CONFIRMED and needs_rating(a.assignee)
+        and (managers_view or a.assignee_id == user.pk),
+        "can_rate": a.status == TaskAssignmentStatus.CONFIRMED and needs_rating(a.assignee)
+        and can_rate_assignment(a, user),
     } for a in assignments]
     for e in events:
         e.photos = e_photos.get(e.pk, [])
@@ -375,6 +383,17 @@ def _handle_task_post(request, project: Project, item: ActionItem):
                 raise ValidationError("Penerima tidak ditemukan.")
             ps.reopen_assignment(assignment, actor=request.user, note=request.POST.get("catatan", ""))
             messages.warning(request, f"Status selesai dibatalkan; {assignment.assignee} diminta merevisi.")
+        elif aksi == "nilai":
+            # Task project selesai tanpa konfirmasi: pengatur project memberi bintang sesudahnya.
+            from core.task_services import parse_rating, rate_assignment
+
+            try:
+                assignment = item.task_assignments.get(pk=int(request.POST.get("assignment", "")))
+            except (TypeError, ValueError, TaskAssignment.DoesNotExist):
+                raise ValidationError("Penerima tidak ditemukan.")
+            rate_assignment(assignment, actor=request.user, rating=parse_rating(request.POST.get("bintang")),
+                            note=request.POST.get("catatan_bintang", ""))
+            messages.success(request, f"Bintang untuk {assignment.assignee} disimpan.")
         elif aksi == "batal_task":
             ps.cancel_project_task(item, actor=request.user, reason=request.POST.get("alasan", ""))
             messages.warning(request, "Task dibatalkan.")

@@ -25,4 +25,5 @@ urlpatterns = [
     path("catatan/<int:pk>/jadikan-task/", views.note_convert, name="note_convert"),
     path("task/baru/", views.task_new, name="task_new"),
     path("task/<int:pk>/", views.task_detail, name="task_detail"),
+    path("kategori/", views.categories, name="kategori"),
 ]

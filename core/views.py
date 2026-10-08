@@ -65,6 +65,8 @@ from .task_services import (
     cancel_assignment,
     claim_shared_task,
     confirm_assignment,
+    needs_rating,
+    parse_rating,
     request_revision,
     submit_assignment,
 )
@@ -240,6 +242,8 @@ def today(request):
         })
 
     tasks_mine = my_tasks(user)
+    from .task_services import my_ratings
+
     cashier = list(cashier_assignments(user, date))
     breaks_today = BreakSchedule.objects.filter(user=user, date=date).exclude(
         status=BreakStatus.BATAL).order_by("start_at")
@@ -257,6 +261,7 @@ def today(request):
         "cashier": cashier,
         "cash": cash_summary(day) if day and cashier else None,
         "breaks_today": breaks_today,
+        "ratings": my_ratings(user),
     })
 
 
@@ -352,6 +357,8 @@ def action_items(request):
             for a in assignments
             if a.status == TaskAssignmentStatus.SUBMITTED and can_review_assignment(a, user)
         ]
+        for a in review_assignments:
+            a.needs_rating = needs_rating(a.assignee)  # formulir konfirmasi menampilkan pilihan bintang
         rows.append(
             {
                 "item": item,
@@ -559,7 +566,9 @@ def assignment_confirm(request, pk: int):
     if not can_access_clinic(request.user, assignment.action_item.clinic):
         raise PermissionDenied("Anda tidak memiliki akses ke task cabang ini.")
     try:
-        confirm_assignment(assignment, reviewer=request.user, note=request.POST.get("catatan", ""))
+        confirm_assignment(assignment, reviewer=request.user, note=request.POST.get("catatan", ""),
+                           rating=parse_rating(request.POST.get("bintang")),
+                           rating_note=request.POST.get("catatan_bintang", ""))
         messages.success(request, "Task dikonfirmasi selesai.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))

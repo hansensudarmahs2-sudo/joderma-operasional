@@ -75,6 +75,7 @@ OWNER_ALLOWED = COMMON | {
     "direktur:task_detail",  # baca saja; tombol ubah hanya untuk pemberi tugas/Direktur
     "direktur:decisions",
     "direktur:decision_detail",
+    "direktur:kategori",  # Atur kategori permintaan/temuan (8 Okt 2026); izin ditegakkan di view
     "reports:policies",  # Kebijakan berlaku (5 Okt 2026), baca saja
     "jadwal:roster",
     "stok:index",  # Stok Apotek, baca saja; unggah dan parameter tetap ditolak
@@ -379,6 +380,7 @@ def nav_sections(user) -> list[NavSection]:
         settings = NavSection("Pengaturan")
         if flags["clinic"]:
             settings.add("Pengaturan Klinik", "core:clinic_profile")
+        settings.add("Kategori task", "direktur:kategori")
         if flags["users"] or flags["config"]:
             settings.add("Admin", "accounts:user_list")
         return [s for s in (overview, mine, ops, reports, settings) if s.items]

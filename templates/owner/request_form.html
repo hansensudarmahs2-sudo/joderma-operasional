@@ -14,6 +14,9 @@
   <label for="rincian">Rincian <span class="meta">(opsional)</span></label>
   <textarea id="rincian" name="rincian" rows="4" placeholder="{% if temuan %}Di mana, sejak kapan, apa dampaknya{% else %}Latar belakang, hasil yang diharapkan{% endif %}">{{ form.rincian }}</textarea>
   <div class="inline">
+    <div><label for="kategori">Kategori</label>
+      <select id="kategori" name="kategori" required><option value="">Pilih kategori</option>{% for c in categories %}<option value="{{ c.pk }}"{% if form.kategori == c.pk|stringformat:"s" %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+      {% if can_manage_categories %}<p class="help"><a href="{% url 'direktur:kategori' %}">Atur kategori</a></p>{% endif %}</div>
     <div><label for="cabang">Cabang</label>
       <select id="cabang" name="cabang"><option value="">Lintas cabang</option>{% for c in clinics %}<option value="{{ c.pk }}"{% if form.cabang == c.pk|stringformat:"s" %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
     {% if not temuan %}<div><label for="target">Target selesai</label>

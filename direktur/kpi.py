@@ -19,6 +19,11 @@ Definisi:
 - **Task**: task individual (atau task bersama yang ia ambil) dengan target pada bulan itu yang
   sudah lewat: diajukan sebelum target, terlambat, atau belum diajukan; plus jumlah diminta revisi
   pada bulan itu. Task yang dibatalkan atau sedang menunggu keputusan bersama tidak dihitung.
+- **Bintang rata-rata** (8 Okt 2026): rata-rata bintang 1–5 pada assignment yang dikonfirmasi
+  (`confirmed_at`) pada bulan itu, disertai jumlahnya ("n dinilai"). Bintang otomatis 5 untuk task
+  lama (`rating_auto`) **ikut** dihitung (keputusan PO). Yang belum dinilai (mis. task project yang
+  belum diberi bintang pengaturnya) tidak dihitung. Direktur Operasional dan Owner tidak dinilai,
+  jadi tidak pernah punya angka ini. Tetap tanpa skor gabungan: bintang tampil sebagai metrik sendiri.
 """
 from __future__ import annotations
 
@@ -114,6 +119,8 @@ class StaffKpi:
     tasks_pending: int = 0
     revisions: int = 0
     bursts: int = 0
+    rating_sum: int = 0
+    rating_count: int = 0
     days: dict = field(default_factory=dict)
     tasks: list = field(default_factory=list)
 
@@ -144,6 +151,10 @@ class StaffKpi:
     @property
     def tasks_pct(self):
         return pct(self.tasks_on_time, self.tasks_due)
+
+    @property
+    def rating_avg(self) -> float | None:
+        return round(self.rating_sum / self.rating_count, 1) if self.rating_count else None
 
     @property
     def day_rows(self) -> list[DayRow]:
@@ -325,6 +336,24 @@ def compose(clinics, first: dt.date, *, only_user=None) -> list[StaffKpi]:
         if p:
             p.revisions += 1
 
+    # Bintang: assignment yang dikonfirmasi bulan ini dan sudah bernilai (termasuk bintang otomatis).
+    rated = TaskAssignment.objects.filter(
+        action_item__clinic__in=clinics, status=TaskAssignmentStatus.CONFIRMED, rating__isnull=False,
+        confirmed_at__gte=start_at, confirmed_at__lt=end_at,
+    ).select_related("assignee")
+    if only_user is not None:
+        rated = rated.filter(assignee=only_user)
+    from accounts.models import Role, UserRole
+
+    not_rated = set(UserRole.objects.filter(role__in=(Role.AOM, Role.OWNER)).values_list("user_id", flat=True))
+    for a in rated:
+        if a.assignee_id in not_rated:
+            continue  # Direktur Operasional dan Owner tidak dinilai
+        p = person(a.assignee)
+        if p:
+            p.rating_sum += a.rating
+            p.rating_count += 1
+
     for p in people.values():
         p.tasks.sort(key=lambda t: t["item"].due_at)
     return sorted(people.values(), key=lambda p: (str(p.user).lower(), p.user.pk))
@@ -335,7 +364,7 @@ CSV_HEADER = [
     "Diambil alih orang lain", "Butir pembukaan diisi sendiri", "Pembukaan tepat waktu",
     "Pembukaan tepat waktu (%)", "Jejak", "Jejak Kuat + Sedang", "Jejak Kuat + Sedang (%)",
     "Task jatuh tempo", "Task tepat target", "Task terlambat", "Task belum diajukan",
-    "Task tepat target (%)", "Diminta revisi", "Tanda centang massal",
+    "Task tepat target (%)", "Diminta revisi", "Tanda centang massal", "Bintang rata-rata", "Task dinilai",
 ]
 
 
@@ -347,5 +376,5 @@ def csv_row(first: dt.date, p: StaffKpi) -> list:
         f"{first:%Y-%m}", p.user.username, str(p.user), p.duty_days, p.items, p.filled, n(p.filled_pct),
         p.taken_over, p.opening_own, p.opening_on_time, n(p.opening_pct), p.stamps_total, p.stamps_good,
         n(p.stamps_pct), p.tasks_due, p.tasks_on_time, p.tasks_late, p.tasks_pending, n(p.tasks_pct),
-        p.revisions, p.bursts,
+        p.revisions, p.bursts, n(p.rating_avg), p.rating_count,
     ]

@@ -20,7 +20,7 @@
 {% if rows %}
 <table class="responsive kpi-table">
   <thead><tr>
-    <th>Staf</th><th>Hari jaga</th><th>Kelengkapan porsi</th><th>Pembukaan tepat waktu</th><th>Jejak di klinik</th><th>Task tepat target</th><th>Tanda</th>
+    <th>Staf</th><th>Hari jaga</th><th>Kelengkapan porsi</th><th>Pembukaan tepat waktu</th><th>Jejak di klinik</th><th>Task tepat target</th><th>Bintang rata-rata</th><th>Tanda</th>
   </tr></thead>
   <tbody>{% for r in rows %}
   <tr>
@@ -30,6 +30,7 @@
     <td data-label="Pembukaan tepat waktu"><span>{% if r.opening_pct is not None %}<strong>{{ r.opening_pct }}%</strong> <span class="meta">{{ r.opening_on_time }}/{{ r.opening_own }} butir</span>{% else %}<span class="meta">—</span>{% endif %}</span></td>
     <td data-label="Jejak di klinik"><span>{% if r.stamps_pct is not None %}<strong>{{ r.stamps_pct }}%</strong> <span class="meta">{{ r.stamps_good }}/{{ r.stamps_total }} Kuat+Sedang</span>{% else %}<span class="meta">—</span>{% endif %}</span></td>
     <td data-label="Task tepat target"><span>{% if r.tasks_pct is not None %}<strong>{{ r.tasks_pct }}%</strong> <span class="meta">{{ r.tasks_on_time }}/{{ r.tasks_due }}</span>{% if r.tasks_late or r.tasks_pending %}<div class="meta">{% if r.tasks_late %}{{ r.tasks_late }} terlambat{% endif %}{% if r.tasks_late and r.tasks_pending %} · {% endif %}{% if r.tasks_pending %}{{ r.tasks_pending }} belum diajukan{% endif %}</div>{% endif %}{% else %}<span class="meta">—</span>{% endif %}{% if r.revisions %}<div class="meta">{{ r.revisions }}× diminta revisi</div>{% endif %}</span></td>
+    <td data-label="Bintang rata-rata"><span>{% if r.rating_avg is not None %}<strong>{{ r.rating_avg }}</strong> <span class="meta">{{ r.rating_count }} dinilai</span>{% else %}<span class="meta">—</span>{% endif %}</span></td>
     <td data-label="Tanda">{% if r.bursts %}<span class="tag warn" title="Banyak butir dicentang dalam waktu sangat singkat; cek di rincian">{{ r.bursts }}× centang massal</span>{% else %}<span class="meta">—</span>{% endif %}</td>
   </tr>
   {% endfor %}</tbody>
@@ -43,6 +44,7 @@
     <li><strong>Pembukaan tepat waktu</strong>: butir sesi Pembukaan yang ia isi sendiri, selesai sebelum jam buka cabang ditambah toleransi. Penutupan sengaja <strong>tidak</strong> diberi batas jam, karena tutup bisa molor menunggu pasien terakhir.</li>
     <li><strong>Jejak di klinik</strong>: dari seluruh jejaknya (login, checklist, kas, buka/tutup hari, task), berapa yang berlabel Kuat atau Sedang. Lihat menu Jejak.</li>
     <li><strong>Task tepat target</strong>: task dengan target pada bulan ini yang sudah lewat, diajukan selesai sebelum target (pengajuan pertama). Task bersama dihitung untuk yang mengambilnya. Task batal atau yang menunggu keputusan bersama tidak dihitung.</li>
+    <li><strong>Bintang rata-rata</strong>: rata-rata bintang 1–5 dari yang mengonfirmasi, untuk task yang dikonfirmasi bulan ini, beserta jumlah task yang dinilai. Bintang otomatis 5 untuk task yang selesai sebelum fitur bintang ada ikut dihitung. Task project yang belum diberi bintang pengaturnya belum dihitung. Direktur Operasional dan Owner tidak dinilai.</li>
     <li><strong>Centang massal</strong>: hanya tanda untuk dicek, bukan pengurang angka.</li>
   </ul>
   <p class="meta">Parameter per cabang (ubah di Konfigurasi, kunci <code>kpi.*</code>):{% for s in settings_rows %} {{ s.clinic.name }}: toleransi {{ s.tolerance }} menit, centang massal ≥{{ s.bulk_items }} butir dalam {{ s.bulk_seconds }} detik{% if not forloop.last %};{% endif %}{% endfor %}.</p>

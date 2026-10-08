@@ -4,7 +4,7 @@
 {% block content %}
 <p><a href="{% url 'home' %}">← {% if is_director %}Kembali{% else %}Dashboard{% endif %}</a></p>
 <h1>{% if row.request.kind == 'TEMUAN' %}<span class="tag info">Temuan</span> {% endif %}{{ row.request.title }}</h1>
-<p class="sub">{% if row.request.kind == 'TEMUAN' %}Dicatat{% else %}Diminta{% endif %} {{ row.request.created_by }} · {{ row.request.created_at|date:"d/m/Y" }} · {{ row.request.clinic.name|default:"lintas cabang" }} · {% if row.target %}{% if row.target_set %}target{% else %}paling lambat{% endif %} <strong>{{ row.target|date:"d/m/Y" }}</strong>{% else %}tanpa target{% endif %}{% if row.request.urgent %} · <span class="tag err">Mendesak</span>{% endif %}</p>
+<p class="sub">{% if row.request.kind == 'TEMUAN' %}Dicatat{% else %}Diminta{% endif %} {{ row.request.created_by }} · {{ row.request.created_at|date:"d/m/Y" }} · {{ row.request.clinic.name|default:"lintas cabang" }} · kategori <strong>{{ row.request.category.name|default:"Tanpa kategori" }}</strong> · {% if row.target %}{% if row.target_set %}target{% else %}paling lambat{% endif %} <strong>{{ row.target|date:"d/m/Y" }}</strong>{% else %}tanpa target{% endif %}{% if row.request.urgent %} · <span class="tag err">Mendesak</span>{% endif %}</p>
 <p>{% with r=row %}{% include "owner/_request_state.html" %}{% endwith %}</p>
 {% if row.request.kind == 'TEMUAN' %}
 <p><strong>Task besar:</strong> {{ row.request.plan_title|default:"belum diberi nama oleh Direktur" }}</p>

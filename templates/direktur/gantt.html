@@ -28,7 +28,7 @@
       <div class="gantt-row gantt-request">
         <div class="gantt-label">
           <strong><a href="{% url 'owner:request_detail' g.request.pk %}">{% if g.request.kind == 'TEMUAN' %}Temuan: {% endif %}{{ g.request.title }}</a></strong>
-          <span class="meta">{{ g.request.clinic.name|default:"Lintas cabang" }} · {{ g.info.label }}{% if g.info.total %} {{ g.info.done }}/{{ g.info.total }} task{% endif %}{% if g.request.target_date %} · target Owner {{ g.request.target_date|date:"d/m" }}{% endif %}{% if g.info.late %} · <span class="tag err">lewat {{ g.info.days_late }} hari</span>{% endif %}</span>
+          <span class="meta">{{ g.request.clinic.name|default:"Lintas cabang" }} · {{ g.request.category.name|default:"Tanpa kategori" }} · {{ g.info.label }}{% if g.info.total %} {{ g.info.done }}/{{ g.info.total }} task{% endif %}{% if g.request.target_date %} · target Owner {{ g.request.target_date|date:"d/m" }}{% endif %}{% if g.info.late %} · <span class="tag err">lewat {{ g.info.days_late }} hari</span>{% endif %}</span>
         </div>
         <div class="gantt-track">
           {% for t in chart.ticks %}<span class="gantt-grid" style="left:{{ t.left }}%"></span>{% endfor %}

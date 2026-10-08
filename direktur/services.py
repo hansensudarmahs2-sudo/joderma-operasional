@@ -196,8 +196,14 @@ def create_task_from_source(
         source_label=source_label,
     )
     if source_type == "permintaan_owner":
+        from owner.models import OwnerRequest
         from owner.services import notify_task_added_for
 
+        # Task (dan sub task temuan) mewarisi kategori permintaan/temuannya (8 Okt 2026).
+        category_id = OwnerRequest.objects.filter(pk=source_id).values_list("category_id", flat=True).first()
+        if category_id and item.category_id != category_id:
+            item.category_id = category_id
+            item.save(update_fields=["category", "updated_at"])
         notify_task_added_for(source_id, item, actor=actor)
     return item
 

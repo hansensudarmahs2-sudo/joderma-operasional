@@ -119,6 +119,16 @@ cabang tugas di jadwal jaga hari ini, atau cabang asal bila Anda sedang off.
   Anda berubah sendiri menjadi **Selesai** (atau **Diterapkan** untuk masukan) dan Anda mendapat
   notifikasi; penutupan akhir tetap oleh pengelola.
 
+## Bintang untuk task yang selesai
+
+Saat pemberi tugas atau Direktur mengonfirmasi task Anda, ia memberi **bintang 1–5**. Bintang 1–3
+selalu disertai alasan. Anda mendapat notifikasi **Task dinilai: ★★★★☆ …** beserta alasannya.
+Bintang Anda tampil di kartu **Nilai saya** di halaman **Tugas hari ini**: 10 task terakhir yang
+dinilai dan rata-rata bulan ini. Hanya Anda, Direktur Operasional, dan Owner yang melihat bintang
+Anda; Anda tidak melihat bintang orang lain. Task yang selesai sebelum fitur ini ada otomatis
+bintang 5. Task project baru dinilai sesudah Anda menandainya selesai, oleh Project leader atau
+pengatur project; bila dikembalikan untuk revisi, bintangnya gugur dan dinilai lagi.
+
 ## Task project
 
 Task yang berasal dari sebuah project muncul di **Tugas saya** dengan tag **Project: nama

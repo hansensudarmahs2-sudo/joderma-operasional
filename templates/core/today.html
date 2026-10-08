@@ -51,6 +51,25 @@
 
 {% include "core/_my_tasks.html" %}
 
+{% if ratings and ratings.recent %}
+<section class="card" id="nilai-saya" aria-labelledby="judul-nilai">
+  <div class="checklist-heading" style="margin:0">
+    <h2 id="judul-nilai" style="margin:0">Nilai saya</h2>
+    <span class="meta">{{ ratings.month|date:"F Y" }}: {% if ratings.average is not None %}rata-rata <strong>{{ ratings.average }}</strong> dari 5 · {{ ratings.count }} dinilai{% else %}belum ada{% endif %}</span>
+  </div>
+  <p class="meta" style="margin:.3rem 0">Bintang dari yang mengonfirmasi task Anda. Hanya Anda, Direktur Operasional, dan Owner yang melihatnya.</p>
+  <ul class="request-list">
+    {% for a in ratings.recent %}
+    <li class="request-row">
+      <span class="request-main"><strong>{{ a.action_item.title }}</strong>
+        <span class="meta">{{ a.action_item.clinic.name }}{% if a.confirmed_at %} · selesai {{ a.confirmed_at|date:"d/m/Y" }}{% endif %}</span>
+        {% include "core/_bintang.html" with a=a %}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
 {% if breaks_today %}
 <section class="card" aria-labelledby="judul-istirahat">
   <h2 id="judul-istirahat">Istirahat hari ini</h2>

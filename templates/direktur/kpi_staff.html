@@ -12,6 +12,7 @@
   <div class="card"><span class="tile-num">{% if kpi.opening_pct is not None %}{{ kpi.opening_pct }}%{% else %}—{% endif %}</span><strong>Pembukaan tepat waktu</strong><div class="meta">{{ kpi.opening_on_time }}/{{ kpi.opening_own }} butir</div></div>
   <div class="card"><span class="tile-num">{% if kpi.stamps_pct is not None %}{{ kpi.stamps_pct }}%{% else %}—{% endif %}</span><strong>Jejak di klinik</strong><div class="meta">{{ kpi.stamps_good }}/{{ kpi.stamps_total }} Kuat+Sedang</div></div>
   <div class="card"><span class="tile-num">{% if kpi.tasks_pct is not None %}{{ kpi.tasks_pct }}%{% else %}—{% endif %}</span><strong>Task tepat target</strong><div class="meta">{{ kpi.tasks_on_time }}/{{ kpi.tasks_due }}{% if kpi.revisions %} · {{ kpi.revisions }}× revisi{% endif %}</div></div>
+  <div class="card"><span class="tile-num">{% if kpi.rating_avg is not None %}{{ kpi.rating_avg }}{% else %}—{% endif %}</span><strong>Bintang rata-rata</strong><div class="meta">{{ kpi.rating_count }} dinilai</div></div>
 </div>
 
 <h2>Per hari</h2>

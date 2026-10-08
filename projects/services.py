@@ -376,11 +376,21 @@ def reopen_assignment(assignment: TaskAssignment, *, actor, note: str) -> TaskAs
     note = (note or "").strip()
     if not note:
         raise ValidationError("Tulis catatan revisi.")
+    from core.task_services import RATING_AUDIT_FIELDS, log_rating
+
+    rating_before = snapshot(assignment, RATING_AUDIT_FIELDS) if assignment.rating else None
     assignment.status = TaskAssignmentStatus.REVISION_REQUIRED
     assignment.revision_note = note
     assignment.reviewer = actor
     assignment.confirmed_at = None
-    assignment.save(update_fields=["status", "revision_note", "reviewer", "confirmed_at", "updated_at"])
+    # Bintang lama gugur; dinilai lagi sesudah penerima menandai selesai berikutnya (8 Okt 2026).
+    assignment.rating = None
+    assignment.rating_note = ""
+    assignment.rated_by = None
+    assignment.rated_at = None
+    assignment.rating_auto = False
+    assignment.save(update_fields=["status", "revision_note", "reviewer", "confirmed_at", "rating", "rating_note",
+                                   "rated_by", "rated_at", "rating_auto", "updated_at"])
     TaskEvent.objects.create(
         action_item=item, assignment=assignment, event_type=TaskEventType.REVISION_REQUESTED, actor=actor, note=note,
     )
@@ -390,6 +400,8 @@ def reopen_assignment(assignment: TaskAssignment, *, actor, note: str) -> TaskAs
     log_event(action=AuditAction.UPDATE, entity_type="actionitem", entity_id=item.pk,
               entity_label=f"Batal selesai: {item.title}"[:200], actor=actor, reason=note,
               after={"assignment": assignment.pk, "status": assignment.status})
+    if rating_before:
+        log_rating(assignment, rating_before, actor=actor, reason="Bintang gugur: dikembalikan untuk revisi")
     _notify_task([assignment.assignee], actor=actor, item=item, type_code="TASK_REVISION",
                  title=f"Perlu revisi: {item.title}", body=f"{actor}: {note[:250]}", to_staff=True)
     return assignment

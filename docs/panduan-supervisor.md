@@ -96,6 +96,11 @@ barisnya seperti tally biasa (0 = batalkan).
 **Pindah urutan antrean.** Tersedia lewat **Pindah urutan** pada papan antrean,
 wajib alasan.
 
+**Konfirmasi task dan bintang.** Task yang Anda kirim dan sudah diajukan selesai oleh
+staf dikonfirmasi di **Action item** (Semua action item): ketuk **bintang 1–5** lalu
+**Konfirmasi selesai**. Bintang 1–3 wajib disertai alasan. Staf diberi tahu dan melihat
+bintangnya sendiri di Tugas hari ini; staf lain tidak melihatnya.
+
 ## Sore
 
 Tidak ada batas jam penutupan: tutup boleh molor menunggu pasien terakhir, juga lewat tengah malam.

@@ -43,6 +43,7 @@ SORTS = {
     "diperbarui": "Diperbarui",
 }
 DEFAULT_SORT = "target"
+NO_CATEGORY = "tanpa"
 
 _PRIORITY_RANK = {Priority.KRITIS: 0, Priority.TINGGI: 1, Priority.SEDANG: 2, Priority.RENDAH: 3}
 _STATUS_RANK = {"Baru": 0, "Dikerjakan": 1, "Menunggu konfirmasi": 2, "Selesai": 3, "Dibatalkan": 4}
@@ -83,6 +84,10 @@ def parse_filters(params) -> dict:
     sort = params.get("urut") or DEFAULT_SORT
     if sort.lstrip("-") not in SORTS:
         sort = DEFAULT_SORT
+    # Kategori (8 Okt 2026): id kategori, atau "tanpa" untuk task tanpa kategori.
+    category = (params.get("kategori") or "").strip()
+    if category != NO_CATEGORY:
+        category = int(category) if category.isascii() and category.isdigit() else None
     return {
         "q": (params.get("q") or "").strip()[:100],
         "cabang": digits("cabang"),
@@ -90,6 +95,7 @@ def parse_filters(params) -> dict:
         "status": status,
         "prioritas": priority,
         "sumber": source,
+        "kategori": category,
         "dari": date("dari"),
         "sampai": date("sampai"),
         "urut": sort,
@@ -102,6 +108,10 @@ def _base(user, f):
         qs = qs.filter(clinic_id=f["cabang"])
     if f["prioritas"]:
         qs = qs.filter(priority=f["prioritas"])
+    if f["kategori"] == NO_CATEGORY:
+        qs = qs.filter(category__isnull=True)
+    elif f["kategori"]:
+        qs = qs.filter(category_id=f["kategori"])
     if f["status"] in ("terbuka", "baru", "dikerjakan", "menunggu", "lewat", "tertahan", "tanpa_pic"):
         qs = qs.filter(status__in=dashboard.OPEN_ITEM)
     elif f["status"] == "selesai":
@@ -115,7 +125,7 @@ def _base(user, f):
         end = f["sampai"] + dt.timedelta(days=1)
         qs = qs.filter(created_at__lt=timezone.make_aware(dt.datetime.combine(end, dt.time.min), tz))
     return (
-        qs.select_related("clinic", "owner", "created_by")
+        qs.select_related("clinic", "owner", "created_by", "category")
         .prefetch_related("task_assignments__assignee", "waiting_decisions")
         .distinct()
     )
@@ -169,7 +179,7 @@ def _status_filter(rows_, status):
 def _haystack(r) -> str:
     i = r["item"]
     parts = [i.title, i.description, i.source_label, i.clinic.name, r["pic_names"], str(r["reporter"] or ""),
-             i.progress_note]
+             i.progress_note, i.category.name if i.category else ""]
     return " ".join(p or "" for p in parts).lower()
 
 

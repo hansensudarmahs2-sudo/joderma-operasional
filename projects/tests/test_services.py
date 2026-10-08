@@ -361,7 +361,7 @@ def test_bersama_bug_fix_applies_to_non_project_tasks(clinic, aom1, sb, sc):
     ts.claim_shared_task(mine, user=sb)
     mine.refresh_from_db()
     ts.submit_assignment(mine, user=sb)
-    ts.confirm_assignment(mine, reviewer=aom1)
+    ts.confirm_assignment(mine, reviewer=aom1, rating=5)
     item.refresh_from_db()
     other = item.task_assignments.get(assignee=sc)
     assert other.status == TaskAssignmentStatus.OPEN  # kondisi yang dulu membuat item menggantung
@@ -373,7 +373,7 @@ def test_individual_non_project_still_needs_everyone(clinic, aom1, sb, sc):
                           user_ids=[sb.pk, sc.pk])
     a = item.task_assignments.get(assignee=sb)
     ts.submit_assignment(a, user=sb)
-    ts.confirm_assignment(a, reviewer=aom1)
+    ts.confirm_assignment(a, reviewer=aom1, rating=5)
     item.refresh_from_db()
     assert item.status != ActionItemStatus.SELESAI
 
@@ -609,7 +609,7 @@ def test_non_project_individual_cancelled_plus_confirmed_finishes(clinic, aom1, 
     assert item.status != ActionItemStatus.SELESAI  # belum ada yang dikonfirmasi
     a = item.task_assignments.get(assignee=sb)
     ts.submit_assignment(a, user=sb)
-    ts.confirm_assignment(a, reviewer=aom1)
+    ts.confirm_assignment(a, reviewer=aom1, rating=5)
     item.refresh_from_db()
     assert item.status == ActionItemStatus.SELESAI
 
@@ -619,7 +619,7 @@ def test_cancel_task_still_ends_batal(clinic, aom1, sb, sc):
                           user_ids=[sb.pk, sc.pk])
     a = item.task_assignments.get(assignee=sb)
     ts.submit_assignment(a, user=sb)
-    ts.confirm_assignment(a, reviewer=aom1)
+    ts.confirm_assignment(a, reviewer=aom1, rating=5)
     ts.cancel_task(item, actor=aom1, reason="Tidak jadi")
     item.refresh_from_db()
     assert item.status == ActionItemStatus.BATAL

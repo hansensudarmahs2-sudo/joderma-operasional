@@ -115,7 +115,7 @@
       <a class="request-row" href="{% url 'owner:request_detail' r.request.pk %}">
         <span class="request-main">
           <strong>{% if r.request.kind == 'TEMUAN' %}<span class="tag info">Temuan</span> {% endif %}{% if r.request.urgent %}<span class="tag err">Mendesak</span> {% endif %}{{ r.request.title }}</strong>{% if r.request.proposed_target and r.state != 'done' %}<span class="meta"><span class="tag warn">Usul target {{ r.request.proposed_target|date:"d/m" }}</span></span>{% endif %}{% if r.request.plan_title %}<span class="meta">Task besar: {{ r.request.plan_title }}</span>{% endif %}
-          <span class="meta">{% if r.target %}{% if r.target_set %}Target{% else %}Paling lambat{% endif %} {{ r.target|date:"d/m/Y" }}{% if r.state == 'done' %}{% if r.request.completed_at %} · selesai {{ r.request.completed_at|date:"d/m/Y" }} oleh {{ r.request.completed_by }}, {% if r.finished_late_by %}terlambat {{ r.finished_late_by }} hari{% else %}tepat waktu{% endif %}{% endif %}{% else %} · {% if r.days_left > 0 %}{{ r.days_left }} hari lagi{% elif r.days_left == 0 %}hari ini{% else %}lewat {{ r.days_late }} hari{% endif %}{% endif %}{% else %}Tanpa target{% endif %} · {{ r.request.clinic.name|default:"Lintas cabang" }} · {{ r.request.created_by }}</span>
+          <span class="meta">{% if r.target %}{% if r.target_set %}Target{% else %}Paling lambat{% endif %} {{ r.target|date:"d/m/Y" }}{% if r.state == 'done' %}{% if r.request.completed_at %} · selesai {{ r.request.completed_at|date:"d/m/Y" }} oleh {{ r.request.completed_by }}, {% if r.finished_late_by %}terlambat {{ r.finished_late_by }} hari{% else %}tepat waktu{% endif %}{% endif %}{% else %} · {% if r.days_left > 0 %}{{ r.days_left }} hari lagi{% elif r.days_left == 0 %}hari ini{% else %}lewat {{ r.days_late }} hari{% endif %}{% endif %}{% else %}Tanpa target{% endif %} · {{ r.request.clinic.name|default:"Lintas cabang" }} · {{ r.request.category.name|default:"Tanpa kategori" }} · {{ r.request.created_by }}</span>
         </span>
         <span class="request-state">{% include "owner/_request_state.html" %}</span>
       </a>
@@ -127,6 +127,22 @@
   <p class="meta">Belum ada permintaan atau temuan yang berjalan. Catat temuan atau tulis permintaan; keduanya masuk Inbox Direktur Operasional, yang memilahnya menjadi task, meneruskannya, atau membawanya ke rapat. Progresnya tampil di sini.</p>
   {% endif %}
 </section>
+
+{% if per_category %}
+<section class="card" id="per-kategori" aria-labelledby="judul-kategori">
+  <div class="checklist-heading" style="margin:0">
+    <h2 id="judul-kategori" style="margin:0">Per kategori</h2>
+    <a class="meta" href="{% url 'direktur:kategori' %}">Atur kategori ›</a>
+  </div>
+  <table class="responsive">
+    <thead><tr><th>Kategori</th><th>Terbuka</th><th>Selesai</th></tr></thead>
+    <tbody>{% for c in per_category %}
+    <tr><td data-label="Kategori">{{ c.name }}</td><td data-label="Terbuka">{% if c.open %}<strong>{{ c.open }}</strong>{% else %}<span class="meta">0</span>{% endif %}</td><td data-label="Selesai">{{ c.done }}</td></tr>
+    {% endfor %}</tbody>
+  </table>
+  <p class="meta" style="margin:.4rem 0 0">Semua permintaan dan temuan. Selesai: semua task permintaan selesai, atau temuan dinyatakan selesai oleh Direktur Operasional.</p>
+</section>
+{% endif %}
 
 {% if verify %}
 <section class="card verify-queue" id="menunggu-verifikasi" aria-labelledby="judul-verifikasi">

@@ -21,7 +21,7 @@ from PIL import Image
 from accounts.models import Role, User, UserRole
 from checklists.models import ChecklistArea, ChecklistRun, ResponseResult
 from checklists.services import instantiate_runs_for_day
-from core.models import ActionItem, Attachment, Clinic, TaskAssignmentStatus, TaskAudienceType
+from core.models import ActionItem, Attachment, Clinic, TaskAssignmentStatus, TaskAudienceType, TaskCategory
 from core.photos import PHOTO_MAX_SIDE, can_view_attachment, compress_photo, task_photos
 from core.services import get_or_create_day
 from core.task_services import create_task
@@ -210,6 +210,7 @@ def test_owner_request_and_note_photos(client, clinic, director, staf):
     client.force_login(owner)
     response = client.post(reverse("owner:request_new"), {
         "judul": "Rapikan gudang", "rincian": "Kardus menumpuk", "target": "2099-01-01", "foto": _png(),
+        "kategori": TaskCategory.objects.first().pk,
     })
     req = OwnerRequest.objects.get()
     assert response["Location"] == reverse("owner:request_detail", args=[req.pk])

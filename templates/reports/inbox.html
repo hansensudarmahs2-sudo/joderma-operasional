@@ -32,7 +32,7 @@
   <tr>
     <td data-label="Masuk" class="nowrap">{{ r.created_at|date:"d/m/Y H.i" }}</td>
     <td data-label="Jenis"><span>{{ r.kind_label }}{% if r.critical %} <span class="tag err">{% if r.source_type == 'permintaan_owner' %}Mendesak{% else %}Kritis{% endif %}</span>{% endif %}{% if r.restricted %} <span class="tag muted" title="Terbatas: hanya pelapor dan pimpinan">Terbatas</span>{% endif %}</span></td>
-    <td data-label="Judul"><div><a href="{{ r.url }}"><strong>{{ r.title }}</strong></a><div class="meta">{{ r.ref }} · {{ r.clinic.name|default:"Lintas cabang" }}</div></div></td>
+    <td data-label="Judul"><div><a href="{{ r.url }}"><strong>{{ r.title }}</strong></a><div class="meta">{{ r.ref }} · {{ r.clinic.name|default:"Lintas cabang" }}{% if r.category %} · {{ r.category }}{% endif %}</div></div></td>
     <td data-label="Pelapor">{{ r.reporter }}</td>
     <td data-label="Status"><span class="tag {% if r.open %}warn{% else %}ok{% endif %}">{{ r.status }}</span></td>
     <td data-label="Pilah"><div class="triage-cell">

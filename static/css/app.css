@@ -594,3 +594,19 @@ tr.row-late td:first-child { box-shadow: inset 3px 0 0 var(--err); }
 #kotak-selisih.kas-ok { border-color: var(--ok); background: var(--ok-bg); }
 #kotak-selisih.kas-warn { border-color: var(--warn); background: var(--warn-bg); }
 #kotak-selisih .stat { margin: .2rem 0; }
+
+/* Bintang penilaian task (8 Okt 2026): 5 radio bergaya bintang, nyaman diketuk di HP */
+.bintang-input { margin: .4rem 0; }
+.bintang-input legend { font-size: .9rem; }
+.bintang-pilih { display: flex; gap: .15rem; margin: .1rem 0 .3rem; }
+.bintang-pilih input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.bintang-pilih label { font-size: 2rem; line-height: 1; color: #c9cfd0; cursor: pointer; padding: .1rem .15rem; margin: 0; }
+.bintang-pilih input:focus-visible + label { outline: 2px solid var(--warn); border-radius: 4px; }
+/* Cadangan untuk browser tanpa :has(): setidaknya bintang yang dipilih menyala. */
+.bintang-pilih input:checked + label { color: #d99a00; }
+.bintang-pilih:has(input[value="1"]:checked) label:nth-of-type(-n+1),
+.bintang-pilih:has(input[value="2"]:checked) label:nth-of-type(-n+2),
+.bintang-pilih:has(input[value="3"]:checked) label:nth-of-type(-n+3),
+.bintang-pilih:has(input[value="4"]:checked) label:nth-of-type(-n+4),
+.bintang-pilih:has(input[value="5"]:checked) label:nth-of-type(-n+5) { color: #d99a00; }
+.bintang { color: #b07d00; letter-spacing: .05em; white-space: nowrap; }

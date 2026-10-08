@@ -79,7 +79,7 @@ def test_kanban_columns_follow_assignment_state(jemur, director, staf):
     submit_assignment(waiting.task_assignments.get(), user=staf)
     done = _task(jemur, director, staf, "Selesai")
     submit_assignment(done.task_assignments.get(), user=staf)
-    confirm_assignment(done.task_assignments.get(), reviewer=director)
+    confirm_assignment(done.task_assignments.get(), reviewer=director, rating=5)
     cancelled = _task(jemur, director, staf, "Batal")
     cancelled.status = ActionItemStatus.BATAL
     cancelled.save()

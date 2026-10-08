@@ -11,6 +11,9 @@ from .middleware import get_request_context
 from .models import AuditAction, AuditEvent
 
 SENSITIVE_FIELDS = {"password", "password_hash", "token", "secret", "session_key", "csrf"}
+# Bintang penilaian task (8 Okt 2026): hanya Direktur Operasional dan Owner yang membaca jejaknya.
+RATING_AUDIT_ENTITY = "bintang_task"
+RESTRICTED_ENTITY_TYPES = {RATING_AUDIT_ENTITY}
 
 
 def _serialize_value(value: Any) -> Any:

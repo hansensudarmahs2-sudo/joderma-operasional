@@ -162,6 +162,19 @@ Anda bisa dipilih sebagai **penerima task** (dan penanggung jawab komplain/masuk
 kedua cabang, walau peran Anda tercatat di Jemur saja; pilihan nama Anda muncul di daftar PIC setiap
 cabang, termasuk saat **Semua cabang**.
 
+## Kategori permintaan dan task
+
+Permintaan dan temuan Owner baru selalu berkategori (Pelayanan pasien, Kebersihan & kerapian,
+Fasilitas & peralatan, SDM & disiplin, Keuangan & kas, Stok & obat, Pemasaran, Administrasi &
+sistem, Lainnya). Kategorinya tampil di Inbox, Jadwal Task, dan halaman permintaan, dan diwarisi
+semua task yang Anda buat dari permintaan itu (termasuk sub task temuan). Di detail task Anda dapat
+menggantinya. Permintaan lama tanpa kategori tertulis **Tanpa kategori**.
+
+Atur daftarnya di **Pengaturan ▸ Kategori task** (`/direktur/kategori/`): tambah, ganti nama, ubah
+urutan (angka kecil tampil lebih dulu), dan aktif/nonaktif. Hanya Anda dan Owner yang dapat membuka
+halaman ini. Kategori nonaktif tetap melekat pada data lama tetapi tidak bisa dipilih lagi; kategori
+tidak dihapus. Semua perubahan tercatat di audit.
+
 ## Ekspor audit
 
 Menu **Audit**: saring per pengguna, aksi, data (mis. `cashsession`, `nurseactiontally`, nama
@@ -282,7 +295,12 @@ dengan sumber **Project**.
   mengonfirmasi, dan leader, co-leader, serta pembuat project mendapat notifikasi.
 - **Batalkan selesai (revisi).** Bila bukti kurang tepat, buka detail task dan ketuk
   **Batalkan selesai (revisi)** pada penerimanya dengan catatan wajib. Task kembali ke staf dan
-  ia diberi tahu.
+  ia diberi tahu. Bintangnya ikut gugur.
+- **Bintang task project.** Karena selesai tanpa konfirmasi, penerima staf bertanda **Belum
+  dinilai**. Pengatur project (Owner, Direktur, pembuat, Project leader, Co-project leader) memberi
+  bintang 1–5 di detail task project lewat **Beri bintang** (alasan wajib untuk 1–3) dan dapat
+  mengubahnya. Penerima task tidak dapat menilai, termasuk dirinya sendiri. Penerima lain hanya
+  melihat bintangnya sendiri. Sesudah revisi dan selesai lagi, task dinilai ulang.
 - **Progres.** Kartu dan halaman project menampilkan bar progres, mis. "5 dari 8 task · 63%".
   Task yang baru sebagian selesai ikut dihitung sebagian. Galeri **Bukti dari staf** mengumpulkan
   foto dan dokumen dari semua task.
@@ -304,7 +322,7 @@ menulis Permintaan Owner dan catatannya, serta menulis tanggapan Summary Harian.
 | **Ringkasan** | Halaman utama yang sengaja ringkas: **Agenda rapat Kamis** (perkara keputusan bersama dan task yang tertahan), empat kotak kuadran prioritas (gabungan kedua cabang), empat kotak angka (keputusan menggantung, kebijakan baru, menunggu konfirmasi, jadwal task), lalu infografik per cabang. Setiap kotak dapat diketuk untuk membuka detailnya | baca | baca |
 | **Prioritas** | Matriks Eisenhower seluruh task yang belum selesai, dengan penyaring cabang dan sumber; dari Ringkasan terbuka satu kuadran saja | baca | baca |
 | **Jadwal Task** | Gantt: setiap bar dari task dibuat sampai targetnya, 7 hari ke belakang s.d. 21 hari ke depan. Task lewat target berwarna merah dan memanjang sampai hari ini; task tanpa target bergaris. **Permintaan Owner** tampil paling atas: satu baris per permintaan (dari diminta sampai target Owner, garis putus-putus oranye = target) dengan task turunannya di bawahnya (↳), atau "belum dipecah menjadi task"; task lain per cabang | baca | baca |
-| **Daftar Task** | Semua task dalam satu tabel dengan kolom **Mulai** (tanggal task diberikan) di sebelah Target. Tombol **Cari** di sebelah judul membuka pop up untuk mencari dan menyaring (status, cabang, PIC, prioritas, sumber, tanggal mulai); saringan aktif tampil di bawah judul. Urutkan dengan mengetuk judul kolom, unduh CSV | baca + unduh | baca + unduh |
+| **Daftar Task** | Semua task dalam satu tabel dengan kolom **Mulai** (tanggal task diberikan) di sebelah Target. Tombol **Cari** di sebelah judul membuka pop up untuk mencari dan menyaring (status, cabang, PIC, prioritas, sumber, **kategori** termasuk "Tanpa kategori", tanggal mulai); saringan aktif tampil di bawah judul. CSV memuat kolom **Kategori**. Urutkan dengan mengetuk judul kolom, unduh CSV | baca + unduh | baca + unduh |
 | **Kanban** | Baru · Dikerjakan · Menunggu konfirmasi · Selesai 7 hari | baca | baca |
 | **Keputusan** | Register perkara: menunggu, ditetapkan, kebijakan berlaku, dibatalkan | baca; putuskan perkara berpemutus Owner | catat, tetapkan, batalkan. Perkara berpemutus Owner tetap boleh Anda catat bila keputusannya diambil di luar aplikasi (mis. lewat WhatsApp), selama belum ada Owner yang memutuskannya di aplikasi; begitu Owner memutuskan, Anda tidak dapat mengubah atau membatalkannya |
 | **Tim** | Detail per orang dan per checklist | baca | baca + tutup temuan |
@@ -328,15 +346,34 @@ tetap lewat alur ajukan selesai → konfirmasi supaya jejak audit utuh. Kanban h
 Kanban, Prioritas, Tim, dan daftar "menunggu konfirmasi" di Hari Ini bisa diklik. Halaman ini
 memuat uraian, penerima dengan statusnya, dan riwayat. Direktur (atau pembuat task) dapat:
 
-- **Konfirmasi selesai** / **Minta revisi** bila penerima sudah mengajukan selesai;
+- **Konfirmasi selesai** / **Minta revisi** bila penerima sudah mengajukan selesai
+  (Konfirmasi selesai untuk penerima staf meminta **bintang 1–5**, lihat **Bintang** di bawah);
 - **Ubah task**: status Baru/Dikerjakan, prioritas, target, catatan progres;
+- **Kategori**: ganti kategori task (task dari permintaan/temuan Owner otomatis mengikuti
+  kategorinya);
 - **Tandai selesai** tanpa menunggu penerima (catatan wajib; penerima yang masih terbuka
-  ikut dikonfirmasi atas nama Direktur sehingga task hilang dari daftar kerja mereka);
+  ikut dikonfirmasi atas nama Direktur sehingga task hilang dari daftar kerja mereka; satu bintang
+  berlaku untuk semua penerima staf yang ikut dikonfirmasi. Task bersama "cukup satu orang": hanya
+  pengambilnya yang dinilai; bila belum ada yang mengambil, tidak ada yang dinilai dan Anda memberi
+  bintang kepada yang benar-benar mengerjakan lewat **Beri bintang**);
+- **Beri bintang** / **Ubah bintang** pada penerima yang sudah selesai;
 - **Batalkan task** atau **keluarkan** satu penerima (alasan wajib);
 - **Tambah catatan** ke riwayat.
 
 Semua perubahan tercatat di riwayat task dan audit log. Owner membuka halaman yang sama tanpa
 tombol.
+
+**Bintang (8 Okt 2026).** Yang mengonfirmasi memberi bintang 1–5 kepada penerima staf: di
+**Konfirmasi selesai** (detail task dan halaman Action item) dan di **Tandai selesai**. Ketuk
+bintangnya; bintang 1–3 wajib disertai **alasan** ("Tulis alasan untuk bintang 1–3."), bintang 4–5
+tidak. Aturan ini diperiksa server, jadi konfirmasi tanpa bintang ditolak. Penerima Direktur
+Operasional atau Owner tidak dinilai. Staf mendapat notifikasi "Task dinilai: ★★★★☆ …" dan melihat
+bintangnya sendiri di **Tugas hari ini ▸ Nilai saya**. Bintang yang sudah diberikan dapat diubah
+lewat **Ubah bintang** oleh pemberi tugas, Direktur, atau yang mengonfirmasi (task yang pemeriksanya
+Direktur Utama / Owner: hanya Owner); setiap perubahan tercatat di Audit sebagai "bintang_task", yang
+hanya terlihat oleh Direktur Operasional (supervisor dan admin tidak melihatnya, juga di unduhan CSV). Penerima yang selesai tanpa bintang (mis. dari jalur lama) bertanda **Belum
+dinilai** dan dapat dinilai lewat **Beri bintang**. Task yang selesai sebelum fitur ini ada otomatis
+bintang 5 (bertanda "otomatis").
 
 **Pemeriksa dan verifikasi Dirut (tahap 2 paket C).** Setiap task menampilkan **Pemeriksa**.
 Bawaannya Direktur Operasional. Bila salah satu penerima task adalah Direktur Operasional sendiri,
@@ -424,6 +461,9 @@ sesudah 1–2 bulan data). Hanya Direktur Operasional dan Owner yang melihat.
 - **Jejak di klinik**: persentase jejak Kuat + Sedang.
 - **Task tepat target**: task bertarget bulan itu yang sudah lewat, diajukan selesai (pengajuan pertama)
   sebelum target; juga jumlah terlambat, belum diajukan, dan diminta revisi.
+- **Bintang rata-rata**: rata-rata bintang 1–5 untuk task yang dikonfirmasi bulan itu, dengan jumlah
+  "n dinilai". Bintang otomatis 5 dari task lama ikut dihitung; task project yang belum dinilai belum.
+  Direktur Operasional dan Owner tidak dinilai. Tetap metrik sendiri, bukan skor gabungan.
 - **Centang massal**: tanda bila ≥5 butir dicentang dalam 60 detik. Hanya untuk dicek, bukan pengurang.
 
 Ketuk nama staf untuk rincian per hari (porsi, siapa yang mengambil alih, jam butir pembukaan terakhir

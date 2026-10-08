@@ -487,7 +487,7 @@ def gantt(user, *, clinic_id=None, source="", days_back: int = 7, days_ahead: in
     if source in ("", REQUEST_SOURCE):
         clinics = list(user_clinic_queryset(user).values_list("pk", flat=True))
         since = now - dt.timedelta(days=RECENT_DONE_DAYS)
-        qs = OwnerRequest.objects.filter(Q(clinic__isnull=True) | Q(clinic_id__in=clinics)).select_related("clinic")
+        qs = OwnerRequest.objects.filter(Q(clinic__isnull=True) | Q(clinic_id__in=clinics)).select_related("clinic", "category")
         if clinic_id:
             qs = qs.filter(Q(clinic_id=clinic_id) | Q(clinic__isnull=True) | Q(pk__in=list(by_request)))
         for req in qs.order_by("target_date", "created_at"):

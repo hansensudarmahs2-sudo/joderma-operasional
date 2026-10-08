@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load foto %}
+{% load foto bintang %}
 {% block title %}Action item{% endblock %}
 {% block content %}
 <h1>Action item</h1>
@@ -21,7 +21,8 @@
       <td data-label="Prioritas">{{ item.get_priority_display }}</td>
       <td data-label="Target">{{ item.due_at|default:"—" }}{% if item.is_overdue %} <span class="tag err">Lewat</span>{% endif %}</td>
       <td data-label="Status">{{ item.get_status_display }}
-        {% if row.my_assignment %}<div class="meta">Assignment Anda: {{ row.my_assignment.get_status_display }}</div>{% endif %}</td>
+        {% if row.my_assignment %}<div class="meta">Assignment Anda: {{ row.my_assignment.get_status_display }}</div>
+        {% if row.my_assignment.rating %}<div>{% include "core/_bintang.html" with a=row.my_assignment %}</div>{% endif %}{% endif %}</td>
       <td data-label="Tindakan">
         <form method="post" action="{% url 'core:action_item_update' item.pk %}" class="inline">
           {% csrf_token %}
@@ -61,8 +62,9 @@
         {% for assignment in row.review_assignments %}
         <div class="card" style="margin-top:.4rem">
           <p class="meta">Diajukan selesai oleh {{ assignment.assignee }}</p>
-          <form method="post" action="{% url 'core:assignment_confirm' assignment.pk %}" class="inline">
+          <form method="post" action="{% url 'core:assignment_confirm' assignment.pk %}"{% if not assignment.needs_rating %} class="inline"{% endif %}>
             {% csrf_token %}
+            {% if assignment.needs_rating %}{% bintang_input assignment.pk who=assignment.assignee %}{% endif %}
             <button class="btn small" type="submit">Konfirmasi selesai</button>
           </form>
           <form method="post" action="{% url 'core:assignment_revision' assignment.pk %}" class="inline">
