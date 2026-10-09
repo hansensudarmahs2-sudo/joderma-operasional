@@ -219,6 +219,14 @@ class Decider(models.TextChoices):
     LAINNYA = "LAINNYA", "Lainnya"
 
 
+class PolicyGroup(models.TextChoices):
+    """Kelompok kebijakan di halaman Kebijakan (9 Okt 2026). Semua staf tetap bisa membaca semua kelompok."""
+
+    KLINIK = "KLINIK", "Klinik"
+    APOTEK = "APOTEK", "Apotek"
+    SEMUA = "SEMUA", "Semua staf"
+
+
 class Verdict(models.TextChoices):
     """Jawaban Owner atas permintaan keputusan Direktur Operasional (7 Okt 2026)."""
 
@@ -250,6 +258,13 @@ class Decision(models.Model):
     decision_text = models.TextField("isi keputusan", blank=True)
     is_policy = models.BooleanField(
         "kebijakan berlaku", default=False, help_text="Keputusan ini menjadi aturan yang berlaku bagi staf."
+    )
+    policy_group = models.CharField(
+        "kelompok kebijakan", max_length=8, choices=PolicyGroup.choices, default=PolicyGroup.SEMUA
+    )
+    owner_only = models.BooleanField(
+        "hanya Owner", default=False,
+        help_text="Kebijakan hanya terlihat oleh Owner dan Direktur Operasional, tidak diumumkan ke staf.",
     )
     decided_on = models.DateField("tanggal ditetapkan", null=True, blank=True)
     verdict = models.CharField("jawaban Owner", max_length=10, choices=Verdict.choices, blank=True)

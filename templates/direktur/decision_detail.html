@@ -41,6 +41,9 @@
     <div class="inline">
       <div><label for="tanggal">Tanggal ditetapkan</label><input id="tanggal" type="date" name="tanggal" value="{{ decision.decided_on|date:'Y-m-d' }}"></div>
       <div><label><input type="checkbox" name="kebijakan" value="1" style="width:auto" {% if decision.is_policy %}checked{% endif %}> Kebijakan berlaku bagi staf</label><span class="help">Diumumkan lewat notifikasi ke semua orang di cabangnya dan tampil di halaman Kebijakan.</span></div>
+      <div><label for="kelompok">Kelompok kebijakan</label>
+        <select id="kelompok" name="kelompok">{% for v, l in policy_groups %}<option value="{{ v }}"{% if v == decision.policy_group %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div><label><input type="checkbox" name="hanya_owner" value="1" style="width:auto" {% if decision.owner_only %}checked{% endif %}> Hanya Owner</label><span class="help">Hanya terlihat oleh Owner dan Direktur Operasional; tidak diumumkan ke staf.</span></div>
     </div>
     <p><button class="btn" type="submit">Tetapkan</button></p>
   </form>

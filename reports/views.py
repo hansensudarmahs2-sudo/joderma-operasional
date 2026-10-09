@@ -717,18 +717,43 @@ def inbox_triage(request, sumber: str, pk: int):
 
 @login_required
 def policies(request):
-    """Kebijakan berlaku: dibaca semua peran (5 Okt 2026). Tanpa nama pelapor atau sumbernya."""
+    """Kebijakan berlaku: dibaca semua peran (5 Okt 2026). Tanpa nama pelapor atau sumbernya.
+
+    9 Okt 2026: dipilah per kelompok (Klinik, Apotek, Semua staf); perawat dan apotek membaca kebijakan
+    yang sama, saringan hanya memudahkan. Kebijakan "Hanya Owner" hanya untuk Owner dan Direktur."""
     from core.permissions import user_clinic_queryset
-    from direktur.models import Decision, DecisionStatus
+    from direktur.models import Decision, DecisionStatus, PolicyGroup
+    from direktur.services import can_see_owner_only_policies
 
     clinics = list(user_clinic_queryset(request.user))
     items = (
         Decision.objects.filter(status=DecisionStatus.DITETAPKAN, is_policy=True)
         .filter(Q(clinic__isnull=True) | Q(clinic__in=clinics))
         .select_related("clinic")
-        .order_by("-decided_on", "-id")
     )
+    sees_owner_only = can_see_owner_only_policies(request.user)
+    if not sees_owner_only:
+        items = items.filter(owner_only=False)
+    group = request.GET.get("kelompok", "")
+    groups = [(v, l) for v, l in PolicyGroup.choices]
+    if sees_owner_only:
+        groups.append(("OWNER", "Hanya Owner"))
+    if group == "OWNER" and sees_owner_only:
+        items = items.filter(owner_only=True)
+    elif group in dict(PolicyGroup.choices):
+        items = items.filter(policy_group=group, owner_only=False)
+    else:
+        group = ""
+    items = list(items.order_by("-decided_on", "-id"))
+    order = {v: i for i, (v, _) in enumerate(groups)}
+    sections = []
+    for value, label in groups:
+        rows = [d for d in items if ("OWNER" if d.owner_only else d.policy_group) == value]
+        if rows:
+            sections.append({"value": value, "label": label, "items": rows})
+    sections.sort(key=lambda s: order[s["value"]])
     fresh = local_today() - timedelta(days=7)
     return render(request, "reports/policies.html", {
-        "items": items, "fresh": fresh, "is_director": is_aom(request.user),
+        "sections": sections, "total": len(items), "groups": groups, "group": group,
+        "fresh": fresh, "is_director": is_aom(request.user),
     })

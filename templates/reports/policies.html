@@ -2,18 +2,28 @@
 {% block title %}Kebijakan{% endblock %}
 {% block content %}
 <h1>Kebijakan</h1>
-<p class="sub">Aturan yang sudah ditetapkan dan berlaku. Kebijakan baru juga diumumkan lewat notifikasi.</p>
+<p class="sub">Aturan yang sudah ditetapkan dan berlaku, dipilah per kelompok. Perawat dan apotek membaca kebijakan yang sama; pilih kelompok hanya untuk memudahkan. Kebijakan baru juga diumumkan lewat notifikasi.</p>
 
-{% for d in items %}
-<article class="card policy">
-  <h2 class="policy-title">{{ d.title }}</h2>
-  <p class="meta">
-    {% if d.decided_on >= fresh %}<span class="tag info">Baru</span> {% endif %}Berlaku mulai {{ d.decided_on|date:"d/m/Y" }} · {{ d.clinic.name|default:"Semua cabang" }}
-    {% if is_director %} · <a href="{% url 'direktur:decision_detail' d.pk %}">buka di Keputusan</a>{% endif %}
-  </p>
-  <div class="policy-text">{{ d.decision_text|linebreaksbr }}</div>
-</article>
+<nav class="chip-row" aria-label="Kelompok kebijakan" style="margin:0 0 1rem">
+  <a class="chip{% if not group %} chip-on{% endif %}" href="{% url 'reports:policies' %}">Semua</a>
+  {% for v, l in groups %}<a class="chip{% if group == v %} chip-on{% endif %}" href="?kelompok={{ v }}">{{ l }}</a>{% endfor %}
+</nav>
+
+{% for s in sections %}
+<section aria-labelledby="kelompok-{{ s.value }}">
+  <h2 id="kelompok-{{ s.value }}">{{ s.label }} <span class="meta">· {{ s.items|length }} kebijakan</span></h2>
+  {% for d in s.items %}
+  <article class="card policy">
+    <h3 class="policy-title">{{ d.title }}</h3>
+    <p class="meta">
+      {% if d.decided_on >= fresh %}<span class="tag info">Baru</span> {% endif %}{% if d.owner_only %}<span class="tag warn">Hanya Owner</span> {% endif %}Berlaku mulai {{ d.decided_on|date:"d/m/Y" }} · {{ d.clinic.name|default:"Semua cabang" }}
+      {% if is_director %} · <a href="{% url 'direktur:decision_detail' d.pk %}">buka di Keputusan</a>{% endif %}
+    </p>
+    <div class="policy-text">{{ d.decision_text|linebreaksbr }}</div>
+  </article>
+  {% endfor %}
+</section>
 {% empty %}
-<p class="card meta">Belum ada kebijakan yang ditetapkan.</p>
+<p class="card meta">{% if group %}Belum ada kebijakan di kelompok ini.{% else %}Belum ada kebijakan yang ditetapkan.{% endif %}</p>
 {% endfor %}
 {% endblock %}

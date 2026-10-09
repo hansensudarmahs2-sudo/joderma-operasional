@@ -38,6 +38,7 @@ from .models import (
     DecisionStatus,
     DirectorNote,
     NoteSource,
+    PolicyGroup,
     period_start,
 )
 
@@ -227,6 +228,8 @@ def decision_detail(request, pk: int):
                     decision_text=request.POST.get("isi", ""),
                     is_policy=request.POST.get("kebijakan") == "1",
                     decided_on=services.parse_date(request.POST.get("tanggal", ""), "Tanggal"),
+                    policy_group=request.POST.get("kelompok") or None,
+                    owner_only=request.POST.get("hanya_owner") == "1",
                 )
                 messages.success(request, "Keputusan ditetapkan.")
         except ValidationError as exc:
@@ -237,6 +240,7 @@ def decision_detail(request, pk: int):
         "direktur/decision_detail.html",
         {
             "decision": decision,
+            "policy_groups": PolicyGroup.choices,
             "is_director": is_aom(request.user),
             "can_owner_decide": is_owner(request.user) and decision.status == DecisionStatus.MENUNGGU
             and services.is_owner_decision(decision),

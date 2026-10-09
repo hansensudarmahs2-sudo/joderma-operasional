@@ -13,7 +13,7 @@ from accounts.models import PicAssignment, PicFunction, Role, User
 from audit.models import AuditAction
 from audit.services import log_create, log_event, log_update, snapshot
 from core.models import ActionItem, ActionItemStatus, Priority, TaskAudienceType, local_today
-from core.permissions import can_access_clinic, clinic_member_q, is_aom, is_owner_only
+from core.permissions import can_access_clinic, clinic_member_q, is_aom, is_owner, is_owner_only
 from core.task_services import _clear_blocked, create_task
 
 from .models import (
@@ -26,6 +26,7 @@ from .models import (
     DecisionStatus,
     DirectorNote,
     NoteSource,
+    PolicyGroup,
     period_start,
 )
 
@@ -626,9 +627,14 @@ def _assert_no_owner_verdict(decision: Decision) -> None:
 
 @transaction.atomic
 def settle_decision(
-    decision: Decision, *, actor, decision_text: str, is_policy: bool = False, decided_on=None
+    decision: Decision, *, actor, decision_text: str, is_policy: bool = False, decided_on=None,
+    policy_group: str | None = None, owner_only: bool | None = None, announce: bool = True,
 ) -> Decision:
-    """Catat keputusan yang sudah diambil (oleh siapa pun pemutusnya)."""
+    """Catat keputusan yang sudah diambil (oleh siapa pun pemutusnya).
+
+    `policy_group` / `owner_only` (9 Okt 2026): kelompok di halaman Kebijakan dan kebijakan khusus Owner;
+    None = tidak diubah. `announce=False` untuk pemasukan massal yang diumumkan sekali lewat ringkasan.
+    """
     assert_director(actor)
     if decision.clinic_id:
         _assert_clinic(actor, decision.clinic)
@@ -643,20 +649,34 @@ def settle_decision(
     decision.decision_text = decision_text.strip()
     decision.is_policy = bool(is_policy)
     decision.decided_on = decided_on or local_today()
+    if policy_group is not None:
+        if policy_group not in dict(PolicyGroup.choices):
+            raise ValidationError("Kelompok kebijakan tidak dikenali.")
+        decision.policy_group = policy_group
+    if owner_only is not None:
+        decision.owner_only = bool(owner_only)
     decision.save()
     log_update(decision, before, actor=actor, action=AuditAction.APPROVE)
     _release_waiting(decision, actor=actor, verb="ditetapkan")
-    if decision.is_policy and not was_policy:
+    if decision.is_policy and not was_policy and announce:
         announce_policy(decision, actor=actor)
     return decision
 
 
 def policy_audience(decision: Decision):
-    """Semua pengguna aktif di cabang kebijakan (lintas cabang = semua cabang aktif)."""
+    """Semua pengguna aktif di cabang kebijakan (lintas cabang = semua cabang aktif).
+
+    Kebijakan khusus Owner: hanya Owner dan Direktur Operasional aktif (9 Okt 2026)."""
     from core.models import Clinic
 
+    if decision.owner_only:
+        return User.objects.filter(is_active=True, user_roles__role__in=[Role.OWNER, Role.AOM]).distinct()
     clinics = [decision.clinic] if decision.clinic_id else list(Clinic.objects.filter(active=True))
     return User.objects.filter(is_active=True, user_roles__clinic__in=clinics).distinct()
+
+
+def can_see_owner_only_policies(user) -> bool:
+    return bool(user and user.is_authenticated and (is_owner(user) or is_aom(user)))
 
 
 def announce_policy(decision: Decision, *, actor) -> int:

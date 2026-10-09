@@ -402,7 +402,10 @@ Perkara berpemutus Owner atau Direktur Utama yang Anda catat di sini memberi not
 Owner, dan Owner memutuskannya sendiri dari Dashboard (keputusan pertama yang berlaku, tertulis
 "Disetujui <nama>: <catatan>" atau "Ditolak <nama>: <catatan>"); Anda diberi tahu hasilnya.
 Halaman perkara itu dapat Anda baca, tetapi tidak dapat Anda putuskan atas nama Owner.
-Centang *Kebijakan berlaku* bila keputusan itu menjadi aturan bagi staf. Perkara tidak dihapus;
+Centang *Kebijakan berlaku* bila keputusan itu menjadi aturan bagi staf, lalu pilih **Kelompok kebijakan**
+(Klinik, Apotek, atau Semua staf). Kelompok hanya memilah halaman Kebijakan; perawat dan apotek tetap
+membaca semua kebijakan. Centang **Hanya Owner** untuk kebijakan yang tidak untuk staf (mis. pengajuan
+dukungan untuk dokter): hanya Owner dan Anda yang melihatnya, dan pengumumannya hanya ke Owner. Perkara tidak dihapus;
 yang tidak jadi diputuskan dibatalkan dengan alasan.
 
 **Keputusan bersama dan rapat Kamis (K-015, ditambahkan Oktober 2026).** Pilih pemutus

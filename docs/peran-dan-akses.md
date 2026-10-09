@@ -146,7 +146,8 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Ringkasan, Daftar Task, Bahan Rapat, Kanban, Prioritas, Jadwal Task, Keputusan, Tim, Detail task (baca) | AOM, owner | — |
 | Tahan task menunggu keputusan, bawa ke rapat, buat task tindak lanjut keputusan | AOM | — |
 | Jadikan item Inbox kebijakan (diumumkan ke semua orang di cabangnya, tanpa nama pelapor) | AOM | — |
-| Membaca Kebijakan (`/laporan/kebijakan/`): kebijakan cabangnya sendiri dan yang berlaku semua cabang | semua peran | — |
+| Membaca Kebijakan (`/laporan/kebijakan/`): kebijakan cabangnya sendiri dan yang berlaku semua cabang, dipilah Klinik / Apotek / Semua staf (9 Okt 2026) | semua peran | — |
+| Membaca kebijakan **Hanya Owner** (mis. pengajuan dukungan untuk dokter) dan menerima pengumumannya | owner, AOM | — |
 | Dipilih sebagai penerima task / penanggung jawab catatan di **cabang mana pun** walau perannya tercatat di satu cabang (5 Okt 2026) | AOM, owner (task project saja) | — |
 | Detail task: ubah status/target, tandai selesai, batalkan, keluarkan penerima | AOM, pembuat task | — |
 | Pengaturan klinik (nama, alamat, nomor HP, jam, DPJ, APJ): ubah | admin, AOM, superuser bootstrap | — |
