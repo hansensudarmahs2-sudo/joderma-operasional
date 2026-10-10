@@ -182,10 +182,11 @@
 
 <div class="card" style="margin-top:.6rem">
   {% if not dirut_review %}
-  <form method="post"{% if not close_needs_rating %} class="inline"{% endif %}>{% csrf_token %}
+  <form method="post"{% if not close_needs_rating and item.source_type != 'proyek' %} class="inline"{% endif %}{% if item.source_type == 'proyek' %} enctype="multipart/form-data" data-bukti-opsional{% endif %}>{% csrf_token %}
     <input type="hidden" name="aksi" value="selesai">
     <label style="flex:1 1 16rem">Tandai selesai tanpa menunggu penerima<input name="catatan" required placeholder="Catatan penutupan (wajib)"></label>
     {% if close_needs_rating %}{% bintang_input "tutup" who=close_rating_names %}{% if item.assignment_mode == 'BERSAMA' %}<p class="help">Task bersama: hanya yang mengambil task yang dinilai.</p>{% endif %}{% elif close_shared_unclaimed %}<p class="help">Task bersama belum diambil siapa pun, jadi tidak ada yang dinilai. Sesudah ditutup, beri bintang kepada yang benar-benar mengerjakan lewat <strong>Beri bintang</strong>.</p>{% endif %}
+    {% if item.source_type == 'proyek' %}{% include "includes/tutup_bukti.html" %}{% endif %}
     <button class="btn small" type="submit">Tandai selesai</button>
   </form>
   {% else %}<p class="meta" style="margin:0">Task ini ditutup lewat ajukan selesai oleh penerima, lalu konfirmasi Direktur Utama / Owner.{% if i_receive %} Anda penerimanya: tekan <strong>{% if item.source_type == "proyek" %}Tandai selesai{% else %}Ajukan selesai{% endif %}</strong> di tabel Penerima di atas.{% endif %}</p>{% endif %}

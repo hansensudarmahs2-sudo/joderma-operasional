@@ -910,3 +910,64 @@ def test_recipient_can_open_project_evidence(client, project, aom1, sc, sd):
     src = re.search(r"<img[^>]+src=\"([^\"]+)\"", body.split("judul-penerima", 1)[1])
     assert src, "foto bukti tidak tampil"
     assert client.get(src.group(1)).status_code == 200
+
+
+# --- Pengatur project menandai selesai, bukti opsional dengan peringatan (10 Okt 2026) -----------
+
+
+def _close(client, user, project, item, **data):
+    client.force_login(user)
+    return client.post(reverse("projects:task_detail", args=[project.pk, item.pk]),
+                       {"aksi": "selesai", "catatan": "Sudah dicek bersama", **data}, follow=True)
+
+
+def test_leader_closes_with_photo_and_stars(client, project, aom1, sa, sc):
+    item = _task(project, aom1, [sc])
+    body = _login(client, sa).get(reverse("projects:task_detail", args=[project.pk, item.pk])).content.decode()
+    assert "data-bukti-opsional" in body and "Tetap tandai selesai tanpa bukti" in body
+    response = _close(client, sa, project, item, foto=_png(), bintang="5")
+    assert "Task ditandai selesai." in _messages(response)
+    item.refresh_from_db()
+    a = item.task_assignments.get()
+    assert item.status == ActionItemStatus.SELESAI and a.status == TaskAssignmentStatus.CONFIRMED and a.rating == 5
+    ev = item.task_events.get(event_type=TaskEventType.COMMENT)
+    assert ev.actor == sa and ev.note.startswith("Bukti penutupan")
+    detail = client.get(reverse("projects:detail", args=[project.pk])).content.decode()
+    assert re.search(r'data-label="Bukti">\s*1\s*<', detail)
+
+
+def test_close_without_evidence_warns_then_proceeds(client, project, aom1, sb, sc):
+    item = _task(project, aom1, [sc])
+    response = _close(client, sb, project, item, bintang="5")  # co-leader, tanpa berkas, tanpa centang
+    assert any("Belum ada foto atau dokumen bukti" in m for m in _messages(response))
+    item.refresh_from_db()
+    assert item.status != ActionItemStatus.SELESAI
+    _close(client, sb, project, item, bintang="5", tanpa_bukti="1")
+    item.refresh_from_db()
+    assert item.status == ActionItemStatus.SELESAI
+    assert not item.task_events.filter(event_type=TaskEventType.COMMENT).exists()
+
+
+def test_recipient_cannot_close_project_task(client, project, aom1, sc):
+    item = _task(project, aom1, [sc])
+    _login(client, sc)
+    url = reverse("projects:task_detail", args=[project.pk, item.pk])
+    assert "Tandai selesai</summary>" not in client.get(url).content.decode()
+    assert client.post(url, {"aksi": "selesai", "catatan": "x", "tanpa_bukti": "1"}).status_code == 403
+    item.refresh_from_db()
+    assert item.status != ActionItemStatus.SELESAI
+
+
+def test_director_page_project_task_warns_without_evidence(client, project, aom1, sc):
+    item = _task(project, aom1, [sc])
+    client.force_login(aom1)
+    url = reverse("direktur:task_detail", args=[item.pk])
+    assert "Tetap tandai selesai tanpa bukti" in client.get(url).content.decode()
+    response = client.post(url, {"aksi": "selesai", "catatan": "Beres", "bintang": "4"}, follow=True)
+    assert any("Belum ada foto atau dokumen bukti" in m for m in _messages(response))
+    item.refresh_from_db()
+    assert item.status != ActionItemStatus.SELESAI
+    client.post(url, {"aksi": "selesai", "catatan": "Beres", "bintang": "4", "foto": _png()})
+    item.refresh_from_db()
+    assert item.status == ActionItemStatus.SELESAI
+    assert item.task_events.filter(event_type=TaskEventType.COMMENT, note__startswith="Bukti penutupan").exists()

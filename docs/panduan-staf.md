@@ -141,7 +141,9 @@ revisi**; perbaiki lalu tandai selesai lagi. Selama Anda menerima task di projec
 berjalan, menu **Projects** muncul di menu Anda: Anda dapat melihat seluruh project (progres,
 semua task, dan bukti), task Anda bertanda **Task saya**, dan Anda dapat membalas di task milik
 Anda. Menandai selesai tetap dari **Tugas hari ini**. Bila Anda Project leader atau Co-project
-leader, dari menu yang sama Anda juga mengatur task project itu.
+leader, dari menu yang sama Anda juga mengatur task project itu, termasuk **Tandai selesai** atas
+nama penerima (catatan wajib; foto atau dokumen opsional, tanpa lampiran muncul peringatan yang
+bisa dilewati).
 
 ## Sore: menutup hari
 

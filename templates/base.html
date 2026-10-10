@@ -283,7 +283,7 @@ document.querySelectorAll('input[type=file][data-photo]').forEach(function (inpu
 })();
 document.addEventListener('submit', function (e) {
   var form = e.target;
-  if (form.dataset.noGuard) return;
+  if (form.dataset.noGuard || e.defaultPrevented) return;  // dibatalkan (mis. peringatan tanpa bukti): tombol tetap aktif
   var btn = form.querySelector('button[type=submit]');
   if (btn) { setTimeout(function () { btn.disabled = true; btn.textContent = 'Menyimpan...'; }, 0); }
 });

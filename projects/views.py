@@ -362,9 +362,14 @@ def task_detail(request, pk: int, task_pk: int):
         e.docs = e_docs.get(e.pk, [])
     mine = [a for a in assignments if a.assignee_id == user.pk and a.status != TaskAssignmentStatus.CANCELLED]
     my_open = next((a for a in mine if a.status in ps.OPEN_ASSIGNMENT_STATES), None)
+    from core.task_services import close_rating_context
+
+    can_close = can_manage and item.status in ps.OPEN_ITEM_STATES
     return render(request, "projects/task_detail.html", {
         "project": project, "item": item, "rows": rows, "events": events,
         "can_manage": can_manage,
+        "can_close": can_close,
+        **(close_rating_context(item, assignments, user) if can_close else {}),
         # Penerima boleh membalas di task miliknya sendiri (add_task_comment memeriksa keterlibatan).
         "can_comment": ps.can_manage_tasks(user, project) or bool(mine),
         "my_open": my_open if item.status in ps.OPEN_ITEM_STATES else None,
@@ -394,6 +399,16 @@ def _handle_task_post(request, project: Project, item: ActionItem):
             rate_assignment(assignment, actor=request.user, rating=parse_rating(request.POST.get("bintang")),
                             note=request.POST.get("catatan_bintang", ""))
             messages.success(request, f"Bintang untuk {assignment.assignee} disimpan.")
+        elif aksi == "selesai":
+            # Pengatur project menandai selesai atas nama penerima; bukti opsional dengan peringatan (10 Okt 2026).
+            from core.views import close_with_optional_evidence
+
+            if not project.is_active:
+                raise ValidationError("Project ini sudah ditutup atau dibatalkan.")
+            if not ps.can_manage_tasks(request.user, project):
+                raise PermissionDenied("Hanya pengatur project yang dapat menandai task selesai.")
+            close_with_optional_evidence(request, item)
+            messages.success(request, "Task ditandai selesai.")
         elif aksi == "batal_task":
             ps.cancel_project_task(item, actor=request.user, reason=request.POST.get("alasan", ""))
             messages.warning(request, "Task dibatalkan.")

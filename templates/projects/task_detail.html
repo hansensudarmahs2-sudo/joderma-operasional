@@ -51,6 +51,21 @@
   </ul>
 </section>
 
+{% if can_close %}
+<details class="card" id="tandai-selesai">
+  <summary>Tandai selesai</summary>
+  <p class="help">Untuk pekerjaan yang sudah beres tetapi penerima belum menandainya. Semua penerima yang masih terbuka ikut dinyatakan selesai.</p>
+  <form method="post" class="stack-form" enctype="multipart/form-data" data-bukti-opsional>{% csrf_token %}
+    <input type="hidden" name="aksi" value="selesai">
+    <label for="catatan-selesai">Catatan penutupan (wajib)</label>
+    <input id="catatan-selesai" name="catatan" required placeholder="Mis. rak sudah terpasang, dicek bersama">
+    {% if close_needs_rating %}{% bintang_input "tutup" who=close_rating_names %}{% if shared %}<p class="help">Task bersama: hanya yang mengambil task yang dinilai.</p>{% endif %}{% elif close_shared_unclaimed %}<p class="help">Task bersama belum diambil siapa pun, jadi tidak ada yang dinilai. Sesudah ditutup, beri bintang kepada yang benar-benar mengerjakan.</p>{% endif %}
+    {% include "includes/tutup_bukti.html" %}
+    <button class="btn small" type="submit">Tandai selesai</button>
+  </form>
+</details>
+{% endif %}
+
 {% if can_manage %}
 <details class="card">
   <summary>Batalkan task</summary>

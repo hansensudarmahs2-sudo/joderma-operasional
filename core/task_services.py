@@ -851,6 +851,18 @@ def close_rating_targets(item: ActionItem, open_assignments, actor) -> set[int]:
     return {a.pk for a in people}
 
 
+def close_rating_context(item: ActionItem, assignments, user) -> dict:
+    """Formulir "Tandai selesai" (halaman Direktur dan Projects): siapa yang mendapat bintang."""
+    open_rows = [a for a in assignments if a.status in OPEN_ASSIGNMENT_STATES]
+    targets = close_rating_targets(item, open_rows, user)
+    names = ", ".join(str(a.assignee) for a in open_rows if a.pk in targets)
+    shared_unclaimed = (item.assignment_mode == TaskAssignmentMode.BERSAMA
+                        and not any(a.claimed_by_id for a in assignments)
+                        and any(needs_rating(a.assignee) for a in open_rows))
+    return {"close_needs_rating": bool(targets), "close_rating_names": names,
+            "close_shared_unclaimed": shared_unclaimed}
+
+
 @transaction.atomic
 def close_task(item: ActionItem, *, actor, note: str, rating=None, rating_note: str = "") -> ActionItem:
     """Pemberi tugas menyatakan task selesai tanpa menunggu penerima mengajukan.

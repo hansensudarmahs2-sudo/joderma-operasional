@@ -536,13 +536,7 @@ def _assignment_action(request, item: ActionItem, aksi: str) -> str:
 
 def _close_rating_context(item, assignments, user) -> dict:
     """Formulir "Tandai selesai": siapa yang mendapat bintang (task bersama: hanya pengambilnya)."""
-    open_rows = [a for a in assignments if a.status in task_services.OPEN_ASSIGNMENT_STATES]
-    targets = task_services.close_rating_targets(item, open_rows, user)
-    names = ", ".join(str(a.assignee) for a in open_rows if a.pk in targets)
-    shared_unclaimed = (item.assignment_mode == "BERSAMA" and not any(a.claimed_by_id for a in assignments)
-                        and any(task_services.needs_rating(a.assignee) for a in open_rows))
-    return {"close_needs_rating": bool(targets), "close_rating_names": names,
-            "close_shared_unclaimed": shared_unclaimed}
+    return task_services.close_rating_context(item, assignments, user)
 
 
 @login_required
@@ -600,9 +594,10 @@ def task_detail(request, pk: int):
                 )
                 messages.success(request, "Task diperbarui.")
             elif aksi == "selesai":
-                task_services.close_task(item, actor=request.user, note=request.POST.get("catatan", ""),
-                                         rating=task_services.parse_rating(request.POST.get("bintang")),
-                                         rating_note=request.POST.get("catatan_bintang", ""))
+                from core.views import close_with_optional_evidence
+
+                # Task project: bukti opsional, tanpa bukti diteruskan setelah peringatan (10 Okt 2026).
+                close_with_optional_evidence(request, item)
                 messages.success(request, "Task ditandai selesai.")
             elif aksi == "kategori":
                 kategori.set_task_category(item, actor=request.user, raw=request.POST.get("kategori", ""))

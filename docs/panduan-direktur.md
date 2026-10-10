@@ -293,6 +293,12 @@ dengan sumber **Project**.
 - **Selesai tanpa konfirmasi.** Staf menandai selesai dengan **bukti wajib** (minimal satu foto
   atau dokumen, catatan opsional). Task langsung dihitung selesai; Anda tidak perlu
   mengonfirmasi, dan leader, co-leader, serta pembuat project mendapat notifikasi.
+- **Pengatur menandai selesai.** Leader, co-leader, pembuat project, Owner, dan Anda dapat menekan
+  **Tandai selesai** di detail task (atau "Tandai selesai tanpa menunggu penerima" di halaman task
+  Direktur) bila pekerjaannya beres tetapi penerima belum menandainya. Catatan wajib; foto atau
+  dokumen **opsional**. Tanpa lampiran muncul peringatan "Belum ada foto atau dokumen bukti";
+  task tetap selesai bila peringatan dilewati (centang *Tetap tandai selesai tanpa bukti*).
+  Lampiran tersimpan sebagai "Bukti penutupan" dan terhitung di kolom Bukti.
 - **Batalkan selesai (revisi).** Bila bukti kurang tepat, buka detail task dan ketuk
   **Batalkan selesai (revisi)** pada penerimanya dengan catatan wajib. Task kembali ke staf dan
   ia diberi tahu. Bintangnya ikut gugur.

@@ -1,0 +1,14 @@
+{% load foto %}{# Tandai selesai oleh pemberi tugas / pengatur project: bukti opsional, peringatan bila kosong (10 Okt 2026). Formnya perlu enctype multipart dan atribut data-bukti-opsional. #}
+{% lampiran_input "Foto atau dokumen bukti (opsional)" "foto" %}
+<label class="help" style="display:block"><input type="checkbox" name="tanpa_bukti" value="1" style="width:auto"> Tetap tandai selesai tanpa bukti</label>
+<script>(function(){
+  var s=document.currentScript, f=s && s.closest("form");
+  if(!f || f.dataset.buktiSiap) return; f.dataset.buktiSiap="1";
+  f.addEventListener("submit", function(e){
+    var file=f.querySelector('input[type=file][name=foto]'), skip=f.querySelector('input[name=tanpa_bukti]');
+    if(file && file.files && file.files.length) return;
+    if(skip && skip.checked) return;
+    if(window.confirm("Belum ada foto atau dokumen bukti. Tetap tandai selesai tanpa bukti?")){ if(skip) skip.checked=true; }
+    else { e.preventDefault(); }
+  });
+})();</script>

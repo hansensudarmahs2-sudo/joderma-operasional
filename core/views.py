@@ -485,6 +485,35 @@ def submit_with_evidence(request, assignment: TaskAssignment) -> None:
         messages.error(request, " ".join(exc.messages))
 
 
+NO_EVIDENCE_WARNING = (
+    "Belum ada foto atau dokumen bukti. Lampirkan bukti, atau centang “Tetap tandai selesai tanpa bukti”."
+)
+
+
+def close_with_optional_evidence(request, item: ActionItem) -> None:
+    """Pemberi tugas / pengatur project menandai task selesai tanpa menunggu penerima (10 Okt 2026).
+
+    Bukti foto/dokumen opsional. Untuk task project, tanpa bukti hanya diteruskan bila peringatan
+    sudah dilewati (``tanpa_bukti=1``); bukti disimpan pada event "Bukti penutupan" sehingga terhitung
+    di kolom Bukti project. Validasi dan izin dari `close_task`; galat diteruskan sebagai ValidationError."""
+    from projects.services import is_project_item
+
+    from .models import TaskEvent, TaskEventType
+    from .task_services import close_task
+
+    has_file = bool(request.FILES.get("foto"))
+    if is_project_item(item) and not has_file and request.POST.get("tanpa_bukti") != "1":
+        raise ValidationError(NO_EVIDENCE_WARNING)
+    note = request.POST.get("catatan", "")
+    with transaction.atomic():
+        close_task(item, actor=request.user, note=note, rating=parse_rating(request.POST.get("bintang")),
+                   rating_note=request.POST.get("catatan_bintang", ""))
+        if has_file:
+            event = TaskEvent.objects.create(action_item=item, event_type=TaskEventType.COMMENT, actor=request.user,
+                                             note=f"Bukti penutupan: {note.strip()}")
+            save_optional_attachment(request, entity_type="taskevent", entity_id=event.pk)
+
+
 @login_required
 @require_POST
 def assignment_submit(request, pk: int):
