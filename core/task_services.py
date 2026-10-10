@@ -896,7 +896,7 @@ def close_task(item: ActionItem, *, actor, note: str, rating=None, rating_note: 
         rated = assignment.pk in to_rate
         TaskEvent.objects.create(
             action_item=item, assignment=assignment, event_type=TaskEventType.CONFIRMED,
-            actor=actor, note=f"Ditutup oleh pemberi tugas: {note}",
+            actor=actor, note=f"Ditandai selesai oleh pengatur: {note}",
             metadata={"bintang": rating} if rated else {},
         )
         if rated:

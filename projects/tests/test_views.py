@@ -946,6 +946,8 @@ def test_close_without_evidence_warns_then_proceeds(client, project, aom1, sb, s
     item.refresh_from_db()
     assert item.status == ActionItemStatus.SELESAI
     assert not item.task_events.filter(event_type=TaskEventType.COMMENT).exists()
+    ev = item.task_events.get(event_type=TaskEventType.CONFIRMED)
+    assert ev.note == "Ditandai selesai oleh pengatur: Sudah dicek bersama" and ev.actor == sb
 
 
 def test_recipient_cannot_close_project_task(client, project, aom1, sc):
