@@ -122,13 +122,20 @@ rm -rf /tmp/joderma-deploy && git worktree prune
 git worktree add /tmp/joderma-deploy HEAD
 rsync -az --delete \
   --exclude '/.venv/' --exclude '/data/' --exclude '/private_media/' --exclude '/logs/' \
-  --exclude '/backups/' --exclude '/staticfiles/' --exclude '/.git/' --exclude '__pycache__/' --exclude '/.env' \
+  --exclude '/backups/' --exclude '/staticfiles/' --exclude '/.git' --exclude '__pycache__/' --exclude '/.env' \
   /tmp/joderma-deploy/ joderma-jemur@joderma-jemur:~/joderma-ops/
 git worktree remove /tmp/joderma-deploy
 ```
 
 Pola exclude diawali `/` supaya hanya folder di akar yang dilewati. Tanpa `/`, folder
 bernama sama di dalam app (mis. `jadwal/.../data/`) ikut terlewat; itu pernah terjadi.
+
+`--exclude '/.git'` ditulis **tanpa** garis miring di belakang. Di worktree, `.git` adalah
+sebuah *berkas* berisi penunjuk ke direktori utama, bukan direktori — dan `'/.git/'` hanya
+cocok dengan direktori, sehingga berkas itu ikut terkirim. Pada deploy 12 Okt 2026 berkas
+`.git` berisi `gitdir: /home/.../joderma-operasional/.git/worktrees/joderma-deploy` sempat
+mendarat di `~/joderma-ops` dan harus dihapus tangan. Isinya hanya penunjuk path, bukan
+rahasia, tetapi membuat direktori aplikasi tampak seperti worktree yang rusak.
 
 ```bash
 # Di server klinik
