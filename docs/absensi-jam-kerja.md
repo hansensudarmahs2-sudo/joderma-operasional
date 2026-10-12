@@ -4,7 +4,7 @@
 > perhitungan, laporan pengecualian, halaman web, "Absensi saya" untuk staf, dan
 > koreksi cap dari halaman.**
 > Seluruhnya sudah di-merge ke `master`: Tahap 1-3 dan 5 pada 6 Okt 2026, Tahap 4 pada
-> 12 Okt 2026 (`40c0335`). **Belum dideploy ke mini PC.**
+> 12 Okt 2026 (`874bdf9`). **Belum dideploy ke mini PC.**
 > **Belum boleh dipakai untuk penilaian nyata** sampai bagian 9 beres.
 
 ## 1. Mengapa modul ini ada
@@ -67,7 +67,7 @@ templates/absensi/
   index.html / staf.html / koreksi.html
 ```
 
-159 test di `absensi/tests/`. Seluruh suite repo 911 lulus.
+159 test di `absensi/tests/`. Seluruh suite repo 1440 lulus (12 Okt 2026).
 
 ### Halaman dan hak akses
 
@@ -434,8 +434,8 @@ skor.
 
 Satu tahap satu kali, berhenti di setiap approval gate (`AGENTS.md`).
 
-**Tahap 4 — koreksi cap dari halaman.** *Selesai; di-merge ke `master` 12 Okt 2026
-(`40c0335`), belum dideploy.* Tombol "Koreksi cap" pada baris "Perlu dicek" dan pada rincian per staf
+**Tahap 4 — koreksi cap dari halaman.** *Selesai; di `master` sejak 12 Okt 2026
+(`874bdf9`), belum dideploy.* Tombol "Koreksi cap" pada baris "Perlu dicek" dan pada rincian per staf
 membuka `/absensi/koreksi/<id>/<tanggal>/`: menambah cap yang hilang, mengubah jam atau
 jenis satu cap, dan menghapus cap manual yang keliru. Semuanya tersimpan sebagai
 `SumberCap.MANUAL` dengan alasan wajib dan tercatat di audit sebagai
