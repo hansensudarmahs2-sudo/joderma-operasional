@@ -175,10 +175,47 @@ sesudah 1–2 bulan data.
 
 # Riwayat
 
-## Absensi Tahap 4: koreksi cap dari halaman (6 Oktober 2026) — branch `absensi-tahap4`, belum di-merge
+## Mini PC mati 11 Oktober: penyebab dan pengaman daya (12 Oktober 2026) — `94440ac`, sudah terpasang
+
+Mini PC klinik mati tiga kali pada 11 Okt. Yang pukul 22.00 membuat klinik kehilangan
+sistemnya **15,5 jam** — mati tepat di jam tutup Jemur, baru dinyalakan 12 Okt 13.34.
+
+| Jam | Sebab | Bukti |
+|---|---|---|
+| 05.50 | Listrik padam | Log berhenti mendadak di tengah cron, tanpa urutan shutdown dan tanpa peringatan. Hidup sendiri 05.52 — berarti BIOS "Restore on AC Power Loss" sudah aktif |
+| 13.37 | Tombol power ditekan di layar login | `systemd-logind: Power key pressed short`; dinyalakan lagi 23 detik kemudian |
+| 22.00 | Diklik "Power Off" dari menu GNOME | `gnome-shell endSessionDialog ... logind: 3`, tanpa `Power key` sama sekali |
+
+Dua dari tiga perbuatan orang. Product owner menyebut ada dokter yang memakai desktop
+mesin ini dan tetap mematikannya meski sudah diberi tahu, dan kejadiannya selalu Minggu.
+
+Pengaman 4 Okt (`HandlePowerKey=ignore`, `power-button-action='nothing'`) tidak menahan
+keduanya: hanya berlaku di sesi pengguna, tidak menyentuh menu GNOME maupun layar login.
+
+**Dua lapis yang dipasang** (rinciannya `docs/runbook.md` bagian 6, berkasnya `deploy/`):
+
+1. **polkit menolak mematikan dari desktop.** Menu GNOME, tombol power, dan layar login
+   sama-sama bermuara ke logind lewat polkit, jadi tertutup satu berkas. Root tidak
+   melewati polkit, jadi `sudo systemctl poweroff` lewat SSH tetap bisa.
+2. **Alarm RTC digeser 30 menit ke depan tiap 10 menit.** Lapis 1 saja tidak cukup:
+   langkah berikutnya yang wajar bagi orang adalah menekan-tahan 4 detik, dan itu
+   ditangani firmware di bawah sistem operasi — Linux tidak bisa menolaknya. Jam
+   motherboard (hidup dari baterai CMOS) yang menyalakan mesin kembali.
+
+Diverifikasi dengan `pkcheck`: lima aksi mematikan ditolak, aksi polkit lain tetap memakai
+kebijakan bawaannya; polkit tanpa peringatan; 10 container tetap `healthy`.
+
+**Belum selesai:** uji RTC wake dari mati total (S5) harus dijalankan sekali di luar jam
+klinik — sebagian firmware hanya membangunkan dari S3/S4, dan bila gagal "Wake system from
+S5" perlu diaktifkan di BIOS. Sampai itu lewat, yang aktif baru lapis pertama. Juga: mesin
+ini **tidak punya UPS**, dan selama ia dipakai sebagai komputer kerja, tombol Power Off
+akan terus terasa wajar diklik — dua lapis ini menambal akibat, bukan sebab.
+
+## Absensi Tahap 4: koreksi cap dari halaman (6 Oktober 2026) — `40c0335`, belum dideploy
 
 Dikerjakan di worktree `~/Desktop/joderma-absensi` pada branch `absensi-tahap4`
-(protokol worktree AGENTS.md). **Tidak ada migrasi baru**, jadi deploy-nya hanya kode.
+(protokol worktree AGENTS.md), di-rebase ke atas `94440ac` lalu di-merge fast-forward ke
+`master` pada 12 Okt. **Tidak ada migrasi baru**, jadi deploy-nya hanya kode.
 
 **Masalahnya.** Cap yang hilang atau salah tafsir hanya bisa dibetulkan lewat Django
 admin. Admin meminta `occurred_at` sebagai waktu mutlak — persis bagian yang paling
@@ -264,9 +301,8 @@ manual terpisah, 17 hari perlu dicek (10 lewat tengah malam, 8 cap tunggal).
 1. Tinjau 328 baris jadwal September; tiga orang berbeda dari PDF jadwal — Naya
    (Citraland 26 hari, PDF bilang Jemur 17), Luki, dan Rahayu. Pembacaan mesin yang benar.
 2. Jalur `.xls` belum diuji dengan berkas asli dari mesin; baru diuji dengan sheet tiruan.
-3. ~~Tahap 4: koreksi cap dari halaman~~ — *selesai di kode 6 Okt pada branch
-   `absensi-tahap4`, belum di-merge dan belum dideploy* (lihat Riwayat ▸ Tahap 4).
-   Yang tersisa: tinjauan product owner, lalu merge ke `master`.
+3. ~~Tahap 4: koreksi cap dari halaman~~ — *selesai, di-merge ke `master` 12 Okt
+   (`40c0335`), belum dideploy* (lihat Riwayat ▸ Tahap 4).
 
 ## Kas: angka diharapkan disusun sistem (6 Oktober 2026) — `005c7f5`, belum dideploy
 
