@@ -1,0 +1,10 @@
+[Unit]
+Description=Perbarui alarm RTC tiap 10 menit
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=10min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

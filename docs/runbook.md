@@ -174,13 +174,118 @@ dan aplikasi dapat login memakai database hasil restore.
 | Health gagal | `docker compose restart app`; bila gagal, periksa log migrasi |
 | Disk penuh | Hapus backup bulanan lama setelah dipastikan ada salinan kedua; cek ukuran `private_media/` |
 | Database corrupt | Hentikan aplikasi, restore backup terakhir, jalankan uji restore di atas |
+| Mesin mati total / tidak bisa dihubungi | Alarm RTC menyalakannya sendiri ≤ 30 menit (bagian 6). Lebih lama dari itu berarti listrik benar-benar putus atau RTC wake belum aktif |
 | Tailscale bermasalah total | Kontingensi kertas (checklist, kas, antrean) lalu entry susulan dengan catatan alasan |
 | Staf lupa password | Admin: menu **Admin ▸ Pengguna**, isi kata sandi baru; pengguna wajib menggantinya saat login |
 | Staf keluar dari klinik | Nonaktifkan akun (jangan hapus) — riwayat dan audit tetap utuh |
 
 ---
 
-## 6. Perubahan konfigurasi kebijakan
+## 6. Mesin tidak boleh dimatikan
+
+Mini PC ini server dua cabang, tetapi ia juga punya desktop GNOME yang dipakai orang.
+Pada 11 Oktober 2026 mesin mati tiga kali, dan yang pukul 22.00 membuat klinik
+kehilangan sistemnya **15,5 jam** (mati 11 Okt 22.00, baru dinyalakan 12 Okt 13.34).
+
+| Jam | Sebab | Bukti di log |
+|---|---|---|
+| 05.50 | Listrik padam | Log berhenti mendadak tanpa urutan shutdown; hidup sendiri 05.52 |
+| 13.37 | Tombol power ditekan di layar login | `systemd-logind: Power key pressed short` |
+| 22.00 | Diklik "Power Off" dari menu GNOME | `gnome-shell endSessionDialog ... logind: 3`, tanpa `Power key` |
+
+Pengaman yang dipasang 4 Okt (`HandlePowerKey=ignore` dan `power-button-action='nothing'`)
+tidak menahan dua yang terakhir: keduanya hanya berlaku di sesi pengguna, dan tidak
+menyentuh menu GNOME maupun layar login GDM.
+
+### Dua lapis yang terpasang sejak 12 Okt 2026
+
+**Lapis 1 — polkit menolak mematikan dari desktop.** Menu GNOME, tombol power, dan layar
+login semuanya bermuara ke logind lewat polkit, jadi ketiganya tertutup oleh satu berkas.
+Root tidak melewati polkit, sehingga `sudo systemctl poweroff` lewat SSH tetap bisa — itu
+jalan keluar yang sengaja disisakan.
+
+**Lapis 2 — alarm RTC.** Tekan-tahan tombol power 4 detik ditangani firmware, di bawah
+sistem operasi: Linux tidak pernah melihatnya dan tidak bisa menolaknya. Karena itu lapis
+pertama saja tidak cukup. `wakealarm.timer` memajukan alarm RTC 30 menit ke depan setiap
+10 menit, sehingga mesin yang mati karena sebab apa pun — listrik padam, tombol ditahan —
+dinyalakan kembali oleh jam motherboard dalam **≤ 30 menit**. Mesin yang sudah mati tidak
+bisa mengecek dirinya sendiri; yang bekerja di sini RTC yang hidup dari baterai CMOS.
+
+### Memasang
+
+```bash
+sudo cp deploy/50-larang-matikan.rules /etc/polkit-1/rules.d/
+sudo install -m 755 deploy/pasang-wakealarm /usr/local/sbin/pasang-wakealarm
+sudo cp deploy/wakealarm.service deploy/wakealarm.timer /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now wakealarm.timer
+sudo systemctl restart polkit
+```
+
+`sudo` di mini PC meminta password, dan `ssh host 'perintah'` tidak menyediakan terminal
+untuk menanyakannya. Pakai `ssh -t`, atau masuk dulu baru jalankan.
+
+### Verifikasi
+
+```bash
+# Shutdown harus DITOLAK: pkcheck keluar dengan kode 1.
+pkcheck --action-id org.freedesktop.login1.power-off --process $$ ; echo "kode=$?"
+
+# Aksi polkit lain TIDAK boleh ikut terblokir: kode 2 dengan pesan
+# "polkit.result=auth_admin" itu kebijakan bawaan, bukan aturan ini.
+pkcheck --action-id org.freedesktop.systemd1.manage-units --process $$ ; echo "kode=$?"
+
+cat /sys/class/rtc/rtc0/wakealarm     # harus berisi epoch, bukan kosong
+systemctl list-timers wakealarm.timer
+journalctl -u polkit --since -5min -p warning   # harus kosong
+```
+
+### Uji RTC wake — wajib sekali, di luar jam klinik
+
+Sebagian firmware hanya membangunkan dari S3/S4, bukan dari mati total (S5). Lapis 2 tidak
+boleh dianggap aktif sebelum ini terbukti:
+
+```bash
+sudo systemctl stop wakealarm.timer
+sudo bash -c 'echo 0 > /sys/class/rtc/rtc0/wakealarm; echo $(( $(date +%s) + 180 )) > /sys/class/rtc/rtc0/wakealarm'
+sudo systemctl poweroff
+# Tunggu 3 menit. Bila mesin tidak hidup sendiri, aktifkan "Wake system from S5"
+# di BIOS (F2 saat boot) lalu ulangi.
+sudo systemctl start wakealarm.timer   # jalankan lagi setelah mesin hidup
+```
+
+### Mematikan untuk pemeliharaan
+
+Hentikan timer-nya dulu, kalau tidak mesin hidup lagi dalam 30 menit:
+
+```bash
+sudo systemctl stop wakealarm.timer
+sudo bash -c 'echo 0 > /sys/class/rtc/rtc0/wakealarm'
+sudo systemctl poweroff
+```
+
+### Mencabut seluruhnya
+
+```bash
+sudo rm -f /etc/polkit-1/rules.d/50-larang-matikan.rules && sudo systemctl restart polkit
+sudo systemctl disable --now wakealarm.timer
+sudo rm -f /etc/systemd/system/wakealarm.{service,timer} /usr/local/sbin/pasang-wakealarm
+sudo systemctl daemon-reload
+sudo bash -c 'echo 0 > /sys/class/rtc/rtc0/wakealarm'
+```
+
+### Yang masih terbuka
+
+- **Tidak ada UPS.** Kejadian 05.50 adalah listrik padam, dan satu-satunya baterai yang
+  terbaca di mesin ini milik mouse wireless. BIOS "Restore on AC Power Loss" sudah aktif
+  (terbukti mesin hidup sendiri 2 menit kemudian), jadi UPS kecil sudah cukup untuk
+  membuat padam singkat tidak mematikan mesin sama sekali.
+- **Akar masalahnya belum hilang.** Selama mesin ini dipakai sebagai komputer kerja
+  (desktop GNOME, Firefox), tombol Power Off akan terus terasa wajar diklik. Dua lapis di
+  atas menambal akibatnya, bukan sebabnya.
+
+---
+
+## 7. Perubahan konfigurasi kebijakan
 
 Semua kebijakan operasional dapat diubah tanpa deploy ulang, lewat
 **Admin ▸ Konfigurasi** (`/hari-ini/konfigurasi/`). Contoh kunci:
@@ -201,7 +306,7 @@ untuk sesi hari baru; checklist historis tidak pernah berubah.
 
 ---
 
-## 7. Keamanan yang harus dijaga
+## 8. Keamanan yang harus dijaga
 
 - Aplikasi **hanya** listen di `127.0.0.1`. Jangan pernah mengubah bind ke `0.0.0.0`.
 - Gunakan Serve, bukan Funnel. Jalankan `verify_deployment.sh` setelah setiap perubahan.

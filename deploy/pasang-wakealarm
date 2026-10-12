@@ -1,0 +1,23 @@
+#!/bin/bash
+# Memajukan alarm RTC supaya mesin menyalakan dirinya sendiri setelah mati.
+#
+# Alarm dipasang HORIZON_MENIT ke depan dan diperbarui tiap 10 menit oleh
+# wakealarm.timer. Selama mesin hidup, alarm itu tidak pernah terpakai; begitu
+# mesin mati, alarm terakhir yang sempat terpasang itulah yang menyalakannya.
+# Karena itu lama matinya paling banyak kira-kira sebesar HORIZON_MENIT.
+#
+# RTC mesin ini disimpan dalam UTC (timedatectl: "RTC in local TZ: no"), dan
+# sysfs wakealarm memang menerima detik epoch, jadi tidak ada konversi manual.
+set -euo pipefail
+HORIZON_MENIT="${HORIZON_MENIT:-30}"
+RTC=/sys/class/rtc/rtc0/wakealarm
+
+if [ ! -w "$RTC" ]; then
+    echo "RTC wakealarm tidak bisa ditulis: $RTC" >&2
+    exit 1
+fi
+
+target=$(( $(date +%s) + HORIZON_MENIT * 60 ))
+echo 0 > "$RTC"            # alarm lama wajib dihapus dulu, kalau tidak penulisan ditolak
+echo "$target" > "$RTC"
+logger -t wakealarm "alarm RTC dipasang untuk $(date -d "@$target" '+%F %H:%M:%S %Z')"

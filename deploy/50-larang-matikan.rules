@@ -1,0 +1,25 @@
+// Mini PC ini server klinik: mematikannya memutus ops.joderma.id untuk dua cabang.
+// Dipasang 12 Okt 2026 setelah mesin dimatikan tiga kali pada 11 Okt, dua di
+// antaranya dari desktop (tombol power di layar login, dan klik "Power Off" di
+// menu GNOME) sehingga klinik kehilangan sistemnya 15,5 jam.
+//
+// Semua jalur mematikan dari desktop bermuara ke logind lewat polkit, jadi
+// ditutup di satu tempat. Root tidak melewati polkit, sehingga
+// `sudo systemctl poweroff` dari SSH tetap jalan — itu jalan keluar yang sengaja
+// disisakan untuk pemeliharaan.
+polkit.addRule(function (action, subject) {
+    if (action.id.indexOf("org.freedesktop.login1.") !== 0) {
+        return;
+    }
+    var dilarang = ["power-off", "reboot", "halt", "suspend", "hibernate",
+                    "hybrid-sleep", "suspend-then-hibernate"];
+    for (var i = 0; i < dilarang.length; i++) {
+        var dasar = "org.freedesktop.login1." + dilarang[i];
+        if (action.id === dasar ||
+            action.id === dasar + "-multiple-sessions" ||
+            action.id === dasar + "-ignore-inhibit") {
+            polkit.log("ditolak " + action.id + " dari pengguna " + subject.user);
+            return polkit.Result.NO;
+        }
+    }
+});

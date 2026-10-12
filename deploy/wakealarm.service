@@ -1,0 +1,8 @@
+[Unit]
+Description=Pasang alarm RTC supaya mini PC hidup sendiri setelah mati
+After=time-sync.target
+
+[Service]
+Type=oneshot
+Environment=HORIZON_MENIT=30
+ExecStart=/usr/local/sbin/pasang-wakealarm
