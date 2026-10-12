@@ -4,5 +4,5 @@ After=time-sync.target
 
 [Service]
 Type=oneshot
-Environment=HORIZON_MENIT=30
+Environment=HORIZON_MENIT=15
 ExecStart=/usr/local/sbin/pasang-wakealarm

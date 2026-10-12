@@ -9,7 +9,7 @@
 # RTC mesin ini disimpan dalam UTC (timedatectl: "RTC in local TZ: no"), dan
 # sysfs wakealarm memang menerima detik epoch, jadi tidak ada konversi manual.
 set -euo pipefail
-HORIZON_MENIT="${HORIZON_MENIT:-30}"
+HORIZON_MENIT="${HORIZON_MENIT:-15}"
 RTC=/sys/class/rtc/rtc0/wakealarm
 
 if [ ! -w "$RTC" ]; then

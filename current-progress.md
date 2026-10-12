@@ -14,7 +14,7 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 | Laptop (`~/Desktop/joderma-operasional`) dan GitHub | GitHub di commit dokumen ini (di atas `7c191ec`); laptop terakhir sejajar di `7054772`, perlu `git pull` lalu `migrate` (`owner 0003-0004`, `direktur 0006-0007`, `core 0009`, `reports 0005`, `owner 0005-0006`, `projects 0001`, `nurses 0006`, `core 0010-0011`, `owner 0007`, `direktur 0008`). Desktop bekerja di filesystem WSL `~/joderma-operasional` (sejak 6 Okt), sejajar dengan GitHub dan database pengembangannya sudah di-`migrate`; folder lama `/mnt/e/Claude/Projects/joderma-operasional` sudah dihapus |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
 | Belum dideploy | **Absensi Tahap 4** (koreksi cap dari halaman, `874bdf9`) — tanpa migrasi baru, jadi deploy-nya hanya kode. Selebihnya produksi sejajar dengan kode di `7c191ec`. Owner punya 16 perkara menunggu keputusan (insentif PIC, lembur hari raya, Memo 006, batas belanja Rp1 jt, SP1, RME SatuSehat, dll.). Sampaikan ke Owner: permintaan/temuan baru wajib berkategori (Atur kategori); ke Direktur dan Koordinator Shift: konfirmasi task staf wajib bintang 1–5, alasan untuk 1–3; ke staf: bintang terlihat di kartu Nilai saya. Notifikasi staf saat dikonfirmasi kini "Task dinilai" (bukan "Dikonfirmasi selesai"). Sampaikan ke staf penerima task project: menu Projects kini muncul (muat ulang halaman); bukti task project terlihat oleh semua penerima di project itu, jadi jangan unggah foto berisi data pasien sebagai bukti. Sampaikan ke Koordinator Shift: tally perawat yang lupa ditulis dicatat lewat Tambah tally susulan (alasan wajib). Sampaikan ke dr. Yohanes dan Jean: task project untuk mereka muncul di Dashboard Owner dan bisa ditolak dengan alasan. Audit arus balik selesai seluruhnya (tahap 1–4, usulan target, notifikasi kemajuan permintaan Owner, status catatan maju otomatis). **Backup:** tidak ada lagi arsip tak terenkripsi; build cache Docker dibersihkan 7 Okt. `backups/predeploy/` dipangkas ke 10 menurut tanggal di nama berkas (sejak `e711b7e`); arsip 1 dan 4 Okt yang dienkripsi ulang habis bertahap, satu per deploy. Salinan perangkat kedua belum dikonfigurasi (PO: backup Photodex disalin ke PC PO). Sampaikan ke staf: catatan lama Direktur di riwayat task kini terlihat di Percakapan; sampaikan ke Direktur: catatan pilah kini terbaca pelapor (dan staf cabang untuk laporan cabang), dan inisiatif ke Owner kini lewat Usulan ke Owner. Berjalan: **uji alur keputusan Owner dan Summary dua arah dengan akun asli**, **uji alur temuan Owner dengan akun asli** (Owner catat temuan, Direktur isi task besar, sub task, nyatakan selesai), dan **uji coba fase 9 oleh staf**, lihat Task yang belum selesai ▸ Fase 9 |
-| Mini PC: pengaman daya | Terpasang 12 Okt (`6a374a4`, berkas di `deploy/`): shutdown dari desktop ditolak polkit, alarm RTC menyalakan ulang ≤ 30 menit. **Uji RTC wake dari S5 belum dijalankan** — sampai itu lewat, yang aktif baru lapis polkit. Lihat `docs/runbook.md` bagian 6 |
+| Mini PC: pengaman daya | Terpasang dan **terbukti** 12 Okt (berkas di `deploy/`): shutdown dari desktop ditolak polkit, dan alarm RTC menyalakan ulang ≤ 15 menit. Uji RTC wake dari S5 lulus — mati 14.07.20, hidup sendiri 14.10.20, tanpa mengubah BIOS. Product owner juga memastikan tombol Power Off hilang dari menu, tombol power fisik tidak lagi mematikan, dan kabel dicabut-pasang langsung menyala. Celah tersisa: listrik padam lama (tidak ada UPS). Lihat `docs/runbook.md` bagian 6 |
 | Test | 1440 lulus per 12 Okt di `50925fb` (`.venv/bin/python -m pytest`), naik 27 dari 1413 oleh Absensi Tahap 4; `stok/tests/test_tanpa_harga.py::test_order_page_shows_action_without_price_or_supplier` kadang gagal (sudah ada sebelumnya, tidak terkait); test "tanpa harga" di `orders`/`stok` kadang gagal karena memeriksa "Rp" di seluruh HTML (token acak bisa memuatnya) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
@@ -206,11 +206,16 @@ keduanya: hanya berlaku di sesi pengguna, tidak menyentuh menu GNOME maupun laya
 Diverifikasi dengan `pkcheck`: lima aksi mematikan ditolak, aksi polkit lain tetap memakai
 kebijakan bawaannya; polkit tanpa peringatan; 10 container tetap `healthy`.
 
-**Belum selesai:** uji RTC wake dari mati total (S5) harus dijalankan sekali di luar jam
-klinik — sebagian firmware hanya membangunkan dari S3/S4, dan bila gagal "Wake system from
-S5" perlu diaktifkan di BIOS. Sampai itu lewat, yang aktif baru lapis pertama. Juga: mesin
-ini **tidak punya UPS**, dan selama ia dipakai sebagai komputer kerja, tombol Power Off
-akan terus terasa wajar diklik — dua lapis ini menambal akibat, bukan sebab.
+**Terbukti di mesin nyata (12 Okt, product owner).** Uji RTC wake dari mati total (S5)
+lulus tanpa mengubah BIOS: mesin dimatikan 14.07.20 dengan alarm 180 detik dan hidup
+sendiri 14.10.20. Product owner juga memastikan tombol Power Off hilang dari menu GNOME,
+tombol power fisik tidak lagi mematikan, dan kabel dicabut lalu dipasang kembali membuatnya
+langsung menyala. Jeda pemulihan kemudian dipersempit dari 30 ke **15 menit**.
+
+**Celah yang tersisa:** listrik padam lama. Selama AC belum kembali tidak ada yang bisa
+menyalakan mesin — RTC-nya tetap ingat, tetapi tidak ada daya; begitu listrik kembali BIOS
+menyalakannya. Mesin ini **tidak punya UPS**. Dan selama ia dipakai sebagai komputer kerja,
+tombol Power Off akan terus terasa wajar diklik — dua lapis ini menambal akibat, bukan sebab.
 
 ## Absensi Tahap 4: koreksi cap dari halaman (12 Oktober 2026) — `874bdf9`, belum dideploy
 

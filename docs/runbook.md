@@ -174,7 +174,7 @@ dan aplikasi dapat login memakai database hasil restore.
 | Health gagal | `docker compose restart app`; bila gagal, periksa log migrasi |
 | Disk penuh | Hapus backup bulanan lama setelah dipastikan ada salinan kedua; cek ukuran `private_media/` |
 | Database corrupt | Hentikan aplikasi, restore backup terakhir, jalankan uji restore di atas |
-| Mesin mati total / tidak bisa dihubungi | Alarm RTC menyalakannya sendiri ≤ 30 menit (bagian 6). Lebih lama dari itu berarti listrik benar-benar putus atau RTC wake belum aktif |
+| Mesin mati total / tidak bisa dihubungi | Alarm RTC menyalakannya sendiri ≤ 15 menit (bagian 6). Lebih lama dari itu berarti listrik benar-benar putus atau RTC wake belum aktif |
 | Tailscale bermasalah total | Kontingensi kertas (checklist, kas, antrean) lalu entry susulan dengan catatan alasan |
 | Staf lupa password | Admin: menu **Admin ▸ Pengguna**, isi kata sandi baru; pengguna wajib menggantinya saat login |
 | Staf keluar dari klinik | Nonaktifkan akun (jangan hapus) — riwayat dan audit tetap utuh |
@@ -206,10 +206,15 @@ jalan keluar yang sengaja disisakan.
 
 **Lapis 2 — alarm RTC.** Tekan-tahan tombol power 4 detik ditangani firmware, di bawah
 sistem operasi: Linux tidak pernah melihatnya dan tidak bisa menolaknya. Karena itu lapis
-pertama saja tidak cukup. `wakealarm.timer` memajukan alarm RTC 30 menit ke depan setiap
+pertama saja tidak cukup. `wakealarm.timer` memajukan alarm RTC 15 menit ke depan setiap
 10 menit, sehingga mesin yang mati karena sebab apa pun — listrik padam, tombol ditahan —
-dinyalakan kembali oleh jam motherboard dalam **≤ 30 menit**. Mesin yang sudah mati tidak
+dinyalakan kembali oleh jam motherboard dalam **≤ 15 menit**. Mesin yang sudah mati tidak
 bisa mengecek dirinya sendiri; yang bekerja di sini RTC yang hidup dari baterai CMOS.
+
+Jadwalnya bukan jam tetap. Selama mesin hidup, alarm selalu 5–15 menit di depan dan tidak
+pernah sempat berbunyi karena keburu diganti; yang menyalakan mesin adalah alarm terakhir
+yang sempat terpasang sebelum ia mati. Mengubah jeda pemulihan berarti mengubah
+`Environment=HORIZON_MENIT` di `wakealarm.service`, bukan jadwal timer-nya.
 
 ### Memasang
 
@@ -239,10 +244,16 @@ systemctl list-timers wakealarm.timer
 journalctl -u polkit --since -5min -p warning   # harus kosong
 ```
 
-### Uji RTC wake — wajib sekali, di luar jam klinik
+### Uji RTC wake — sudah lulus 12 Okt 2026
 
-Sebagian firmware hanya membangunkan dari S3/S4, bukan dari mati total (S5). Lapis 2 tidak
-boleh dianggap aktif sebelum ini terbukti:
+Sebagian firmware hanya membangunkan dari S3/S4, bukan dari mati total (S5), jadi lapis 2
+tidak boleh dianggap aktif sebelum dibuktikan. **Pada ASUS NUC14MNK-B2 ini sudah terbukti**:
+mesin dimatikan 12 Okt 14.07.20 dengan alarm 180 detik dan hidup sendiri 14.10.20 — tepat
+3 menit, tanpa mengubah apa pun di BIOS. Terlihat di `journalctl --list-boots` sebagai dua
+boot berurutan dengan selisih 3 menit.
+
+Ulangi prosedur ini bila mesinnya diganti, BIOS-nya di-update, atau baterai CMOS-nya
+dilepas:
 
 ```bash
 sudo systemctl stop wakealarm.timer
@@ -255,7 +266,7 @@ sudo systemctl start wakealarm.timer   # jalankan lagi setelah mesin hidup
 
 ### Mematikan untuk pemeliharaan
 
-Hentikan timer-nya dulu, kalau tidak mesin hidup lagi dalam 30 menit:
+Hentikan timer-nya dulu, kalau tidak mesin hidup lagi dalam 15 menit:
 
 ```bash
 sudo systemctl stop wakealarm.timer
