@@ -36,7 +36,7 @@
             {% if t.project %}
             <label for="catatan-task-{{ t.assignment.pk }}">Catatan <span class="meta">(opsional)</span></label>
             <input id="catatan-task-{{ t.assignment.pk }}" name="catatan" placeholder="Mis. sudah terpasang, foto terlampir">
-            {% lampiran_input "Selesai — lampirkan bukti (wajib): foto atau dokumen" "foto" "" True %}
+            {% if t.lead %}{% include "includes/tutup_bukti.html" %}{% else %}{% lampiran_input "Selesai — lampirkan bukti (wajib): foto atau dokumen" "foto" "" True %}{% endif %}
             <button class="btn small" type="submit">Tandai selesai</button>
             {% else %}
             <label for="catatan-task-{{ t.assignment.pk }}">Catatan bukti</label>

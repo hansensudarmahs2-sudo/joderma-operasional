@@ -136,7 +136,10 @@ pengatur project; bila dikembalikan untuk revisi, bintangnya gugur dan dinilai l
 Task yang berasal dari sebuah project muncul di **Tugas saya** dengan tag **Project: nama
 project**. Tidak ada tahap konfirmasi: ketuk **Tandai selesai**, **lampirkan bukti (wajib)**
 berupa minimal satu foto atau dokumen (catatan boleh dikosongkan), lalu kirim. Tanpa berkas,
-sistem menolak dan task tetap terbuka. Pada task **Cukup satu orang**, siapa pun penerimanya
+sistem menolak dan task tetap terbuka. Pengecualian: bila Anda **Project leader atau Co-project
+leader** project itu, bukti boleh kosong (mis. hasilnya tangkapan layar situs); sistem memperingatkan
+dulu, centang **Tetap tandai selesai tanpa bukti**, dan riwayat mencatat "Selesai tanpa bukti
+(leader project)". Pada task **Cukup satu orang**, siapa pun penerimanya
 boleh langsung menandai selesai; task otomatis menjadi miliknya. Bila pengatur project
 membatalkan status selesai, task kembali ke Anda dengan **Catatan revisi** dan tag **Perlu
 revisi**; perbaiki lalu tandai selesai lagi. Selama Anda menerima task di project yang masih

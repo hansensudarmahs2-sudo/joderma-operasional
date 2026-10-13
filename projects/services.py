@@ -123,6 +123,18 @@ def is_project_item(item: ActionItem) -> bool:
     return item.source_type == SOURCE_TYPE
 
 
+def leads_item_project(user, item: ActionItem) -> bool:
+    """Leader atau co-leader project tempat task ini berada (14 Okt 2026).
+
+    Penerima yang juga memimpin project-nya boleh menandai selesai tanpa bukti (dengan peringatan).
+    Owner/Direktur yang hanya "pengatur" lewat jabatan tidak termasuk."""
+    if not _authenticated(user) or not is_project_item(item) or not item.source_id:
+        return False
+    return Project.objects.filter(pk=item.source_id).filter(
+        Q(leader=user) | Q(co_leaders=user)
+    ).exists()
+
+
 def project_for_item(item: ActionItem) -> Project | None:
     if not is_project_item(item) or not item.source_id:
         return None

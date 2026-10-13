@@ -22,7 +22,7 @@
             {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
             <label for="catatan-proyek-{{ t.assignment.pk }}">Catatan <span class="meta">(opsional)</span></label>
             <input id="catatan-proyek-{{ t.assignment.pk }}" name="catatan" placeholder="Mis. sudah ditandatangani, foto terlampir">
-            {% lampiran_input "Selesai — lampirkan bukti (wajib): foto atau dokumen" "foto" "" True %}
+            {% if t.lead %}{% include "includes/tutup_bukti.html" %}{% else %}{% lampiran_input "Selesai — lampirkan bukti (wajib): foto atau dokumen" "foto" "" True %}{% endif %}
             <button class="btn small" type="submit">Tandai selesai</button>
           </form>
         </details>

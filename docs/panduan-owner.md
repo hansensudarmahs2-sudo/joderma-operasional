@@ -188,6 +188,8 @@ kartu **Tugas saya (project)** pada Dashboard (dan Anda mendapat notifikasi yang
 itu). Setiap task menampilkan nama project, target, dan catatan revisi bila ada, dengan tiga aksi:
 
 - **Tandai selesai**: lampirkan bukti (foto, PDF, atau DOCX; wajib), catatan boleh dikosongkan.
+  Bila Anda leader atau co-leader project itu, bukti boleh kosong sesudah peringatan (centang
+  **Tetap tandai selesai tanpa bukti**).
   Task langsung dihitung selesai tanpa konfirmasi, sama seperti staf; pada mode "Cukup satu
   orang" Anda otomatis mengambil task itu.
 - **Percakapan**: baca riwayat dan balas; leader, co-leader, dan pembuat project diberi tahu.

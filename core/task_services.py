@@ -995,6 +995,7 @@ def my_task_row(item: ActionItem, assignment: TaskAssignment | None, user, now) 
             # Task project "cukup satu orang": menandai selesai otomatis mengambil task.
             or (item.source_type == "proyek" and assignment.claimed_by_id is None))),
         "project": None,  # nama project; diisi oleh _attach_projects
+        "lead": False,  # pengguna memimpin project task ini; diisi oleh _attach_projects
         "last_progress": item.task_events.filter(event_type=TaskEventType.PROGRESS).order_by("-created_at").first(),
         "dirut": item.reviewed_by_dirut,
         "thread": thread,
@@ -1041,7 +1042,7 @@ def my_tasks(user) -> list[dict]:
     rows.sort(key=lambda r: (r["waiting"], not r["overdue"], not r["revision"], r["item"].due_at or far,
                              r["item"].created_at))
     _attach_documents(rows)
-    _attach_projects(rows)
+    _attach_projects(rows, user)
     return rows
 
 
@@ -1069,17 +1070,23 @@ def my_ratings(user, limit: int = 10) -> dict | None:
     }
 
 
-def _attach_projects(rows: list[dict]) -> None:
-    """Nama project untuk task project di kartu Tugas saya: satu query untuk semua baris."""
+def _attach_projects(rows: list[dict], user) -> None:
+    """Nama project untuk task project di kartu Tugas saya: satu query untuk semua baris.
+
+    `lead`: pengguna memimpin project itu (leader/co-leader), jadi bukti selesai opsional (14 Okt 2026)."""
     ids = {r["item"].source_id for r in rows if r["item"].source_type == "proyek" and r["item"].source_id}
     if not ids:
         return
+    from django.db.models import Exists, OuterRef
+
     from projects.models import Project
 
-    names = dict(Project.objects.filter(pk__in=ids).values_list("pk", "name"))
+    co_lead = Project.co_leaders.through.objects.filter(project_id=OuterRef("pk"), user_id=user.pk)
+    found = {pk: (name, leader_id == user.pk or co) for pk, name, leader_id, co in Project.objects.filter(pk__in=ids)
+             .annotate(co=Exists(co_lead)).values_list("pk", "name", "leader_id", "co")}
     for r in rows:
         if r["item"].source_type == "proyek":
-            r["project"] = names.get(r["item"].source_id)
+            r["project"], r["lead"] = found.get(r["item"].source_id, (None, False))
 
 
 def _attach_documents(rows: list[dict]) -> None:

@@ -464,8 +464,15 @@ def submit_with_evidence(request, assignment: TaskAssignment) -> None:
         is_project = is_project_item(assignment.action_item)
         if is_project:
             # Task project langsung dihitung selesai (tanpa konfirmasi): bukti berkas wajib, catatan opsional.
+            # Kecuali penerima yang memimpin project itu (14 Okt 2026): boleh tanpa bukti sesudah peringatan.
             if not request.FILES.get("foto"):
-                raise ValidationError("Bukti wajib: lampirkan foto atau dokumen.")
+                from projects.services import leads_item_project
+
+                if not leads_item_project(request.user, assignment.action_item):
+                    raise ValidationError("Bukti wajib: lampirkan foto atau dokumen.")
+                if request.POST.get("tanpa_bukti") != "1":
+                    raise ValidationError(NO_EVIDENCE_WARNING)
+                note = f"{note} · {LEADER_NO_EVIDENCE}" if note else LEADER_NO_EVIDENCE
         elif not note:
             # Bukti wajib berupa catatan; foto opsional (keputusan 3 Okt 2026, tahap 2 paket C).
             raise ValidationError("Tulis catatan bukti: apa yang sudah dikerjakan.")
@@ -485,6 +492,7 @@ def submit_with_evidence(request, assignment: TaskAssignment) -> None:
         messages.error(request, " ".join(exc.messages))
 
 
+LEADER_NO_EVIDENCE = "Selesai tanpa bukti (leader project)"
 NO_EVIDENCE_WARNING = (
     "Belum ada foto atau dokumen bukti. Lampirkan bukti, atau centang “Tetap tandai selesai tanpa bukti”."
 )

@@ -140,7 +140,7 @@
           {% if item.source_type == 'proyek' %}
           <label for="bukti-{{ r.a.pk }}">Catatan <span class="meta">(opsional)</span></label>
           <input id="bukti-{{ r.a.pk }}" name="catatan" placeholder="Mis. sudah terpasang, foto terlampir">
-          {% lampiran_input "Selesai — lampirkan bukti (wajib): foto atau dokumen" "foto" "" True %}
+          {% if r.lead %}{% include "includes/tutup_bukti.html" %}{% else %}{% lampiran_input "Selesai — lampirkan bukti (wajib): foto atau dokumen" "foto" "" True %}{% endif %}
           <button class="btn small" type="submit">Tandai selesai</button>
           {% else %}
           <label for="bukti-{{ r.a.pk }}">Catatan bukti</label>

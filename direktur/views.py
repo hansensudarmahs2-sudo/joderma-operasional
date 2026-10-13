@@ -25,6 +25,7 @@ from core.models import (
     local_today,
 )
 from core.permissions import is_aom, is_owner, is_owner_only, require, user_clinic_queryset
+from projects.services import leads_item_project
 
 from . import dashboard, services
 from . import summary as daily_summary
@@ -625,6 +626,8 @@ def task_detail(request, pk: int):
             and (not owner_view or item.source_type == "proyek")
             and task_services.my_task_row(item, a, request.user, now)["can_submit"],
             "owner_card": owner_view,
+            "lead": item.source_type == "proyek" and a.assignee_id == request.user.pk
+            and leads_item_project(request.user, item),
             "can_review": a.status == TaskAssignmentStatus.SUBMITTED
             and task_services.can_review_assignment(a, request.user),
             "can_remove": can_manage and a.status in task_services.OPEN_ASSIGNMENT_STATES,
