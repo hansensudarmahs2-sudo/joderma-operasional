@@ -27,15 +27,8 @@ boleh terganggu oleh pekerjaan apa pun di dokumen ini.
 Dijalankan dari mesin pengembangan, dengan mini-PC dapat dijangkau lewat Tailscale.
 
 ```bash
-# 1. Kirim kode (tanpa venv, database, lampiran, atau berkas rahasia)
-cd ~/joderma-operasional   # desktop (WSL) sejak 6 Okt; laptop: ~/Desktop/joderma-operasional
-rsync -az --delete --chmod=D755,F644 \
-  --exclude '/.venv/' --exclude '/data/' --exclude '/private_media/' \
-  --exclude '/logs/' --exclude '/backups/' --exclude '/staticfiles/' \
-  --exclude '/.git' --exclude '/.env' --exclude '__pycache__/' \
-  --exclude '/.pytest_cache/' --exclude '/apotek/' --exclude '/.claude-sync/' \
-  --exclude '/Claude outputs/' \
-  ./ joderma-jemur@joderma-jemur:~/joderma-ops/
+# 1. Kirim kode yang sudah di-commit (tanpa venv, database, lampiran, atau berkas rahasia)
+#    Perintahnya sama dengan "Memperbarui aplikasi" di bawah: git archive ke staging, lalu rsync.
 ```
 
 ```bash
@@ -94,15 +87,20 @@ docker compose exec app python manage.py pilot_check
 
 ```bash
 # Dari mesin pengembangan — pastikan test lulus lebih dulu
-cd ~/joderma-operasional && .venv/bin/python -m pytest   # desktop (WSL) sejak 6 Okt
+cd ~/joderma-operasional && .venv/bin/python -m pytest   # desktop (WSL); laptop: ~/Desktop/joderma-operasional
 
-rsync -az --delete --chmod=D755,F644 \
-  --exclude '/.venv/' --exclude '/data/' --exclude '/private_media/' \
-  --exclude '/logs/' --exclude '/backups/' --exclude '/staticfiles/' \
-  --exclude '/.git' --exclude '/.env' --exclude '__pycache__/' \
-  --exclude '/.pytest_cache/' --exclude '/apotek/' --exclude '/.claude-sync/' \
-  --exclude '/Claude outputs/' \
-  ./ joderma-jemur@joderma-jemur:~/joderma-ops/
+# Hanya isi commit yang dikirim, dengan izin 644/755 dari Git (seragam sejak 13 Okt 2026;
+# alasannya di docs/lanjutkan-pekerjaan.md bagian "Menerapkan perubahan ke klinik").
+git fetch origin && test "$(git rev-parse HEAD)" = "$(git rev-parse origin/master)" && echo "HEAD = GitHub"
+rm -rf ~/.cache/joderma-deploy-stage && mkdir -p ~/.cache/joderma-deploy-stage
+git -c tar.umask=022 archive --format=tar HEAD | tar -x -C ~/.cache/joderma-deploy-stage
+rsync -az --delete \
+  --exclude '/.venv/' --exclude '/data/' --exclude '/private_media/' --exclude '/logs/' \
+  --exclude '/backups/' --exclude '/staticfiles/' --exclude '/.git' --exclude '/.env' \
+  --exclude '__pycache__/' --exclude '/.pytest_cache/' --exclude '/apotek/' \
+  --exclude '/.claude-sync/' --exclude '/Claude outputs/' \
+  ~/.cache/joderma-deploy-stage/ joderma-jemur@joderma-jemur:~/joderma-ops/
+rm -rf ~/.cache/joderma-deploy-stage
 ```
 
 ```bash
