@@ -271,3 +271,73 @@ class InboxTriage(models.Model):
 
     def __str__(self) -> str:
         return f"{self.source_type}#{self.source_id} · {self.get_action_display()}"
+
+
+class LaporanKegiatan(models.Model):
+    """Laporan kegiatan atau perbaikan dari teknisi, dengan foto dan lokasi (13 Okt 2026).
+
+    Dibuat untuk orang yang bekerja berpindah-pindah: dua cabang, dan kadang ke vendor.
+    Karena itu `clinic` boleh kosong dan ada `lokasi_teks` bebas — laporan dari bengkel
+    vendor tidak kehilangan tempatnya hanya karena vendor itu bukan cabang.
+
+    Tiga hal yang membedakannya dari `jejak.PresenceStamp`, dan semuanya disengaja:
+
+    **Tanpa IP sama sekali.** `PresenceStamp` menyimpan `ip_address`, `ip_prefix`,
+    `network`, dan `user_agent` untuk menilai apakah seseorang benar di klinik. Untuk
+    orang yang memang berpindah-pindah, IP tidak menjelaskan apa pun — ia berganti tiap
+    tempat dan tiap jaringan — sementara menyimpannya tetap menambah data pribadi.
+    Keputusan product owner 13 Okt 2026: lokasi ya, IP tidak.
+
+    **Tanpa label Kuat/Sedang/Lemah.** Label itu berarti "benarkah ia di klinik", dan
+    pertanyaan itu tidak berlaku di sini: berada di luar radius klinik justru lazim.
+    Koordinatnya disimpan apa adanya, dan yang membacanya memutuskan sendiri.
+
+    **Fotonya dihapus, teksnya tidak.** Foto wajah adalah data pribadi; menyimpannya
+    selamanya tanpa alasan sulit dipertanggungjawabkan (lihat `docs/absensi-jam-kerja.md`
+    bagian 8). Masa simpan foto **90 hari** (keputusan product owner), dijalankan
+    `manage.py hapus_foto_kegiatan`. Uraian dan waktunya tetap, supaya riwayat pekerjaan
+    tidak ikut hilang.
+
+    Koordinat dibulatkan 4 desimal (≈ 11 m) seperti `PresenceStamp`: cukup untuk tahu
+    ia di cabang mana atau di vendor, tidak cukup untuk melacak orang.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        related_name="laporan_kegiatan", verbose_name="pelapor",
+    )
+    clinic = models.ForeignKey(
+        "core.Clinic", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="laporan_kegiatan", verbose_name="cabang",
+        help_text="Kosong bila kegiatannya di luar cabang, mis. di vendor.",
+    )
+    lokasi_teks = models.CharField(
+        "tempat", max_length=120, blank=True,
+        help_text="Diisi bila bukan di cabang, mis. nama vendor atau bengkel.",
+    )
+    uraian = models.CharField("yang dikerjakan", max_length=500)
+    geo_status = models.CharField("status lokasi", max_length=16, blank=True)
+    latitude = models.DecimalField(max_digits=8, decimal_places=4, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=8, decimal_places=4, null=True, blank=True)
+    accuracy_m = models.PositiveIntegerField("akurasi (m)", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    foto_dihapus_pada = models.DateTimeField(
+        "foto dihapus pada", null=True, blank=True,
+        help_text="Diisi saat foto dihapus karena lewat masa simpan; uraiannya tetap.",
+    )
+
+    class Meta:
+        verbose_name = "laporan kegiatan"
+        verbose_name_plural = "laporan kegiatan"
+        ordering = ("-created_at",)
+        indexes = [models.Index(fields=["user", "created_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.user} {self.created_at:%d/%m/%Y} {self.uraian[:40]}"
+
+    @property
+    def tempat(self) -> str:
+        """Nama tempat untuk ditampilkan: cabang bila ada, selain itu teks bebasnya."""
+        if self.clinic:
+            return self.clinic.name
+        return self.lokasi_teks or "—"

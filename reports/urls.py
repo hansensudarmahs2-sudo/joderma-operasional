@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import kegiatan, views
 
 app_name = "reports"
 
@@ -27,4 +27,7 @@ urlpatterns = [
     path("laporan-saya/<int:pk>/", views.laporan_page_detail, name="laporan_page_detail"),
     path("masukan-saya/", views.masukan_page, name="masukan_page"),
     path("masukan-saya/<int:pk>/", views.masukan_page_detail, name="masukan_page_detail"),
+    # Laporan kegiatan teknisi (13 Okt 2026)
+    path("kegiatan/", kegiatan.daftar, name="kegiatan"),
+    path("kegiatan/<int:pk>/", kegiatan.detail, name="kegiatan_detail"),
 ]

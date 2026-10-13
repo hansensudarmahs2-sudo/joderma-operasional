@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Lapor Kegiatan{% endblock %}
+{% block content %}
+<h1>Lapor Kegiatan</h1>
+<p class="sub">Catatan apa yang Anda kerjakan hari ini, dengan foto dan lokasi. Lokasi hanya diambil saat Anda menekan Kirim, dan hanya dibulatkan sampai sekitar 11 meter — cukup untuk tahu Anda di cabang atau di vendor, tidak untuk melacak. Fotonya dihapus otomatis setelah {{ hari_simpan }} hari; uraiannya tetap tersimpan.</p>
+
+{% if bisa_lapor %}
+<form class="form-grid card" method="post" enctype="multipart/form-data" data-jejak>{% csrf_token %}
+  <div><label for="cabang">Cabang</label>
+    <select id="cabang" name="cabang">
+      <option value="">— di luar cabang (vendor, bengkel, dll.) —</option>
+      {% for c in clinics %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+    </select></div>
+  <div><label for="lokasi_teks">Tempat, bila di luar cabang</label>
+    <input id="lokasi_teks" type="text" name="lokasi_teks" maxlength="120" placeholder="Mis. Vendor Triarta"></div>
+  <div class="span-2"><label for="uraian">Yang Anda kerjakan</label>
+    <input id="uraian" type="text" name="uraian" maxlength="500" required
+           placeholder="Mis. ganti seal penampung air hydra facial, sudah diuji"></div>
+  <div class="span-2"><label for="foto">Foto (boleh selfie di lokasi)</label>
+    <input id="foto" type="file" name="foto" accept="image/*" capture="user"></div>
+  <p class="help span-2">Foto dikecilkan otomatis dan keterangan EXIF-nya dibuang, termasuk GPS yang ikut menempel di berkas. Jangan memotret wajah atau data pasien.</p>
+  <div class="span-2"><button class="btn" type="submit">Kirim laporan</button></div>
+</form>
+{% endif %}
+
+<h2 style="margin-top:1.2rem">Laporan terakhir</h2>
+{% if laporan %}
+<table class="responsive">
+  <thead><tr><th>Waktu</th><th>Tempat</th><th>Yang dikerjakan</th><th>Foto</th><th>Lokasi</th>{% if not bisa_lapor %}<th>Pelapor</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for l in laporan %}
+    <tr>
+      <td data-label="Waktu"><a href="{% url 'reports:kegiatan_detail' l.pk %}">{{ l.created_at|date:"j M H.i" }}</a></td>
+      <td data-label="Tempat">{{ l.tempat }}</td>
+      <td data-label="Yang dikerjakan">{{ l.uraian }}</td>
+      <td data-label="Foto">
+        {% if l.foto_dihapus_pada %}<span class="meta">lewat masa simpan</span>
+        {% elif l.foto_list %}<a href="{% url 'reports:kegiatan_detail' l.pk %}">{{ l.foto_list|length }} foto</a>
+        {% else %}<span class="meta">—</span>{% endif %}
+      </td>
+      <td data-label="Lokasi">{% if l.latitude %}{{ l.latitude }}, {{ l.longitude }}{% if l.accuracy_m %} <span class="meta">±{{ l.accuracy_m }} m</span>{% endif %}{% else %}<span class="meta">tidak tersedia</span>{% endif %}</td>
+      {% if not bisa_lapor %}<td data-label="Pelapor">{{ l.user }}</td>{% endif %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="card"><strong>Belum ada laporan kegiatan.</strong></div>
+{% endif %}
+{% endblock %}

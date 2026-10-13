@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Laporan kegiatan {{ laporan.created_at|date:"j M Y" }}{% endblock %}
+{% block content %}
+<p><a href="{% url 'reports:kegiatan' %}">← Lapor Kegiatan</a></p>
+<h1>{{ laporan.uraian }}</h1>
+<p class="sub">{{ laporan.user }} · {{ laporan.created_at|date:"l, j F Y, H.i" }} · {{ laporan.tempat }}</p>
+
+<div class="card">
+  <strong>Lokasi saat dikirim</strong>
+  <p class="meta" style="margin:.3rem 0 0">
+    {% if laporan.latitude %}
+      {{ laporan.latitude }}, {{ laporan.longitude }}{% if laporan.accuracy_m %} · akurasi ±{{ laporan.accuracy_m }} m{% endif %}
+      <br>Dibulatkan sampai sekitar 11 meter: cukup untuk tahu tempatnya, tidak untuk melacak orang.
+    {% else %}
+      Tidak tersedia{% if laporan.geo_status %} ({{ laporan.geo_status }}){% endif %}. Lokasi tidak wajib.
+    {% endif %}
+  </p>
+</div>
+
+<h2 style="margin-top:1.2rem">Foto</h2>
+{% if laporan.foto_dihapus_pada %}
+<div class="card"><strong>Foto sudah dihapus.</strong>
+  <p class="meta" style="margin:.3rem 0 0">Lewat masa simpan {{ hari_simpan }} hari, dihapus {{ laporan.foto_dihapus_pada|date:"j M Y" }}. Uraian dan lokasinya tetap tersimpan.</p></div>
+{% elif foto %}
+  {% for a in foto %}
+  <p><a class="btn small secondary" href="{% url 'core:attachment' a.pk %}">Buka foto ({{ a.size_bytes|filesizeformat }})</a>
+    <span class="meta">diunggah {{ a.uploaded_at|date:"j M Y H.i" }} · dihapus otomatis setelah {{ hari_simpan }} hari</span></p>
+  {% endfor %}
+{% else %}
+<p class="meta">Tidak ada foto pada laporan ini.</p>
+{% endif %}
+{% endblock %}

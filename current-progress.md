@@ -179,6 +179,43 @@ sesudah 1–2 bulan data.
 
 # Riwayat
 
+## Lapor Kegiatan teknisi: foto dan lokasi tanpa IP (13 Oktober 2026) — belum dideploy
+
+Fase 2 dari pekerjaan teknisi. Menu **Lapor Kegiatan**: Izul menulis apa yang ia
+kerjakan, melampirkan foto, dan lokasinya ikut terekam. Berdiri sendiri, bukan melekat
+pada kerusakan — ia juga berkunjung ke vendor, dan itu bukan kerusakan apa pun.
+
+**Hampir seluruhnya pakai ulang.** Lokasi memakai `jejak.services.geo_from_post` dan
+mekanisme `data-jejak` di `base.html` yang sudah ada — isian tersembunyi diisi saat
+formulir dikirim, *"lokasi hanya diminta saat formulir dikirim"*, tanpa pelacakan. Foto
+lewat `core.photos.save_photo`, yang mengompresnya dan **membuang EXIF termasuk GPS**;
+jadi koordinat yang tersimpan hanya yang dari browser, bukan yang menempel diam-diam di
+berkasnya. Yang baru hanya satu model, satu halaman, dan satu perintah.
+
+**Tiga janji privasi, masing-masing dengan test-nya:**
+
+| Janji | Cara dijaga |
+|---|---|
+| **Tanpa IP sama sekali** | Tidak ada kolom `ip_address`/`user_agent`/`device`; ada test yang gagal bila muncul. IP tidak menjelaskan apa pun untuk orang yang berpindah-pindah, tetapi tetap menambah data pribadi |
+| **Koordinat ≈ 11 m** | `DecimalField(decimal_places=4)`; ada test yang gagal bila kolomnya diperlebar |
+| **Foto dihapus 90 hari, uraian tetap** | `manage.py hapus_foto_kegiatan`; ada test yang gagal bila uraiannya ikut terhapus |
+
+Tidak ada label Kuat/Sedang/Lemah seperti `jejak`: label itu berarti "benarkah ia di
+klinik", dan pertanyaan itu tidak berlaku di sini — berada di luar radius justru lazim.
+
+`foto_dihapus_pada` membedakan **"tidak ada foto"** dari **"fotonya sudah lewat masa
+simpan"**; tanpa itu laporan lama terlihat seolah tidak pernah berfoto.
+
+**Test:** 1563 lulus, naik 21 dari 1542. Tiga mutasi dipasang. Dua tertangkap; **satu
+tidak** — dan itu berguna: test pembulatan koordinat saya ternyata lulus walau
+pembulatan di parser dilepas, karena yang menjaga sebenarnya kolom `DecimalField`.
+Test-nya ditulis ulang agar menguji kolomnya, dan sekarang memperlebar kolom jadi 7
+desimal langsung menggagalkan dua test.
+
+`makemigrations --check` juga menangkap migrasi yang tertinggal dari fase 1:
+`ChecklistTemplate.target_role` memakai pilihan dari `Role`, dan peran `TEKNISI` baru
+ditambahkan tanpa migrasinya. Ikut dibuat di sini (`checklists 0007`).
+
 ## Persona teknisi/fasilitas (13 Oktober 2026) — belum dideploy
 
 Setelah akun Izul diaktifkan, menunya ternyata menu **staf operasional** — berisi
@@ -216,12 +253,7 @@ ber-kunci persona, dan persona baru tanpa entri di sana membuat **setiap halaman
 dirender** dengan `KeyError`. Menambah persona berarti memeriksa semua peta ber-kunci
 persona, bukan hanya `route_allowed`.
 
-**Fase berikutnya (belum dikerjakan):** menu lapor kegiatan dengan **foto selfie dan
-lokasi, tanpa IP** — Izul berpindah antarcabang dan ke vendor. Keputusan product owner
-13 Okt: laporan kegiatan berdiri sendiri, foto disimpan **90 hari** lalu dihapus
-otomatis. Pondasinya sudah ada: `jejak.PresenceStamp` merekam lokasi dibulatkan 4
-desimal (≈ 11 m, *"cukup untuk jarak ke klinik, tidak untuk melacak"*), dan
-`core.Attachment` menangani lampiran privat lewat `private_media`.
+**Fase 2 (Lapor Kegiatan) selesai**, lihat entri berikutnya.
 
 
 ## Akses Izul: kapabilitas per orang, bukan peran yang melebar (13 Oktober 2026) — `4e5d641`, dideploy 13 Okt

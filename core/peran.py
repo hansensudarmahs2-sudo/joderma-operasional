@@ -67,6 +67,8 @@ OWNER_ALLOWED = COMMON | {
     "direktur:team",
     "direktur:tasks",  # Daftar Task, baca saja (unduh CSV lewat GET)
     "direktur:meeting",  # Bahan rapat Kamis, baca saja
+    "reports:kegiatan",  # Laporan kegiatan teknisi, baca saja
+    "reports:kegiatan_detail",
     "direktur:kpi",  # KPI per staf, baca saja (unduh CSV lewat GET)
     "direktur:kpi_staff",
     "jejak:index",  # Jejak kehadiran, baca saja
@@ -146,6 +148,8 @@ TEKNISI_ALLOWED = COMMON | {
     "issues:upload",
     "reports:laporan_page",  # Laporan Saya
     "reports:laporan_page_detail",
+    "reports:kegiatan",  # Lapor kegiatan dengan foto dan lokasi
+    "reports:kegiatan_detail",
 }
 
 
@@ -536,6 +540,8 @@ def _teknisi_sections(user, flags) -> list[NavSection]:
     work.add("Jadwal Jaga", "jadwal:roster")
     if can_view_absensi(user):
         work.add("Absensi", "absensi:index", also=("/absensi/staf/",))
+
+    work.add("Lapor Kegiatan", "reports:kegiatan", also=("/laporan/kegiatan/",))
 
     lapor = NavSection("Lapor")
     if flags["issues"]:
