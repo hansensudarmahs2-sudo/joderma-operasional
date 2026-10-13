@@ -4,7 +4,8 @@
 > perhitungan, laporan pengecualian, halaman web, "Absensi saya" untuk staf, dan
 > koreksi cap dari halaman, dan permintaan koreksi dari staf.**
 > Seluruhnya sudah di-merge ke `master`: Tahap 1-3 dan 5 pada 6 Okt 2026, Tahap 4 pada
-> 12 Okt 2026 (`874bdf9`), dan **sudah dideploy ke mini PC** 12 Okt 15.01 (tanpa migrasi, hanya kode).
+> 12 Okt 2026 (`874bdf9`), dan Tahap 5 pada 13 Okt (`f238225`). **Keduanya sudah dideploy ke mini PC** —
+> Tahap 4 pada 12 Okt 15.01 (tanpa migrasi), Tahap 5 pada 13 Okt 15.57 (migrasi `absensi 0004`).
 > **Belum boleh dipakai untuk penilaian nyata** sampai bagian 9 beres.
 
 ## 1. Mengapa modul ini ada
