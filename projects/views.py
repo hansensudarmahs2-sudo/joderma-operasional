@@ -190,7 +190,7 @@ def _evidence(items: list[ActionItem]) -> dict[int, dict]:
 def _work_link(user) -> dict:
     """Tempat penerima mengerjakan task-nya: kartu dashboard Owner, atau Tugas hari ini."""
     if is_owner_only(user):
-        return {"work_url": reverse("owner:dashboard") + "#tugas-project", "work_label": "Dashboard Owner"}
+        return {"work_url": reverse("owner:dashboard") + "?tampil=tugas#tugas-project", "work_label": "Dashboard Owner"}
     return {"work_url": reverse("core:today"), "work_label": "Tugas hari ini"}
 
 

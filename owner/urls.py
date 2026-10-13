@@ -6,6 +6,7 @@ app_name = "owner"
 
 urlpatterns = [
     path("", views.dashboard_page, name="dashboard"),
+    path("tampilan/", views.dashboard_layout, name="dashboard_layout"),
     path("permintaan/baru/", views.request_new, name="request_new"),
     path("permintaan/<int:pk>/", views.request_detail, name="request_detail"),
     path("keputusan/<int:pk>/", views.decision_page, name="decision"),

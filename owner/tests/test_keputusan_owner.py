@@ -200,14 +200,14 @@ def test_director_reads_but_cannot_post_and_staff_blocked(client, jemur, hansen,
 
 def test_dashboard_card(client, jemur, yohanes, hansen):
     client.force_login(yohanes)
-    assert "Menunggu keputusan Anda" not in client.get(reverse("owner:dashboard")).content.decode()
+    assert "judul-keputusan" not in client.get(reverse("owner:dashboard")).content.decode()
     d = _perkara(hansen, jemur)
     Decision.objects.filter(pk=d.pk).update(needed_by=local_today() - dt.timedelta(days=1))
     body = client.get(reverse("owner:dashboard")).content.decode()
     assert "Menunggu keputusan Anda" in body and "Tambah anggaran tissue" in body and "Lewat tenggat" in body
     assert reverse("owner:decision", args=[d.pk]) in body
     services.decide(d, actor=yohanes, verdict="setuju")
-    assert "Menunggu keputusan Anda" not in client.get(reverse("owner:dashboard")).content.decode()
+    assert "judul-keputusan" not in client.get(reverse("owner:dashboard")).content.decode()
 
 
 # --- Gelombang perbaikan akhir (7 Okt 2026) -----------------------------------------------

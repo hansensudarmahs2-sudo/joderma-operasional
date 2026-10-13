@@ -157,7 +157,7 @@ def test_dashboard_card_lists_open_project_task(client, project, aom1, yohanes):
 
 def test_dashboard_card_hidden_when_nothing_open(client, project, aom1, yohanes, jean):
     _add(project, aom1, jean)  # task milik orang lain
-    assert "Tugas saya (project)" not in _login(client, yohanes).get(reverse("owner:dashboard")).content.decode()
+    assert 'id="tugas-project"' not in _login(client, yohanes).get(reverse("owner:dashboard")).content.decode()
 
 
 def test_dashboard_card_hidden_after_finish_and_shows_revision_note(client, project, aom1, yohanes):
@@ -165,7 +165,7 @@ def test_dashboard_card_hidden_after_finish_and_shows_revision_note(client, proj
     a = item.task_assignments.get()
     _login(client, yohanes)
     _submit(client, a, foto=_png())
-    assert "Tugas saya (project)" not in client.get(reverse("owner:dashboard")).content.decode()
+    assert 'id="tugas-project"' not in client.get(reverse("owner:dashboard")).content.decode()
     a.refresh_from_db()
     ps.reopen_assignment(a, actor=aom1, note="Foto kurang jelas")
     body = client.get(reverse("owner:dashboard")).content.decode()
@@ -486,7 +486,7 @@ def test_direktur_task_page_for_owner_uses_project_route_only(client, project, a
     body = r.content.decode()
     assert reverse("core:assignment_submit", args=[a.pk]) not in body
     assert reverse("core:assignment_progress", args=[a.pk]) not in body
-    assert "Buka di Dashboard (Tugas saya)" in body and reverse("owner:dashboard") + "#tugas-project" in body
+    assert "Buka di Dashboard (Tugas saya)" in body and reverse("owner:dashboard") + "?tampil=tugas#tugas-project" in body
     form = re.search(r'<form method="post"[^>]*action="([^"]+)"[^>]*enctype', body)
     assert form and form.group(1) == reverse("projects:my_submit", args=[a.pk])
     assert re.search(r'data-photo="1" required', body)

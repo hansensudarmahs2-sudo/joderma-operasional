@@ -1,0 +1,13 @@
+<section class="card" id="bag-kategori" aria-labelledby="judul-kategori">
+  <div class="checklist-heading" style="margin:0">
+    <h2 id="judul-kategori" style="margin:0">Per kategori</h2>
+    <a class="meta" href="{% url 'direktur:kategori' %}">Atur kategori ›</a>
+  </div>
+  <table class="responsive">
+    <thead><tr><th>Kategori</th><th>Terbuka</th><th>Selesai</th></tr></thead>
+    <tbody>{% for c in per_category %}
+    <tr><td data-label="Kategori">{{ c.name }}</td><td data-label="Terbuka">{% if c.open %}<strong>{{ c.open }}</strong>{% else %}<span class="meta">0</span>{% endif %}</td><td data-label="Selesai">{{ c.done }}</td></tr>
+    {% endfor %}</tbody>
+  </table>
+  <p class="meta" style="margin:.4rem 0 0">Semua permintaan dan temuan. Selesai: semua task permintaan selesai, atau temuan dinyatakan selesai oleh Direktur Operasional.</p>
+</section>

@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load owner_extras foto %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 <div class="checklist-heading">
@@ -7,106 +6,56 @@
     <h1>Dashboard</h1>
     <p class="sub">Semua cabang · {{ bird.generated_at|date:"d/m/Y H:i" }}</p>
   </div>
-  {% if bird.any_problem %}<span class="tag warn">Perlu perhatian</span>{% else %}<span class="tag ok">Semua beres</span>{% endif %}
+  <span class="inline-actions">{% if bird.any_problem %}<span class="tag warn">Perlu perhatian</span>{% else %}<span class="tag ok">Semua beres</span>{% endif %}{% if can_arrange %}<button type="button" class="btn small secondary" data-open-dialog="atur-tampilan">Atur tampilan</button>{% endif %}</span>
 </div>
 
-{% if awaiting %}
-<section class="card owner-requests" aria-labelledby="judul-keputusan">
-  <h2 id="judul-keputusan" style="margin:0">Menunggu keputusan Anda</h2>
-  <ul class="request-list">
-    {% for a in awaiting %}
-    <li><a class="request-row" href="{% url 'owner:decision' a.decision.pk %}">
-      <span class="request-main"><strong>{{ a.decision.title }}</strong>
-        <span class="meta">{{ a.decision.clinic.name|default:"Lintas cabang" }} · dari {{ a.decision.created_by|default:"Direktur Operasional" }} · {% if a.age_days %}{{ a.age_days }} hari lalu{% else %}hari ini{% endif %}{% if a.decision.needed_by %} · sebelum {{ a.decision.needed_by|date:"d/m/Y" }}{% endif %}</span></span>
-      <span class="request-state">{% if a.late %}<span class="tag err">Lewat tenggat</span>{% else %}<span class="tag warn">Putuskan</span>{% endif %}</span>
-    </a></li>
+{# Bilah navigasi bagian, tetap di atas saat halaman digulir (13 Okt 2026). #}
+<nav class="dash-nav" aria-label="Bagian dashboard">
+  <a href="#ringkasan">Ringkasan</a>
+  <a href="#bag-permintaan">Permintaan dan temuan{% if open_requests %} · {{ open_requests }}{% endif %}</a>
+  {% for s in hidden_alerts %}<a class="dash-nav-hidden" href="?tampil={{ s.key }}#bag-{{ s.key }}" title="Bagian ini Anda sembunyikan, tetapi ada yang perlu dilihat"><span class="tag err">{{ s.short }} · {{ s.alert }} {{ s.alert_word }}</span></a>{% endfor %}
+  {% for s in sections %}<a href="#bag-{{ s.key }}">{{ s.short }}{% if s.count %} · {{ s.count }}{% endif %}{% if s.alert %} <span class="tag err">{{ s.alert }} {{ s.alert_word }}</span>{% endif %}</a>{% endfor %}
+</nav>
+
+<section id="ringkasan" aria-label="Keadaan klinik per bidang">
+  {% if cards %}
+  <div class="news-grid">
+    {% for c in cards %}
+    {% if c.empty %}
+    <div class="news-card news-hijau">
+      <span class="news-kicker">{{ c.label }}</span>
+      <strong class="news-head">Tidak ada temuan atau permintaan terbuka</strong>
+    </div>
+    {% else %}
+    <a class="news-card news-{{ c.level }}" href="?bidang={{ c.key }}#bag-permintaan">
+      <span class="news-kicker">{{ c.label }}<span class="news-count">{{ c.count }}</span></span>
+      <span><span class="tag {{ c.reason_class }}">{{ c.reason }}</span></span>
+      <strong class="news-head">{{ c.top.request.title }}</strong>
+      <span class="meta">{% if c.top.request.kind == 'TEMUAN' %}Temuan{% else %}Permintaan{% endif %} · {{ c.top.request.clinic.name|default:"Lintas cabang" }} · {% include "owner/dash/_waktu.html" with r=c.top %}</span>
+      {% if c.next %}<span class="news-next">{% for r in c.next %}<span>+ {{ r.request.title }}</span>{% endfor %}{% if c.more %}<span>+ {{ c.more }} lainnya</span>{% endif %}</span>{% endif %}
+      {% if c.replaces %}<span class="news-note">Menggantikan {{ c.replaces }} yang kosong</span>{% endif %}
+    </a>
+    {% endif %}
     {% endfor %}
-  </ul>
-</section>
-{% endif %}
-{% if usulan %}
-<section class="card owner-requests" aria-labelledby="judul-usulan">
-  <h2 id="judul-usulan" style="margin:0">Usulan Direktur</h2>
-  <ul class="request-list">
-    {% for a in usulan %}
-    <li><a class="request-row" href="{% url 'owner:usulan_detail' a.usulan.pk %}">
-      <span class="request-main"><strong>{{ a.usulan.title }}</strong>
-        <span class="meta">{{ a.usulan.clinic.name|default:"Lintas cabang" }}{% if a.usulan.amount %} · {{ a.usulan.amount|rupiah }}{% endif %} · dari {{ a.usulan.created_by }} · {% if a.age_days %}{{ a.age_days }} hari lalu{% else %}hari ini{% endif %}{% if a.usulan.needed_by %} · sebelum {{ a.usulan.needed_by|date:"d/m/Y" }}{% endif %}</span></span>
-      <span class="request-state">{% if a.late %}<span class="tag err">Lewat tenggat</span>{% elif a.usulan.kind == 'PERSETUJUAN' %}<span class="tag warn">Putuskan</span>{% else %}<span class="tag info">Belum dibaca</span>{% endif %}</span>
-    </a></li>
-    {% endfor %}
-  </ul>
-  <p class="meta" style="margin:.5rem 0 0"><a href="{% url 'owner:usulan_list' %}">Semua usulan ›</a></p>
-</section>
-{% endif %}
-{% if my_project_tasks %}
-<section class="card my-tasks" id="tugas-project" aria-labelledby="judul-tugas-project">
-  <div class="checklist-heading" style="margin:0">
-    <h2 id="judul-tugas-project" style="margin:0">Tugas saya (project)</h2>
-    <span class="meta">{{ my_project_tasks|length }} task</span>
   </div>
-  <ul class="request-list">
-    {% for t in my_project_tasks %}
-    <li class="request-row" id="task-{{ t.item.pk }}">
-      <span class="request-main">
-        <strong>{{ t.item.title }}</strong>
-        <span class="meta">{% if t.item.created_by %}dari {{ t.item.created_by }} · {% endif %}{{ t.item.clinic.name }}{% if t.item.due_at %} · target {{ t.item.due_at|date:"d/m H.i" }}{% endif %}</span>
-        <span class="meta"><a href="{% url 'projects:task_detail' t.item.source_id t.item.pk %}"><span class="tag info">Project: {{ t.project|default:"—" }}</span></a></span>
-        {% include "core/_task_desc.html" with desc=t.item.description %}
-        {% if t.revision and t.assignment.revision_note %}<span class="meta">Catatan revisi: {{ t.assignment.revision_note }}</span>{% endif %}
-        <span class="task-actions-row">
-        {% if t.can_submit %}
-        <details class="task-submit">
-          <summary class="btn small">Tandai selesai</summary>
-          <form method="post" action="{% url 'projects:my_submit' t.assignment.pk %}" enctype="multipart/form-data" class="stack-form">
-            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <label for="catatan-proyek-{{ t.assignment.pk }}">Catatan <span class="meta">(opsional)</span></label>
-            <input id="catatan-proyek-{{ t.assignment.pk }}" name="catatan" placeholder="Mis. sudah ditandatangani, foto terlampir">
-            {% lampiran_input "Selesai — lampirkan bukti (wajib): foto atau dokumen" "foto" "" True %}
-            <button class="btn small" type="submit">Tandai selesai</button>
-          </form>
-        </details>
-        {% endif %}
-        <details class="task-submit">
-          <summary class="btn small secondary">Percakapan ({{ t.thread_count }})</summary>
-          <div class="stack-form">
-            {% if t.thread %}
-            <ul class="timeline">
-              {% for e in t.thread %}<li><strong>{{ e.actor|default:"Sistem" }}</strong> <span class="meta">{{ e.created_at|date:"d/m H.i" }} · {{ e.get_event_type_display }}</span><div style="white-space:pre-wrap">{{ e.note }}</div>{% dokumen_list e.docs %}</li>{% endfor %}
-            </ul>
-            {% else %}<p class="meta">Belum ada percakapan.</p>{% endif %}
-            <form method="post" action="{% url 'projects:my_comment' t.item.pk %}" class="stack-form">
-              {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
-              <label for="balas-proyek-{{ t.item.pk }}">Balas</label>
-              <input id="balas-proyek-{{ t.item.pk }}" name="catatan" required placeholder="Mis. vendor minta DP dulu, boleh?">
-              <button class="btn small" type="submit">Kirim</button>
-            </form>
-          </div>
-        </details>
-        <details class="task-submit">
-          <summary class="btn small secondary">Tolak</summary>
-          <form method="post" action="{% url 'projects:my_decline' t.assignment.pk %}" class="stack-form">
-            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <label for="tolak-proyek-{{ t.assignment.pk }}">Alasan menolak (wajib)</label>
-            <input id="tolak-proyek-{{ t.assignment.pk }}" name="alasan" required placeholder="Mis. sebaiknya dikerjakan Direktur">
-            <button class="btn small secondary" type="submit">Tolak task</button>
-          </form>
-        </details>
-        </span>
-      </span>
-      <span class="request-state">
-        {% if t.overdue %}<span class="tag err">Lewat target</span>{% elif t.due_today %}<span class="tag warn">Target hari ini</span>{% endif %}
-        {% if t.revision %}<span class="tag warn">Perlu revisi</span>{% endif %}
-      </span>
-    </li>
-    {% endfor %}
-  </ul>
+  {% else %}
+  <div class="news-card news-hijau news-all-clear">
+    <span class="news-kicker">Semua bidang</span>
+    <strong class="news-head">Tidak ada temuan atau permintaan yang terbuka</strong>
+    <span class="meta">Catat temuan bila melihat masalah di klinik; Direktur Operasional akan menindaklanjutinya.</span>
+  </div>
+  {% endif %}
 </section>
-{% endif %}
-<section class="card owner-requests" aria-labelledby="judul-permintaan">
+
+<section class="card owner-requests" id="bag-permintaan" aria-labelledby="judul-permintaan">
   <div class="checklist-heading" style="margin:0">
     <h2 id="judul-permintaan" style="margin:0">Permintaan dan temuan</h2>
     {% if can_create %}<span class="inline-actions"><a class="btn small" href="{% url 'owner:request_new' %}?jenis=TEMUAN">+ Catat temuan</a><a class="btn small secondary" href="{% url 'owner:request_new' %}">+ Permintaan</a></span>{% endif %}
+  </div>
+  <div class="chip-row" role="group" aria-label="Saring per bidang">
+    <a class="chip{% if not bidang %} chip-on{% endif %}" href="?#bag-permintaan">Semua</a>
+    {% for c in chips %}<a class="chip{% if bidang == c.key %} chip-on{% endif %}" href="?bidang={{ c.key }}#bag-permintaan">{{ c.label }} <b>{{ c.open }}</b></a>{% endfor %}
+    {% if bidang_kategori %}<span class="chip chip-on">{{ bidang_label }}</span>{% endif %}
   </div>
   {% if requests %}
   <ul class="request-list">
@@ -114,7 +63,7 @@
     <li>
       <a class="request-row" href="{% url 'owner:request_detail' r.request.pk %}">
         <span class="request-main">
-          <strong>{% if r.request.kind == 'TEMUAN' %}<span class="tag info">Temuan</span> {% endif %}{% if r.request.urgent %}<span class="tag err">Mendesak</span> {% endif %}{{ r.request.title }}</strong>{% if r.request.proposed_target and r.state != 'done' %}<span class="meta"><span class="tag warn">Usul target {{ r.request.proposed_target|date:"d/m" }}</span></span>{% endif %}{% if r.request.plan_title %}<span class="meta">Task besar: {{ r.request.plan_title }}</span>{% endif %}
+          <strong>{% if r.list_reason %}<span class="tag {{ r.reason_class }}">{{ r.reason }}</span> {% endif %}{% if r.request.kind == 'TEMUAN' %}<span class="tag info">Temuan</span> {% endif %}{{ r.request.title }}</strong>{% if r.request.proposed_target and r.state != 'done' %}<span class="meta"><span class="tag warn">Usul target {{ r.request.proposed_target|date:"d/m" }}</span></span>{% endif %}{% if r.request.plan_title %}<span class="meta">Task besar: {{ r.request.plan_title }}</span>{% endif %}
           <span class="meta">{% if r.target %}{% if r.target_set %}Target{% else %}Paling lambat{% endif %} {{ r.target|date:"d/m/Y" }}{% if r.state == 'done' %}{% if r.request.completed_at %} · selesai {{ r.request.completed_at|date:"d/m/Y" }} oleh {{ r.request.completed_by }}, {% if r.finished_late_by %}terlambat {{ r.finished_late_by }} hari{% else %}tepat waktu{% endif %}{% endif %}{% else %} · {% if r.days_left > 0 %}{{ r.days_left }} hari lagi{% elif r.days_left == 0 %}hari ini{% else %}lewat {{ r.days_late }} hari{% endif %}{% endif %}{% else %}Tanpa target{% endif %} · {{ r.request.clinic.name|default:"Lintas cabang" }} · {{ r.request.category.name|default:"Tanpa kategori" }} · {{ r.request.created_by }}</span>
         </span>
         <span class="request-state">{% include "owner/_request_state.html" %}</span>
@@ -122,55 +71,75 @@
     </li>
     {% endfor %}
   </ul>
-  <p class="meta" style="margin:.5rem 0 0"><a href="{% url 'direktur:gantt' %}?sumber=permintaan_owner">Lihat di Jadwal Task: permintaan beserta task turunannya ›</a></p>
+  <p class="meta" style="margin:.5rem 0 0">Urutan: mendesak, lewat target, prioritas tinggi, lalu target terdekat; yang selesai 14 hari terakhir di akhir. <a href="{% url 'direktur:gantt' %}?sumber=permintaan_owner">Lihat di Jadwal Task ›</a></p>
+  {% elif bidang %}
+  <p class="meta">Tidak ada permintaan atau temuan di {{ bidang_label }}. <a href="?#bag-permintaan">Tampilkan semua</a></p>
   {% else %}
   <p class="meta">Belum ada permintaan atau temuan yang berjalan. Catat temuan atau tulis permintaan; keduanya masuk Inbox Direktur Operasional, yang memilahnya menjadi task, meneruskannya, atau membawanya ke rapat. Progresnya tampil di sini.</p>
   {% endif %}
 </section>
 
-{% if per_category %}
-<section class="card" id="per-kategori" aria-labelledby="judul-kategori">
-  <div class="checklist-heading" style="margin:0">
-    <h2 id="judul-kategori" style="margin:0">Per kategori</h2>
-    <a class="meta" href="{% url 'direktur:kategori' %}">Atur kategori ›</a>
-  </div>
-  <table class="responsive">
-    <thead><tr><th>Kategori</th><th>Terbuka</th><th>Selesai</th></tr></thead>
-    <tbody>{% for c in per_category %}
-    <tr><td data-label="Kategori">{{ c.name }}</td><td data-label="Terbuka">{% if c.open %}<strong>{{ c.open }}</strong>{% else %}<span class="meta">0</span>{% endif %}</td><td data-label="Selesai">{{ c.done }}</td></tr>
-    {% endfor %}</tbody>
-  </table>
-  <p class="meta" style="margin:.4rem 0 0">Semua permintaan dan temuan. Selesai: semua task permintaan selesai, atau temuan dinyatakan selesai oleh Direktur Operasional.</p>
-</section>
+{% for s in sections %}{% include s.template %}{% endfor %}
+
+{% if can_arrange %}
+<dialog id="atur-tampilan" class="dash-dialog" aria-labelledby="judul-atur">
+  <form method="post" action="{% url 'owner:dashboard_layout' %}" class="stack-form">
+    {% csrf_token %}
+    <h2 id="judul-atur" style="margin:0">Atur tampilan</h2>
+    <p class="meta" style="margin:0">Kartu ringkasan dan daftar Permintaan dan temuan selalu tampil di atas. Bagian lain boleh disembunyikan atau digeser. Bagian tersembunyi yang berisi sesuatu yang lewat tetap diberi penanda merah di bilah atas.</p>
+    <ol class="atur-list" data-atur-list>
+      {% for s in layout %}
+      <li>
+        <input type="hidden" name="urutan" value="{{ s.key }}">
+        <label><input type="checkbox" name="tampil" value="{{ s.key }}"{% if s.shown %} checked{% endif %}> {{ s.label }}</label>
+        <span class="atur-move"><button type="button" class="btn small secondary" data-move="-1" aria-label="Naikkan {{ s.label }}">▲</button><button type="button" class="btn small secondary" data-move="1" aria-label="Turunkan {{ s.label }}">▼</button></span>
+      </li>
+      {% endfor %}
+    </ol>
+    <span class="inline-actions">
+      <button class="btn small" type="submit">Simpan</button>
+      <button class="btn small secondary" type="submit" name="aksi" value="bawaan">Kembali ke bawaan</button>
+      <button class="btn small secondary" type="button" data-close-dialog>Batal</button>
+    </span>
+  </form>
+</dialog>
+<script>
+(function () {
+  var dlg = document.getElementById('atur-tampilan');
+  document.querySelectorAll('[data-open-dialog]').forEach(function (b) {
+    b.addEventListener('click', function () { dlg.showModal(); });
+  });
+  dlg.querySelector('[data-close-dialog]').addEventListener('click', function () { dlg.close(); });
+  dlg.querySelector('[data-atur-list]').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-move]');
+    if (!b) return;
+    var li = b.closest('li');
+    if (b.dataset.move === '-1' && li.previousElementSibling) li.parentNode.insertBefore(li, li.previousElementSibling);
+    if (b.dataset.move === '1' && li.nextElementSibling) li.parentNode.insertBefore(li.nextElementSibling, li);
+    b.focus();
+  });
+})();
+</script>
 {% endif %}
-
-{% if verify %}
-<section class="card verify-queue" id="menunggu-verifikasi" aria-labelledby="judul-verifikasi">
-  <h2 id="judul-verifikasi" style="margin:0 0 .4rem">Menunggu verifikasi Anda · {{ verify|length }}</h2>
-  <p class="meta" style="margin-top:0">Pekerjaan Direktur Operasional sendiri diverifikasi Direktur Utama / Owner. Buka task, periksa bukti, lalu Konfirmasi selesai atau Minta revisi.</p>
-  <ul class="request-list">
-  {% for v in verify %}
-    <li><a class="request-row" href="{% url 'direktur:task_detail' v.item.pk %}">
-      <span class="request-main"><strong>{{ v.item.title }}</strong>
-        <span class="meta">{{ v.assignment.assignee }} · {{ v.item.clinic.name }} · diajukan {{ v.assignment.submitted_at|date:"d/m H.i" }}</span>
-        {% if v.note %}<span class="meta">Bukti: {{ v.note|truncatechars:140 }}</span>{% endif %}</span>
-      <span class="request-state"><span class="tag info">Periksa</span></span>
-    </a></li>
-  {% endfor %}
-  </ul>
-</section>
-{% endif %}
-
-{% include "direktur/_overview_body.html" %}
-
-<h2>Capaian 7 hari terakhir</h2>
-{% if achievements %}
-<ul class="request-list card">
-  {% for a in achievements %}
-  <li class="request-row"><span class="request-main"><a href="{% url 'direktur:task_detail' a.item.pk %}"><strong>{{ a.item.title }}</strong></a>
-    <span class="meta">{{ a.item.clinic.name }}{% if a.people %} · dikerjakan {{ a.people }}{% endif %}{% if a.reviewers %} · diverifikasi {{ a.reviewers }}{% endif %} · {{ a.item.updated_at|date:"d/m" }}</span></span>
-    <span class="request-state"><span class="tag ok">Selesai</span></span></li>
-  {% endfor %}
-</ul>
-{% else %}<p class="meta">Belum ada task yang selesai dalam 7 hari terakhir.</p>{% endif %}
+<script>
+(function () {
+  /* Sorot tautan bilah untuk bagian yang sedang terlihat. */
+  var links = Array.prototype.slice.call(document.querySelectorAll('.dash-nav a[href^="#"]'));
+  if (!('IntersectionObserver' in window) || !links.length) return;
+  var byId = {};
+  links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      links.forEach(function (a) { a.classList.remove('active'); });
+      var a = byId[e.target.id];
+      if (!a) return;
+      a.classList.add('active');
+      var nav = a.parentNode;
+      if (a.offsetLeft < nav.scrollLeft || a.offsetLeft + a.offsetWidth > nav.scrollLeft + nav.clientWidth) nav.scrollLeft = a.offsetLeft - 16;
+    });
+  }, {rootMargin: '-30% 0px -60% 0px'});
+  Object.keys(byId).forEach(function (id) { var el = document.getElementById(id); if (el) io.observe(el); });
+})();
+</script>
 {% endblock %}

@@ -1,0 +1,16 @@
+<div id="bag-verifikasi">
+<section class="card verify-queue" id="menunggu-verifikasi" aria-labelledby="judul-verifikasi">
+  <h2 id="judul-verifikasi" style="margin:0 0 .4rem">Menunggu verifikasi Anda · {{ verify|length }}</h2>
+  <p class="meta" style="margin-top:0">Pekerjaan Direktur Operasional sendiri diverifikasi Direktur Utama / Owner. Buka task, periksa bukti, lalu Konfirmasi selesai atau Minta revisi.</p>
+  <ul class="request-list">
+  {% for v in verify %}
+    <li><a class="request-row" href="{% url 'direktur:task_detail' v.item.pk %}">
+      <span class="request-main"><strong>{{ v.item.title }}</strong>
+        <span class="meta">{{ v.assignment.assignee }} · {{ v.item.clinic.name }} · diajukan {{ v.assignment.submitted_at|date:"d/m H.i" }}</span>
+        {% if v.note %}<span class="meta">Bukti: {{ v.note|truncatechars:140 }}</span>{% endif %}</span>
+      <span class="request-state"><span class="tag info">Periksa</span></span>
+    </a></li>
+  {% endfor %}
+  </ul>
+</section>
+</div>

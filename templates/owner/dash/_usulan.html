@@ -1,0 +1,13 @@
+{% load owner_extras %}<section class="card owner-requests" id="bag-usulan" aria-labelledby="judul-usulan">
+  <h2 id="judul-usulan" style="margin:0">Usulan Direktur · {{ usulan|length }}</h2>
+  <ul class="request-list">
+    {% for a in usulan %}
+    <li><a class="request-row" href="{% url 'owner:usulan_detail' a.usulan.pk %}">
+      <span class="request-main"><strong>{{ a.usulan.title }}</strong>
+        <span class="meta">{{ a.usulan.clinic.name|default:"Lintas cabang" }}{% if a.usulan.amount %} · {{ a.usulan.amount|rupiah }}{% endif %} · dari {{ a.usulan.created_by }} · {% if a.age_days %}{{ a.age_days }} hari lalu{% else %}hari ini{% endif %}{% if a.usulan.needed_by %} · sebelum {{ a.usulan.needed_by|date:"d/m/Y" }}{% endif %}</span></span>
+      <span class="request-state">{% if a.late %}<span class="tag err">Lewat tenggat</span>{% elif a.usulan.kind == 'PERSETUJUAN' %}<span class="tag warn">Putuskan</span>{% else %}<span class="tag info">Belum dibaca</span>{% endif %}</span>
+    </a></li>
+    {% endfor %}
+  </ul>
+  <p class="meta" style="margin:.5rem 0 0"><a href="{% url 'owner:usulan_list' %}">Semua usulan ›</a></p>
+</section>

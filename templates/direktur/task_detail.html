@@ -122,7 +122,7 @@
       {% endif %}
       {% if r.can_submit %}
       {% if r.owner_card %}
-      <a class="btn small secondary" href="{% url 'owner:dashboard' %}#tugas-project">Buka di Dashboard (Tugas saya)</a>
+      <a class="btn small secondary" href="{% url 'owner:dashboard' %}?tampil=tugas#tugas-project">Buka di Dashboard (Tugas saya)</a>
       {% else %}
       <details class="task-submit"><summary class="btn small secondary">Lapor progres</summary>
         <form method="post" data-jejak action="{% url 'core:assignment_progress' r.a.pk %}" enctype="multipart/form-data" class="stack-form">

@@ -12,7 +12,7 @@ untuk pindah antarhalaman kelompoknya. Isi tiap halaman:
 
 | Menu | Isi |
 |---|---|
-| **Dashboard** | Kartu **Menunggu keputusan Anda** di paling atas (lihat bagian *Keputusan yang menunggu Anda*), lalu Permintaan Owner, lalu **Agenda rapat Kamis** (perkara yang menunggu keputusan bersama dan task yang tertahan karenanya), lalu ringkasan yang sama dengan Ringkasan Direktur: kuadran prioritas gabungan dua cabang, keputusan menggantung, kebijakan baru, menunggu konfirmasi, jadwal task, dan kartu per cabang. Setiap kotak dapat diketuk untuk membuka Prioritas, Kanban, Jadwal Task, Keputusan, atau Tim |
+| **Dashboard** | Empat kartu ringkasan per bidang masalah di paling atas, lalu daftar Permintaan dan temuan, lalu bagian lain sesuai **Atur tampilan**. Lihat bagian *Dashboard* di bawah |
 | **Inbox** | Semua yang masuk ke Direktur Operasional (komplain, masukan, kerusakan, laporan staf, permintaan dan temuan Anda) beserta hasil pilahnya, hanya baca (lihat di bawah) |
 | **Daftar Task** | Semua task kedua cabang dalam satu tabel, dengan kolom Mulai di sebelah Target. Tombol **Cari** di sebelah judul membuka pop up untuk mencari dan menyaring; urutkan, unduh CSV. Hanya baca |
 | **Keputusan** | Register keputusan dan kebijakan. Perkara yang menunggu Anda dapat diputuskan dari sini atau dari kartu di Dashboard |
@@ -25,6 +25,39 @@ untuk pindah antarhalaman kelompoknya. Isi tiap halaman:
 
 Halaman lain (Hari Ini, checklist, pembagian tugas, kas, laporan, audit, pengaturan klinik) tidak
 ada di menu Owner dan ditolak bila alamatnya dibuka langsung.
+
+## Dashboard
+
+Dashboard dibaca dari atas ke bawah (13 Okt 2026):
+
+1. **Bilah bagian** di bawah kepala halaman tetap terlihat saat halaman digulir. Isinya tautan ke tiap
+   bagian beserta jumlahnya; tag merah berarti ada yang lewat target (Inbox: laporan kritis; Cabang:
+   cabang berstatus merah). Ketuk untuk melompat ke bagian itu.
+2. **Empat kartu ringkasan**, satu per bidang masalah. Isinya hanya permintaan dan temuan Anda yang
+   masih terbuka:
+
+   | Kartu | Kategori |
+   |---|---|
+   | Sarana | Fasilitas & peralatan, Kebersihan & kerapian |
+   | Alur dan SOP | Pelayanan pasien, Administrasi & sistem |
+   | SDM | SDM & disiplin |
+   | Lainnya | Keuangan & kas, Stok & obat, Pemasaran, Lainnya, kategori baru, dan tanpa kategori |
+
+   Judul besar di kartu adalah yang paling penting di bidang itu: mendesak, lalu lewat target (yang
+   paling lama dulu), lalu yang task-nya berprioritas Tinggi/Kritis, lalu target terdekat. Warna garis
+   atas: merah = ada yang mendesak atau lewat target; kuning = ada prioritas tinggi atau target dalam
+   7 hari; teal = berjalan biasa. Bila satu bidang kosong, kartunya diganti kategori dari kelompok
+   Lainnya yang paling banyak masalahnya ("Menggantikan … yang kosong"); bila tidak ada penggantinya,
+   kartu hijau. Ketuk kartu untuk menyaring daftar di bawahnya ke bidang itu.
+3. **Permintaan dan temuan** selalu tampil sesudah kartu, dengan saringan per bidang. Urutannya sama
+   dengan urutan kartu; yang selesai 14 hari terakhir di akhir.
+4. Bagian lain (Menunggu keputusan, Usulan Direktur, Menunggu verifikasi, Tugas saya, Inbox, Per
+   cabang, Yang belum selesai, Agenda rapat, Per kategori, Capaian) mengikuti **Atur tampilan**.
+
+**Atur tampilan** (tombol di kanan atas): centang bagian yang mau ditampilkan dan geser urutannya
+dengan ▲▼, lalu Simpan. Pilihan berlaku untuk akun Anda saja; **Kembali ke bawaan** mengembalikan
+semua bagian. Bagian yang Anda sembunyikan tetapi berisi sesuatu yang lewat tetap muncul sebagai tag
+merah di bilah atas; ketuk tag itu untuk membuka bagiannya sekali.
 
 ## Permintaan dan temuan Owner
 
@@ -91,7 +124,7 @@ lama, tetapi tidak bisa dipilih lagi untuk permintaan baru. Kategori tidak dihap
 
 ## Keputusan yang menunggu Anda
 
-Di paling atas Dashboard ada kartu **Menunggu keputusan Anda**: perkara Keputusan yang pemutusnya
+Di Dashboard (bawaannya sesudah Permintaan dan temuan) ada bagian **Menunggu keputusan Anda**: perkara Keputusan yang pemutusnya
 Owner atau Direktur Utama dan belum diputuskan. Yang **lewat tenggat** diberi label **Lewat tenggat**
 dan tampil paling atas. Perkara ini sampai ke Anda dari dua jalan, dan Anda mendapat notifikasi
 untuk keduanya: Direktur memilih **Teruskan → Direktur Utama / Owner** di Inbox, atau Direktur
@@ -168,7 +201,7 @@ itu). Setiap task menampilkan nama project, target, dan catatan revisi bila ada,
 Pekerjaan yang dikerjakan sendiri oleh Direktur Operasional diverifikasi Direktur Utama / Owner
 (kecuali sub task temuan Owner: lihat bagian di atas, tidak masuk antrean ini).
 Bila ia mengajukan selesai, Anda mendapat notifikasi dan bagian **Menunggu verifikasi Anda**
-muncul di atas Dashboard, lengkap dengan catatan buktinya. Buka task, periksa bukti (dan foto bila
+muncul di Dashboard (bagian Menunggu verifikasi), lengkap dengan catatan buktinya. Buka task, periksa bukti (dan foto bila
 ada), lalu tekan **Konfirmasi selesai** atau **Minta revisi** (catatan wajib). Anda juga dapat
 menambah catatan di riwayat task itu. Akun jean dan yohanes sama-sama dapat memverifikasi.
 Pekerjaan Direktur Operasional sendiri tidak diberi bintang. Bila pemeriksa sebuah task staf

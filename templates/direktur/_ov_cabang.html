@@ -1,0 +1,34 @@
+<h2>Per cabang</h2>
+<div class="branch-grid">
+{% for c in bird.cards %}
+  <a class="card tile-link level-{{ c.level }}" href="{% url 'direktur:team' %}#cabang-{{ c.clinic.pk }}">
+    <div class="checklist-heading" style="margin:0 0 .4rem">
+      <strong>{{ c.clinic.name }}</strong>
+      <span class="tag {% if c.level == 'merah' %}err{% elif c.level == 'kuning' %}warn{% else %}ok{% endif %}">{% if c.level == 'merah' %}Lewat batas{% elif c.level == 'kuning' %}Perlu dilihat{% else %}Beres{% endif %}</span>
+    </div>
+    <div class="meta">{% if c.reasons %}{{ c.reasons.0 }}{% if c.reasons|length > 1 %} · +{{ c.reasons|length|add:"-1" }} lainnya{% endif %}{% else %}Tidak ada yang terbuka{% endif %}</div>
+
+    <div class="meter-row">
+      <span>Checklist staf hari ini</span>
+      {% if c.staff_total %}
+        <span class="meter" role="img" aria-label="{{ c.staff_done }} dari {{ c.staff_total }} butir terisi"><span style="width:{% widthratio c.staff_done c.staff_total 100 %}%"></span></span>
+        <span class="meter-val">{{ c.staff_done }}/{{ c.staff_total }}</span>
+      {% else %}<span class="meta">{% if c.day %}—{% else %}belum dimulai{% endif %}</span>{% endif %}
+    </div>
+    {% for key, s in c.audit.items %}
+    <div class="meter-row">
+      <span>Cek Direktur {{ s.label|lower }}</span>
+      <span class="meter" role="img" aria-label="{{ s.done }} dari {{ s.total }} butir dicek"><span style="width:{% if s.total %}{% widthratio s.done s.total 100 %}{% else %}0{% endif %}%"></span></span>
+      <span class="meter-val">{{ s.done }}/{{ s.total }}</span>
+    </div>
+    {% endfor %}
+
+    <div class="chip-row">
+      <span class="chip{% if c.overdue %} chip-err{% endif %}"><b>{{ c.overdue }}</b> lewat target</span>
+      <span class="chip{% if c.findings %} chip-warn{% endif %}"><b>{{ c.findings }}</b> temuan terbuka</span>
+      <span class="chip"><b>{{ c.waiting }}</b> menunggu konfirmasi</span>
+    </div>
+  </a>
+{% endfor %}
+</div>
+<p class="meta">Merah: ada yang lewat target, temuan tanpa penerima, atau keputusan lewat tenggat. Kuning: ada yang terbuka dan perlu dilihat. Hijau: tidak ada yang terbuka.</p>

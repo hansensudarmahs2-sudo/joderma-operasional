@@ -1,0 +1,15 @@
+<section class="card owner-requests" id="bag-keputusan" aria-labelledby="judul-keputusan">
+  <div class="checklist-heading" style="margin:0">
+    <h2 id="judul-keputusan" style="margin:0">Menunggu keputusan Anda · {{ awaiting|length }}</h2>
+    <a class="meta" href="{% url 'direktur:decisions' %}">Semua keputusan ›</a>
+  </div>
+  <ul class="request-list">
+    {% for a in awaiting %}
+    <li><a class="request-row" href="{% url 'owner:decision' a.decision.pk %}">
+      <span class="request-main"><strong>{{ a.decision.title }}</strong>
+        <span class="meta">{{ a.decision.clinic.name|default:"Lintas cabang" }} · dari {{ a.decision.created_by|default:"Direktur Operasional" }} · {% if a.age_days %}{{ a.age_days }} hari lalu{% else %}hari ini{% endif %}{% if a.decision.needed_by %} · sebelum {{ a.decision.needed_by|date:"d/m/Y" }}{% endif %}</span></span>
+      <span class="request-state">{% if a.late %}<span class="tag err">Lewat tenggat</span>{% else %}<span class="tag warn">Putuskan</span>{% endif %}</span>
+    </a></li>
+    {% endfor %}
+  </ul>
+</section>

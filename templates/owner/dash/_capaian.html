@@ -1,0 +1,12 @@
+<section id="bag-capaian">
+<h2>Capaian 7 hari terakhir</h2>
+{% if achievements %}
+<ul class="request-list card">
+  {% for a in achievements %}
+  <li class="request-row"><span class="request-main"><a href="{% url 'direktur:task_detail' a.item.pk %}"><strong>{{ a.item.title }}</strong></a>
+    <span class="meta">{{ a.item.clinic.name }}{% if a.people %} · dikerjakan {{ a.people }}{% endif %}{% if a.reviewers %} · diverifikasi {{ a.reviewers }}{% endif %} · {{ a.item.updated_at|date:"d/m" }}</span></span>
+    <span class="request-state"><span class="tag ok">Selesai</span></span></li>
+  {% endfor %}
+</ul>
+{% else %}<p class="meta">Belum ada task yang selesai dalam 7 hari terakhir.</p>{% endif %}
+</section>

@@ -34,7 +34,7 @@ def owner_tasks_url() -> str:
     """Tujuan notifikasi task untuk Owner: kartu "Tugas saya (project)" di dashboard Owner."""
     from django.urls import reverse
 
-    return reverse("owner:dashboard") + "#tugas-project"
+    return reverse("owner:dashboard") + "?tampil=tugas#tugas-project"
 
 
 def _recipient_payload(user: User) -> dict:

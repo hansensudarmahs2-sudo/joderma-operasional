@@ -303,5 +303,5 @@ def test_rapat_decision_listed_in_meeting_not_in_owner_awaiting(client, jemur, y
     assert "Beli AC rapat" in _as(client, hansen).get(reverse("direktur:meeting")).content.decode()
     page = _as(client, yohanes).get(reverse("owner:dashboard")).content.decode()
     # Perkara rapat bukan perkara Owner: tidak masuk kartu keputusan, hanya agenda rapat Kamis.
-    assert "Menunggu keputusan Anda" not in page and "judul-keputusan" not in page
+    assert "judul-keputusan" not in page
     assert "Agenda rapat Kamis" in page and "Beli AC rapat" in page

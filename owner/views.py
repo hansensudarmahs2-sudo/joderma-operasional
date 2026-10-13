@@ -22,7 +22,7 @@ from core.permissions import is_aom, is_owner, require, user_clinic_queryset
 from direktur import dashboard
 from direktur.models import DailySummary
 
-from . import services, usulan
+from . import services, tampilan, usulan
 from .models import OwnerRequest, Usulan, UsulanKind, UsulanStatus
 
 DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
@@ -48,28 +48,116 @@ def _inbox_counts(user):
 @login_required
 @require(dashboard.can_view_overview)
 def dashboard_page(request):
+    """Dashboard Owner (13 Okt 2026): bilah navigasi tetap, empat kartu berita per bidang masalah,
+    daftar Permintaan dan temuan, lalu bagian lain menurut Atur tampilan (`owner.tampilan`)."""
     user = request.user
     everything = services.all_progress(user)
-    return render(
-        request,
-        "owner/dashboard.html",
-        {
-            "inbox": _inbox_counts(request.user),
-            "bird": dashboard.bird_view(user),
-            "matrix": dashboard.eisenhower(user, limit=1),
-            "counts": dashboard.headline_counts(user),
-            "agenda": dashboard.meeting_agenda(user),
-            "awaiting": services.decisions_awaiting(user),
-            "usulan": usulan.usulan_awaiting(user),
-            "requests": services.request_rows(user, rows=everything),
-            "per_category": services.category_rows(user, rows=everything),
-            "verify": services.verification_queue(user),
-            "achievements": services.recent_achievements(user),
-            "can_create": services.can_create_request(user),
-            "today": local_today(),
-            "my_project_tasks": _my_project_tasks(user),
-        },
-    )
+    ctx = {
+        "inbox": _inbox_counts(request.user),
+        "bird": dashboard.bird_view(user),
+        "matrix": dashboard.eisenhower(user, limit=1),
+        "counts": dashboard.headline_counts(user),
+        "agenda": dashboard.meeting_agenda(user),
+        "awaiting": services.decisions_awaiting(user),
+        "usulan": usulan.usulan_awaiting(user),
+        "per_category": services.category_rows(user, rows=everything),
+        "verify": services.verification_queue(user),
+        "achievements": services.recent_achievements(user),
+        "can_create": services.can_create_request(user),
+        "today": local_today(),
+        "my_project_tasks": _my_project_tasks(user),
+    }
+    listed = sorted(services.request_rows(user, rows=everything), key=tampilan.rank)
+    bidang = request.GET.get("bidang", "")
+    label = _bidang_label(bidang, everything)
+    rows = tampilan.filter_rows(listed, bidang) if label else listed
+    for r in rows:
+        r["reason"], r["reason_class"] = tampilan.reason(r)
+        # Di daftar, "Lewat N hari" tidak diulang: kolom kanan sudah menandai "Lewat target".
+        r["list_reason"] = (tampilan.is_open(r) and r["reason_class"] != "info"
+                            and not (r["late"] and not r["request"].urgent))
+    ctx.update({
+        "cards": tampilan.news_cards(everything),
+        "requests": rows,
+        "bidang": bidang if label else "",
+        "bidang_label": label,
+        "bidang_kategori": bool(label) and bidang.startswith("kat-"),
+        "chips": tampilan.area_chips(everything),
+        "open_requests": sum(1 for r in everything if tampilan.is_open(r)),
+        "can_arrange": tampilan.can_arrange(user),
+    })
+    ctx.update(_sections(user, ctx, request.GET.get("tampil", "")))
+    return render(request, "owner/dashboard.html", ctx)
+
+
+def _bidang_label(bidang: str, rows) -> str:
+    """Nama saringan ?bidang= (bidang kartu atau kategori kat-<id>); kosong bila tidak dikenal."""
+    if bidang in tampilan.AREA_LABELS:
+        return tampilan.AREA_LABELS[bidang]
+    if bidang.startswith("kat-"):
+        for r in rows:
+            if tampilan.bucket_of(r["request"]) == bidang:
+                return r["request"].category.name if r["request"].category else "Tanpa kategori"
+    return ""
+
+
+def _section_state(ctx) -> dict:
+    """Per bagian: (ada isinya, jumlah di bilah navigasi, jumlah yang lewat = penanda merah)."""
+    agenda = ctx["agenda"] or {}
+    inbox = ctx["inbox"] or {}
+    rapat = agenda.get("rapat", [])
+    red = sum(1 for c in ctx["bird"]["cards"] if c["level"] == "merah")
+    return {
+        "keputusan": (bool(ctx["awaiting"]), len(ctx["awaiting"]), sum(1 for a in ctx["awaiting"] if a["late"])),
+        "usulan": (bool(ctx["usulan"]), len(ctx["usulan"]), sum(1 for a in ctx["usulan"] if a["late"])),
+        "verifikasi": (bool(ctx["verify"]), len(ctx["verify"]), 0),
+        "tugas": (bool(ctx["my_project_tasks"]), len(ctx["my_project_tasks"]),
+                  sum(1 for t in ctx["my_project_tasks"] if t.get("overdue"))),
+        "inbox": (bool(inbox), inbox.get("total", 0), inbox.get("critical", 0)),
+        "cabang": (True, None, red),
+        "matriks": (True, ctx["counts"]["open"], ctx["counts"]["overdue"]),
+        "agenda": (bool(agenda), len(rapat), sum(1 for r in rapat if r["late"])),
+        "kategori": (bool(ctx["per_category"]), None, 0),
+        "capaian": (True, len(ctx["achievements"]), 0),
+    }
+
+
+# Kata pada penanda merah di bilah: inbox menghitung laporan kritis, cabang menghitung cabang merah.
+ALERT_WORDS = {"inbox": "kritis", "cabang": "merah"}
+
+
+def _sections(user, ctx, forced: str) -> dict:
+    """Bagian yang tampil (urutan Atur tampilan) dan penanda bagian tersembunyi yang berisi masalah.
+
+    `forced` (?tampil=kunci): satu bagian tersembunyi dibuka sekali, dari penanda merah."""
+    state = _section_state(ctx)
+    layout = tampilan.layout_for(user)
+    shown, hidden_alerts = [], []
+    for item in layout:
+        has, count, alert = state[item["key"]]
+        row = {**item, "count": count, "alert": alert, "alert_word": ALERT_WORDS.get(item["key"], "lewat"),
+               "template": f"owner/dash/_{item['key']}.html"}
+        if item["shown"] or item["key"] == forced:
+            if has:
+                shown.append(row)
+        elif alert:
+            hidden_alerts.append(row)
+    return {"sections": shown, "hidden_alerts": hidden_alerts, "layout": layout}
+
+
+@login_required
+@require(tampilan.can_arrange)
+def dashboard_layout(request):
+    """Simpan Atur tampilan (POST). Hanya Owner; pilihan berlaku untuk akunnya sendiri."""
+    if request.method != "POST":
+        return redirect("owner:dashboard")
+    if request.POST.get("aksi") == "bawaan":
+        tampilan.reset_layout(request.user)
+        messages.success(request, "Tampilan dashboard dikembalikan ke bawaan.")
+    else:
+        tampilan.save_layout(request.user, request.POST.getlist("urutan"), set(request.POST.getlist("tampil")))
+        messages.success(request, "Tampilan dashboard disimpan.")
+    return redirect("owner:dashboard")
 
 
 def _my_project_tasks(user):

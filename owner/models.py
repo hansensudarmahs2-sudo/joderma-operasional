@@ -177,3 +177,21 @@ class UsulanCatatan(models.Model):
 
     def __str__(self) -> str:
         return self.note[:80]
+
+
+class DashboardLayout(models.Model):
+    """Pilihan Atur tampilan Dashboard Owner per akun (13 Okt 2026).
+
+    : daftar {"key", "shown"} dari atas ke bawah; kunci dari .
+    Empat kartu berita dan daftar Permintaan dan temuan selalu tampil dan tidak diatur di sini."""
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="dashboard_layout")
+    sections = models.JSONField("bagian", default=list)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "tampilan dashboard"
+        verbose_name_plural = "tampilan dashboard"
+
+    def __str__(self) -> str:
+        return f"Tampilan dashboard {self.user}"

@@ -1,0 +1,6 @@
+{% if inbox %}
+<a class="card inbox-alert tile-link" href="{% url 'reports:inbox' %}" id="laporan-masuk">
+  <span><strong>Inbox</strong> · {% if inbox.untriaged %}<span class="tag warn">{{ inbox.untriaged }} belum dipilah</span>{% else %}semua sudah dipilah{% endif %}{% if inbox.watching %} · {{ inbox.watching }} dipantau{% endif %}{% if inbox.critical %} · <span class="tag err">{{ inbox.critical }} kritis</span>{% endif %}</span>
+  <span class="meta">{{ inbox.total }} terbuka{% for c, n in inbox.by_clinic.items %} · {{ c.name }} {{ n.total }}{% endfor %}{% if inbox.shared %} · lintas cabang {{ inbox.shared }}{% endif %} →</span>
+</a>
+{% endif %}

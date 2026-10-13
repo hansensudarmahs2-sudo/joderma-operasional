@@ -191,7 +191,7 @@ def test_director_sees_own_task_and_staff_reports(client, people, jemur):
 
     # Staf lain tidak melihat tombol ajukan di task orang lain; Ringkasan Owner tanpa Tugas saya.
     client.force_login(people["yohanes"])
-    assert "Tugas saya" not in client.get(reverse("owner:dashboard")).content.decode()
+    assert 'id="tugas-project"' not in client.get(reverse("owner:dashboard")).content.decode()
 
 
 def test_director_lists_show_all_branches(client, people, jemur, citraland):
