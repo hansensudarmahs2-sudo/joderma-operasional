@@ -41,9 +41,9 @@ Cara itu punya satu kesalahan yang mahal dan beberapa yang menular:
 | Lembur sangat panjang | Tidak perlu persetujuan (D3) |
 
 **Hanya satu angka di modul ini yang mengubah bayaran: ambang datang-awal 60 menit.**
-Ambang lain yang ada di kode (`AMBANG_CURIGA_CABANG_MENIT`,
-`AMBANG_LEMBUR_PANJANG_MENIT`) hanya memutuskan apakah suatu hari masuk daftar
-"Perlu dicek". Lihat bagian 6, D6.
+Ambang lain yang ada di kode (`TOLERANSI_POLA_MENIT`, `TOLERANSI_PULANG_AWAL_MENIT`,
+`AMBANG_LEMBUR_PANJANG_MENIT`) hanya menduga cabang atau memutuskan apakah suatu hari
+masuk daftar "Perlu dicek". Lihat bagian 6, D6.
 
 Sumber jam shift adalah `core.Clinic.open_time`/`close_time`, dan cabang per hari
 diambil dari `jadwal.DutyRoster.clinic` (bukan `home_clinic`, karena hari
@@ -415,28 +415,32 @@ Pada verifikasi September satu baris semacam itu menggeser skor 127 menit.
 
 | Kode | Pertanyaan | Keadaan sekarang | Yang perlu diputuskan |
 |---|---|---|---|
-| **D6** | Ambang penandaan cabang | Tidak lagi dipakai pada data nyata: cabang kini dibaca dari jendela shift mesin (bagian 4b). Dugaan pola tersisa sebagai cadangan | Yang tersisa: apakah 328 baris jadwal September hasil pembacaan absensi diterima setelah ditinjau |
+| **D6** | Ambang penandaan `CABANG_BEDA` | **Pertanyaan aslinya tidak berlaku lagi** — ambang 90 menit yang ditanyakan sudah tidak ada di kode (lihat di bawah) | Apakah perilaku tanpa ambang sekarang diterima, atau `CABANG_BEDA` perlu kelonggaran. Dijawab setelah ada satu bulan data nyata |
 
-**D6 — mengapa ada angka 90 dan dari mana asalnya.** Angka itu **bukan** aturan
-bayaran dan bukan keputusan Anda; saya yang memilihnya sebagai titik awal, dan saya
-keliru menaruhnya di daftar keputusan tanpa menyebut asalnya. Penjelasan lengkap:
+**D6 — pertanyaan aslinya sudah tidak berlaku, dan dokumen ini terlambat menyusul.**
+D6 dulu menanyakan ambang **90 menit** pada konstanta `AMBANG_CURIGA_CABANG_MENIT`:
+satu hari ditandai `CABANG_BEDA` bila cabang lain lebih cocok 90 menit atau lebih.
 
-- Ambang **60 menit** milik Anda ada di `AMBANG_DATANG_AWAL_MENIT`. Itu satu-satunya
-  angka di modul ini yang menyentuh bayaran.
-- Ambang **90 menit** ada di `AMBANG_CURIGA_CABANG_MENIT`. Ia dipakai di satu tempat
-  saja: memutuskan apakah suatu hari muncul di daftar "Perlu dicek" dengan tanda
-  `CABANG_BEDA`. Ia tidak pernah menyentuh terlambat, lembur, datang awal, atau skor.
-- Cara kerjanya: untuk satu hari, dihitung seberapa jauh jam cap meleset dari jam
-  buka dan tutup tiap cabang. Bila cabang lain lebih cocok **90 menit atau lebih**,
-  hari itu ditandai agar manusia memeriksa apakah cabang di jadwal jaga keliru.
-- Contoh nyata, Rahayu 18 September 2026, cap 11.57–21.51:
-  meleset dari Jemur (14.00–22.00) sebesar `123 + 9 = 132` menit; dari Citraland
-  (12.00–21.00) sebesar `3 + 51 = 54` menit. Selisih 78 — di bawah 90, jadi hari itu
-  **tidak** ditandai meski polanya Citraland sedangkan rosternya Jemur.
+Konstanta itu **sudah tidak ada di kode**. Ia dihapus pada `c24b4b7` ketika penentuan
+cabang ditulis ulang memakai jendela shift yang dicatat mesin (bagian 4b), tetapi bagian
+ini tidak ikut diperbarui — ketahuan 13 Okt 2026 saat menyalin D1–D6 ke `DECISIONS.md`.
 
-Di kode, ketiga angka itu sekarang dipisah dengan judul "mengubah bayaran" dan
-"hanya menandai", dan ada test yang gagal bila ambang penandaan sampai menggeser
-skor.
+Perilaku sekarang **tanpa ambang sama sekali**: satu hari ditandai `CABANG_BEDA` bila
+cabang menurut jendela shift mesin — atau, bila mesin tidak memberi keterangan, menurut
+dugaan pola jam — berbeda dari cabang di jadwal jaga. Perbandingan langsung, bukan
+selisih menit.
+
+Angka yang benar-benar ada di kode, dan perlu dibedakan:
+
+| Konstanta | Nilai | Mengubah bayaran? |
+|---|---|---|
+| `AMBANG_DATANG_AWAL_MENIT` | 60 | **Ya** — satu-satunya di modul ini, keputusan product owner |
+| `TOLERANSI_POLA_MENIT` | 60 | Tidak. Hanya menduga cabang saat jadwal jaga kosong |
+| `TOLERANSI_PULANG_AWAL_MENIT` | 5 | Tidak. Idem |
+| `AMBANG_LEMBUR_PANJANG_MENIT` | 180 | Tidak. Hanya menandai (D3) |
+
+Di kode keempatnya dipisah dengan judul "mengubah bayaran" dan "hanya menandai", dan ada
+test yang gagal bila ambang penandaan sampai menggeser skor.
 
 ## 7. Rencana tahap berikutnya
 
@@ -572,8 +576,9 @@ sini lebih dulu:
       **Tidak berlaku untuk September 2026** — lihat di bawah.
 - [x] **D1**, **D2**, **D3**, **D5** dijawab product owner (Okt 2026).
 - [x] **D4** dijawab: koreksi absen hanya Direktur Operasional, Direktur Utama, Owner.
-- [ ] **D6** diputuskan: ambang penandaan `CABANG_BEDA` dipertahankan atau diubah.
-- [ ] Keputusan D1-D6 disalin ke `DECISIONS.md`.
+- [ ] **D6** diputuskan: apakah `CABANG_BEDA` tanpa ambang diterima. Pertanyaan aslinya
+      (ambang 90 menit) sudah tidak berlaku — konstantanya tidak ada lagi di kode.
+- [x] Keputusan D1-D6 disalin ke `DECISIONS.md` (13 Okt 2026).
 - [ ] Staf diberi tahu cara skor ini dihitung sebelum dipakai menilai mereka.
       Aturannya mudah dijelaskan, tetapi mengejutkan bila baru diketahui setelah dinilai.
 - [ ] Angka satu bulan penuh dicocokkan dengan perhitungan tangan sekali lagi,

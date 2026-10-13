@@ -109,6 +109,75 @@ kembali, ditandai sebagai entri susulan dengan alasan. Runbook: `docs/runbook.md
 
 ---
 
+## Absensi jam kerja (D1–D6)
+
+Keputusan khusus modul absensi, disalin dari
+[`docs/absensi-jam-kerja.md`](docs/absensi-jam-kerja.md) bagian 6 pada 13 Okt 2026 agar
+punya satu tempat bersama keputusan lain. Dokumen modulnya tetap memuat penjelasan
+panjangnya; yang di bawah ini jawabannya saja beserta tempatnya di kode.
+
+### D1. Izul (2), Isya (6), dan Lina (9) ikut skema penilaian ini?
+**CONFIRMED.** Ikut, tetapi **rekam saja** — capnya disimpan dan bisa dilihat, tidak
+dinilai. Ketiganya tidak ada di jadwal jaga kedua cabang, jadi jam shift-nya tidak
+diketahui dan menilainya dengan jam Jemur/Citraland hanya menghasilkan angka yang tidak
+berarti. Di kode: `AttendanceDevice.recording_only`; usernya nonaktif dan tanpa peran,
+cukup untuk menautkan cap tetapi tidak cukup untuk masuk aplikasi. Mereka muncul di
+bagian terpisah "Direkam tanpa penilaian" pada papan skor, dan tidak pernah menghasilkan
+pengecualian — kalau dinilai, setiap harinya akan jadi `TANPA_ROSTER` dan menenggelamkan
+temuan yang benar-benar perlu dilihat.
+
+### D2. Hari off tetapi tetap mengecap dibayar?
+**CONFIRMED.** Dibayar. Hari Minggu adalah hari biasa tanpa premi; penggantinya hari off
+di jadwal jaga. Di kode: sudah sesuai perilaku sebelumnya, ditambah test penjaga agar
+hari Minggu tidak pernah diberi perlakuan khusus. Hari off yang tetap mengecap dihitung
+memakai jam cabang asal (`home_clinic`) dan ditandai `LIBUR_TAPI_NGECAP`.
+
+### D3. Lembur sangat panjang perlu persetujuan?
+**CONFIRMED.** Tidak, untuk saat ini. Lembur pulang dihitung penuh tanpa plafon. Di kode:
+`AMBANG_LEMBUR_PANJANG_MENIT = 180` hanya menandai hari itu di daftar "Perlu dicek";
+ia tidak pernah memotong bayaran.
+
+### D4. Siapa boleh mengoreksi absen, skor, dan lembur?
+**CONFIRMED.** Direktur Operasional, Direktur Utama, dan Owner. Lebih sempit daripada hak
+mengimpor berkas, karena mengimpor hanya memasukkan apa yang dicatat mesin sedangkan
+mengoreksi mengubah angka yang dipakai menilai orang. Hak jadwal jaga **tidak** berubah:
+tetap Admin, Koordinator Shift, dan Direktur Operasional. Di kode:
+`core.permissions.can_correct_absensi`, ditegakkan di halaman koreksi (Tahap 4), di
+Django admin, dan di `core/peran.py`. Konsekuensi yang diterima: jadwal jaga tanggal
+lampau tetap boleh diubah Koordinator Shift, dan itu menggeser skor bulan itu lewat jalur
+yang berbeda.
+
+### D5. Staf melihat jam kerjanya sendiri?
+**CONFIRMED.** Ya. Di kode: `/absensi/saya/`, menu "Absensi saya". Rute itu tidak punya
+parameter staf, jadi tidak ada cara meminta data orang lain dari sana. Sejak Tahap 5 staf
+juga bisa menekan "Cap saya kurang" untuk melaporkan capnya hilang atau keliru; jam yang
+ia tulis tidak mengikat, dan yang memutuskan tetap pemegang `can_correct_absensi`.
+
+### D6. Ambang penandaan `CABANG_BEDA`
+**TIDAK BERLAKU LAGI.** Pertanyaan aslinya menyangkut ambang 90 menit pada konstanta
+`AMBANG_CURIGA_CABANG_MENIT`. Pemeriksaan 13 Okt 2026 menunjukkan **konstanta itu sudah
+tidak ada di kode** — ia dihapus pada `c24b4b7` ketika penentuan cabang ditulis ulang
+memakai jendela shift yang dicatat mesin, dan bagian 6 dokumen modulnya tidak ikut
+diperbarui.
+
+Perilaku sekarang **tanpa ambang sama sekali**: satu hari ditandai `CABANG_BEDA` bila
+cabang menurut jendela shift mesin — atau, bila mesin tidak memberi keterangan, menurut
+dugaan pola jam — berbeda dari cabang di jadwal jaga. Perbandingan langsung, bukan
+selisih menit.
+
+Angka yang masih ada di kode dan perlu dibedakan:
+
+| Konstanta | Nilai | Mengubah bayaran? |
+|---|---|---|
+| `AMBANG_DATANG_AWAL_MENIT` | 60 | **Ya** — satu-satunya di modul ini. Keputusan product owner |
+| `TOLERANSI_POLA_MENIT` | 60 | Tidak. Hanya dipakai menduga cabang saat jadwal jaga kosong |
+| `TOLERANSI_PULANG_AWAL_MENIT` | 5 | Tidak. Idem; nilainya diuji terhadap 328 hari September 2026 |
+| `AMBANG_LEMBUR_PANJANG_MENIT` | 180 | Tidak. Hanya menandai (D3) |
+
+Yang tersisa untuk diputuskan, dan jauh lebih kecil daripada pertanyaan aslinya: apakah
+perilaku tanpa ambang ini diterima, atau `CABANG_BEDA` perlu kelonggaran supaya tidak
+menandai hari yang selisihnya sepele. Dijawab setelah ada satu bulan data nyata.
+
 ## Default operasional lain (Bagian 29)
 
 | Keputusan | Nilai | Status |
