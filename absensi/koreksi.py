@@ -47,7 +47,13 @@ from django.utils import timezone
 from audit.models import AuditAction
 from audit.services import log_event, snapshot
 
-from .models import AttendancePunch, JenisCap, SumberCap
+from .models import (
+    AttendancePunch,
+    JenisCap,
+    PermintaanKoreksi,
+    StatusPermintaan,
+    SumberCap,
+)
 from .services import waktu_cap
 
 #: Sepanjang `AttendancePunch.note`. Alasan yang lebih panjang tetap utuh di audit.
@@ -177,3 +183,92 @@ def hapus_cap(*, cap: AttendancePunch, alasan: str, actor) -> None:
         before=sebelum,
         reason=catatan,
     )
+
+
+# --- permintaan koreksi dari staf (Tahap 5) -------------------------------------
+
+
+def _jam_opsional(teks: str):
+    """Jam usulan boleh kosong; yang diisi tetap harus terbaca."""
+    teks = (teks or "").strip()
+    if not teks:
+        return None
+    return bersihkan_jam(teks)
+
+
+@transaction.atomic
+def ajukan_permintaan(*, user, shift_date: dt.date, alasan: str,
+                      usul_masuk: str = "", usul_keluar: str = "") -> PermintaanKoreksi:
+    """Staf melaporkan capnya sendiri hilang atau keliru.
+
+    Tidak mengubah satu angka pun: yang dibuat hanya permintaan. Pemeriksaan hak
+    ada di view (`saya` tidak punya parameter staf), dan `user` di sini selalu
+    pengirimnya sendiri.
+    """
+    catatan = bersihkan_alasan(alasan)
+    masuk, keluar = _jam_opsional(usul_masuk), _jam_opsional(usul_keluar)
+
+    if PermintaanKoreksi.objects.filter(
+        user=user, shift_date=shift_date, status=StatusPermintaan.MENUNGGU
+    ).exists():
+        raise KoreksiDitolak(
+            f"Permintaan untuk {shift_date:%d/%m/%Y} sudah dikirim dan masih menunggu "
+            "ditinjau. Tunggu jawabannya dulu."
+        )
+
+    permintaan = PermintaanKoreksi.objects.create(
+        user=user, shift_date=shift_date, alasan=catatan[:300],
+        usul_masuk=masuk, usul_keluar=keluar,
+    )
+    log_event(
+        action=AuditAction.CREATE,
+        entity_type="absensi.PermintaanKoreksi",
+        entity_id=permintaan.pk,
+        entity_label=f"{user} {shift_date} minta koreksi",
+        actor=user,
+        after=snapshot(permintaan),
+        reason=catatan,
+    )
+    return permintaan
+
+
+@transaction.atomic
+def tanggapi_permintaan(*, permintaan: PermintaanKoreksi, status: str,
+                        tanggapan: str, actor) -> PermintaanKoreksi:
+    """Yang berhak mengoreksi menjawab permintaan staf.
+
+    Menolak **wajib** disertai tanggapan: permintaan yang ditolak tanpa alasan
+    tidak bisa dipahami staf, dan justru itu yang membuat orang berhenti melapor.
+    Menyatakan sudah dikoreksi tidak mewajibkannya, karena perubahan capnya sendiri
+    sudah tercatat di audit dengan alasannya.
+    """
+    if permintaan.status != StatusPermintaan.MENUNGGU:
+        raise KoreksiDitolak("Permintaan ini sudah dijawab.")
+    if status not in (StatusPermintaan.DIKOREKSI, StatusPermintaan.DITOLAK):
+        raise KoreksiDitolak("Jawaban tidak dikenal.")
+
+    catatan = (tanggapan or "").strip()
+    if status == StatusPermintaan.DITOLAK and not catatan:
+        raise KoreksiDitolak(
+            "Menolak permintaan wajib disertai alasan: staf perlu tahu mengapa "
+            "capnya tidak jadi dikoreksi."
+        )
+
+    sebelum = snapshot(permintaan)
+    permintaan.status = status
+    permintaan.tanggapan = catatan[:300]
+    permintaan.ditangani_oleh = actor
+    permintaan.ditangani_pada = timezone.now()
+    permintaan.save(update_fields=["status", "tanggapan", "ditangani_oleh", "ditangani_pada"])
+
+    log_event(
+        action=AuditAction.CORRECTION,
+        entity_type="absensi.PermintaanKoreksi",
+        entity_id=permintaan.pk,
+        entity_label=f"{permintaan.user} {permintaan.shift_date} permintaan {permintaan.get_status_display().lower()}",
+        actor=actor,
+        before=sebelum,
+        after=snapshot(permintaan),
+        reason=catatan,
+    )
+    return permintaan

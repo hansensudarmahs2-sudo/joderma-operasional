@@ -170,3 +170,78 @@ class AttendancePunch(models.Model):
         from django.utils import timezone
 
         return timezone.localtime(self.occurred_at).date() != self.shift_date
+
+
+class StatusPermintaan(models.TextChoices):
+    MENUNGGU = "MENUNGGU", "Menunggu ditinjau"
+    DIKOREKSI = "DIKOREKSI", "Sudah dikoreksi"
+    DITOLAK = "DITOLAK", "Tidak dikoreksi"
+
+
+class PermintaanKoreksi(models.Model):
+    """Staf melaporkan capnya sendiri hilang atau jamnya keliru (Tahap 5).
+
+    Staf adalah yang paling cepat tahu capnya hilang, tetapi ia tidak boleh
+    memperbaiki angka yang menilai dirinya sendiri (D4). Jadi yang ia kirim adalah
+    *permintaan*, bukan koreksi: yang berhak (`can_correct_absensi`) yang
+    memutuskan dan mengetik sendiri jamnya di halaman koreksi.
+
+    Mengapa ini punya status dan tanggapan, bukan sekadar tanda pada baris "Perlu
+    dicek":
+
+    - Hari yang capnya hilang memang sudah muncul sebagai pengecualian, tetapi hari
+      yang **jamnya keliru sementara capnya lengkap** terlihat bersih dan tidak
+      punya baris untuk ditempeli. Permintaan semacam itu butuh tempat sendiri.
+    - Daftar "Perlu dicek" dihitung ulang dari cap dan roster setiap kali dibuka;
+      ia tidak bisa menyimpan "pernah ada yang bertanya" apalagi "sudah dijawab".
+    - Permintaan yang **ditolak** tidak punya tempat mendarat sama sekali pada
+      daftar yang dihitung, dan staf tidak akan pernah tahu hasilnya.
+
+    `usul_masuk` dan `usul_keluar` sengaja **tidak mengikat**: keduanya hanya
+    ditampilkan sebagai keterangan kepada yang mengoreksi, yang tetap mengetik
+    sendiri jamnya. Angka yang menentukan bayaran tidak boleh berasal dari orang
+    yang dibayar.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="permintaan_koreksi_absensi", verbose_name="staf",
+    )
+    shift_date = models.DateField("tanggal shift", db_index=True)
+    alasan = models.CharField("alasan", max_length=300)
+    usul_masuk = models.TimeField("usul jam masuk", null=True, blank=True)
+    usul_keluar = models.TimeField("usul jam pulang", null=True, blank=True)
+    status = models.CharField(
+        "status", max_length=10, choices=StatusPermintaan.choices,
+        default=StatusPermintaan.MENUNGGU, db_index=True,
+    )
+    tanggapan = models.CharField("tanggapan", max_length=300, blank=True)
+    ditangani_oleh = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="+", verbose_name="ditangani oleh",
+    )
+    ditangani_pada = models.DateTimeField("ditangani pada", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "permintaan koreksi absensi"
+        verbose_name_plural = "permintaan koreksi absensi"
+        ordering = ("-created_at",)
+        constraints = [
+            # Satu permintaan terbuka per orang per hari: mencegah daftar yang
+            # mengoreksi dipenuhi kiriman berulang untuk hari yang sama. Yang sudah
+            # dijawab tidak menghalangi permintaan baru bila memang masih keliru.
+            models.UniqueConstraint(
+                fields=["user", "shift_date"],
+                condition=models.Q(status="MENUNGGU"),
+                name="uniq_permintaan_terbuka_per_hari",
+            )
+        ]
+        indexes = [models.Index(fields=["status", "shift_date"])]
+
+    def __str__(self) -> str:
+        return f"{self.user} {self.shift_date} ({self.get_status_display()})"
+
+    @property
+    def terbuka(self) -> bool:
+        return self.status == StatusPermintaan.MENUNGGU

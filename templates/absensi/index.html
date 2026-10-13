@@ -60,6 +60,26 @@
 {% endif %}
 
 {% if tab == "pengecualian" %}
+  {% if permintaan %}
+  <h2 style="margin-top:.8rem">Permintaan dari staf <span class="tag warn">{{ permintaan|length }}</span></h2>
+  <p class="meta">Staf melaporkan capnya sendiri hilang atau jamnya keliru. Staf yang paling cepat tahu capnya hilang adalah staf itu sendiri, tetapi yang memutuskan tetap Anda — jam yang ia tulis hanya keterangan.</p>
+  <table class="responsive" style="margin-top:.5rem">
+    <thead><tr><th>Tanggal</th><th>Nama</th><th>Yang dilaporkan</th><th>Jam menurut staf</th><th>Dikirim</th><th></th></tr></thead>
+    <tbody>
+    {% for p in permintaan %}
+      <tr>
+        <td data-label="Tanggal">{{ p.shift_date|date:"j M" }}</td>
+        <td data-label="Nama">{{ p.user }}</td>
+        <td data-label="Yang dilaporkan">{{ p.alasan }}</td>
+        <td data-label="Jam menurut staf">{% if p.usul_masuk or p.usul_keluar %}{{ p.usul_masuk|time:"H.i"|default:"??.??" }}–{{ p.usul_keluar|time:"H.i"|default:"??.??" }}{% else %}<span class="meta">tidak disebut</span>{% endif %}</td>
+        <td data-label="Dikirim">{{ p.created_at|date:"j M H.i" }}</td>
+        <td><a class="btn small" href="{% url 'absensi:koreksi' p.user.pk p.shift_date|date:"Y-m-d" %}">Tinjau</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
   <p class="meta" style="margin-top:.8rem">Hari yang tidak bisa diputuskan sendiri oleh sistem. Angkanya tetap dihitung kecuali disebut lain, tetapi perlu dilihat manusia.</p>
   {% if perlu %}
   <table class="responsive" style="margin-top:.5rem">

@@ -37,7 +37,14 @@ from jadwal.services import can_edit_roster
 
 from . import koreksi as koreksi_cap
 from . import parser, services
-from .models import AttendanceDevice, AttendanceImport, AttendancePunch, JenisCap
+from .models import (
+    AttendanceDevice,
+    AttendanceImport,
+    AttendancePunch,
+    JenisCap,
+    PermintaanKoreksi,
+    StatusPermintaan,
+)
 from .perhitungan import AMBANG_DATANG_AWAL_MENIT, hitung_hari, hitung_periode
 
 TABS = [("skor", "Papan skor"), ("pengecualian", "Perlu dicek"), ("impor", "Impor berkas")]
@@ -102,6 +109,14 @@ def index(request):
             "ringkasan": ringkasan,
             "rekam_saja": rekam_saja,
             "perlu": perlu,
+            # Permintaan staf ditampilkan di atas daftar "Perlu dicek" supaya yang
+            # mengoreksi tetap melihat satu tempat (Tahap 5).
+            "permintaan": (
+                PermintaanKoreksi.objects.filter(status=StatusPermintaan.MENUNGGU)
+                .select_related("user").order_by("shift_date")
+                if tab == "pengecualian" and can_correct_absensi(request.user)
+                else None
+            ),
             "ambang_awal": AMBANG_DATANG_AWAL_MENIT,
             "bisa_impor": can_edit_absensi(request.user),
             "bisa_koreksi": can_correct_absensi(request.user),
@@ -150,6 +165,18 @@ def saya(request):
     tahun, bulan = _bulan(request)
     mulai, selesai = _rentang(tahun, bulan)
     ringkasan = hitung_periode(mulai, selesai, users=[request.user])
+    # Satu permintaan terakhir per tanggal, supaya tiap baris hari bisa menampilkan
+    # statusnya tanpa satu query per hari.
+    permintaan = {
+        p.shift_date: p
+        for p in PermintaanKoreksi.objects.filter(
+            user=request.user, shift_date__range=(mulai, selesai)
+        ).order_by("created_at")
+    }
+    # Ditempelkan ke barisnya di sini, bukan dicari dari template: template Django
+    # tidak bisa mengindeks dict dengan kunci variabel tanpa filter buatan sendiri.
+    for hasil in (ringkasan[0].hari if ringkasan else []):
+        hasil.permintaan = permintaan.get(hasil.tanggal)
     return render(
         request,
         "absensi/staf.html",
@@ -317,12 +344,25 @@ def koreksi(request, pk: int, tanggal: str):
                 else:
                     pesan = f"Cap manual {timezone.localtime(cap.occurred_at):%d/%m %H.%M} dihapus."
                     koreksi_cap.hapus_cap(cap=cap, alasan=alasan, actor=request.user)
+            elif aksi == "tanggapi":
+                permintaan = get_object_or_404(
+                    PermintaanKoreksi, pk=request.POST.get("permintaan", 0),
+                    user=orang, shift_date=hari_kerja,
+                )
+                koreksi_cap.tanggapi_permintaan(
+                    permintaan=permintaan, status=request.POST.get("status", ""),
+                    tanggapan=request.POST.get("tanggapan", ""), actor=request.user,
+                )
+                pesan = f"Permintaan {orang} ditandai {permintaan.get_status_display().lower()}."
             else:
                 raise koreksi_cap.KoreksiDitolak("Aksi koreksi tidak dikenal.")
         except koreksi_cap.KoreksiDitolak as exc:
             messages.error(request, str(exc))
         else:
-            messages.success(request, f"{pesan} {_akibat(_hari_satu(orang, hari_kerja)[1])}")
+            if aksi == "tanggapi":
+                messages.success(request, pesan)
+            else:
+                messages.success(request, f"{pesan} {_akibat(_hari_satu(orang, hari_kerja)[1])}")
         return kembali
 
     caps, hasil = _hari_satu(orang, hari_kerja)
@@ -338,5 +378,47 @@ def koreksi(request, pk: int, tanggal: str):
             "jenis_pilihan": JenisCap.choices,
             "ambang_awal": AMBANG_DATANG_AWAL_MENIT,
             "batas_dini": services.BATAS_DINI_JAM,
+            # Permintaan staf untuk hari ini: yang terbuka dijawab dari sini, yang
+            # sudah dijawab tetap ditampilkan sebagai riwayat.
+            "permintaan": PermintaanKoreksi.objects.filter(
+                user=orang, shift_date=hari_kerja
+            ).select_related("ditangani_oleh").order_by("-created_at"),
+            "status_pilihan": StatusPermintaan,
         },
     )
+
+
+@login_required
+@require_POST
+def minta_koreksi(request):
+    """Staf melaporkan capnya sendiri hilang atau jamnya keliru (Tahap 5).
+
+    Sengaja tidak punya parameter staf, sama seperti `saya`: permintaan selalu atas
+    nama pengirimnya. Tidak ada pemeriksaan hak tambahan karena tidak ada angka yang
+    berubah di sini — yang dibuat hanya permintaan, dan yang memutuskannya tetap
+    `can_correct_absensi` lewat halaman koreksi.
+    """
+    tanggal = request.POST.get("tanggal", "")
+    try:
+        hari_kerja = dt.date.fromisoformat(tanggal)
+    except ValueError:
+        raise Http404("Tanggal tidak sah.")
+    bulan = f"{hari_kerja.year:04d}-{hari_kerja.month:02d}"
+    kembali = redirect(f"{reverse('absensi:saya')}?bulan={bulan}")
+
+    try:
+        koreksi_cap.ajukan_permintaan(
+            user=request.user, shift_date=hari_kerja,
+            alasan=request.POST.get("alasan", ""),
+            usul_masuk=request.POST.get("usul_masuk", ""),
+            usul_keluar=request.POST.get("usul_keluar", ""),
+        )
+    except koreksi_cap.KoreksiDitolak as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(
+            request,
+            f"Permintaan koreksi {hari_kerja:%d/%m/%Y} terkirim. Direktur Operasional "
+            "akan meninjau; statusnya muncul di baris hari itu.",
+        )
+    return kembali

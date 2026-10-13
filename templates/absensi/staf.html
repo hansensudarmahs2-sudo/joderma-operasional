@@ -3,7 +3,7 @@
 {% block content %}
 {% if milik_sendiri %}
 <h1>Absensi saya</h1>
-<p class="sub">Jam kerja Anda {{ bulan.label }}, dari cap mesin sidik jari. Bila ada cap yang hilang atau jamnya keliru, beri tahu Direktur Operasional untuk dikoreksi.</p>
+<p class="sub">Jam kerja Anda {{ bulan.label }}, dari cap mesin sidik jari. Bila ada cap yang hilang atau jamnya keliru, tekan <strong>Cap saya kurang</strong> pada baris hari itu. Yang mengoreksi adalah Direktur Operasional; Anda akan melihat jawabannya di baris yang sama.</p>
 {% else %}
 <p><a href="{% url 'absensi:index' %}?bulan={{ bulan.value }}">← Papan skor</a></p>
 <h1>{{ orang }}</h1>
@@ -27,7 +27,7 @@
 <table class="responsive">
   <thead><tr>
     <th>Tanggal</th><th>Jadwal</th><th>Shift</th><th>Cap</th>
-    <th>Terlambat</th><th>Lembur</th><th>Datang awal</th><th>Skor</th><th>Catatan</th>{% if bisa_koreksi %}<th>Koreksi</th>{% endif %}
+    <th>Terlambat</th><th>Lembur</th><th>Datang awal</th><th>Skor</th><th>Catatan</th>{% if milik_sendiri %}<th>Cap keliru?</th>{% endif %}{% if bisa_koreksi %}<th>Koreksi</th>{% endif %}
   </tr></thead>
   <tbody>
   {% for h in staf.hari %}
@@ -45,6 +45,33 @@
         {% if h.ada_koreksi_manual %}<span class="tag">dikoreksi tangan</span>{% endif %}
         {% for c in h.catatan %}<div class="meta">{{ c }}</div>{% endfor %}
       </td>
+      {% if milik_sendiri %}
+      <td data-label="Cap keliru?">
+        {% if h.permintaan %}
+          {% if h.permintaan.status == "MENUNGGU" %}<span class="tag warn">menunggu ditinjau</span>
+          {% elif h.permintaan.status == "DIKOREKSI" %}<span class="tag ok">sudah dikoreksi</span>
+          {% else %}<span class="tag err">tidak dikoreksi</span>{% endif %}
+          <div class="meta">Anda tulis: {{ h.permintaan.alasan }}</div>
+          {% if h.permintaan.tanggapan %}<div class="meta"><strong>Jawaban:</strong> {{ h.permintaan.tanggapan }}</div>{% endif %}
+        {% else %}
+        <details>
+          <summary class="meta">Cap saya kurang</summary>
+          <form method="post" action="{% url 'absensi:minta_koreksi' %}" class="form-grid" style="margin-top:.4rem">{% csrf_token %}
+            <input type="hidden" name="tanggal" value="{{ h.tanggal|date:"Y-m-d" }}">
+            <div><label for="masuk-{{ forloop.counter }}">Jam masuk (bila ingat)</label>
+              <input id="masuk-{{ forloop.counter }}" type="time" name="usul_masuk"></div>
+            <div><label for="keluar-{{ forloop.counter }}">Jam pulang (bila ingat)</label>
+              <input id="keluar-{{ forloop.counter }}" type="time" name="usul_keluar"></div>
+            <div class="span-2"><label for="alasan-{{ forloop.counter }}">Apa yang keliru?</label>
+              <input id="alasan-{{ forloop.counter }}" type="text" name="alasan" maxlength="300" required
+                     placeholder="Mis. lupa cap masuk, saya datang 13.55"></div>
+            <p class="help span-2">Jam yang Anda tulis hanya keterangan, bukan angka yang langsung dipakai — Direktur Operasional yang memutuskan dan memasukkannya.</p>
+            <div class="span-2"><button class="btn small" type="submit">Kirim permintaan</button></div>
+          </form>
+        </details>
+        {% endif %}
+      </td>
+      {% endif %}
       {% if bisa_koreksi %}
       <td data-label="Koreksi"><a class="btn small secondary" href="{% url 'absensi:koreksi' orang.pk h.tanggal|date:"Y-m-d" %}">Koreksi</a></td>
       {% endif %}

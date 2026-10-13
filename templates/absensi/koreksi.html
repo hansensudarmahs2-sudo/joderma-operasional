@@ -28,6 +28,40 @@
   {% for c in hari.catatan %}<div class="meta">{{ c }}</div>{% endfor %}
 </div>
 
+{% if permintaan %}
+<h2 style="margin-top:1.2rem">Permintaan dari {{ orang }}</h2>
+{% for p in permintaan %}
+<div class="card" style="margin-top:.5rem">
+  <p style="margin:0">
+    {% if p.status == "MENUNGGU" %}<span class="tag warn">menunggu ditinjau</span>
+    {% elif p.status == "DIKOREKSI" %}<span class="tag ok">sudah dikoreksi</span>
+    {% else %}<span class="tag err">tidak dikoreksi</span>{% endif %}
+    <span class="meta">dikirim {{ p.created_at|date:"j M Y H.i" }}</span>
+  </p>
+  <p style="margin:.4rem 0 0"><strong>{{ p.alasan }}</strong></p>
+  {% if p.usul_masuk or p.usul_keluar %}
+  <p class="meta" style="margin:.2rem 0 0">Jam menurut staf: {{ p.usul_masuk|time:"H.i"|default:"??.??" }}–{{ p.usul_keluar|time:"H.i"|default:"??.??" }} — keterangan saja, bukan angka yang dipakai. Masukkan sendiri di bawah bila Anda setuju.</p>
+  {% endif %}
+  {% if p.terbuka %}
+  <form method="post" class="form-grid" style="margin-top:.6rem">{% csrf_token %}
+    <input type="hidden" name="aksi" value="tanggapi">
+    <input type="hidden" name="permintaan" value="{{ p.pk }}">
+    <div class="span-2"><label for="tanggapan-{{ p.pk }}">Tanggapan untuk staf</label>
+      <input id="tanggapan-{{ p.pk }}" type="text" name="tanggapan" maxlength="300"
+             placeholder="Wajib bila tidak dikoreksi; mis. tidak ada jadwal jaga hari itu"></div>
+    <div class="span-2">
+      <button class="btn" type="submit" name="status" value="DIKOREKSI">Sudah saya koreksi</button>
+      <button class="btn secondary" type="submit" name="status" value="DITOLAK">Tidak dikoreksi</button>
+    </div>
+    <p class="help span-2">Betulkan capnya lebih dulu di bawah, baru tandai "Sudah saya koreksi". Menolak wajib disertai alasan — staf perlu tahu mengapa.</p>
+  </form>
+  {% elif p.tanggapan %}
+  <p class="meta" style="margin:.4rem 0 0"><strong>Jawaban Anda:</strong> {{ p.tanggapan }}{% if p.ditangani_oleh %} <span class="meta">— {{ p.ditangani_oleh }}, {{ p.ditangani_pada|date:"j M H.i" }}</span>{% endif %}</p>
+  {% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
 <h2 style="margin-top:1.2rem">Cap hari ini</h2>
 {% if caps %}
 <table class="responsive">

@@ -2,7 +2,7 @@
 
 > **STATUS: Tahap 1-5 selesai — pemetaan ID, model cap, importer, mesin
 > perhitungan, laporan pengecualian, halaman web, "Absensi saya" untuk staf, dan
-> koreksi cap dari halaman.**
+> koreksi cap dari halaman, dan permintaan koreksi dari staf.**
 > Seluruhnya sudah di-merge ke `master`: Tahap 1-3 dan 5 pada 6 Okt 2026, Tahap 4 pada
 > 12 Okt 2026 (`874bdf9`), dan **sudah dideploy ke mini PC** 12 Okt 15.01 (tanpa migrasi, hanya kode).
 > **Belum boleh dipakai untuk penilaian nyata** sampai bagian 9 beres.
@@ -60,14 +60,15 @@ absensi/
   parser.py        pembaca "Kartu Laporan" .xlsx dan .xls
   services.py      impor_kartu_laporan() — penentuan waktu, pemetaan ID, dedup
   perhitungan.py   hitung_hari / hitung_periode / laporan_pengecualian
-  koreksi.py       tambah_cap / ubah_cap / hapus_cap — koreksi tangan + audit
+  koreksi.py       tambah_cap / ubah_cap / hapus_cap, ajukan_permintaan /
+                   tanggapi_permintaan — koreksi tangan + audit
   views.py/urls.py halaman /absensi/
   management/commands/{petakan_id_absensi,impor_absensi,laporan_absensi}.py
 templates/absensi/
   index.html / staf.html / koreksi.html
 ```
 
-159 test di `absensi/tests/`. Seluruh suite repo 1440 lulus (12 Okt 2026).
+182 test di `absensi/tests/`. Seluruh suite repo 1480 lulus (13 Okt 2026).
 
 ### Halaman dan hak akses
 
@@ -79,6 +80,7 @@ templates/absensi/
 | `/absensi/staf/<id>/` | Rincian harian satu staf: shift, cap, dan asal setiap angka |
 | `/absensi/saya/` | Jam kerja sendiri (D5). Tidak punya parameter staf, jadi tidak bisa diminta untuk orang lain |
 | `/absensi/koreksi/<id>/<tanggal>/` | Menambah, mengubah, atau menghapus satu cap pada satu hari kerja (Tahap 4). Tombolnya ada di baris "Perlu dicek" dan di rincian per staf |
+| `/absensi/minta-koreksi/` | POST dari "Absensi saya": staf melaporkan capnya sendiri hilang atau keliru (Tahap 5). Tidak punya parameter staf, jadi permintaan selalu atas nama pengirimnya |
 
 Tiga hak yang sengaja dipisah:
 
@@ -374,9 +376,11 @@ tetap lewat Django admin dengan hak yang sama. Yang bisa dihapus dari halaman ha
 bersumber `MANUAL` — supaya halaman yang bisa membuat cap juga bisa membereskan capnya
 sendiri.
 
-**Koreksi tidak memberi tahu yang bersangkutan.** Staf melihat angkanya berubah di
-"Absensi saya" tanpa pemberitahuan, dan belum ada tombol "cap saya kurang" untuk
-mengajukan koreksi (sisa Tahap 5). Untuk sekarang jalurnya tetap lisan.
+**Koreksi tidak memberi tahu yang bersangkutan — kecuali bila ia yang meminta.**
+Sejak Tahap 5, staf yang menekan "Cap saya kurang" melihat status dan jawabannya di
+baris hari itu. Tetapi koreksi yang dikerjakan atas inisiatif Direktur Operasional
+sendiri tetap tidak memunculkan pemberitahuan apa pun: staf hanya melihat angkanya
+berubah bila ia kebetulan membuka "Absensi saya". Belum ada notifikasi.
 
 **Isian jam memakai format bawaan browser.** Sama dengan pemilih tanggal di modul lain:
 browser berbahasa Inggris menampilkan 13:55 sebagai "01:55 PM". Yang tersimpan tetap
@@ -456,11 +460,40 @@ rincian per staf (`HasilHarian.ada_koreksi_manual`), supaya angka hasil koreksi 
 pernah terlihat sama pastinya dengan angka yang datang langsung dari mesin. Tidak ada
 migrasi baru.
 
-**Tahap 5 — halaman "Absensi saya".** *Selesai.* Staf melihat rincian hariannya
-sendiri di `/absensi/saya/`. Yang belum ada: tombol "cap saya kurang" yang membuat
-permintaan koreksi. Tahap 4 sudah menyediakan tempat mendaratnya, jadi ini tidak lagi
-terhalang — tinggal diputuskan apakah permintaan staf perlu antrean sendiri atau cukup
-muncul di daftar "Perlu dicek".
+**Tahap 5 — halaman "Absensi saya" dan permintaan koreksi.** *Selesai.* Staf melihat
+rincian hariannya sendiri di `/absensi/saya/`, dan tiap baris hari punya tombol
+**"Cap saya kurang"**.
+
+Pertanyaan yang sempat terbuka — apakah permintaan staf perlu antrean sendiri atau
+cukup menjadi tanda di daftar "Perlu dicek" — dijawab product owner 13 Okt 2026:
+**punya status dan jawaban**, tetapi ditampilkan di bagian atas tab "Perlu dicek"
+supaya yang mengoreksi tetap melihat satu tempat.
+
+Alasannya tiga, dan ketiganya tidak bisa diselesaikan oleh sekadar tanda pada baris:
+
+- Hari yang capnya hilang memang sudah muncul sebagai pengecualian, tetapi hari yang
+  **jamnya keliru sementara capnya lengkap** terlihat bersih dan tidak punya baris
+  untuk ditempeli.
+- Daftar "Perlu dicek" dihitung ulang dari cap dan roster setiap kali dibuka; ia tidak
+  bisa menyimpan "pernah ada yang bertanya", apalagi "sudah dijawab".
+- Permintaan yang **ditolak** tidak punya tempat mendarat sama sekali pada daftar yang
+  dihitung, dan staf tidak akan pernah tahu hasilnya. Permintaan yang hilang tanpa
+  kabar adalah yang membuat orang berhenti melapor.
+
+Staf boleh menulis jam yang ia ingat, dan **jam itu tidak mengikat**: ia hanya
+ditampilkan sebagai keterangan kepada yang mengoreksi, yang tetap mengetik sendiri di
+halaman koreksi. Angka yang menentukan bayaran tidak boleh berasal dari orang yang
+dibayar — itu sebabnya ada test yang gagal bila jam usulan sampai terpasang otomatis.
+
+Menolak **wajib disertai alasan**; menyatakan sudah dikoreksi tidak, karena perubahan
+capnya sendiri sudah tercatat di audit beserta alasannya. Satu permintaan terbuka per
+orang per hari (constraint di model); hari yang sudah dijawab tetapi masih keliru boleh
+dilaporkan ulang.
+
+Hak aksesnya tidak bertambah: mengirim permintaan terbuka untuk siapa pun yang login
+tetapi selalu atas nama pengirimnya (rutenya tidak punya parameter staf, seperti
+`/absensi/saya/`), sedangkan menjawabnya tetap `can_correct_absensi` lewat halaman
+koreksi. Migrasi baru: `absensi 0004`.
 
 **Tahap 6 — unduh CSV.** Papan skor dan daftar pengecualian, mengikuti pola unduh
 yang sudah ada di `direktur:kpi`. Bergantung pada: tidak ada.

@@ -74,6 +74,7 @@ OWNER_ALLOWED = COMMON | {
     # sengaja TIDAK masuk OWNER_READ_ONLY: keputusan D4 memberi Owner dan Direktur
     # Utama hak mengoreksi cap. Impor berkas tetap ditolak `can_edit_absensi`.
     "absensi:koreksi",
+    "absensi:minta_koreksi",  # melaporkan capnya sendiri keliru; tidak mengubah angka
     "jejak:devices",  # perangkat dikenal, baca saja (POST ditolak di view)
     "direktur:kanban",
     "direktur:matrix",
@@ -104,6 +105,7 @@ ADMIN_ALLOWED = COMMON | {
     "core:clinic_profile",
     "checklists:templates",
     "absensi:saya",
+    "absensi:minta_koreksi",
     "jadwal:*",
 }
 
