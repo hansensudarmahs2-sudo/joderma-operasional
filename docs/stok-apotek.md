@@ -16,7 +16,7 @@ tidak mengikuti pemakaian.
 | Fase | Isi | Status |
 |---|---|---|
 | 1 | Impor tiga jenis file, penggabungan unduhan, uji kelengkapan, tab Prioritas Order, Transfer, Impor Data, parameter | Selesai 1 Okt 2026, commit `e966da7`, dideploy ke mini PC 1 Okt |
-| 2 | Tab Moving dan Kandidat Nonaktif, tanda tindak lanjut, unduh daftar order | Belum (ditahan product owner 6 Okt) |
+| 2 | Tab Moving dan Kandidat Nonaktif, tanda tindak lanjut, unduh daftar order | Belum (ditahan product owner 6 Okt; 13 Okt seluruh modul ditunda sampai ada masukan apoteker atas fase 1) |
 | 3 | Lead time per distributor, pemakaian bulan berjalan, ukuran kemasan | Belum |
 
 Layar parameter semula fase 2; ikut fase 1 karena keputusan akses 1 Okt.

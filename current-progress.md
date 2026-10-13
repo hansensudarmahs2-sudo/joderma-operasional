@@ -27,6 +27,8 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 
 Spesifikasi: [`docs/stok-apotek.md`](docs/stok-apotek.md). App baru `stok`, halaman `/stok-apotek/`.
 
+**Ditunda seluruhnya (keputusan PO 13 Okt 2026)** sampai apoteker memberi masukan atas fase 1. Memperbarui modul yang belum benar-benar dipakai tidak ada gunanya.
+
 | Fase | Isi | Status |
 |---|---|---|
 | 1 | Impor Daftar Produk, Tingkat Persediaan, Pergerakan (.xls Omnicare); penggabungan unduhan terpotong; 4 uji kelengkapan; tab Prioritas Order, Transfer, Impor Data; parameter | Selesai 1 Okt, angka identik dengan workbook 30 Sep. Commit `e966da7`, dideploy 1 Okt |
@@ -169,7 +171,7 @@ sesudah 1–2 bulan data.
 |---|---|
 | Sekarang | Uji coba fase 9 oleh staf (menunggu masukan); perbaiki temuan per kelompok. Tahap 1–3 dan fase 6–8 sudah dideploy (4 Okt) |
 | Berikutnya | Analisis KPI dan jejak sesudah data 1–2 minggu; tinjau skor gabungan dan "KPI saya" sesudah 1–2 bulan |
-| Paralel | Stok Apotek fase 1 dipakai apoteker dengan data produksi; keputusan A5–A9; lalu fase 2 |
+| Ditunda | **Seluruh modul Stok Apotek ditunda** (keputusan PO 13 Okt): tidak ada perbaikan, fase 2, atau keputusan A5–A9 sebelum apoteker memberi masukan atas fase 1 dari pemakaian sungguhan, bukan unggah sekadar memenuhi kewajiban. Jangan merekomendasikan lanjutan modul ini sebelum masukan itu ada |
 | Sesudah fase 9 | Perkenalan tampilan baru ke Direktur Utama, PIC, dan staf (panduan di `docs/panduan-*.md`) |
 | Oktober 2026 | Uji coba jadwal jaga, pembagian tugas, dan giliran tally bulanan; catat masalah di `UAT_ISSUE_REGISTER.md`; aturan tally ditweak sesudah uji coba (ketetapan 30 Sep) |
 | Akhir Oktober | Jadwal jaga November: siapkan JSON dari PDF, `import_jadwal_jaga`, `seed_tugas_harian --susun 2026-11` |
