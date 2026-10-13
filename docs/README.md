@@ -36,6 +36,7 @@ Selain itu, mulai dari peran Anda.
 | Melanjutkan rencana integrasi AOM | [`AOM_MODULE_INTEGRATION_PLAN.md`](AOM_MODULE_INTEGRATION_PLAN.md) |
 | Melihat kontrak ekspor legacy AOM standalone (Fase 6) | [`AOM_LEGACY_EXPORT_SCHEMA.md`](AOM_LEGACY_EXPORT_SCHEMA.md) |
 | Mengimpor cap absensi mesin sidik jari dan aturan jam kerja | [`absensi-jam-kerja.md`](absensi-jam-kerja.md) |
+| Melihat tinjauan teknis PRD Pendamping Tindakan Perawat (rating pasien, katalog tindakan) | [`tinjauan-pendamping-tindakan.md`](tinjauan-pendamping-tindakan.md) |
 
 ## Saya owner atau manajemen
 
