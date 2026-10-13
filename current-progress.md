@@ -427,6 +427,11 @@ manual terpisah, 17 hari perlu dicek (10 lewat tengah malam, 8 cap tunggal).
    cap September tetapi **0 baris jadwal jaga September**, jadi papan skornya memang tidak
    berarti. Capnya tetap disimpan sebagai rekaman.
 2. Jalur `.xls` belum diuji dengan berkas asli dari mesin; baru diuji dengan sheet tiruan.
+   **Ditunda** bersama butir lain yang menunggu ekspor Oktober.
+4. **Bulan penilaian pertama ditunda sampai ekspor Oktober ada** (keputusan 13 Okt). Ekspor
+   mesin diambil per bulan penuh, jadi Oktober baru bisa diunggah setelah bulannya selesai.
+   Jadwal jaga Oktober sudah terisi 403 baris, jadi papan skor langsung berarti begitu
+   ekspornya masuk. Empat butir di `docs/absensi-jam-kerja.md` bagian 9 menunggu ini.
 3. ~~Tahap 4: koreksi cap dari halaman~~ — *selesai, di `master` sejak 12 Okt
    (`874bdf9`), belum dideploy* (lihat Riwayat ▸ Tahap 4).
 

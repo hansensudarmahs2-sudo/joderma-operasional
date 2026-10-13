@@ -597,7 +597,7 @@ sederhana daripada yang tertulis sebelumnya:
 | Cap September | **776 cap ada**, dari dua kali impor berkas `absensi-september-2026.xlsx` |
 | Jadwal jaga September | **0 baris** |
 | 328 baris "dari absensi" | **Tidak pernah ada di produksi** — hanya artefak verifikasi di salinan database laptop |
-| Cap Oktober | **0** — ekspor Oktober belum pernah diunggah |
+| Cap Oktober | **0** — ekspor Oktober belum ada (lihat di bawah) |
 
 Jadi tidak ada 328 baris yang perlu ditinjau, dan perbedaan Naya, Luki, dan Rahayu
 terhadap PDF jadwal tidak pernah masuk ke data klinik. Karena September tidak punya
@@ -606,6 +606,22 @@ skor September memang tidak berarti, dan sekarang memang tidak dipakai.
 
 Cap September **tetap disimpan** sebagai rekaman apa yang dicatat mesin. Yang
 dibatalkan hanya pemakaiannya untuk penilaian, bukan datanya.
+
+### Bulan penilaian pertama: menunggu ekspor Oktober (ditunda, 13 Okt 2026)
+
+Ekspor mesin sidik jari diambil **per bulan penuh** — berkas September mencakup
+1–30 September. Jadi ekspor Oktober baru bisa diambil setelah Oktober selesai, dan
+sampai itu terjadi modul ini tidak punya data untuk dinilai. Ini bukan pekerjaan yang
+terlupa; ia memang belum mungkin.
+
+Yang sudah siap menunggu: jadwal jaga Oktober **sudah terisi 403 baris** di produksi,
+jadi begitu ekspornya diunggah papan skor langsung berarti — tanpa perlu "Susun jadwal
+jaga dari absensi" seperti yang dipakai pada September.
+
+Empat butir di daftar bagian 9 menunggu hal yang sama, dan karenanya ikut ditunda:
+meninjau "Perlu dicek" bulan itu, menjawab **D6** dengan data nyata, mencocokkan angka
+satu bulan penuh dengan hitungan tangan, dan menguji jalur `.xls` dengan berkas asli
+dari mesin.
 
 ## 10. Cara memakai
 
