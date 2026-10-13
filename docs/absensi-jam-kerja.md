@@ -1,13 +1,20 @@
 # Absensi Jam Kerja
 
-> **STATUS: Tahap 1-5 selesai — pemetaan ID, model cap, importer, mesin
-> perhitungan, laporan pengecualian, halaman web, "Absensi saya" untuk staf, dan
-> koreksi cap dari halaman, permintaan koreksi dari staf, dan unduh CSV.**
-> Seluruhnya sudah di-merge ke `master`: Tahap 1-3 dan 5 pada 6 Okt 2026, Tahap 4 pada
-> 12 Okt 2026 (`874bdf9`), dan Tahap 5 pada 13 Okt (`f238225`). **Keduanya sudah dideploy ke mini PC** —
-> Tahap 4 pada 12 Okt 15.01 (tanpa migrasi), Tahap 5 pada 13 Okt 15.57 (migrasi `absensi 0004`),
-> dan Tahap 6 pada 13 Okt 16.16 (tanpa migrasi).
-> **Belum boleh dipakai untuk penilaian nyata** sampai bagian 9 beres.
+> **STATUS: Tahap 1–6 selesai** — pemetaan ID, model cap, importer, mesin perhitungan,
+> laporan pengecualian, halaman web, "Absensi saya" untuk staf, koreksi cap dari halaman,
+> permintaan koreksi dari staf, dan unduh CSV.
+>
+> **Seluruhnya sudah di-merge ke `master` dan dideploy ke mini PC:**
+>
+> | Tahap | Merge | Deploy |
+> |---|---|---|
+> | 1–3, 5 (halaman "Absensi saya") | 6 Okt 2026 | — |
+> | 4 — koreksi cap dari halaman (`874bdf9`) | 12 Okt | 12 Okt 15.01, tanpa migrasi |
+> | 5 — permintaan koreksi dari staf (`f238225`) | 13 Okt | 13 Okt 15.57, migrasi `absensi 0004` |
+> | 6 — unduh CSV (`272dc49`) | 13 Okt | 13 Okt 16.16, tanpa migrasi |
+>
+> **Belum boleh dipakai untuk penilaian nyata** sampai bagian 9 beres — dan bulan
+> penilaian pertama ditunda sampai ekspor Oktober ada (lihat bagian 9).
 
 ## 1. Mengapa modul ini ada
 
