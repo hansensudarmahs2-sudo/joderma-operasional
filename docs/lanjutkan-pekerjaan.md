@@ -115,27 +115,46 @@ diperbaiki, dan tidak ada yang mencegahnya kembali.
 
 Hanya kode yang sudah di-commit yang dikirim, dan selalu backup lebih dulu.
 
+Prosedur ini sama dari laptop maupun desktop; pakai persis begini supaya isi dan izin
+berkas di server tidak bolak-balik tergantung siapa yang men-deploy.
+
 ```bash
-# Dari laptop, setelah test lulus dan perubahan di-commit
-cd ~/Desktop/joderma-operasional
-rm -rf /tmp/joderma-deploy && git worktree prune
-git worktree add /tmp/joderma-deploy HEAD
+# Dari laptop atau desktop, setelah test lulus, perubahan di-commit, dan di-push
+cd ~/Desktop/joderma-operasional      # desktop: cd ~/joderma-operasional
+git fetch origin && test "$(git rev-parse HEAD)" = "$(git rev-parse origin/master)" && echo "HEAD = GitHub"
+rm -rf ~/.cache/joderma-deploy-stage && mkdir -p ~/.cache/joderma-deploy-stage
+git -c tar.umask=022 archive --format=tar HEAD | tar -x -C ~/.cache/joderma-deploy-stage
 rsync -az --delete \
   --exclude '/.venv/' --exclude '/data/' --exclude '/private_media/' --exclude '/logs/' \
-  --exclude '/backups/' --exclude '/staticfiles/' --exclude '/.git' --exclude '__pycache__/' --exclude '/.env' \
-  /tmp/joderma-deploy/ joderma-jemur@joderma-jemur:~/joderma-ops/
-git worktree remove /tmp/joderma-deploy
+  --exclude '/backups/' --exclude '/staticfiles/' --exclude '/.git' --exclude '/.env' \
+  --exclude '__pycache__/' --exclude '/.pytest_cache/' --exclude '/apotek/' \
+  --exclude '/.claude-sync/' --exclude '/Claude outputs/' \
+  ~/.cache/joderma-deploy-stage/ joderma-jemur@joderma-jemur:~/joderma-ops/
+rm -rf ~/.cache/joderma-deploy-stage
 ```
+
+Tambahkan `--dry-run --itemize-changes` pada `rsync` untuk melihat dulu apa yang akan berubah.
+
+Mengapa `git archive` (seragam sejak 13 Okt 2026):
+
+- **Hanya berkas yang tercatat di Git pada commit itu yang dikirim.** Menyalin direktori kerja
+  ikut membawa berkas lokal yang tidak di-commit: berkas kosong `s*1s*` sisa salah ketik
+  sempat terkirim dan baru terhapus pada deploy 12 Okt. Arsip juga tidak memuat `.git` sama
+  sekali, jadi tidak ada lagi berkas penunjuk worktree yang bisa ikut terkirim (pada 12 Okt
+  berkas `.git` berisi `gitdir: …/.git/worktrees/joderma-deploy` sempat mendarat di
+  `~/joderma-ops` dan harus dihapus tangan, karena worktree staging memakai pola
+  `'/.git/'` yang hanya cocok untuk direktori).
+- **Izin berkas mengikuti Git dan sama di setiap mesin.** `tar.umask=022` menghasilkan 644 untuk
+  berkas biasa dan 755 untuk yang executable di Git. Tanpa itu, hasilnya tergantung umask mesin
+  yang men-deploy (664/775 dari laptop, 644/755 dari desktop) dan setiap deploy dari mesin lain
+  mengubah izin ratusan berkas.
 
 Pola exclude diawali `/` supaya hanya folder di akar yang dilewati. Tanpa `/`, folder
 bernama sama di dalam app (mis. `jadwal/.../data/`) ikut terlewat; itu pernah terjadi.
-
-`--exclude '/.git'` ditulis **tanpa** garis miring di belakang. Di worktree, `.git` adalah
-sebuah *berkas* berisi penunjuk ke direktori utama, bukan direktori — dan `'/.git/'` hanya
-cocok dengan direktori, sehingga berkas itu ikut terkirim. Pada deploy 12 Okt 2026 berkas
-`.git` berisi `gitdir: /home/.../joderma-operasional/.git/worktrees/joderma-deploy` sempat
-mendarat di `~/joderma-ops` dan harus dihapus tangan. Isinya hanya penunjuk path, bukan
-rahasia, tetapi membuat direktori aplikasi tampak seperti worktree yang rusak.
+Dengan `--delete`, pola exclude juga melindungi folder yang hanya ada di server (data,
+lampiran, backup, `.env`) dari penghapusan, jadi jangan dihapus dari daftar walaupun folder
+itu tidak ada di Git. `'/.git'` tetap ditulis **tanpa** garis miring di belakang supaya cocok
+baik dengan direktori maupun berkas.
 
 ```bash
 # Di server klinik
