@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 
 from django.urls import reverse
 
-from accounts.models import Role
+from accounts.models import Capability, Role
 from accounts.survei import SURVEY_PATH
 
 DIREKTUR = "DIREKTUR"
@@ -146,6 +146,21 @@ STAF_BLOCKED = {
     "nurses:tally_backfill",
 }
 
+# Rute yang biasanya tertutup untuk staf, tetapi dibuka oleh kapabilitas tambahan
+# (13 Okt 2026). Gunanya memberi satu orang satu kemampuan tanpa melebarkan perannya
+# menjadi PIC atau Koordinator Shift — mis. staf fasilitas yang mengurus pengambilan
+# berkas dari mesin absensi dan perlu tahu siapa jaga kapan.
+#
+# `absensi:koreksi` sengaja TIDAK ada di sini: mengoreksi cap tetap hanya Direktur
+# Operasional, Direktur Utama, dan Owner (D4), dan view-nya menolaknya sendiri.
+# `jadwal:roster` hanya terbuka untuk dibaca; POST tetap ditolak `can_edit_duty`.
+STAF_DIBUKA_KAPABILITAS = {
+    "absensi:index": Capability.ABSENSI_IMPORT,
+    "absensi:unggah": Capability.ABSENSI_IMPORT,
+    "absensi:staf": Capability.ABSENSI_IMPORT,
+    "jadwal:roster": Capability.ROSTER_VIEW,
+}
+
 # Staf membuka Kas hanya pada hari ia ditugaskan sebagai kasir (porsi kelompok Kas di Pembagian Tugas).
 STAF_CASHIER_ONLY = {"cash:*"}
 
@@ -194,6 +209,12 @@ def route_allowed(user, route: str, method: str = "GET") -> bool:
             from jadwal.services import is_cashier_today
 
             return is_cashier_today(user)
+        perlu = STAF_DIBUKA_KAPABILITAS.get(route)
+        if perlu is not None:
+            from core.permissions import caps
+
+            if perlu in caps(user):
+                return True
         return not _matches(route, STAF_BLOCKED)
     return True
 
@@ -448,6 +469,7 @@ def nav_sections(user) -> list[NavSection]:
 
 def _staff_sections(user, flags) -> list[NavSection]:
     """Menu staf (fase 7): hanya yang ia kerjakan hari itu dan jadwalnya sendiri."""
+    from core.permissions import caps
     from jadwal.services import is_cashier_today
 
     work = NavSection()
@@ -467,5 +489,13 @@ def _staff_sections(user, flags) -> list[NavSection]:
         work.add("Projects", "projects:list")
     if flags["survei"]:
         work.add_link("Survei", SURVEY_PATH)
+    # Dibuka per orang lewat kapabilitas tambahan (13 Okt 2026), bukan lewat peran;
+    # lihat STAF_DIBUKA_KAPABILITAS.
+    kapabilitas = caps(user)
+    if Capability.ROSTER_VIEW in kapabilitas:
+        work.add("Jadwal Jaga", "jadwal:roster")
+    if Capability.ABSENSI_IMPORT in kapabilitas:
+        # Awalan path literal, bukan nama rute: absensi:staf butuh argumen pk.
+        work.add("Absensi", "absensi:index", also=("/absensi/staf/",))
     work.add("Kebijakan", "reports:policies")
     return [work, _report_section(user, flags)]

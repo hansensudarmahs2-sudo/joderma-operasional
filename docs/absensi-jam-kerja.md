@@ -98,7 +98,7 @@ Tiga hak yang sengaja dipisah:
 | Hak | Siapa | Pemeriksa |
 |---|---|---|
 | Membaca papan skor dan pengecualian | Direktur Operasional, Admin berakses penuh, Owner | `can_view_absensi` |
-| Mengimpor berkas mesin | Direktur Operasional, Admin berakses penuh | `can_edit_absensi` |
+| Mengimpor berkas mesin | Direktur Operasional, Admin berakses penuh, dan siapa pun yang diberi kapabilitas `absensi.import` | `can_edit_absensi` |
 | **Mengoreksi cap, skor, lembur** | Direktur Operasional, Direktur Utama, Owner (D4) | `can_correct_absensi` |
 
 Halaman koreksi adalah satu-satunya tempat Owner boleh mengirim perubahan di modul ini;
@@ -106,7 +106,15 @@ di `core/peran.py` rutenya terdaftar untuk Owner tanpa masuk `OWNER_READ_ONLY`.
 
 Mengimpor hanya memasukkan apa yang dicatat mesin; mengoreksi mengubah angka yang
 dipakai menilai orang. Karena itu Admin boleh mengimpor tetapi tidak mengoreksi, dan
-Owner sebaliknya. Mengubah pemilik satu ID mesin dihitung sebagai koreksi, karena
+Owner sebaliknya.
+
+Sejak 13 Okt 2026 hak mengimpor juga bisa diberikan **per orang** lewat kapabilitas
+`absensi.import`, untuk staf yang mengurus pengambilan berkas dari mesin tanpa perlu
+dijadikan Direktur atau Admin. Perhatikan satu hal yang terikat di kode:
+`can_view_absensi` memakai `can_edit_absensi`, jadi **siapa pun yang boleh mengimpor
+juga melihat papan skor seluruh staf**. Keduanya tidak dipisah — memisahkannya menuntut
+halaman impor tersendiri — dan konsekuensi itu diterima sadar oleh product owner saat
+kapabilitasnya dibuat. Hak mengoreksi cap tetap tidak ikut. Mengubah pemilik satu ID mesin dihitung sebagai koreksi, karena
 memindahkan seluruh cap bulan itu ke orang lain.
 
 Staf tidak melihat jam kerja tim, hanya jam kerjanya sendiri lewat

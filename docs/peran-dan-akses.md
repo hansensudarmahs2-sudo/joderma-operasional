@@ -86,6 +86,8 @@ dari perannya. Setiap pemberian tercatat di audit log sebagai `PERMISSION_CHANGE
 | `audit.view` | membaca audit log |
 | `report.export` | mengunduh laporan CSV |
 | `tally.correct` | mengoreksi tally perawat di cabang yang dapat diakses, tanpa peran Koordinator Shift; tidak ikut hilang saat Reset peran (diberikan untuk Regitta, 3 Okt 2026) |
+| `absensi.import` | mengunggah berkas ekspor mesin sidik jari tanpa menjadi Direktur Operasional atau Admin. **Ikut membawa hak melihat papan skor seluruh staf**, karena `can_view_absensi` memakai `can_edit_absensi`; keduanya sengaja tidak dipisah dan pemberiannya diputuskan sadar per orang (product owner, 13 Okt 2026). Tidak memberi hak mengoreksi cap |
+| `roster.view` | membuka Jadwal Jaga seluruh tim, **baca saja**; mengubahnya tetap ditolak `can_edit_duty`. Untuk staf yang perlu tahu siapa jaga kapan tanpa dijadikan PIC atau Koordinator Shift |
 | `admin.full_access` | seluruh data bisnis sekaligus (lihat bagian berikut) |
 
 ## Kapabilitas `admin.full_access`
@@ -192,6 +194,12 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Menyetujui usulan target baru | pemberi tugas, AOM | — |
 | Jejak kehadiran: daftar jejak, ringkasan per staf, IP lazim (baca), unduh CSV | AOM, owner | — |
 | KPI per staf per bulan dan rinciannya, unduh CSV | AOM, owner | — |
+| Absensi: papan skor, daftar Perlu dicek, rincian per staf, unduh CSV | AOM, owner | `absensi.import`, `admin.full_access` |
+| Absensi: mengunggah berkas ekspor mesin | AOM | `absensi.import`, `admin.full_access` |
+| Absensi: mengoreksi cap, menjawab permintaan koreksi staf (D4) | AOM, owner | — |
+| Absensi saya (jam kerja sendiri) dan tombol "Cap saya kurang" | semua yang login | — |
+| Jadwal Jaga seluruh tim (baca) | AOM, admin, supervisor | `roster.view` |
+| Jadwal Jaga seluruh tim (ubah) | AOM, admin, Koordinator Shift cabangnya | — |
 | Mengatur perangkat dikenal (IP Tailscale perangkat klinik) | AOM | — |
 | Koordinat dan radius cabang (Pengaturan Klinik) | yang boleh mengubah pengaturan klinik | — |
 | Mengunduh audit (CSV, sesuai saringan; tercatat sebagai EXPORT) | AOM | `admin.full_access` |

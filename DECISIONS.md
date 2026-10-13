@@ -194,6 +194,15 @@ menandai hari yang selisihnya sepele. Dijawab setelah ada satu bulan data nyata.
 | Database | SQLite WAL (migrasi ke PostgreSQL sesuai PRD 16.2) | PROVISIONAL |
 
 ## Catatan perubahan
+- 2026-10-13 — **Hak impor absensi dan lihat jadwal jaga bisa diberikan per orang** (keputusan
+  product owner). Dibuat untuk staf fasilitas (Izul) yang menerima laporan kerusakan, melapor
+  balik ke pelapor, mengurus pengambilan berkas dari mesin absensi, dan perlu tahu siapa jaga
+  kapan — tanpa dijadikan PIC atau Koordinator Shift. Dua kapabilitas baru: `absensi.import` dan
+  `roster.view`. Konsekuensi yang **diterima sadar**: `can_view_absensi` memakai
+  `can_edit_absensi`, sehingga pemegang `absensi.import` juga melihat papan skor seluruh staf;
+  memisahkannya menuntut halaman impor tersendiri dan ditunda. Yang **tidak** ikut diberikan:
+  hak mengoreksi cap (tetap D4 — Direktur Operasional, Direktur Utama, Owner) dan hak mengubah
+  jadwal jaga (`roster.view` baca saja; POST tetap ditolak `can_edit_duty`).
 - 2026-10-13 — **Data absensi September 2026 diabaikan** (keputusan product owner). September
   tidak ditinjau dan tidak dipakai menilai siapa pun; bulan penilaian pertama adalah bulan yang
   rosternya memang terisi di sistem. Dasarnya: produksi punya 776 cap September tetapi **nol

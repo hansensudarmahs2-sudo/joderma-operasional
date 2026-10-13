@@ -179,6 +179,11 @@ class Capability(models.TextChoices):
     AUDIT_VIEW = "audit.view", "Membaca audit log"
     REPORT_EXPORT = "report.export", "Mengekspor laporan"
     TALLY_CORRECT = "tally.correct", "Mengoreksi tally perawat (cabang yang dapat diakses)"
+    # Dua kapabilitas di bawah dibuat 13 Okt 2026 untuk staf fasilitas yang mengurus
+    # impor absensi dan perlu tahu siapa jaga kapan, tanpa melebarkan perannya menjadi
+    # PIC atau Koordinator Shift. Keduanya diberikan per orang dan tercatat di audit.
+    ABSENSI_IMPORT = "absensi.import", "Mengimpor berkas absensi mesin (ikut melihat papan skor)"
+    ROSTER_VIEW = "roster.view", "Melihat jadwal jaga seluruh tim (baca saja)"
     ADMIN_FULL_ACCESS = (
         "admin.full_access",
         "Admin akses penuh (kas, pasien, komplain terbatas, audit)",

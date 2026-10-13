@@ -414,12 +414,27 @@ def can_view_stok(user) -> bool:
 
 
 def can_edit_absensi(user) -> bool:
-    """Absensi jam kerja: impor berkas mesin dan koreksi cap.
+    """Absensi jam kerja: impor berkas mesin.
 
     Isinya jam kerja seluruh staf dan dasar penilaian lembur, jadi haknya sempit:
     Direktur Operasional, dan Admin yang diberi akses penuh data bisnis (D8).
+
+    Sejak 13 Okt 2026 bisa juga diberikan per orang lewat `Capability.ABSENSI_IMPORT`,
+    untuk staf yang mengurus pengambilan berkas dari mesin tanpa perlu dijadikan
+    Direktur atau Admin. Perhatikan konsekuensinya: `can_view_absensi` di bawah
+    memakai fungsi ini, jadi siapa pun yang boleh mengimpor **juga melihat papan skor
+    seluruh staf**. Keduanya sengaja tidak dipisah — memisahkannya menuntut halaman
+    impor sendiri — dan pemberiannya diputuskan sadar per orang (product owner,
+    13 Okt 2026).
+
+    Mengoreksi cap tetap terpisah dan lebih sempit: `can_correct_absensi`.
     """
-    return is_aom(user) or has_admin_full_access(user) or is_bootstrap_superuser(user)
+    return (
+        is_aom(user)
+        or has_admin_full_access(user)
+        or is_bootstrap_superuser(user)
+        or Capability.ABSENSI_IMPORT in caps(user)
+    )
 
 
 def can_view_absensi(user) -> bool:
