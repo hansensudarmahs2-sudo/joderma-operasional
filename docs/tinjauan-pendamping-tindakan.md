@@ -1,8 +1,9 @@
 # Tinjauan PRD — Pendamping Tindakan Perawat
 
 > **STATUS: tinjauan teknis, 13 Oktober 2026.** Belum ada kode yang ditulis.
-> Sumbernya *PRD — Pendamping Tindakan Perawat (ops.joderma.id)* (13 Okt 2026,
-> Hansen Sudarma), yang belum ada di repo ini.
+> Sumbernya [`prd-pendamping-tindakan.md`](prd-pendamping-tindakan.md) (13 Okt 2026,
+> Hansen Sudarma). Versi ringkas untuk Owner ada di
+> [`usulan-pendamping-tindakan.pdf`](usulan-pendamping-tindakan.pdf).
 > Dokumen ini memuat hasil pemeriksaan PRD itu terhadap kode yang sebenarnya,
 > keputusan product owner yang diambil saat membahasnya, dan usul perubahan
 > rencana fase. Dibuat untuk dibahas bersama dr. Yohanes dan Jean.
@@ -22,7 +23,7 @@ diputuskan sebelum ada baris kode yang ditulis.
 
 ## 1. Klaim PRD tentang kode: terverifikasi
 
-Diperiksa pada `master` 13 Okt 2026.
+Diperiksa pada `master` 13 Okt 2026, terhadap [`prd-pendamping-tindakan.md`](prd-pendamping-tindakan.md).
 
 | Klaim PRD | Hasil |
 |---|---|
@@ -263,7 +264,6 @@ sebagai rata-rata hidup. Fase 4 (dashboard) menyesuaikan.
 - [ ] Aturan peneruskan temuan yang bersifat **medis** ke penanggung jawab medis.
 - [ ] Nasib `ProcedureAssignment`.
 - [ ] Keputusan terbuka di PRD aslinya yang belum dijawab, termasuk pertanyaan untuk dr. Yohanes tentang isi layar langkah dan daftar tindakan fase pertama.
-- [ ] PRD aslinya belum ada di repo; selama masih di luar, dokumen ini merujuk sesuatu yang tidak bisa ditelusuri dari repo.
 
 ## Cara mengulang pengukuran
 

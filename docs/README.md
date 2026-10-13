@@ -37,6 +37,7 @@ Selain itu, mulai dari peran Anda.
 | Melihat kontrak ekspor legacy AOM standalone (Fase 6) | [`AOM_LEGACY_EXPORT_SCHEMA.md`](AOM_LEGACY_EXPORT_SCHEMA.md) |
 | Mengimpor cap absensi mesin sidik jari dan aturan jam kerja | [`absensi-jam-kerja.md`](absensi-jam-kerja.md) |
 | Melihat tinjauan teknis PRD Pendamping Tindakan Perawat (rating pasien, katalog tindakan) | [`tinjauan-pendamping-tindakan.md`](tinjauan-pendamping-tindakan.md) |
+| Membaca PRD Pendamping Tindakan Perawat itu sendiri | [`prd-pendamping-tindakan.md`](prd-pendamping-tindakan.md) |
 
 ## Saya owner atau manajemen
 
@@ -45,6 +46,7 @@ Selain itu, mulai dari peran Anda.
 | Memakai tampilan Owner (Dashboard, Permintaan Owner, Summary Harian, Jadwal) | [`panduan-owner.md`](panduan-owner.md) |
 | Panduan bergambar (Word) untuk Owner dan Direktur Utama | [`panduan/Panduan_Owner_Direktur_Utama_JoDerma_Staff_Ops.docx`](panduan/Panduan_Owner_Direktur_Utama_JoDerma_Staff_Ops.docx) |
 | Memutuskan hal yang menunggu keputusan saya | [`../OWNER_DECISION_REVIEW.md`](../OWNER_DECISION_REVIEW.md) |
+| Membaca usulan Pendamping Tindakan Perawat (ringkas, 2 halaman) | [`usulan-pendamping-tindakan.pdf`](usulan-pendamping-tindakan.pdf) |
 | Melihat keadaan klinik sekilas (Ringkasan, prioritas, kanban, keputusan) | [`panduan-direktur.md`](panduan-direktur.md) |
 | Kebutuhan checklist Direktur dan dashboard Owner | [`KEBUTUHAN_CHECKLIST_DAN_DASHBOARD.md`](KEBUTUHAN_CHECKLIST_DAN_DASHBOARD.md) |
 | Kebutuhan redefinisi seluruh peran (Owner, Direktur, PIC, staf, reset peran) | [`KEBUTUHAN_REDEFINISI_PERAN.md`](KEBUTUHAN_REDEFINISI_PERAN.md) |
