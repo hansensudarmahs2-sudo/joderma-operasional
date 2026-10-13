@@ -26,6 +26,7 @@ DIREKTUR = "DIREKTUR"
 OWNER = "OWNER"
 PIC = "PIC"
 STAF = "STAF"
+TEKNISI = "TEKNISI"
 ADMIN = "ADMIN"
 
 LABELS = {
@@ -33,6 +34,7 @@ LABELS = {
     OWNER: "Owner / Direktur Utama",
     PIC: "PIC / Koordinator",
     STAF: "Staf",
+    TEKNISI: "Teknisi / fasilitas",
     ADMIN: "Admin sistem",
 }
 
@@ -42,6 +44,7 @@ HOME = {
     OWNER: "owner:dashboard",
     PIC: "core:dashboard",
     STAF: "core:today",
+    TEKNISI: "core:today",
     ADMIN: "accounts:user_list",
 }
 
@@ -108,6 +111,43 @@ ADMIN_ALLOWED = COMMON | {
     "absensi:minta_koreksi",
     "jadwal:*",
 }
+
+# Teknisi/fasilitas: daftar yang BOLEH (selain itu 403), seperti Owner dan Admin —
+# bukan daftar larangan seperti staf. Pekerjaannya sempit dan jelas, jadi lebih aman
+# menyebut yang boleh daripada mengejar yang tidak boleh satu per satu.
+#
+# Yang sengaja TIDAK ada: checklist shift, kas, giliran tindakan, istirahat, jadwal
+# dan absensi dirinya sendiri, serta Kebijakan — tidak satu pun ia kerjakan, dan menu
+# yang penuh hal tak terpakai membuat yang penting ikut terabaikan (product owner,
+# 13 Okt 2026). Komplain juga tidak: ia menangani kerusakan, bukan keluhan pasien.
+TEKNISI_ALLOWED = COMMON | {
+    "core:today",  # Tugas hari ini: task yang ditugaskan kepadanya
+    "core:dashboard",
+    "core:attachment",  # membuka foto pada kerusakan dan task
+    # Melaporkan progres dan mengajukan selesai atas task yang ditugaskan kepadanya.
+    "core:assignment_claim",
+    "core:assignment_submit",
+    "core:assignment_progress",
+    "core:assignment_blocker",
+    "core:task_comment",
+    "jadwal:roster",  # jadwal jaga seluruh tim, baca saja; POST ditolak can_edit_duty
+    # Absensi seluruh staf: inti pekerjaannya. Tetap butuh kapabilitas
+    # `absensi.import` atau peran yang berhak; rute terbuka, view yang menjaga.
+    "absensi:index",
+    "absensi:staf",
+    "absensi:unggah",
+    # Kerusakan dan Masukan: membuat, membaca, dan mengerjakan yang ditugaskan.
+    "issues:list",
+    "issues:create",
+    "issues:detail",
+    "issues:status",
+    "issues:note",
+    "issues:repair",
+    "issues:upload",
+    "reports:laporan_page",  # Laporan Saya
+    "reports:laporan_page_detail",
+}
+
 
 # Staf: daftar yang DILARANG (selain itu mengikuti izin masing-masing view).
 STAF_BLOCKED = {
@@ -176,6 +216,11 @@ def persona(user) -> str:
         return OWNER
     if codes & {Role.PIC, Role.SUPERVISOR}:
         return PIC
+    # Diperiksa sebelum STAF: menu staf operasional (checklist shift, kas, giliran
+    # tindakan, istirahat) tidak ada yang dikerjakan teknisi, dan menu yang penuh hal
+    # tak terpakai membuat yang penting ikut terabaikan.
+    if Role.TEKNISI in codes:
+        return TEKNISI
     if codes - {Role.ADMIN}:
         return STAF
     if Role.ADMIN in codes or getattr(user, "is_superuser", False):
@@ -199,6 +244,8 @@ def route_allowed(user, route: str, method: str = "GET") -> bool:
         if route in OWNER_READ_ONLY and method not in ("GET", "HEAD"):
             return False
         return _matches(route, OWNER_ALLOWED)
+    if who == TEKNISI:
+        return _matches(route, TEKNISI_ALLOWED)
     if who == ADMIN:
         from core.permissions import has_admin_full_access
 
@@ -426,6 +473,9 @@ def nav_sections(user) -> list[NavSection]:
             settings.add("Admin", "accounts:user_list")
         return [s for s in (overview, mine, ops, reports, settings) if s.items]
 
+    if who == TEKNISI:
+        return _teknisi_sections(user, flags)
+
     if who == STAF:
         return _staff_sections(user, flags)
 
@@ -465,6 +515,34 @@ def nav_sections(user) -> list[NavSection]:
         settings.add("Admin", "accounts:user_list")
         sections.append(settings)
     return sections
+
+
+def _teknisi_sections(user, flags) -> list[NavSection]:
+    """Menu teknisi/fasilitas (13 Okt 2026).
+
+    Sengaja pendek. Orang ini berpindah antarcabang dan ke vendor, dan tidak
+    mengerjakan satu pun hal yang mengisi menu staf operasional: tidak ada checklist
+    shift, kas, giliran tindakan, maupun istirahat. Jadwal dan absensi *dirinya* juga
+    tidak ada, karena yang ia urus justru jadwal dan absensi *seluruh tim*.
+
+    Lapor hanya memuat Masukan dan Kerusakan: ia menangani kerusakan, bukan keluhan
+    pasien. "Masukan Saya" (jalur privat staf) dibuang atas keputusan product owner;
+    akibatnya ia tidak punya jalur tertutup ke manajemen, dan itu diterima sadar.
+    """
+    from core.permissions import can_view_absensi
+
+    work = NavSection()
+    work.add("Tugas hari ini", "core:today")
+    work.add("Jadwal Jaga", "jadwal:roster")
+    if can_view_absensi(user):
+        work.add("Absensi", "absensi:index", also=("/absensi/staf/",))
+
+    lapor = NavSection("Lapor")
+    if flags["issues"]:
+        lapor.add("Masukan", "issues:list", "?tipe=MASUKAN")
+        lapor.add("Kerusakan", "issues:list", "?tipe=KERUSAKAN")
+    lapor.add("Laporan Saya", "reports:laporan_page")
+    return [s for s in (work, lapor) if s.items]
 
 
 def _staff_sections(user, flags) -> list[NavSection]:

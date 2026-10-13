@@ -12,6 +12,10 @@ class Role(models.TextChoices):
     APOTEKER = "APOTEKER", "Apoteker"
     ASISTEN_APOTEKER = "ASISTEN_APOTEKER", "Asisten apoteker"
     ONLINE = "ONLINE", "Koordinator layanan daring"
+    # Staf fasilitas/perbaikan yang berpindah antarcabang dan ke vendor (13 Okt 2026).
+    # Pekerjaannya berbeda dari staf klinik: menerima kerusakan, mengerjakannya, dan
+    # mengurus absensi — bukan checklist shift, kas, atau giliran tindakan.
+    TEKNISI = "TEKNISI", "Teknisi / fasilitas"
     SUPERVISOR = "SUPERVISOR", "Koordinator shift"
     PIC = "PIC", "PIC cabang"
     # Kode tetap "AOM" (dipakai di data dan kode); sebutannya kini Direktur Operasional.

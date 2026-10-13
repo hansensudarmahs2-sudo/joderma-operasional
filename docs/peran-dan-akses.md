@@ -31,6 +31,7 @@ akses ke data sensitif. Seseorang dapat memegang beberapa peran sekaligus.
 | `SUPERVISOR` | koordinator shift | review, verifikasi, override beralasan, roster, jadwal istirahat, triase, penutupan hari, audit |
 | `PIC` | PIC fungsi di cabang | delegasi dan tindak lanjut operasional dalam cabangnya |
 | `AOM` | Direktur Operasional (kode peran tetap `AOM`) | koordinasi lintas cabang, jadwal jaga, pembagian tugas, laporan rahasia sesuai scope, dan publikasi masukan |
+| `TEKNISI` | teknisi/fasilitas yang berpindah antarcabang dan ke vendor | menerima dan mengerjakan kerusakan, melapor balik ke pelapor, mengurus absensi seluruh tim, melihat jadwal jaga tim |
 | `ADMIN` | pengelola sistem | pengguna, peran, konfigurasi, template |
 | `OWNER` | Owner dan Direktur Utama (satu peran, satu tampilan) | membaca keadaan klinik (dashboard, keputusan, jadwal) dan memutuskan perkara yang menunggunya (`KEBUTUHAN_REDEFINISI_PERAN.md`) |
 
@@ -48,8 +49,9 @@ periode aktif.
 
 Sejak fase 3 redefinisi peran (`core/peran.py`), setiap pengguna punya **satu tampilan**
 yang ditentukan dari perannya, dengan urutan: Direktur Operasional (`AOM`) → Owner
-(`OWNER`) → PIC (`PIC` atau `SUPERVISOR`) → Staf (peran kerja lain) → Admin sistem
-(hanya `ADMIN`, atau superuser tanpa peran). Tampilan menentukan tiga hal:
+(`OWNER`) → PIC (`PIC` atau `SUPERVISOR`) → Teknisi (`TEKNISI`) → Staf (peran kerja
+lain) → Admin sistem (hanya `ADMIN`, atau superuser tanpa peran). Tampilan menentukan
+tiga hal:
 
 | Tampilan | Halaman pertama | Menu | Halaman yang boleh dibuka |
 |---|---|---|---|
@@ -57,6 +59,7 @@ yang ditentukan dari perannya, dengan urutan: Direktur Operasional (`AOM`) → O
 | Owner / Direktur Utama | Dashboard Owner | Dashboard, Inbox, Task, Evaluasi staf, Kebijakan, Summary Harian, Jadwal, Stok Apotek (Task = Daftar Task/Kanban/Prioritas/Jadwal Task, Evaluasi staf = KPI/Jejak, Kebijakan = Kebijakan/Keputusan/Bahan Rapat; dipilih lewat tab di atas halaman) | **hanya**: halaman Owner (`/owner/`: Dashboard, Keputusan yang menunggu, Permintaan dan temuan, Summary Harian, Jadwal), Inbox (baca), Tim, Daftar Task (baca + CSV), Bahan Rapat (baca), Jejak (baca), KPI (baca + CSV), Kanban, Prioritas, Jadwal Task, Detail task (baca), Keputusan, Kebijakan (baca), Jadwal Jaga (baca), Stok Apotek (baca), Notifikasi, Ganti password. Selain itu 403 |
 | PIC / Koordinator | Hari Ini | Hari Ini, Checklist Saya, Kas/Order/Stok Apotek bila perannya, Kebijakan, Jadwal (termasuk Pembagian Tugas), Lapor, Laporan Operasional | semua kecuali yang ditolak izin per view |
 | Staf | Tugas hari ini | Tugas hari ini, Jadwal saya, Istirahat saya, Tindakan saya (perawat), Kas **hanya pada hari ia kasir** (porsi kelompok Kas di Pembagian Tugas), Order/Stok Apotek bila perannya, Kebijakan, Lapor | semua **kecuali** grid tim (Jadwal Jaga, Jadwal Istirahat, papan Giliran Perawat beserta aksi koordinatornya), Pembagian Tugas tim, Laporan Operasional dan ekspor, halaman Direktur dan Owner, Audit, Jejak; Kas di luar hari kasir. Hari Ini dan Checklist tetap bisa dibuka (aksi hari, pengisian butir) walau tidak di menu. Tally hanya untuk dirinya sendiri (fase 7, 4 Okt 2026) |
+| Teknisi / fasilitas | Tugas hari ini | Tugas hari ini, Jadwal Jaga (tim, baca saja), Absensi (seluruh staf, bila punya `absensi.import`), Lapor (Masukan, Kerusakan, Laporan Saya) | **hanya** rute di `TEKNISI_ALLOWED`. Sengaja **tidak** ada: checklist shift, kas, giliran tindakan, istirahat, Jadwal saya, Absensi saya, Kebijakan, Komplain, dan Masukan Saya — tidak satu pun ia kerjakan, dan menu yang penuh hal tak terpakai membuat yang penting ikut terabaikan (13 Okt 2026). Akibat yang diterima sadar: ia tidak punya jalur privat ke manajemen |
 | Admin sistem | Pengguna | Pengguna, Reset peran, Konfigurasi, Template Checklist, Pengaturan Klinik, Jadwal Jaga, Pembagian Tugas | **hanya** halaman akun, konfigurasi, template, pengaturan klinik, jadwal. Admin dengan `admin.full_access` tidak dibatasi |
 
 Penolakan dilakukan `core.middleware.PersonaAccessMiddleware` untuk setiap permintaan,

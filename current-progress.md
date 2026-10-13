@@ -179,9 +179,54 @@ sesudah 1–2 bulan data.
 
 # Riwayat
 
+## Persona teknisi/fasilitas (13 Oktober 2026) — belum dideploy
+
+Setelah akun Izul diaktifkan, menunya ternyata menu **staf operasional** — berisi
+checklist shift, kas, giliran tindakan, istirahat, Jadwal saya, Absensi saya, dan
+Kebijakan. Tidak satu pun ia kerjakan. Product owner: *"menu staf operasional terlalu
+banyak dan tidak berguna baginya"*.
+
+Dibuat peran dan tampilan baru **`TEKNISI`**, bukan tambalan pada menu staf: orang ini
+berpindah antarcabang dan ke vendor, dan pekerjaannya memang berbeda jenis. Keputusan
+product owner: dibuat sebagai jenis pekerjaan supaya orang berikutnya tinggal diberi
+peran yang sama.
+
+| | |
+|---|---|
+| **Menu** | Tugas hari ini · Jadwal Jaga (tim, baca saja) · Absensi (seluruh staf) · Lapor: Masukan, Kerusakan, Laporan Saya |
+| **Dibuang** | Checklist shift, kas, giliran tindakan, istirahat, Jadwal saya, Absensi saya, Kebijakan, Komplain, Masukan Saya |
+
+Memakai daftar yang **BOLEH** (`TEKNISI_ALLOWED`), seperti Owner dan Admin — bukan
+daftar larangan seperti staf. Pekerjaannya sempit dan jelas, jadi lebih aman menyebut
+yang boleh daripada mengejar yang tidak boleh satu per satu.
+
+Hak tidak melebar: absensi tetap butuh kapabilitas `absensi.import` (rute terbuka, view
+yang menjaga), mengoreksi cap tetap D4, dan jadwal jaga tetap tidak bisa diubah.
+
+**Dua akibat yang diterima sadar dan ditulis di dokumen**, karena tidak kelihatan dari
+nama menunya: membuang **Masukan Saya** berarti ia tidak punya jalur privat ke
+manajemen, dan membuang **Kebijakan** memutus satu-satunya tempat ia membaca aturan
+tertulis — padahal sebagian menyangkut pekerjaannya sendiri (limbah, APAR, IPAL).
+
+**Test:** 1542 lulus, naik 29 dari 1513. Persona baru ditambahkan ke test penjaga yang
+sudah ada, `test_every_menu_link_opens` — "tidak ada menu yang berujung 403".
+
+Test itu juga menangkap bug yang saya buat: `LABELS` di `core/peran.py` adalah peta
+ber-kunci persona, dan persona baru tanpa entri di sana membuat **setiap halaman gagal
+dirender** dengan `KeyError`. Menambah persona berarti memeriksa semua peta ber-kunci
+persona, bukan hanya `route_allowed`.
+
+**Fase berikutnya (belum dikerjakan):** menu lapor kegiatan dengan **foto selfie dan
+lokasi, tanpa IP** — Izul berpindah antarcabang dan ke vendor. Keputusan product owner
+13 Okt: laporan kegiatan berdiri sendiri, foto disimpan **90 hari** lalu dihapus
+otomatis. Pondasinya sudah ada: `jejak.PresenceStamp` merekam lokasi dibulatkan 4
+desimal (≈ 11 m, *"cukup untuk jarak ke klinik, tidak untuk melacak"*), dan
+`core.Attachment` menangani lampiran privat lewat `private_media`.
+
+
 ## Akses Izul: kapabilitas per orang, bukan peran yang melebar (13 Oktober 2026) — `4e5d641`, dideploy 13 Okt
 
-Prasyarat rencana Pengingat Harian DO ([`docs/KEBUTUHAN_PENGINGAT_HARIAN_DO.md`](docs/KEBUTUHAN_PENGINGAT_HARIAN_DO.md)):
+Prasyarat rencana Pengingat Harian DO (dokumen kebutuhannya belum masuk Git; lihat catatan di bawah):
 satu staf fasilitas (Izul) yang menerima laporan kerusakan, melapor balik ke pelapor,
 mengurus pengambilan berkas dari mesin absensi, dan perlu tahu siapa jaga kapan.
 

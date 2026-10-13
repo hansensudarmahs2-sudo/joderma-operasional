@@ -154,7 +154,7 @@ def test_admin_menu(client, clinic):
 @pytest.mark.parametrize(
     "roles",
     [(Role.OWNER,), (Role.AOM,), (Role.PIC, Role.FRONT_DESK), (Role.SUPERVISOR, Role.PERAWAT),
-     (Role.PERAWAT, Role.STAF), (Role.APOTEKER, Role.STAF), (Role.ADMIN,)],
+     (Role.PERAWAT, Role.STAF), (Role.APOTEKER, Role.STAF), (Role.ADMIN,), (Role.TEKNISI,)],
 )
 def test_every_menu_link_opens(client, clinic, roles):
     """Tidak ada menu yang berujung 403: menu dan penolakan server sejalan."""
