@@ -125,6 +125,14 @@ kembali, ditandai sebagai entri susulan dengan alasan. Runbook: `docs/runbook.md
 | Database | SQLite WAL (migrasi ke PostgreSQL sesuai PRD 16.2) | PROVISIONAL |
 
 ## Catatan perubahan
+- 2026-10-13 — **Celah tekan-tahan 4 detik dibiarkan terbuka, sengaja** (keputusan product owner).
+  Mematikan mini PC dengan menahan tombol power 4 detik tidak dapat dicegah maupun dipulihkan oleh
+  software: *power button override* memaksa mesin ke S5 tanpa OS maupun firmware berjalan, sehingga
+  alarm RTC tidak terpasang dan mesin tetap mati sampai dinyalakan tangan (terjadi 13 Okt, padam 24
+  menit). Dasar keputusan: 4 detik cukup lama sehingga tidak mungkin tidak disengaja, dan penyebab
+  yang paling mungkin berulang — listrik padam — sudah tertutup "Restore on AC Power Loss" di BIOS
+  yang aktif dan terbukti. Memperpanjang ambang override ke 6 detik adalah setelan chipset PCH yang
+  hanya dapat diubah lewat BIOS, dan ikut ditunda. Ditinjau ulang bila kejadiannya berulang.
 - 2026-10-06 — Angka diharapkan kas disusun sistem: kas awal = kas akhir terakhir cabang itu; kas akhir
   = kas awal hari itu + tunai masuk − tunai keluar (keputusan product owner).
 - 2026-10-05 — Item Inbox dapat dijadikan kebijakan tanpa penugasan, diumumkan ke semua orang di

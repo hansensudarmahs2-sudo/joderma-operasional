@@ -264,12 +264,18 @@ sekali di mesin ini.
 Bukti matinya paksa: cron berjalan tiap 5 menit, tetapi entri 13.25.01 hilang dan jurnal
 berhenti di 13.20.39 — sekitar lima menit log terakhir tidak sempat ditulis.
 
-Jadi yang tersisa hanya tiga jalan, dan ketiganya di luar jangkauan software:
+**Keputusan product owner 13 Okt 2026: celah ini dibiarkan terbuka, sengaja.** Dasarnya dua
+hal. Menahan tombol 4 detik cukup lama sehingga tidak mungkin tidak disengaja — ia mencegah
+yang tidak sengaja, dan yang disengaja memang tidak bisa dicegah software. Dan penyebab yang
+paling mungkin berulang, yaitu listrik padam, sudah tertutup "Restore on AC Power Loss" yang
+aktif dan terbukti. Ditinjau ulang bila kejadiannya berulang; tercatat di `DECISIONS.md`.
+
+Bila nanti perlu ditutup, ketiga jalannya di luar jangkauan software:
 
 | Jalan | Catatan |
 |---|---|
-| **Steker pintar (smart plug)** | Paling pasti. Mencabut AC menghapus kunci override, dan "Restore on AC Power Loss" di BIOS sudah aktif dan terbukti (cabut-pasang kabel langsung menyala). Memberi tombol nyala jarak jauh sekaligus bisa dijadwalkan |
-| **BIOS** | Periksa "Wake system from S5"/"Power On by RTC", dan apakah override 4 detik bisa dimatikan. Perlu F2 saat boot. Belum dicoba — dan jangan dianggap berhasil sebelum diuji dengan menekan tombolnya, bukan dengan `poweroff` |
+| **Steker pintar (smart plug)** | Paling pasti. Mencabut AC menghapus kunci override, dan "Restore on AC Power Loss" sudah aktif dan terbukti (cabut-pasang kabel langsung menyala). Memberi tombol nyala jarak jauh sekaligus bisa dijadwalkan, dan sekalian menutup celah listrik padam lama |
+| **BIOS** | "Wake system from S5"/"Power On by RTC", atau memperpanjang/mematikan override 4 detik — ambang itu setelan chipset PCH yang hanya firmware bisa ubah, tidak ada antarmukanya di Linux. Perlu F2 saat boot. **Ditunda 13 Okt.** Jangan dianggap berhasil sebelum diuji dengan menekan tombolnya, bukan dengan `poweroff` |
 | **Tutup tombolnya** | Paling langsung bila orangnya memang sudah diberi tahu dan tetap menekan |
 
 ### Uji RTC wake — lulus 12 Okt 2026, tetapi hanya untuk shutdown bersih
