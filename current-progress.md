@@ -421,8 +421,11 @@ manual terpisah, 17 hari perlu dicek (10 lewat tengah malam, 8 cap tunggal).
 
 **Tiga hal yang masih terbuka** (bagian 5 dan 9 dokumennya):
 
-1. Tinjau 328 baris jadwal September; tiga orang berbeda dari PDF jadwal — Naya
-   (Citraland 26 hari, PDF bilang Jemur 17), Luki, dan Rahayu. Pembacaan mesin yang benar.
+1. ~~Tinjau 328 baris jadwal September~~ — **dibatalkan, keputusan product owner 13 Okt:
+   September diabaikan.** Pemeriksaan ke produksi menunjukkan ke-328 baris itu tidak pernah
+   ada di sana; ia hanya artefak verifikasi di salinan database laptop. Produksi punya 776
+   cap September tetapi **0 baris jadwal jaga September**, jadi papan skornya memang tidak
+   berarti. Capnya tetap disimpan sebagai rekaman.
 2. Jalur `.xls` belum diuji dengan berkas asli dari mesin; baru diuji dengan sheet tiruan.
 3. ~~Tahap 4: koreksi cap dari halaman~~ — *selesai, di `master` sejak 12 Okt
    (`874bdf9`), belum dideploy* (lihat Riwayat ▸ Tahap 4).

@@ -567,10 +567,9 @@ sini lebih dulu:
       benar tanpa itu — hari tanpa roster muncul sebagai `TANPA_ROSTER` dan skornya 0.
 - [x] Semua ID mesin terpetakan (16 dari 16; tiga di antaranya rekam-saja per **D1**).
 - [ ] Daftar "Perlu dicek" bulan itu sudah ditinjau dan roster yang keliru dikoreksi.
-      Pada September 2026 ada 69 hari; 17 di antaranya satu kekeliruan roster yang sama.
-      Sejak Tahap 4, hari yang kehilangan cap bisa ditutup langsung dari barisnya
-      (8 hari `CAP_TUNGGAL` pada September 2026); cabang yang keliru tetap dibetulkan
-      di Jadwal Jaga, bukan di sini.
+      Sejak Tahap 4, hari yang kehilangan cap bisa ditutup langsung dari barisnya;
+      cabang yang keliru tetap dibetulkan di Jadwal Jaga, bukan di sini.
+      **Tidak berlaku untuk September 2026** — lihat di bawah.
 - [x] **D1**, **D2**, **D3**, **D5** dijawab product owner (Okt 2026).
 - [x] **D4** dijawab: koreksi absen hanya Direktur Operasional, Direktur Utama, Owner.
 - [ ] **D6** diputuskan: ambang penandaan `CABANG_BEDA` dipertahankan atau diubah.
@@ -579,6 +578,29 @@ sini lebih dulu:
       Aturannya mudah dijelaskan, tetapi mengejutkan bila baru diketahui setelah dinilai.
 - [ ] Angka satu bulan penuh dicocokkan dengan perhitungan tangan sekali lagi,
       memakai roster sistem (bukan roster dari PDF seperti verifikasi September).
+
+### September 2026 diabaikan (keputusan product owner, 13 Okt 2026)
+
+September tidak akan ditinjau dan tidak dipakai menilai siapa pun. Bulan penilaian
+pertama adalah bulan yang rosternya memang terisi di sistem.
+
+Pemeriksaan ke produksi saat keputusan ini diambil menunjukkan keadaannya lebih
+sederhana daripada yang tertulis sebelumnya:
+
+| Di produksi | Keadaan |
+|---|---|
+| Cap September | **776 cap ada**, dari dua kali impor berkas `absensi-september-2026.xlsx` |
+| Jadwal jaga September | **0 baris** |
+| 328 baris "dari absensi" | **Tidak pernah ada di produksi** — hanya artefak verifikasi di salinan database laptop |
+| Cap Oktober | **0** — ekspor Oktober belum pernah diunggah |
+
+Jadi tidak ada 328 baris yang perlu ditinjau, dan perbedaan Naya, Luki, dan Rahayu
+terhadap PDF jadwal tidak pernah masuk ke data klinik. Karena September tidak punya
+roster sama sekali, setiap harinya muncul sebagai `TANPA_ROSTER` dengan skor 0; papan
+skor September memang tidak berarti, dan sekarang memang tidak dipakai.
+
+Cap September **tetap disimpan** sebagai rekaman apa yang dicatat mesin. Yang
+dibatalkan hanya pemakaiannya untuk penilaian, bukan datanya.
 
 ## 10. Cara memakai
 

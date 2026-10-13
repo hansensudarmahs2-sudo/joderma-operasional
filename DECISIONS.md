@@ -125,6 +125,14 @@ kembali, ditandai sebagai entri susulan dengan alasan. Runbook: `docs/runbook.md
 | Database | SQLite WAL (migrasi ke PostgreSQL sesuai PRD 16.2) | PROVISIONAL |
 
 ## Catatan perubahan
+- 2026-10-13 — **Data absensi September 2026 diabaikan** (keputusan product owner). September
+  tidak ditinjau dan tidak dipakai menilai siapa pun; bulan penilaian pertama adalah bulan yang
+  rosternya memang terisi di sistem. Dasarnya: produksi punya 776 cap September tetapi **nol
+  baris jadwal jaga September**, sehingga setiap harinya muncul sebagai `TANPA_ROSTER` dengan
+  skor 0 — papan skornya memang tidak berarti. Ke-328 baris jadwal "dari absensi" yang sempat
+  dicatat sebagai pekerjaan tertunda ternyata **tidak pernah ada di produksi**; ia artefak
+  verifikasi di salinan database laptop. Cap September tetap disimpan sebagai rekaman apa yang
+  dicatat mesin; yang dibatalkan hanya pemakaiannya untuk penilaian.
 - 2026-10-13 — **Celah tekan-tahan 4 detik dibiarkan terbuka, sengaja** (keputusan product owner).
   Mematikan mini PC dengan menahan tombol power 4 detik tidak dapat dicegah maupun dipulihkan oleh
   software: *power button override* memaksa mesin ke S5 tanpa OS maupun firmware berjalan, sehingga
