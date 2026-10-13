@@ -18,6 +18,7 @@ Sesudah login Anda langsung masuk ke **Tugas hari ini**. Menu staf sengaja pende
 | **Istirahat saya** | Jadwal istirahat Anda hari ini dan 7 hari ke depan |
 | **Tindakan saya** | Untuk perawat: giliran Anda (berikutnya atau urutan ke berapa), tally hari ini dan total bulan ini, tombol **Saya istirahat / Saya tersedia lagi**, tindakan yang ditugaskan, dan **Catat tally saya** |
 | **Kas** | Hanya muncul pada hari Anda ditugaskan sebagai kasir. Bila jadwal kasir berubah mendadak, minta Koordinator Shift mengganti pelaksana porsi "Kasir hari ini" |
+| **Survei** | Hanya untuk petugas Online (CS): membuka **Daftar kirim** link survei pasien di aplikasi survei, tanpa login lagi |
 | **Kebijakan** | Aturan yang sudah ditetapkan Direktur Operasional dan berlaku di cabang Anda, dipilah **Klinik**, **Apotek**, dan **Semua staf** (ketuk kelompok di atas untuk menyaring; semua staf membaca semua kelompok). Kebijakan baru juga datang lewat notifikasi (lonceng); yang ditetapkan 7 hari terakhir ditandai **Baru** |
 | **Lapor** | Komplain, Masukan, Kerusakan, Laporan Saya, Masukan Saya |
 

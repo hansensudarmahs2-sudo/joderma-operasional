@@ -7,6 +7,7 @@ app_name = "accounts"
 urlpatterns = [
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
+    path("sesi-survei/", views.survey_session, name="survey_session"),
     path("ganti-password/", views.change_password, name="change_password"),
     path("cabang/", views.switch_clinic, name="switch_clinic"),
     path("pengguna/", views.user_list, name="user_list"),

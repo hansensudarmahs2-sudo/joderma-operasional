@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from audit.middleware import client_ip
 from audit.models import AuditAction
@@ -20,6 +20,30 @@ from django.conf import settings
 
 from .forms import ChangePasswordForm, LoginForm, UserForm
 from .models import LoginAttempt, Role, User, UserCapability, UserRole
+
+
+@require_GET
+def survey_session(request):
+    """Siapa pemilik sesi ini, untuk aplikasi Survei di /survei (13 Okt 2026).
+
+    Dipanggil aplikasi survei lewat 127.0.0.1 dengan kuki sesi yang dikirim peramban. Hanya
+    menjelaskan pengguna sesi itu sendiri, jadi tidak membuka data orang lain. Sengaja tidak memakai
+    ``login_required``: belum login dijawab 401 (bukan dialihkan), supaya aplikasi survei yang
+    mengarahkan peramban ke halaman login ops dengan ``next=/survei/``."""
+    from django.http import JsonResponse
+    from django.urls import reverse
+
+    from .survei import SURVEY_PATH, survey_role
+
+    if not request.user.is_authenticated:
+        response = JsonResponse({"masuk": f"{reverse('accounts:login')}?next={SURVEY_PATH}"}, status=401)
+    else:
+        peran = survey_role(request.user)
+        body = {"username": request.user.username, "nama": str(request.user),
+                "peran": peran}
+        response = JsonResponse(body, status=200 if peran else 403)
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 def _is_locked_out(username: str) -> bool:

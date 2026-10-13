@@ -125,6 +125,13 @@ Usulan yang Direktur Operasional ajukan atas inisiatifnya sendiri ada di menu **
 - Untuk keduanya, tulis di **Percakapan** bila perlu bertanya atau menanggapi; Direktur diberi
   notifikasi.
 
+## Survei
+
+Menu **Survei** membuka aplikasi survei pelanggan di `ops.joderma.id/survei/` (aplikasi terpisah,
+repo joderma-survey). **Tidak ada login kedua**: aplikasi survei memakai sesi ops dan peran Anda di ops
+(Direktur Operasional = direktur, Owner = owner, petugas Online = CS). Keluar dari ops berarti keluar juga
+dari Survei. Halaman survei untuk pasien ada di `survey.joderma.id` dan tidak memerlukan login.
+
 ## Projects
 
 Menu **Projects** (`/projects/`, sesudah Usulan Direktur) memperlihatkan semua project beserta

@@ -259,6 +259,13 @@ memberi notifikasi ke pihak lain. Selama usulan belum dijawab (atau laporan belu
 dapat memakai **Batalkan usulan** dengan alasan; semua Owner diberi tahu. Daftar usulan
 menampilkan "Perlu tindakan" (bawaan) atau "Semua".
 
+## Survei
+
+Menu **Survei** membuka aplikasi survei pelanggan di `ops.joderma.id/survei/` (aplikasi terpisah,
+repo joderma-survey). **Tidak ada login kedua**: aplikasi survei memakai sesi ops dan peran Anda di ops
+(Direktur Operasional = direktur, Owner = owner, petugas Online = CS). Keluar dari ops berarti keluar juga
+dari Survei. Halaman survei untuk pasien ada di `survey.joderma.id` dan tidak memerlukan login.
+
 ## Projects
 
 Menu **Projects** (`/projects/`) dipakai untuk pekerjaan yang terdiri dari banyak task kecil yang

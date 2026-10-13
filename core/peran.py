@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from django.urls import reverse
 
 from accounts.models import Role
+from accounts.survei import SURVEY_PATH
 
 DIREKTUR = "DIREKTUR"
 OWNER = "OWNER"
@@ -51,6 +52,7 @@ COMMON = {
     "accounts:login",
     "accounts:logout",
     "accounts:change_password",
+    "accounts:survey_session",  # aplikasi Survei menanyakan pemilik sesi (13 Okt 2026)
     "notifications:*",
 }
 
@@ -209,6 +211,10 @@ class NavSection:
         # `also`: nama rute, atau awalan path literal (diawali "/") untuk halaman detail ber-id.
         self.items.append((label, reverse(route) + query, " ".join(r if r.startswith("/") else reverse(r) for r in also)))
 
+    def add_link(self, label: str, url: str) -> None:
+        """Menu ke path di luar aplikasi ini tetapi di hostname yang sama (mis. /survei/)."""
+        self.items.append((label, url, ""))
+
     def add_group(self, user, key: str) -> None:
         """Satu menu untuk satu kelompok halaman (SUBNAV_GROUPS); halaman lainnya lewat tab di atas halaman."""
         label, tabs, extra = SUBNAV_GROUPS[key]
@@ -302,6 +308,7 @@ def _flags(user) -> dict:
         is_nurse,
         is_supervisor,
     )
+    from accounts.survei import survey_role
     from projects.services import user_has_projects
 
     return {
@@ -316,6 +323,7 @@ def _flags(user) -> dict:
         "templates": can_manage_templates(user),
         "stok": can_edit_stok(user),
         "projects": user_has_projects(user),
+        "survei": survey_role(user) is not None,
     }
 
 
@@ -329,6 +337,8 @@ def nav_sections(user) -> list[NavSection]:
         main.add("Inbox", "reports:inbox")
         main.add("Usulan Direktur", "owner:usulan_list")
         main.add("Projects", "projects:list")
+        if flags["survei"]:
+            main.add_link("Survei", SURVEY_PATH)
         main.add_group(user, "task")
         main.add_group(user, "evaluasi")
         main.add_group(user, "kebijakan")
@@ -359,6 +369,8 @@ def nav_sections(user) -> list[NavSection]:
         overview.add_group(user, "dari_staf")
         overview.add("Tim", "direktur:team")
         overview.add("Projects", "projects:list")
+        if flags["survei"]:
+            overview.add_link("Survei", SURVEY_PATH)
         overview.add_group(user, "task")
         overview.add_group(user, "evaluasi")
         overview.add_group(user, "kebijakan")
@@ -413,6 +425,8 @@ def nav_sections(user) -> list[NavSection]:
         work.add("Stok Apotek", "stok:index")
     if flags["projects"]:
         work.add("Projects", "projects:list")
+    if flags["survei"]:
+        work.add_link("Survei", SURVEY_PATH)
     work.add("Kebijakan", "reports:policies")
     sections = [work, team, _report_section(user, flags)]
     if who == PIC:
@@ -449,5 +463,7 @@ def _staff_sections(user, flags) -> list[NavSection]:
         work.add("Stok Apotek", "stok:index")
     if flags["projects"]:
         work.add("Projects", "projects:list")
+    if flags["survei"]:
+        work.add_link("Survei", SURVEY_PATH)
     work.add("Kebijakan", "reports:policies")
     return [work, _report_section(user, flags)]
