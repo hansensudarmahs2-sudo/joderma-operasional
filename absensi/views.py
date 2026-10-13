@@ -35,6 +35,7 @@ from core.permissions import (
 from jadwal.models import DutyRoster
 from jadwal.services import can_edit_roster
 
+from . import ekspor
 from . import koreksi as koreksi_cap
 from . import parser, services
 from .models import (
@@ -87,6 +88,12 @@ def index(request):
         tab = "skor"
     tahun, bulan = _bulan(request)
     mulai, selesai = _rentang(tahun, bulan)
+
+    # Unduh CSV (Tahap 6). Ditangani sebelum halaman disusun karena isinya dihitung
+    # ulang sendiri; tab "impor" tidak punya tabel untuk diunduh.
+    if request.GET.get("unduh") == "csv" and tab in ("skor", "pengecualian"):
+        unduh = ekspor.csv_pengecualian if tab == "pengecualian" else ekspor.csv_papan_skor
+        return unduh(request, mulai, selesai)
 
     rencana = (
         services.susun_jadwal_dari_absensi(mulai, selesai)

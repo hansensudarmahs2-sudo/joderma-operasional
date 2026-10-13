@@ -2,7 +2,7 @@
 
 > **STATUS: Tahap 1-5 selesai — pemetaan ID, model cap, importer, mesin
 > perhitungan, laporan pengecualian, halaman web, "Absensi saya" untuk staf, dan
-> koreksi cap dari halaman, dan permintaan koreksi dari staf.**
+> koreksi cap dari halaman, permintaan koreksi dari staf, dan unduh CSV.**
 > Seluruhnya sudah di-merge ke `master`: Tahap 1-3 dan 5 pada 6 Okt 2026, Tahap 4 pada
 > 12 Okt 2026 (`874bdf9`), dan Tahap 5 pada 13 Okt (`f238225`). **Keduanya sudah dideploy ke mini PC** —
 > Tahap 4 pada 12 Okt 15.01 (tanpa migrasi), Tahap 5 pada 13 Okt 15.57 (migrasi `absensi 0004`).
@@ -63,13 +63,14 @@ absensi/
   perhitungan.py   hitung_hari / hitung_periode / laporan_pengecualian
   koreksi.py       tambah_cap / ubah_cap / hapus_cap, ajukan_permintaan /
                    tanggapi_permintaan — koreksi tangan + audit
+  ekspor.py        csv_papan_skor / csv_pengecualian — unduh CSV + audit
   views.py/urls.py halaman /absensi/
   management/commands/{petakan_id_absensi,impor_absensi,laporan_absensi}.py
 templates/absensi/
   index.html / staf.html / koreksi.html
 ```
 
-182 test di `absensi/tests/`. Seluruh suite repo 1480 lulus (13 Okt 2026).
+200 test di `absensi/tests/`. Seluruh suite repo 1498 lulus (13 Okt 2026).
 
 ### Halaman dan hak akses
 
@@ -77,6 +78,7 @@ templates/absensi/
 |---|---|
 | `/absensi/?tab=skor` | Papan skor bulanan, satu baris per staf, tertaut ke rinciannya |
 | `/absensi/?tab=pengecualian` | Hari yang perlu dilihat manusia, urut tanggal |
+| `...&unduh=csv` | Unduh CSV papan skor atau daftar "Perlu dicek" bulan itu (Tahap 6). Tercatat di audit sebagai `EXPORT` |
 | `/absensi/?tab=impor` | Unggah berkas ekspor mesin dan riwayat impor beserta peringatannya |
 | `/absensi/staf/<id>/` | Rincian harian satu staf: shift, cap, dan asal setiap angka |
 | `/absensi/saya/` | Jam kerja sendiri (D5). Tidak punya parameter staf, jadi tidak bisa diminta untuk orang lain |
@@ -496,8 +498,27 @@ tetapi selalu atas nama pengirimnya (rutenya tidak punya parameter staf, seperti
 `/absensi/saya/`), sedangkan menjawabnya tetap `can_correct_absensi` lewat halaman
 koreksi. Migrasi baru: `absensi 0004`.
 
-**Tahap 6 — unduh CSV.** Papan skor dan daftar pengecualian, mengikuti pola unduh
-yang sudah ada di `direktur:kpi`. Bergantung pada: tidak ada.
+**Tahap 6 — unduh CSV.** *Selesai.* Tombol **Unduh CSV** ada di tab Papan skor dan
+tab Perlu dicek; isinya mengikuti bulan yang sedang dilihat. Mengikuti pola
+`direktur:kpi`: BOM di awal berkas supaya Excel membaca UTF-8 dengan benar, nilai teks
+dilewatkan `audit.views._cell`, dan setiap unduhan tercatat sebagai
+`AuditAction.EXPORT` — ini data penilaian staf yang keluar dari sistem, jadi harus bisa
+ditelusuri siapa mengunduh apa dan kapan.
+
+Tiga hal yang ditulis berbeda dari tampilan layar, semuanya disengaja:
+
+- **Staf "rekam saja" (D1) ikut diekspor**, dengan kolom `Dinilai` bernilai `tidak`.
+  Di layar mereka dipisah ke bagian sendiri; pada CSV mereka tetap satu tabel, karena
+  berkas yang diam-diam menghilangkan orang lebih berbahaya daripada berkas dengan satu
+  kolom tambahan — yang membacanya belum tentu tahu ada yang tidak ikut.
+- **Cap pulang ditulis lengkap dengan tanggalnya** (`2026-09-05 00:28`), bukan jamnya
+  saja. Tanpa itu 00.28 terbaca sebagai pulang paling awal sepanjang bulan — kekeliruan
+  yang justru melahirkan modul ini.
+- **Temuan ditulis sebagai label, bukan kode.** `TANPA_ROSTER` dan kawan-kawannya tidak
+  berarti apa-apa di luar repo ini.
+
+Angka tetap dalam menit, sama dengan layar, supaya CSV bisa dicocokkan baris per baris.
+Tidak ada migrasi baru. Bergantung pada: tidak ada.
 
 **Tahap 7 — kunci periode.** Hanya bila **D4** dijawab "tidak boleh berubah".
 Bentuknya: menyimpan hasil perhitungan satu bulan beserta salinan roster yang

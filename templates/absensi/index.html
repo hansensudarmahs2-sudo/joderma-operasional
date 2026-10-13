@@ -38,6 +38,8 @@
     </tbody>
   </table>
   <p class="meta">Skor = lembur pulang + datang awal − terlambat, dalam menit. Datang awal dihitung bila ≥ {{ ambang_awal }} menit; lembur pulang tanpa plafon.</p>
+  <p><a class="btn small secondary" href="?tab=skor&bulan={{ bulan.value }}&unduh=csv">Unduh CSV papan skor</a>
+    <span class="meta">Termasuk yang direkam tanpa penilaian, ditandai di kolom <em>Dinilai</em>.</span></p>
   {% if rekam_saja %}
   <h2 style="margin-top:1.2rem">Direkam tanpa penilaian</h2>
   <p class="meta">Di luar jadwal jaga dua cabang, jadi jam shift-nya tidak diketahui dan skornya tidak dihitung. Capnya tetap tersimpan dan bisa dibuka.</p>
@@ -103,6 +105,7 @@
     {% endfor %}
     </tbody>
   </table>
+  <p><a class="btn small secondary" href="?tab=pengecualian&bulan={{ bulan.value }}&unduh=csv">Unduh CSV perlu dicek</a></p>
   {% else %}
   <div class="card" style="margin-top:.5rem"><strong>Tidak ada yang perlu dicek di {{ bulan.label }}.</strong></div>
   {% endif %}
