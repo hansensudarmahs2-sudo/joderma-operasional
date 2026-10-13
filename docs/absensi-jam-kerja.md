@@ -5,7 +5,8 @@
 > koreksi cap dari halaman, permintaan koreksi dari staf, dan unduh CSV.**
 > Seluruhnya sudah di-merge ke `master`: Tahap 1-3 dan 5 pada 6 Okt 2026, Tahap 4 pada
 > 12 Okt 2026 (`874bdf9`), dan Tahap 5 pada 13 Okt (`f238225`). **Keduanya sudah dideploy ke mini PC** —
-> Tahap 4 pada 12 Okt 15.01 (tanpa migrasi), Tahap 5 pada 13 Okt 15.57 (migrasi `absensi 0004`).
+> Tahap 4 pada 12 Okt 15.01 (tanpa migrasi), Tahap 5 pada 13 Okt 15.57 (migrasi `absensi 0004`),
+> dan Tahap 6 pada 13 Okt 16.16 (tanpa migrasi).
 > **Belum boleh dipakai untuk penilaian nyata** sampai bagian 9 beres.
 
 ## 1. Mengapa modul ini ada
@@ -498,7 +499,7 @@ tetapi selalu atas nama pengirimnya (rutenya tidak punya parameter staf, seperti
 `/absensi/saya/`), sedangkan menjawabnya tetap `can_correct_absensi` lewat halaman
 koreksi. Migrasi baru: `absensi 0004`.
 
-**Tahap 6 — unduh CSV.** *Selesai.* Tombol **Unduh CSV** ada di tab Papan skor dan
+**Tahap 6 — unduh CSV.** *Selesai, dideploy 13 Okt 2026 (`272dc49`).* Tombol **Unduh CSV** ada di tab Papan skor dan
 tab Perlu dicek; isinya mengikuti bulan yang sedang dilihat. Mengikuti pola
 `direktur:kpi`: BOM di awal berkas supaya Excel membaca UTF-8 dengan benar, nilai teks
 dilewatkan `audit.views._cell`, dan setiap unduhan tercatat sebagai
