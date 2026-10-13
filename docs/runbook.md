@@ -174,7 +174,7 @@ dan aplikasi dapat login memakai database hasil restore.
 | Health gagal | `docker compose restart app`; bila gagal, periksa log migrasi |
 | Disk penuh | Hapus backup bulanan lama setelah dipastikan ada salinan kedua; cek ukuran `private_media/` |
 | Database corrupt | Hentikan aplikasi, restore backup terakhir, jalankan uji restore di atas |
-| Mesin mati total / tidak bisa dihubungi | Alarm RTC menyalakannya sendiri ≤ 15 menit (bagian 6). Lebih lama dari itu berarti listrik benar-benar putus atau RTC wake belum aktif |
+| Mesin mati total / tidak bisa dihubungi | Alarm RTC menyalakannya sendiri ≤ 15 menit **hanya bila matinya lewat shutdown atau listrik padam**. Setelah tombol power ditahan 4 detik, mesin tetap mati dan harus dinyalakan tangan (bagian 6) |
 | Tailscale bermasalah total | Kontingensi kertas (checklist, kas, antrean) lalu entry susulan dengan catatan alasan |
 | Staf lupa password | Admin: menu **Admin ▸ Pengguna**, isi kata sandi baru; pengguna wajib menggantinya saat login |
 | Staf keluar dari klinik | Nonaktifkan akun (jangan hapus) — riwayat dan audit tetap utuh |
@@ -207,9 +207,12 @@ jalan keluar yang sengaja disisakan.
 **Lapis 2 — alarm RTC.** Tekan-tahan tombol power 4 detik ditangani firmware, di bawah
 sistem operasi: Linux tidak pernah melihatnya dan tidak bisa menolaknya. Karena itu lapis
 pertama saja tidak cukup. `wakealarm.timer` memajukan alarm RTC 15 menit ke depan setiap
-10 menit, sehingga mesin yang mati karena sebab apa pun — listrik padam, tombol ditahan —
-dinyalakan kembali oleh jam motherboard dalam **≤ 15 menit**. Mesin yang sudah mati tidak
-bisa mengecek dirinya sendiri; yang bekerja di sini RTC yang hidup dari baterai CMOS.
+10 menit, sehingga mesin yang mati **lewat shutdown atau karena listrik padam** dinyalakan
+kembali oleh jam motherboard dalam **≤ 15 menit**. Mesin yang sudah mati tidak bisa
+mengecek dirinya sendiri; yang bekerja di sini RTC yang hidup dari baterai CMOS.
+
+**Batasnya, dan ini terbukti mahal:** alarm RTC **tidak** menolong setelah tombol power
+ditahan 4 detik. Lihat "Yang tidak ditutup lapis 2" di bawah.
 
 Jadwalnya bukan jam tetap. Selama mesin hidup, alarm selalu 5–15 menit di depan dan tidak
 pernah sempat berbunyi karena keburu diganti; yang menyalakan mesin adalah alarm terakhir
@@ -244,10 +247,36 @@ systemctl list-timers wakealarm.timer
 journalctl -u polkit --since -5min -p warning   # harus kosong
 ```
 
-### Uji RTC wake — sudah lulus 12 Okt 2026
+### Yang tidak ditutup lapis 2: tekan-tahan 4 detik
+
+Pada 13 Okt 2026 tombol power ditahan 4 detik pukul ~13.25 dengan alarm RTC terpasang untuk
+13.27.35. Alarm itu **tidak membangunkan mesin**; mesin baru menyala 13.49 setelah dinyalakan
+tangan — padam 24 menit.
+
+Sebabnya bukan salah pasang. Tekan-tahan memicu *power button override* di chipset, yang
+memaksa mesin ke S5 **tanpa sistem operasi maupun firmware ikut berjalan**, sehingga bit
+RTC_EN tidak pernah dipasang untuk kali itu. Pada shutdown biasa, Linux lewat ACPI
+memasangnya sebagai bagian dari masuk S5 — itulah sebabnya uji 12 Okt dengan
+`systemctl poweroff` berhasil. Kedua jalur itu berbeda, dan uji dengan `poweroff` **tidak**
+membuktikan apa pun tentang tekan-tahan. `/proc/acpi/wakeup` juga tidak memuat RTC sama
+sekali di mesin ini.
+
+Bukti matinya paksa: cron berjalan tiap 5 menit, tetapi entri 13.25.01 hilang dan jurnal
+berhenti di 13.20.39 — sekitar lima menit log terakhir tidak sempat ditulis.
+
+Jadi yang tersisa hanya tiga jalan, dan ketiganya di luar jangkauan software:
+
+| Jalan | Catatan |
+|---|---|
+| **Steker pintar (smart plug)** | Paling pasti. Mencabut AC menghapus kunci override, dan "Restore on AC Power Loss" di BIOS sudah aktif dan terbukti (cabut-pasang kabel langsung menyala). Memberi tombol nyala jarak jauh sekaligus bisa dijadwalkan |
+| **BIOS** | Periksa "Wake system from S5"/"Power On by RTC", dan apakah override 4 detik bisa dimatikan. Perlu F2 saat boot. Belum dicoba — dan jangan dianggap berhasil sebelum diuji dengan menekan tombolnya, bukan dengan `poweroff` |
+| **Tutup tombolnya** | Paling langsung bila orangnya memang sudah diberi tahu dan tetap menekan |
+
+### Uji RTC wake — lulus 12 Okt 2026, tetapi hanya untuk shutdown bersih
 
 Sebagian firmware hanya membangunkan dari S3/S4, bukan dari mati total (S5), jadi lapis 2
-tidak boleh dianggap aktif sebelum dibuktikan. **Pada ASUS NUC14MNK-B2 ini sudah terbukti**:
+tidak boleh dianggap aktif sebelum dibuktikan. **Pada ASUS NUC14MNK-B2 ini terbukti untuk
+shutdown bersih** — dan hanya untuk itu; baca bagian di atas sebelum menyimpulkan lebih jauh:
 mesin dimatikan 12 Okt 14.07.20 dengan alarm 180 detik dan hidup sendiri 14.10.20 — tepat
 3 menit, tanpa mengubah apa pun di BIOS. Terlihat di `journalctl --list-boots` sebagai dua
 boot berurutan dengan selisih 3 menit.

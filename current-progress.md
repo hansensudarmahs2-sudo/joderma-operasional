@@ -14,7 +14,7 @@ di bawahnya adalah catatan per pekerjaan seperti ditulis saat dikerjakan.
 | Laptop (`~/Desktop/joderma-operasional`) dan GitHub | GitHub di commit dokumen ini (di atas `40cbd90`); laptop terakhir sejajar di `859de89` (12 Okt, sesudah rebase), perlu `git pull` sebelum deploy berikutnya supaya memakai prosedur deploy baru, dan pastikan `migrate --plan` kosong. Desktop bekerja di filesystem WSL `~/joderma-operasional` (sejak 6 Okt), sejajar dengan GitHub dan database pengembangannya sudah di-`migrate` (13 Okt); folder lama `/mnt/e/Claude/Projects/joderma-operasional` sudah dihapus |
 | Langkah sesudah deploy (di UI produksi) | Reset peran ke default; Susun ulang otomatis Oktober kedua cabang; unggah ekspor Omnicare terbaru di Stok Apotek; ganti password `hansen1` dan `superadmin` |
 | Belum dideploy | Tidak ada; produksi sejajar dengan kode di `40cbd90`. Sampaikan ke Owner dan petugas Online: menu Survei di ops membuka aplikasi survei tanpa login kedua; akun login survei lama tidak dipakai lagi. Sebelumnya: produksi di `b6b4830` (Absensi Tahap 4 dideploy 12 Okt 15.01). Sampaikan ke Direktur, Direktur Utama, dan Owner: hari di daftar **Perlu dicek** kini punya tombol **Koreksi cap** untuk menambah cap yang hilang atau membetulkan jamnya; alasan wajib dan tercatat di audit. Owner punya 16 perkara menunggu keputusan (insentif PIC, lembur hari raya, Memo 006, batas belanja Rp1 jt, SP1, RME SatuSehat, dll.). Sampaikan ke Owner: permintaan/temuan baru wajib berkategori (Atur kategori); ke Direktur dan Koordinator Shift: konfirmasi task staf wajib bintang 1–5, alasan untuk 1–3; ke staf: bintang terlihat di kartu Nilai saya. Notifikasi staf saat dikonfirmasi kini "Task dinilai" (bukan "Dikonfirmasi selesai"). Sampaikan ke staf penerima task project: menu Projects kini muncul (muat ulang halaman); bukti task project terlihat oleh semua penerima di project itu, jadi jangan unggah foto berisi data pasien sebagai bukti. Sampaikan ke Koordinator Shift: tally perawat yang lupa ditulis dicatat lewat Tambah tally susulan (alasan wajib). Sampaikan ke dr. Yohanes dan Jean: task project untuk mereka muncul di Dashboard Owner dan bisa ditolak dengan alasan. Audit arus balik selesai seluruhnya (tahap 1–4, usulan target, notifikasi kemajuan permintaan Owner, status catatan maju otomatis). **Backup:** tidak ada lagi arsip tak terenkripsi; build cache Docker dibersihkan 7 Okt. `backups/predeploy/` dipangkas ke 10 menurut tanggal di nama berkas (sejak `e711b7e`); arsip 1 dan 4 Okt yang dienkripsi ulang habis bertahap, satu per deploy. Salinan perangkat kedua belum dikonfigurasi (PO: backup Photodex disalin ke PC PO). Sampaikan ke staf: catatan lama Direktur di riwayat task kini terlihat di Percakapan; sampaikan ke Direktur: catatan pilah kini terbaca pelapor (dan staf cabang untuk laporan cabang), dan inisiatif ke Owner kini lewat Usulan ke Owner. Berjalan: **uji alur keputusan Owner dan Summary dua arah dengan akun asli**, **uji alur temuan Owner dengan akun asli** (Owner catat temuan, Direktur isi task besar, sub task, nyatakan selesai), dan **uji coba fase 9 oleh staf**, lihat Task yang belum selesai ▸ Fase 9 |
-| Mini PC: pengaman daya | Terpasang dan **terbukti** 12 Okt (berkas di `deploy/`): shutdown dari desktop ditolak polkit, dan alarm RTC menyalakan ulang ≤ 15 menit. Uji RTC wake dari S5 lulus — mati 14.07.20, hidup sendiri 14.10.20, tanpa mengubah BIOS. Product owner juga memastikan tombol Power Off hilang dari menu, tombol power fisik tidak lagi mematikan, dan kabel dicabut-pasang langsung menyala. Celah tersisa: listrik padam lama (tidak ada UPS). Lihat `docs/runbook.md` bagian 6 |
+| Mini PC: pengaman daya | Lapis polkit **bekerja** (menu GNOME dan tombol tekan-pendek tertutup). Alarm RTC menyalakan ulang ≤ 15 menit **hanya** untuk shutdown bersih dan listrik padam. **Tekan-tahan 4 detik tetap lolos**: 13 Okt ~13.25 mesin ditahan mati, alarm 13.27.35 tidak membangunkannya, baru menyala 13.49 secara manual — padam 24 menit. Sebabnya *power button override* memaksa S5 tanpa OS/firmware berjalan, jadi bit RTC_EN tidak pernah dipasang. Penutupnya di luar software: steker pintar, setelan BIOS, atau tutup tombolnya. Lihat `docs/runbook.md` bagian 6 |
 | Test | 1451 lulus per 13 Okt di `40cbd90` (joderma-survey: 905 lulus, 5 dilewati); sebelumnya 1440 lulus per 12 Okt di `50925fb` (`.venv/bin/python -m pytest`), naik 27 dari 1413 oleh Absensi Tahap 4; `stok/tests/test_tanpa_harga.py::test_order_page_shows_action_without_price_or_supplier` kadang gagal (sudah ada sebelumnya, tidak terkait); test "tanpa harga" di `orders`/`stok` kadang gagal karena memeriksa "Rp" di seluruh HTML (token acak bisa memuatnya) |
 | Rencana aktif | [`docs/KEBUTUHAN_REDEFINISI_PERAN.md`](docs/KEBUTUHAN_REDEFINISI_PERAN.md), dikerjakan fase demi fase dengan persetujuan product owner di setiap akhir fase |
 | Cara melanjutkan | [`docs/lanjutkan-pekerjaan.md`](docs/lanjutkan-pekerjaan.md) |
@@ -178,6 +178,33 @@ sesudah 1–2 bulan data.
 
 # Riwayat
 
+## Tekan-tahan 4 detik lolos dari alarm RTC (13 Oktober 2026)
+
+Pada 13 Okt ~13.25 tombol power ditahan 4 detik. Alarm RTC terpasang untuk 13.27.35 dan
+**tidak membangunkan mesin**; mesin baru menyala 13.49 secara manual — padam 24 menit.
+
+Penyebabnya bukan salah pasang, melainkan kesimpulan yang terlalu jauh dari uji 12 Okt.
+Uji itu memakai `systemctl poweroff`, yaitu shutdown bersih: Linux lewat ACPI memasang bit
+RTC_EN saat masuk S5, sehingga alarm bisa membangunkan mesin. Tekan-tahan 4 detik memicu
+*power button override* di chipset, yang memaksa mesin ke S5 **tanpa OS maupun firmware
+ikut berjalan**, sehingga RTC_EN tidak pernah dipasang untuk kali itu. Dua jalur berbeda,
+dan uji dengan `poweroff` tidak membuktikan apa pun tentang tekan-tahan. `/proc/acpi/wakeup`
+di mesin ini juga tidak memuat RTC sama sekali.
+
+Bukti matinya paksa: cron berjalan tiap 5 menit, tetapi entri 13.25.01 hilang dan jurnal
+berhenti di 13.20.39 — sekitar lima menit log terakhir tidak sempat ditulis ke disk, dan
+tidak ada urutan shutdown sama sekali.
+
+**Yang tetap berhasil:** lapis polkit. Orangnya *terpaksa* memakai tombol fisik, artinya
+menu GNOME dan tekan-pendek memang sudah tertutup.
+
+**Yang tersisa, semuanya di luar jangkauan software:** steker pintar (paling pasti —
+mencabut AC menghapus kunci override, dan "Restore on AC Power Loss" sudah aktif dan
+terbukti), setelan BIOS ("Wake system from S5", atau mematikan override 4 detik — belum
+dicoba), atau menutup tombolnya secara fisik. Pelajaran yang mahal: uji pengaman dengan
+cara yang persis sama dengan kejadian yang ingin dicegah, bukan dengan yang mirip.
+
+
 ## Mini PC mati 11 Oktober: penyebab dan pengaman daya (12 Oktober 2026) — `6a374a4`, sudah terpasang
 
 Mini PC klinik mati tiga kali pada 11 Okt. Yang pukul 22.00 membuat klinik kehilangan
@@ -208,9 +235,11 @@ keduanya: hanya berlaku di sesi pengguna, tidak menyentuh menu GNOME maupun laya
 Diverifikasi dengan `pkcheck`: lima aksi mematikan ditolak, aksi polkit lain tetap memakai
 kebijakan bawaannya; polkit tanpa peringatan; 10 container tetap `healthy`.
 
-**Terbukti di mesin nyata (12 Okt, product owner).** Uji RTC wake dari mati total (S5)
-lulus tanpa mengubah BIOS: mesin dimatikan 14.07.20 dengan alarm 180 detik dan hidup
-sendiri 14.10.20. Product owner juga memastikan tombol Power Off hilang dari menu GNOME,
+**Terbukti sebagian (12 Okt), lalu terbantah sebagian (13 Okt).** Uji RTC wake dari mati
+total (S5) lulus tanpa mengubah BIOS: mesin dimatikan 14.07.20 dengan alarm 180 detik dan
+hidup sendiri 14.10.20 — tetapi uji itu memakai `systemctl poweroff`, dan **tidak**
+membuktikan apa pun tentang tekan-tahan 4 detik, yang pada 13 Okt ternyata tidak tertutup
+sama sekali (lihat entri 13 Okt). Product owner juga memastikan tombol Power Off hilang dari menu GNOME,
 tombol power fisik tidak lagi mematikan, dan kabel dicabut lalu dipasang kembali membuatnya
 langsung menyala. Jeda pemulihan kemudian dipersempit dari 30 ke **15 menit**.
 
