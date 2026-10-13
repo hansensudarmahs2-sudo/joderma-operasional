@@ -588,6 +588,9 @@ sini lebih dulu:
 - [x] Keputusan D1-D6 disalin ke `DECISIONS.md` (13 Okt 2026).
 - [ ] Staf diberi tahu cara skor ini dihitung sebelum dipakai menilai mereka.
       Aturannya mudah dijelaskan, tetapi mengejutkan bila baru diketahui setelah dinilai.
+      **Bahannya siap** — [`panduan-absensi-staf.md`](panduan-absensi-staf.md), satu halaman,
+      memuat rumus skor, tebing ambang 60 menit, cara memakai "Cap saya kurang", dan siapa
+      yang boleh mengubah angka. Tinggal dibagikan dan dijelaskan.
 - [ ] Angka satu bulan penuh dicocokkan dengan perhitungan tangan sekali lagi,
       memakai roster sistem (bukan roster dari PDF seperti verifikasi September).
 

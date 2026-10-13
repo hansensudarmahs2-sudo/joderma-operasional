@@ -1,5 +1,6 @@
 # Panduan Singkat Staf — JoDerma Staff Ops
 
+Jam kerja Anda (Absensi saya): lihat [`panduan-absensi-staf.md`](panduan-absensi-staf.md).
 Supervisor: lihat juga [`panduan-supervisor.md`](panduan-supervisor.md).
 Admin: lihat [`panduan-admin.md`](panduan-admin.md).
 

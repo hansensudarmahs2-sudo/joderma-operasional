@@ -10,6 +10,7 @@ Selain itu, mulai dari peran Anda.
 | Saya ingin | Baca |
 |---|---|
 | Tahu cara mengisi pekerjaan harian | [`panduan-staf.md`](panduan-staf.md) |
+| Tahu bagaimana jam kerja saya dihitung dan cara melapor bila cap saya keliru | [`panduan-absensi-staf.md`](panduan-absensi-staf.md) |
 | Panduan bergambar (Word) untuk dibagikan ke staf | [`panduan/Panduan_Staf_JoDerma_Staff_Ops.docx`](panduan/Panduan_Staf_JoDerma_Staff_Ops.docx) |
 | Melakukan review, verifikasi, dan penutupan hari | [`panduan-supervisor.md`](panduan-supervisor.md) |
 | Membuat akun dan mengatur izin | [`panduan-admin.md`](panduan-admin.md) |
