@@ -51,6 +51,7 @@ Selain itu, mulai dari peran Anda.
 | Melihat keadaan klinik sekilas (Ringkasan, prioritas, kanban, keputusan) | [`panduan-direktur.md`](panduan-direktur.md) |
 | Kebutuhan checklist Direktur dan dashboard Owner | [`KEBUTUHAN_CHECKLIST_DAN_DASHBOARD.md`](KEBUTUHAN_CHECKLIST_DAN_DASHBOARD.md) |
 | Kebutuhan redefinisi seluruh peran (Owner, Direktur, PIC, staf, reset peran) | [`KEBUTUHAN_REDEFINISI_PERAN.md`](KEBUTUHAN_REDEFINISI_PERAN.md) |
+| Kebutuhan Pengingat Harian Direktur Operasional (materi bergilir otomatis, teks siap salin ke WA) | [`KEBUTUHAN_PENGINGAT_HARIAN_DO.md`](KEBUTUHAN_PENGINGAT_HARIAN_DO.md) |
 | Menjalankan uji coba lima hari | [`../UAT_5_DAY_PILOT_PLAN.md`](../UAT_5_DAY_PILOT_PLAN.md) |
 | Memutuskan aman tidaknya dipakai penuh | [`../GO_LIVE_READINESS_CHECKLIST.md`](../GO_LIVE_READINESS_CHECKLIST.md) |
 

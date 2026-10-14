@@ -327,7 +327,7 @@ persona, bukan hanya `route_allowed`.
 
 ## Akses Izul: kapabilitas per orang, bukan peran yang melebar (13 Oktober 2026) — `4e5d641`, dideploy 13 Okt
 
-Prasyarat rencana Pengingat Harian DO (dokumen kebutuhannya belum masuk Git; lihat catatan di bawah):
+Prasyarat rencana Pengingat Harian DO ([`docs/KEBUTUHAN_PENGINGAT_HARIAN_DO.md`](docs/KEBUTUHAN_PENGINGAT_HARIAN_DO.md)):
 satu staf fasilitas (Izul) yang menerima laporan kerusakan, melapor balik ke pelapor,
 mengurus pengambilan berkas dari mesin absensi, dan perlu tahu siapa jaga kapan.
 
