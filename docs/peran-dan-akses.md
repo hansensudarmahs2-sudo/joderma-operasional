@@ -204,6 +204,8 @@ kapabilitas tersebut juga diizinkan, tanpa memandang peran.
 | Absensi: mengoreksi cap, menjawab permintaan koreksi staf (D4) | AOM, owner | — |
 | Absensi saya (jam kerja sendiri) dan tombol "Cap saya kurang" | semua yang login | — |
 | Jadwal Jaga seluruh tim (baca) | AOM, admin, supervisor | `roster.view` |
+| Pengingat Harian DO: kartu di Ringkasan, Sudah diingatkan/Tunda/Lewati, katalog materi, Ingatkan besok, pengaturan | AOM | — |
+| Pengingat Harian DO: riwayat dan unduh CSV (baca) | AOM, owner | — |
 | Jadwal Jaga seluruh tim (ubah) | AOM, admin, Koordinator Shift cabangnya | — |
 | Mengatur perangkat dikenal (IP Tailscale perangkat klinik) | AOM | — |
 | Koordinat dan radius cabang (Pengaturan Klinik) | yang boleh mengubah pengaturan klinik | — |

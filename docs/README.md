@@ -15,6 +15,7 @@ Selain itu, mulai dari peran Anda.
 | Melakukan review, verifikasi, dan penutupan hari | [`panduan-supervisor.md`](panduan-supervisor.md) |
 | Membuat akun dan mengatur izin | [`panduan-admin.md`](panduan-admin.md) |
 | Memakai halaman Direktur Operasional (Ringkasan, Tim, checklist Direktur, catatan, keputusan) | [`panduan-direktur.md`](panduan-direktur.md) |
+| Memakai Pengingat Harian: kartu di Ringkasan, katalog materi, riwayat dan CSV | [`panduan-direktur.md`](panduan-direktur.md#pengingat-harian) |
 | Melihat jadwal jaga, tugas saya hari ini, dan aturan giliran tally | [`jadwal-dan-giliran.md`](jadwal-dan-giliran.md) |
 | Memakai Stok Apotek: unggah ekspor Omnicare, prioritas order, saran transfer | [`stok-apotek.md`](stok-apotek.md) |
 

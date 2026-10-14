@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Katalog pengingat{% endblock %}
+{% block content %}
+<div class="checklist-heading">
+  <div>
+    <h1>Katalog pengingat</h1>
+    <p class="sub">Materi yang bergilir di kartu Pengingat hari ini (Ringkasan). Kelas A mingguan, B dua mingguan, C bulanan.</p>
+  </div>
+  <a class="btn small" href="{% url 'pengingat:materi_baru' %}">+ Materi baru</a>
+</div>
+
+{% if kap.lebih %}
+<div class="msg warning">Kapasitas mingguan {{ kap.kapasitas }}, kebutuhan {{ kap.kebutuhan|floatformat:"-1" }} — sebagian materi akan terlambat dari jadwalnya. Tambah butir per hari, tambah hari kerja, atau pindahkan materi ke kelas yang lebih jarang.</div>
+{% else %}
+<p class="meta">Kapasitas mingguan {{ kap.kapasitas }} butir ({{ cfg.kuota }} × {{ cfg.hari_kerja|length }} hari kerja), kebutuhan materi aktif ±{{ kap.kebutuhan|floatformat:"-1" }} butir per minggu.</p>
+{% endif %}
+
+<div class="chip-row" role="group" aria-label="Saring status">
+  <a class="chip{% if status == 'aktif' %} chip-on{% endif %}" href="?status=aktif">Aktif <b>{{ jumlah.aktif }}</b></a>
+  <a class="chip{% if status == 'nonaktif' %} chip-on{% endif %}" href="?status=nonaktif">Nonaktif <b>{{ jumlah.nonaktif }}</b></a>
+  <a class="chip{% if status == 'semua' %} chip-on{% endif %}" href="?status=semua">Semua <b>{{ jumlah.semua }}</b></a>
+</div>
+
+<div class="table-wrap">
+<table class="responsive">
+  <thead><tr><th>Materi</th><th>Kelas</th><th>Sasaran</th><th>Terakhir</th><th>Aksi</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr id="m-{{ r.m.pk }}">
+    <td data-label="Materi"><a href="{% url 'pengingat:materi_ubah' r.m.pk %}"><strong>{{ r.m.kode }}</strong> {{ r.m.judul }}</a>
+      <div class="meta">{{ r.m.get_jenis_display }}{% if r.m.clinic %} · {{ r.m.clinic.name }}{% endif %}{% if not r.m.aktif %} · <span class="tag muted">Nonaktif</span>{% endif %}{% if r.paksa %} · <span class="tag warn">{{ r.paksa.get_sebab_display }} {{ r.paksa.tanggal|date:"d/m" }}</span>{% endif %}</div>
+      {% if r.m.catatan %}<div class="meta">{{ r.m.catatan|truncatechars:140 }}</div>{% endif %}</td>
+    <td data-label="Kelas">{{ r.m.kelas }}</td>
+    <td data-label="Sasaran">{{ r.m.sasaran|join:", " }}</td>
+    <td data-label="Terakhir">{% if r.terakhir %}{{ r.terakhir|date:"d/m/Y" }}{% else %}<span class="meta">belum pernah</span>{% endif %}</td>
+    <td data-label="Aksi"><span class="inline-actions">
+      {% if r.m.aktif %}
+      <form method="post" action="{% url 'pengingat:ingatkan_besok' r.m.pk %}" class="inline">{% csrf_token %}<button class="btn small" type="submit" title="Masuk kartu {{ besok|date:'d/m' }}, di luar kuota">Ingatkan besok</button></form>
+      <form method="post" action="{% url 'pengingat:materi_aktif' r.m.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="aktif" value="0"><button class="btn small secondary" type="submit">Nonaktifkan</button></form>
+      {% else %}
+      <form method="post" action="{% url 'pengingat:materi_aktif' r.m.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="aktif" value="1"><button class="btn small secondary" type="submit">Aktifkan</button></form>
+      {% endif %}
+    </span></td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="5" class="meta">Tidak ada materi pada saringan ini.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<section class="card" id="pengaturan" aria-labelledby="judul-pengaturan">
+  <h2 id="judul-pengaturan" style="margin:0 0 .4rem">Pengaturan</h2>
+  <form method="post" action="{% url 'pengingat:pengaturan' %}" class="stack-form">{% csrf_token %}
+    <fieldset class="pengingat-pilih"><legend>Hari kerja</legend>
+      {% for i, nama in hari %}<label><input type="checkbox" name="hari_kerja" value="{{ i }}"{% if i in cfg.hari_kerja %} checked{% endif %}> {{ nama }}</label>{% endfor %}
+    </fieldset>
+    <div class="pengingat-angka">
+      <label>Butir per hari<input type="number" name="kuota" min="1" max="10" value="{{ cfg.kuota }}" required></label>
+      <label>Interval A (hari)<input type="number" name="interval_a" min="1" max="365" value="{{ cfg.interval_a }}" required></label>
+      <label>Interval B (hari)<input type="number" name="interval_b" min="1" max="365" value="{{ cfg.interval_b }}" required></label>
+      <label>Interval C (hari)<input type="number" name="interval_c" min="1" max="365" value="{{ cfg.interval_c }}" required></label>
+    </div>
+    <p class="help">Berlaku mulai kartu berikutnya; kartu yang sudah terbentuk hari ini tidak berubah.</p>
+    <button class="btn small" type="submit">Simpan pengaturan</button>
+  </form>
+</section>
+{% endblock %}

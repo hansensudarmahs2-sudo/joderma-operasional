@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Riwayat pengingat{% endblock %}
+{% block content %}
+<div class="checklist-heading">
+  <div>
+    <h1>Riwayat pengingat</h1>
+    <p class="sub">Materi yang sudah diingatkan Direktur Operasional ke tim. Bukti sosialisasi; Tunda dan Lewati tidak dicatat di sini.</p>
+  </div>
+  <a class="btn small secondary" href="?{{ csv_query }}">Unduh CSV</a>
+</div>
+
+<form method="get" class="pengingat-angka pengingat-saring">
+  <label>Materi<select name="materi"><option value="">Semua materi</option>{% for m in materi %}<option value="{{ m.pk }}"{% if f.materi and f.materi.pk == m.pk %} selected{% endif %}>{{ m.kode }} {{ m.judul|truncatechars:40 }}</option>{% endfor %}</select></label>
+  <label>Cabang<select name="cabang"><option value="">Semua cabang</option>{% for c in clinics %}<option value="{{ c.pk }}"{% if f.cabang and f.cabang.pk == c.pk %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></label>
+  <label>Bulan<input type="month" name="bulan" value="{% if f.bulan %}{{ f.bulan|date:'Y-m' }}{% endif %}"></label>
+  <span class="inline-actions" style="align-self:end"><button class="btn small" type="submit">Saring</button>{% if f.materi or f.cabang or f.bulan %}<a class="btn small secondary" href="?">Hapus saringan</a>{% endif %}</span>
+</form>
+{% if f.cabang %}<p class="meta">Termasuk pengingat yang dikirim untuk kedua cabang.</p>{% endif %}
+
+<p class="meta">{{ total }} pengingat{% if total > logs|length %}; ditampilkan {{ logs|length }} terbaru, CSV memuat semuanya{% endif %}.</p>
+<table class="responsive">
+  <thead><tr><th>Tanggal</th><th>Materi</th><th>Cabang</th><th>Saluran</th><th>Catatan</th><th>Oleh</th></tr></thead>
+  <tbody>
+  {% for log in logs %}
+  <tr>
+    <td data-label="Tanggal">{{ log.tanggal|date:"d/m/Y" }}</td>
+    <td data-label="Materi">{% if can_manage %}<a href="{% url 'pengingat:materi_ubah' log.materi.pk %}">{% endif %}<strong>{{ log.materi.kode }}</strong> {{ log.materi.judul }}{% if can_manage %}</a>{% endif %}</td>
+    <td data-label="Cabang">{{ log.cabang }}</td>
+    <td data-label="Saluran">{{ log.get_saluran_display }}</td>
+    <td data-label="Catatan">{{ log.catatan|default:"—" }}</td>
+    <td data-label="Oleh">{{ log.oleh }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="6" class="meta">Belum ada pengingat{% if f.materi or f.cabang or f.bulan %} pada saringan ini{% endif %}.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

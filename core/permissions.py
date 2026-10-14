@@ -408,6 +408,16 @@ def can_edit_stok(user) -> bool:
     return has_role(user, Role.APOTEKER, Role.ASISTEN_APOTEKER, Role.AOM)
 
 
+def can_manage_pengingat(user) -> bool:
+    """Pengingat Harian DO: kartu, tandai, dan katalog. Semua akun Direktur Operasional (14 Okt 2026)."""
+    return bool(user and user.is_authenticated and is_aom(user))
+
+
+def can_view_pengingat_history(user) -> bool:
+    """Riwayat Pengingat Harian DO: Direktur Operasional, ditambah Direktur Utama dan Owner (baca saja)."""
+    return can_manage_pengingat(user) or bool(user and user.is_authenticated and is_owner(user))
+
+
 def can_view_stok(user) -> bool:
     """Owner hanya membaca (PRD A6, belum diputuskan lain)."""
     return can_edit_stok(user) or is_owner(user)

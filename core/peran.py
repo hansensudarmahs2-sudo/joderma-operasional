@@ -89,6 +89,7 @@ OWNER_ALLOWED = COMMON | {
     "direktur:decision_detail",
     "direktur:kategori",  # Atur kategori permintaan/temuan (8 Okt 2026); izin ditegakkan di view
     "reports:policies",  # Kebijakan berlaku (5 Okt 2026), baca saja
+    "pengingat:riwayat",  # Riwayat Pengingat Harian DO (14 Okt 2026), baca saja; GET saja
     "jadwal:roster",
     "stok:index",  # Stok Apotek, baca saja; unggah dan parameter tetap ditolak
     "core:attachment",  # foto permintaan/temuan; izin per lampiran diperiksa di view
@@ -100,7 +101,7 @@ OWNER_ALLOWED = COMMON | {
 }
 
 # Halaman yang boleh dibuka Owner tetapi tidak boleh dikirimi perubahan (POST ditolak 403).
-OWNER_READ_ONLY = {"issues:detail", "reports:laporan_page_detail", "reports:masukan_page_detail"}
+OWNER_READ_ONLY = {"issues:detail", "reports:laporan_page_detail", "reports:masukan_page_detail", "pengingat:riwayat"}
 
 # Admin sistem: daftar yang BOLEH. Tidak mengisi checklist, kas, atau data operasional.
 ADMIN_ALLOWED = COMMON | {
@@ -163,6 +164,7 @@ STAF_BLOCKED = {
     "owner:*",
     "audit:*",
     "jejak:*",
+    "pengingat:*",  # Pengingat Harian DO (14 Okt 2026); view juga menolak selain Direktur
     # Jam kerja seluruh tim tertutup untuk staf; jam kerjanya sendiri terbuka
     # lewat "Absensi saya" (keputusan D5), jadi dilarang per rute, bukan per namespace.
     "absensi:index",
@@ -321,13 +323,16 @@ SUBNAV_GROUPS = {
     "evaluasi": ("Evaluasi staf", [("KPI", "direktur:kpi"), ("Jejak", "jejak:index"),
                                    ("Absensi", "absensi:index")], ()),
     "kebijakan": ("Kebijakan", [("Kebijakan", "reports:policies"), ("Keputusan", "direktur:decisions"),
-                                ("Bahan Rapat", "direktur:meeting")], ()),
+                                ("Bahan Rapat", "direktur:meeting"), ("Pengingat", "pengingat:katalog"),
+                                ("Riwayat pengingat", "pengingat:riwayat")],
+                  ("/pengingat/",)),
 }
 # Halaman detail yang menampilkan tab kelompoknya (tanpa tab aktif).
 SUBNAV_DETAIL = {
     "direktur:task_new": "task", "direktur:task_detail": "task", "direktur:kpi_staff": "evaluasi",
     "jejak:devices": "evaluasi", "absensi:staf": "evaluasi", "absensi:koreksi": "evaluasi",
     "direktur:decision_detail": "kebijakan",
+    "pengingat:materi_baru": "kebijakan", "pengingat:materi_ubah": "kebijakan",
     "issues:detail": "dari_staf", "reports:laporan_page_detail": "dari_staf",
     "reports:masukan_page_detail": "dari_staf",
 }

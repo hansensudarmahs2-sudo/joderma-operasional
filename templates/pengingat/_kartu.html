@@ -1,0 +1,90 @@
+{# Kartu "Pengingat hari ini" di Ringkasan Direktur (14 Okt 2026). Konteks: pengingat = pengingat.services.kartu_context. #}
+<section class="card pengingat" id="pengingat" aria-labelledby="judul-pengingat">
+  <div class="checklist-heading" style="margin:0 0 .4rem">
+    <h2 id="judul-pengingat" style="margin:0">Pengingat hari ini</h2>
+    <span class="meta">{{ pengingat.tanggal|date:"l, j F" }} · <a href="{% url 'pengingat:katalog' %}">Katalog</a> · <a href="{% url 'pengingat:riwayat' %}">Riwayat ›</a></span>
+  </div>
+  {% if pengingat.libur %}
+  <p class="meta" style="margin:0">Hari ini bukan hari kerja; tidak ada pengingat.</p>
+  {% elif not pengingat.butir %}
+  <p class="meta" style="margin:0">Tidak ada materi yang jatuh tempo hari ini.</p>
+  {% elif not pengingat.terbuka %}
+  <p class="meta" style="margin:0"><span class="tag ok">Selesai</span> Semua pengingat hari ini sudah ditangani.</p>
+  {% endif %}
+
+  {% for b in pengingat.terbuka %}
+  <article class="pengingat-butir">
+    <div class="pengingat-head">
+      <strong><span class="tag info">{{ b.materi.kode }}</span> {{ b.materi.judul }}</strong>
+      {% if b.paksa %}<span class="tag warn">{{ b.paksa.get_sebab_display }}</span>{% endif %}
+    </div>
+    <p class="meta" style="margin:.15rem 0">{{ b.materi.sasaran|join:", " }} · {% if b.materi.clinic %}{{ b.materi.clinic.name }}{% else %}Jemur dan Citraland{% endif %} · kelas {{ b.materi.kelas }}</p>
+    {% if b.materi.kebijakan %}<div class="pengingat-kebijakan"><p class="meta" style="margin:0">Kebijakan: <a href="{% url 'direktur:decision_detail' b.materi.kebijakan.pk %}">{{ b.materi.kebijakan.title }}</a></p>{% if b.materi.kebijakan.decision_text %}<div style="white-space:pre-wrap">{{ b.materi.kebijakan.decision_text|truncatechars:400 }}</div>{% endif %}</div>{% endif %}
+    {% if b.materi.poin %}<ul class="pengingat-poin">{% for p in b.materi.poin %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+    {% if b.teks %}
+    <div class="pengingat-wa">
+      <pre class="pengingat-teks" id="teks-{{ b.pk }}">{{ b.teks }}</pre>
+      <button type="button" class="btn pengingat-salin" data-salin="teks-{{ b.pk }}">Salin teks WA</button>
+    </div>
+    {% endif %}
+    <p class="meta" style="margin:.3rem 0 0">{% if b.materi.rujukan %}Rujukan: {{ b.materi.rujukan }} · {% endif %}Terakhir diingatkan: {% for nama, tgl in b.terakhir %}{{ nama }} {% if tgl %}{{ tgl|date:"d/m/Y" }}{% else %}belum pernah{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    <div class="task-actions-row">
+      <details class="task-submit">
+        <summary class="btn small">Sudah diingatkan</summary>
+        <form method="post" action="{% url 'pengingat:diingatkan' b.pk %}" class="stack-form">{% csrf_token %}
+          <fieldset class="pengingat-pilih"><legend>Cabang</legend>
+            {% for c in pengingat.clinics %}<label><input type="radio" name="cabang" value="{{ c.pk }}"{% if b.materi.clinic_id == c.pk %} checked{% endif %} required> {{ c.name }}</label>{% endfor %}
+            <label><input type="radio" name="cabang" value="keduanya"{% if not b.materi.clinic_id %} checked{% endif %}> Keduanya</label>
+          </fieldset>
+          <fieldset class="pengingat-pilih"><legend>Saluran</legend>
+            {% for val, label in pengingat.saluran %}<label><input type="radio" name="saluran" value="{{ val }}"{% if forloop.first %} checked{% endif %} required> {{ label }}</label>{% endfor %}
+          </fieldset>
+          <label for="catatan-{{ b.pk }}">Catatan <span class="meta">(opsional)</span></label>
+          <input id="catatan-{{ b.pk }}" name="catatan" placeholder="Mis. dibahas di briefing pagi">
+          <button class="btn small" type="submit">Simpan</button>
+        </form>
+      </details>
+      <form method="post" action="{% url 'pengingat:tunda' b.pk %}" class="inline">{% csrf_token %}<button class="btn small secondary" type="submit">Tunda ke besok</button></form>
+      <details class="task-submit">
+        <summary class="btn small secondary">Lewati</summary>
+        <form method="post" action="{% url 'pengingat:lewati' b.pk %}" class="stack-form">{% csrf_token %}
+          <label for="alasan-{{ b.pk }}">Alasan (wajib)</label>
+          <input id="alasan-{{ b.pk }}" name="alasan" required placeholder="Mis. materi sedang direvisi">
+          <button class="btn small secondary" type="submit">Lewati</button>
+        </form>
+      </details>
+    </div>
+  </article>
+  {% endfor %}
+
+  {% if pengingat.selesai %}
+  <ul class="pengingat-selesai">
+    {% for b in pengingat.selesai %}<li><span class="tag {% if b.status == 'DIINGATKAN' %}ok{% elif b.status == 'DITUNDA' %}warn{% else %}muted{% endif %}">{{ b.get_status_display }}</span> {{ b.materi.kode }} {{ b.materi.judul }} <span class="meta">· {{ b.ditangani_oleh }}{% if b.alasan %} · {{ b.alasan }}{% endif %}</span></li>{% endfor %}
+  </ul>
+  {% endif %}
+
+  <details class="pengingat-pratinjau">
+    <summary class="meta">7 hari ke depan (perkiraan)</summary>
+    <ul>
+      {% for h in pengingat.pratinjau %}
+      <li><strong>{{ h.tanggal|date:"D j/n" }}</strong> {% if h.libur %}<span class="meta">libur</span>{% elif not h.materi %}<span class="meta">tidak ada yang jatuh tempo</span>{% else %}{% for m in h.materi %}{{ m.kode }} {{ m.judul }}{% if not forloop.last %} · {% endif %}{% endfor %}{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </details>
+</section>
+<script>
+(function () {
+  document.querySelectorAll('[data-salin]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var el = document.getElementById(btn.dataset.salin), text = el ? el.textContent : '';
+      function done() { var t = btn.textContent; btn.textContent = 'Tersalin ✓'; setTimeout(function () { btn.textContent = t; }, 1800); }
+      if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).then(done, fallback); } else { fallback(); }
+      function fallback() {
+        var ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', '');
+        ta.style.position = 'absolute'; ta.style.left = '-9999px'; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) {} document.body.removeChild(ta);
+      }
+    });
+  });
+})();
+</script>

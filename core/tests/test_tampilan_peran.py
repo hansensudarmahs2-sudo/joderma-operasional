@@ -252,7 +252,8 @@ def test_grouped_menu_and_page_tabs(client, clinic):
         ("direktur:kanban", ["Daftar Task", "Kanban", "Prioritas", "Jadwal Task"], "Kanban"),
         ("jejak:index", ["KPI", "Jejak", "Absensi"], "Jejak"),
         ("absensi:index", ["KPI", "Jejak", "Absensi"], "Absensi"),
-        ("direktur:meeting", ["Kebijakan", "Keputusan", "Bahan Rapat"], "Bahan Rapat"),
+        ("direktur:meeting", ["Kebijakan", "Keputusan", "Bahan Rapat", "Pengingat", "Riwayat pengingat"], "Bahan Rapat"),
+        ("pengingat:katalog", ["Kebijakan", "Keputusan", "Bahan Rapat", "Pengingat", "Riwayat pengingat"], "Pengingat"),
     ):
         body = client.get(reverse(route)).content.decode()
         bar = body.split('class="subnav"', 1)[1].split("</nav>", 1)[0]

@@ -7,7 +7,7 @@ tampilan yang sama. Owner **membaca** keadaan klinik. Yang ia buat dan putuskan 
 
 Sesudah login, Owner langsung masuk ke **Dashboard**. Halaman sejenis digabung dalam satu menu
 (5 Okt 2026): **Task** (Daftar Task, Kanban, Prioritas, Jadwal Task), **Evaluasi staf** (KPI, Jejak),
-dan **Kebijakan** (Kebijakan, Keputusan, Bahan Rapat). Di dalam halaman itu ada baris tab di atas
+dan **Kebijakan** (Kebijakan, Keputusan, Bahan Rapat, Riwayat pengingat). Di dalam halaman itu ada baris tab di atas
 untuk pindah antarhalaman kelompoknya. Isi tiap halaman:
 
 | Menu | Isi |
@@ -157,6 +157,13 @@ Usulan yang Direktur Operasional ajukan atas inisiatifnya sendiri ada di menu **
 - **Laporan masalah/risiko**: ketuk **Tandai sudah dibaca**.
 - Untuk keduanya, tulis di **Percakapan** bila perlu bertanya atau menanggapi; Direktur diberi
   notifikasi.
+
+## Riwayat pengingat
+
+**Kebijakan ▸ Riwayat pengingat** memuat materi alur, SOP, dan standar yang sudah diingatkan
+Direktur Operasional ke tim: tanggal, cabang, saluran (grup WA, briefing, langsung), dan catatan.
+Bisa disaring per materi, cabang, dan bulan, dan diunduh sebagai CSV. Anda hanya membaca; kartu
+pengingat harian dan katalog materinya diatur Direktur Operasional.
 
 ## Survei
 

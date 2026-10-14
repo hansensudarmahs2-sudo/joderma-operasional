@@ -25,6 +25,7 @@ urlpatterns = [
     path("jejak/", include(("jejak.urls", "jejak"), namespace="jejak")),
     path("projects/", include(("projects.urls", "projects"), namespace="projects")),
     path("absensi/", include(("absensi.urls", "absensi"), namespace="absensi")),
+    path("pengingat/", include(("pengingat.urls", "pengingat"), namespace="pengingat")),
     path("health/", core_views.health, name="health"),
     path("django-admin/", admin.site.urls),
 ]

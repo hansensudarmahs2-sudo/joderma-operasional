@@ -536,18 +536,23 @@ Semua perubahan materi dan log tercatat di jejak audit yang sudah ada.
 
 ## 7. Kriteria selesai
 
-- [ ] Kartu muncul di Ringkasan Direktur dengan dua butir pada hari kerja, kosong pada hari libur.
-- [ ] Butir yang tidak ditandai muncul lagi esok hari.
-- [ ] "Tunda ke besok" dan "Ingatkan besok" memaksa butir muncul besok di luar kuota.
-- [ ] Materi baru dengan tanggal sosialisasi muncul pada hari ke-1, 3, 7, 14, 30, lalu giliran normal.
-- [ ] Dua butir di satu hari tidak memiliki sasaran peran yang sama persis, bila ada alternatif.
-- [ ] Tombol Salin menyalin teks WA dengan `{cabang}` sudah diganti.
-- [ ] Peringatan kapasitas muncul bila kebutuhan mingguan melebihi kapasitas.
-- [ ] Riwayat bisa disaring dan diekspor CSV.
-- [ ] Staf biasa ditolak server (403) di semua URL fitur ini.
-- [ ] Tampilan HP nyaman: kartu terbaca tanpa geser ke samping; tombol Salin mudah ditekan.
-- [ ] Test otomatis untuk algoritma penjadwalan (termasuk tanggal tetap via waktu tiruan) dan izin akses.
-- [ ] `docs/README.md`, `docs/panduan-direktur.md`, dan `docs/peran-dan-akses.md` diperbarui.
+Dicentang 14 Oktober 2026 di branch `pengingat-harian` (test otomatis dan UI test desktop/HP di salinan
+database). Keputusan PO saat implementasi: Lewati memundurkan jadwal satu interval; kartu dikunci per
+hari; semua akun Direktur Operasional berbagi satu kartu; katalog dan riwayat menjadi tab di kelompok
+Kebijakan.
+
+- [x] Kartu muncul di Ringkasan Direktur dengan dua butir pada hari kerja, kosong pada hari libur.
+- [x] Butir yang tidak ditandai muncul lagi esok hari.
+- [x] "Tunda ke besok" dan "Ingatkan besok" memaksa butir muncul besok di luar kuota.
+- [x] Materi baru dengan tanggal sosialisasi muncul pada hari ke-1, 3, 7, 14, 30, lalu giliran normal.
+- [x] Dua butir di satu hari tidak memiliki sasaran peran yang sama persis, bila ada alternatif.
+- [x] Tombol Salin menyalin teks WA dengan `{cabang}` sudah diganti.
+- [x] Peringatan kapasitas muncul bila kebutuhan mingguan melebihi kapasitas.
+- [x] Riwayat bisa disaring dan diekspor CSV.
+- [x] Staf biasa ditolak server (403) di semua URL fitur ini.
+- [x] Tampilan HP nyaman: kartu terbaca tanpa geser ke samping; tombol Salin mudah ditekan.
+- [x] Test otomatis untuk algoritma penjadwalan (termasuk tanggal tetap via waktu tiruan) dan izin akses.
+- [x] `docs/README.md`, `docs/panduan-direktur.md`, dan `docs/peran-dan-akses.md` diperbarui.
 
 ## 8. Tahap berikutnya (bukan sekarang)
 

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{% if materi %}{{ materi.kode }}{% else %}Materi baru{% endif %}{% endblock %}
+{% block content %}
+<p><a href="{% url 'pengingat:katalog' %}">← Katalog pengingat</a></p>
+<h1>{% if materi %}{{ materi.kode }} {{ materi.judul }}{% else %}Materi baru{% endif %}</h1>
+
+<form method="post" class="stack-form pengingat-form">{% csrf_token %}
+  <div class="pengingat-angka">
+    <label>Kode<input name="kode" value="{{ v.kode }}" required maxlength="20" placeholder="Mis. AR-13"></label>
+    <label>Urutan prioritas<input type="number" name="urutan" min="0" value="{{ v.urutan }}"></label>
+  </div>
+  <label for="judul">Judul</label>
+  <input id="judul" name="judul" value="{{ v.judul }}" required maxlength="200">
+  <div class="pengingat-angka">
+    <label>Jenis<select name="jenis" id="jenis">{% for val, label in jenis %}<option value="{{ val }}"{% if v.jenis == val %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label>Kelas<select name="kelas">{% for val, label in kelas %}<option value="{{ val }}"{% if v.kelas == val %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label>Cabang<select name="cabang"><option value="">Kedua cabang</option>{% for c in clinics %}<option value="{{ c.pk }}"{% if v.cabang == c.pk|stringformat:"s" %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></label>
+  </div>
+  <label id="baris-kebijakan">Kebijakan yang dirujuk <span class="meta">(jenis kebijakan; isinya ditampilkan dari record aslinya)</span>
+    <select name="kebijakan"><option value="">—</option>{% for p in policies %}<option value="{{ p.pk }}"{% if v.kebijakan == p.pk|stringformat:"s" %} selected{% endif %}>{{ p.title }}</option>{% endfor %}</select></label>
+  <fieldset class="pengingat-pilih"><legend>Sasaran</legend>
+    {% for s in sasaran %}<label><input type="checkbox" name="sasaran" value="{{ s }}"{% if s in v.sasaran %} checked{% endif %}> {{ s }}</label>{% endfor %}
+  </fieldset>
+  <label>Poin kunci (maks. 3)</label>
+  {% for p in v.poin %}<input name="poin" value="{{ p }}" maxlength="300" placeholder="Poin {{ forloop.counter }}">{% endfor %}
+  <label for="teks_wa">Teks WA <span class="meta">(ditempel apa adanya; {cabang} diganti nama cabang)</span></label>
+  <textarea id="teks_wa" name="teks_wa" rows="6">{{ v.teks_wa }}</textarea>
+  <label for="rujukan">Rujukan <span class="meta">(nama dokumen atau tautan)</span></label>
+  <input id="rujukan" name="rujukan" value="{{ v.rujukan }}" maxlength="300">
+  <div class="pengingat-angka">
+    <label>Tanggal sosialisasi<input type="date" name="tanggal_sosialisasi" value="{{ v.tanggal_sosialisasi }}"></label>
+    <label class="pengingat-centang"><input type="checkbox" name="aktif" value="1"{% if v.aktif %} checked{% endif %}> Aktif (dijadwalkan)</label>
+  </div>
+  <p class="help">Tanggal sosialisasi yang baru diisi atau diubah menjadwalkan ulangan hari ke-1, 3, 7, 14, dan 30, lalu materi masuk giliran normal kelasnya. Kosongkan bila tidak perlu ulangan.</p>
+  <label for="catatan">Catatan</label>
+  <textarea id="catatan" name="catatan" rows="2">{{ v.catatan }}</textarea>
+  <button class="btn" type="submit">Simpan</button>
+</form>
+<script>
+(function () {
+  var jenis = document.getElementById('jenis'), row = document.getElementById('baris-kebijakan');
+  function sync() { row.hidden = jenis.value !== 'kebijakan'; }
+  jenis.addEventListener('change', sync); sync();
+})();
+</script>
+{% endblock %}

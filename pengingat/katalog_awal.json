@@ -1,0 +1,486 @@
+[
+ {
+  "kode": "SP-01",
+  "judul": "Standar Dasar Pelayanan",
+  "jenis": "standar",
+  "sasaran": [
+   "Semua staf"
+  ],
+  "cabang": "keduanya",
+  "kelas": "A",
+  "rujukan": "Standar_Dasar_Pelayanan_JoDerma.docx",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Ramah: sapa begitu pasien datang, sebut namanya, HP disimpan saat melayani",
+   "Empati dan mau membantu: dengar sampai selesai; jangan berhenti di 'tidak bisa', tawarkan pilihan",
+   "Profesional: pertanyaan medis ke dokter, harga dari daftar resmi, hanya janjikan yang bisa dipenuhi"
+  ],
+  "teks_wa": "Selamat pagi tim {cabang} 🙏 Pengingat Standar Dasar Pelayanan hari ini:\n1. Sapa pasien begitu datang dan sebut namanya. HP disimpan saat melayani.\n2. Dengar keluhan sampai selesai. Jangan berhenti di \"tidak bisa\" — tawarkan pilihan.\n3. Pesan WA pasien dibalas ≤ 15 menit.\nEmpat nilai ini masuk penilaian kinerja. Terima kasih 🙏",
+  "urutan": 1
+ },
+ {
+  "kode": "AR-01",
+  "judul": "Menanggapi Keluhan dan Potensi Komplain",
+  "jenis": "alur",
+  "sasaran": [
+   "Meja depan",
+   "Petugas online",
+   "Kasir",
+   "Perawat"
+  ],
+  "cabang": "keduanya",
+  "kelas": "A",
+  "rujukan": "Alur_Ringkas_Menanggapi_Keluhan.docx (SOP JD-CPL-01)",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Enam langkah: Dengar, Akui, Cek, Tawarkan, Naikkan, Catat",
+   "Informasi baru dari pasien ('sudah janji dokter', 'sudah bayar') dicek, bukan dijawab dengan aturan yang sama",
+   "Keluhan dicatat di formulir komplain hari itu juga"
+  ],
+  "teks_wa": "Pengingat menghadapi pasien yang kesal 🙏\nDengar sampai selesai → akui perasaannya → CEK faktanya (jangan menebak) → tawarkan pilihan → naikkan ke koordinator bila buntu → catat di formulir komplain hari ini juga.\nBila pasien menyampaikan hal baru (\"saya sudah janji dengan dokter\"), itu informasi yang harus dicek, bukan dibantah.",
+  "urutan": 2
+ },
+ {
+  "kode": "AR-07",
+  "judul": "Siap Sebelum Memanggil Dokter (ruang estetik dan injeksi)",
+  "jenis": "alur",
+  "sasaran": [
+   "Perawat"
+  ],
+  "cabang": "keduanya",
+  "kelas": "A",
+  "rujukan": "Alur_Ringkas_Siap_Memanggil_Dokter_Estetik.docx",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Alat energi sudah menyala, filter atau handpiece benar sudah terpasang",
+   "Injeksi: bola stres, alat getar, dan kasa sudah di tangan pendamping",
+   "Consent dan foto sebelum sudah ada sebelum dokter dipanggil"
+  ],
+  "teks_wa": "Pengingat untuk perawat 🙏 Dokter dipanggil hanya setelah semuanya siap:\n✅ Alat menyala, filter/handpiece sesuai\n✅ Injeksi: bola stres, alat getar, kasa sudah di tangan pendamping\n✅ Consent dan foto sebelum sudah ada\n✅ Kacamata pasien terpasang (alat energi)\nDokter masuk, langsung bekerja.",
+  "urutan": 3
+ },
+ {
+  "kode": "AR-02",
+  "judul": "Nomor Antrian",
+  "jenis": "alur",
+  "sasaran": [
+   "Petugas online",
+   "Meja depan",
+   "Koordinator shift"
+  ],
+  "cabang": "keduanya",
+  "kelas": "A",
+  "rujukan": "Alur_Ringkas_Nomor_Antrian.docx",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Nomor diberikan setelah biaya konsultasi dibayar; tanpa bayar tidak ada keep nomor kecuali izin dr. Yohanes atau Bu Jean",
+   "Pasien dipanggil menurut nomor; nomor yang belum datang dilewati, bukan dibatalkan",
+   "Pasien mengaku sudah janji langsung dengan dokter: konfirmasi ke dokter dulu"
+  ],
+  "teks_wa": "Pengingat nomor antrian 🙏\n1. Nomor diberikan setelah biaya konsultasi dibayar.\n2. Sampaikan jam hadir 15 menit sebelum perkiraan giliran, dan bahwa 30 menit per nomor itu perkiraan.\n3. Nomor belum datang → lewati, jangan batalkan.\n4. Pasien bilang sudah janji langsung dengan dokter → konfirmasi ke dokter dulu, dokter yang memutuskan.",
+  "urutan": 4
+ },
+ {
+  "kode": "AR-03",
+  "judul": "Foto Klinis",
+  "jenis": "alur",
+  "sasaran": [
+   "Perawat"
+  ],
+  "cabang": "keduanya",
+  "kelas": "B",
+  "rujukan": "Alur_Ringkas_Foto_Klinis.docx",
+  "catatan": "Kebijakan ops P-9 (revisi 9/10: foto pasien hanya dengan perangkat klinik) belum selaras dengan alur ini (HP pribadi darurat: unggah lalu hapus, keputusan DO 7/10). Teks WA di bawah sengaja tidak menyebut HP pribadi sampai DO menyelaraskan keduanya.",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Lima sudut wajah setiap kali: 90° kiri, 45° kiri, depan, 45° kanan, 90° kanan",
+   "Pakai kamera Photodex, cocokkan posisi dengan bayangan foto sebelumnya",
+   "Cek sebelum pasien beranjak: tajam, kepala utuh, lima sudut, sudah terunggah"
+  ],
+  "teks_wa": "Pengingat foto klinis 📸\n• Selalu lima sudut: 90° kiri, 45° kiri, depan, 45° kanan, 90° kanan — walau keluhannya di satu sisi.\n• Pakai kamera Photodex, cocokkan dengan bayangan foto sebelumnya. Kamera sejajar wajah, pasien yang berputar.\n• Sebelum pasien beranjak: tajam, kepala utuh, lima sudut lengkap, sudah terunggah.",
+  "urutan": 5
+ },
+ {
+  "kode": "FAC-01",
+  "judul": "Limbah Medis",
+  "jenis": "alur",
+  "sasaran": [
+   "Perawat",
+   "Piket"
+  ],
+  "cabang": "keduanya",
+  "kelas": "A",
+  "rujukan": "JD-FAC-X03_Alur_Limbah_Medis_Siap_Cetak.docx",
+  "catatan": "Dokumen sumber memuat kode gembok. Jangan pernah memasukkan kode gembok ke teks WA atau tampilan aplikasi.",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Tiga perempat terisi sudah wajib dipindahkan; kotak jarum dipindahkan tertutup",
+   "Tempat pembuangan diperiksa setiap hari; gembok dikunci kembali setiap kali",
+   "Log limbah diisi saat memindahkan; tidak ada limbah tulis NIHIL"
+  ],
+  "teks_wa": "Pengingat limbah medis 🗑️\n• Terisi ¾ → wajib dipindahkan (kotak jarum: kotaknya, tertutup — isinya jangan disentuh).\n• Tempat pembuangan dicek setiap hari, gembok dikunci kembali.\n• Kotak penampungan pertama penuh → hubungi vendor hari itu juga.\n• Log diisi saat memindahkan. Tidak ada limbah → tulis NIHIL.",
+  "urutan": 6
+ },
+ {
+  "kode": "AST-01",
+  "judul": "Cek Asistensi Harian",
+  "jenis": "kebijakan",
+  "sasaran": [
+   "Kasir",
+   "Koordinator shift"
+  ],
+  "cabang": "keduanya",
+  "kelas": "A",
+  "rujukan": "",
+  "catatan": "Ketentuan sudah diumumkan DO. Sasaran peran perlu dipastikan DO di halaman katalog (siapa yang mengecek asistensi di tiap cabang). Bila ketentuan ini sudah ada di modul Kebijakan, tautkan ke record itu; bila belum, simpan sebagai teks di katalog.",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Asistensi wajib dicek setiap hari",
+   "Ada ketidaksesuaian: wajib lapor Bu Jean paling lambat 2 hari",
+   "Lebih dari 2 hari: wajib menulis laporan kronologis lengkap"
+  ],
+  "teks_wa": "Pengingat cek asistensi 📋\n1. Asistensi WAJIB dicek setiap hari.\n2. Ada ketidaksesuaian → lapor Bu Jean paling lambat 2 hari.\n3. Lewat dari 2 hari → wajib menulis laporan kronologis lengkap.",
+  "urutan": 7
+ },
+ {
+  "kode": "AR-04",
+  "judul": "Pendamping Injeksi",
+  "jenis": "alur",
+  "sasaran": [
+   "Perawat"
+  ],
+  "cabang": "keduanya",
+  "kelas": "B",
+  "rujukan": "Alur_Ringkas_Pendamping_Injeksi.docx",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Semua perlengkapan siap sebelum pasien masuk, bukan setelah diminta dokter",
+   "Satu meja, satu pasien, satu tindakan; tidak ada vial atau label pasien lain di meja",
+   "Periksa nama, batch, ED, segel; catatan suhu terputus atau segel rusak → jangan dipakai"
+  ],
+  "teks_wa": "Pengingat pendamping injeksi 💉\n• Perlengkapan siap sebelum pasien masuk: bola stres, alat getar (sudah dicoba), kasa steril, wadah tahan tusuk.\n• Satu meja, satu pasien, satu tindakan.\n• Cek nama, batch, ED, segel. Ragu → jangan dipakai, lapor dokter dan apotek.",
+  "urutan": 8
+ },
+ {
+  "kode": "AR-05",
+  "judul": "Persiapan Operasi Minor",
+  "jenis": "alur",
+  "sasaran": [
+   "Perawat",
+   "Koordinator shift"
+  ],
+  "cabang": "keduanya",
+  "kelas": "B",
+  "rujukan": "Alur_Ringkas_Persiapan_Operasi_Minor.docx (SOP T10, F08)",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Begitu tahu ada tindakan, persiapan dimulai saat itu juga, sambil dokter memeriksa pasien lain",
+   "Consent tertulis lengkap sebelum pasien naik bed",
+   "Hitung kasa dan instrumen bersama sebelum insisi, dicatat di F08"
+  ],
+  "teks_wa": "Pengingat persiapan operasi minor 🩺\nBegitu tahu ada tindakan: kabari koordinator → mintakan consent → siapkan ruang dan set steril → set anestesi berdiri → baru panggil dokter.\nDokter tidak boleh menunggu alat atau consent. Hitung kasa dan instrumen bersama sebelum insisi.",
+  "urutan": 9
+ },
+ {
+  "kode": "AR-06",
+  "judul": "Pemesanan Online",
+  "jenis": "alur",
+  "sasaran": [
+   "Petugas online",
+   "Apotek"
+  ],
+  "cabang": "keduanya",
+  "kelas": "B",
+  "rujukan": "Alur_Ringkas_Pemesanan_Online.docx",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Stok dipastikan dulu, baru pasien diminta membayar",
+   "Identitas dicek dua kali: saat pesanan masuk dan oleh apotek sebelum diserahkan",
+   "Pesanan selesai setelah pasien mengonfirmasi barang diterima"
+  ],
+  "teks_wa": "Pengingat pemesanan online 📦\n1. Pastikan stok dan harga ke apotek dulu, baru minta pasien bayar.\n2. Dana masuk = mulai hitungan 2 jam. 1,5 jam belum berangkat → kabari pasien.\n3. Identitas dicek dua kali. Obat resep hanya untuk pasien yang resepnya dari konsultasi di klinik.\n4. Selesai setelah pasien konfirmasi diterima; catat di buku logistik.",
+  "urutan": 10
+ },
+ {
+  "kode": "PO-01",
+  "judul": "Opening dan Closing Petugas Online",
+  "jenis": "alur",
+  "sasaran": [
+   "Petugas online",
+   "Koordinator shift"
+  ],
+  "cabang": "keduanya",
+  "kelas": "C",
+  "rujukan": "Opening_Closing_Session_Petugas_Online.docx",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Opening: baca semua pesan sejak closing kemarin, kerjakan pesanan menggantung lebih dulu",
+   "Closing: setiap pesanan belum selesai ditulis di lembar serah terima beserta statusnya",
+   "Cocokkan form pemesanan, nota apotek, dan uang masuk setiap hari"
+  ],
+  "teks_wa": "Pengingat petugas online 📱\nOpening: baca semua pesan sejak closing kemarin, kerjakan yang menggantung dulu, konfirmasi booking H dan H-1.\nClosing: tulis semua pesanan/pesan yang belum selesai di lembar serah terima, cocokkan form – nota – uang masuk.",
+  "urutan": 11
+ },
+ {
+  "kode": "AR-08",
+  "judul": "Diagnosis di Kwitansi",
+  "jenis": "alur",
+  "sasaran": [
+   "Kasir",
+   "Perawat"
+  ],
+  "cabang": "keduanya",
+  "kelas": "B",
+  "rujukan": "Alur_Ringkas_Diagnosis_di_Kwitansi.docx",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Diagnosis ditulis sesuai yang ditetapkan dokter, tidak disingkat atau ditebak",
+   "Kasir memastikan kolom diagnosis terisi sebelum mencetak kwitansi",
+   "Kosong: tanyakan dokter atau perawat pendamping sebelum pasien pulang"
+  ],
+  "teks_wa": "Pengingat kasir dan perawat 🧾\nSebelum mencetak kwitansi, pastikan kolom diagnosis terisi dan sama dengan yang ditulis dokter. Kosong → tanyakan ke dokter/perawat pendamping sebelum pasien pulang.\nPerawat: ingatkan dokter bila diagnosis belum ditulis saat konsultasi selesai.",
+  "urutan": 12
+ },
+ {
+  "kode": "AR-09",
+  "judul": "Kirim Barang Antar Cabang",
+  "jenis": "alur",
+  "sasaran": [
+   "Koordinator shift",
+   "Apotek"
+  ],
+  "cabang": "keduanya",
+  "kelas": "C",
+  "rujukan": "Alur_Ringkas_Kirim_Barang_Antar_Cabang.docx",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Setiap kiriman memakai nota pengiriman; tanpa tanda terima dianggap belum selesai",
+   "Koordinator pengirim mengabari penerima: barang apa, dibawa siapa, perkiraan tiba",
+   "Obat, krim, dan produk dingin tidak ditinggal di mobil"
+  ],
+  "teks_wa": "Pengingat kirim barang antar cabang 🚗\nSetiap kiriman: nota pengiriman → kabari koordinator penerima → penerima cek, tanda tangan, foto nota dikirim balik.\nTermasuk yang dititipkan ke dokter/Owner. Obat dan produk dingin tidak ditinggal di mobil.",
+  "urutan": 13
+ },
+ {
+  "kode": "PHR-01",
+  "judul": "Cold Chain",
+  "jenis": "alur",
+  "sasaran": [
+   "Apotek",
+   "Perawat"
+  ],
+  "cabang": "keduanya",
+  "kelas": "B",
+  "rujukan": "Alur_Staf_Cold_Chain.docx",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Suhu dicatat dua kali sehari: 13.30 dan saat penutupan",
+   "Suhu di luar 2–8 °C: pindahkan produk ke unit cadangan sebelum melapor",
+   "Produk terpapar dikarantina sampai Apoteker dan PJ Klinik memutuskan"
+  ],
+  "teks_wa": "Pengingat cold chain ❄️\n• Catat suhu kulkas pukul 13.30 dan saat penutupan.\n• Di luar 2–8 °C → pindahkan produk ke unit cadangan DULU, baru lapor Apoteker.\n• Produk terpapar dikarantina, tidak dipakai sampai diputuskan Apoteker dan PJ Klinik.\n• Pintu kulkas segera ditutup; ED terdekat keluar lebih dulu.",
+  "urutan": 14
+ },
+ {
+  "kode": "FO-01",
+  "judul": "Input Data Pasien Baru",
+  "jenis": "alur",
+  "sasaran": [
+   "Perawat",
+   "Koordinator shift",
+   "Meja depan"
+  ],
+  "cabang": "keduanya",
+  "kelas": "B",
+  "rujukan": "Alur_Staf_Input_Data_Pasien_Baru.docx",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Koordinator menetapkan penginput (perawat utama dan pengganti) saat briefing",
+   "Input segera di Omnicare dan emr.joderma.id, sebelum konsultasi",
+   "Konsultasi tidak dimulai sebelum data pasien baru lengkap di Omnicare"
+  ],
+  "teks_wa": "Pengingat pasien baru 📝\nData diri pasien baru diinput SEGERA selagi pasien menunggu — Omnicare dan emr.joderma.id.\nCocokkan nama dan tanggal lahir. Konsultasi tidak dimulai sebelum data lengkap di Omnicare.",
+  "urutan": 15
+ },
+ {
+  "kode": "FO-02",
+  "judul": "Double Check Front Office",
+  "jenis": "alur",
+  "sasaran": [
+   "Meja depan",
+   "Kasir"
+  ],
+  "cabang": "keduanya",
+  "kelas": "B",
+  "rujukan": "",
+  "catatan": "Tiga titik double check sudah disosialisasikan lisan oleh DO pada 10/10 dan diputuskan aktif. Isi tiga titiknya belum tertulis di dokumen; sampai DO mengisi poin lewat halaman katalog, kartu menampilkan label \"poin belum diisi\" dan teks WA di bawah dipakai apa adanya.",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "(diisi DO)",
+   "(diisi DO)",
+   "(diisi DO)"
+  ],
+  "teks_wa": "Pengingat double check front office ✅\nTiga titik double check yang sudah disampaikan tetap dijalankan setiap pasien, tanpa terkecuali.\nRagu di salah satu titik → cek ulang dulu sebelum lanjut.",
+  "urutan": 16
+ },
+ {
+  "kode": "AR-10",
+  "judul": "ED Pendek dan Stok Kosong",
+  "jenis": "alur",
+  "sasaran": [
+   "Apotek"
+  ],
+  "cabang": "keduanya",
+  "kelas": "C",
+  "rujukan": "Alur_Ringkas_ED_Pendek_dan_Stok_Kosong.docx (SOP PHR-01)",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Daftar ED empat tingkat (≤12, ≤6, ≤3, ≤1 bulan) diperbarui setiap minggu",
+   "Produk diretur karena ED dekat: pesan ulang hari yang sama, minta ED panjang",
+   "Stok akan kosong: beri tahu dokter, koordinator shift, dan petugas online"
+  ],
+  "teks_wa": "Pengingat apotek 💊\n• Daftar ED empat tingkat diperbarui minggu ini?\n• Produk yang diretur karena ED dekat → pesan ulang hari itu juga, tanyakan ED batch pengganti.\n• Stok akan kosong → kabari dokter, koordinator, dan petugas online supaya tidak dijanjikan ke pasien.",
+  "urutan": 17
+ },
+ {
+  "kode": "AR-11",
+  "judul": "Surat Sakit",
+  "jenis": "alur",
+  "sasaran": [
+   "Meja depan",
+   "Kasir",
+   "Perawat"
+  ],
+  "cabang": "keduanya",
+  "kelas": "C",
+  "rujukan": "Alur_Ringkas_Surat_Sakit.docx",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Berlaku mulai tanggal berobat, tidak boleh mundur",
+   "Paling lama 5 hari kecuali kebijakan dokter; alasannya ditulis di RM",
+   "Lama istirahat ditentukan dokter, bukan petugas"
+  ],
+  "teks_wa": "Pengingat surat sakit 📄\nMulai tanggal berobat, tidak berlaku mundur, paling lama 5 hari — kecuali keputusan dokter (alasannya ditulis di RM).\nPasien minta di luar aturan → jawab sopan, teruskan ke dokter. Petugas tidak memutuskan sendiri.",
+  "urutan": 18
+ },
+ {
+  "kode": "CGV-01",
+  "judul": "Pengiriman Sampel Biologis",
+  "jenis": "alur",
+  "sasaran": [
+   "Perawat"
+  ],
+  "cabang": "keduanya",
+  "kelas": "C",
+  "rujukan": "Alur_Staf_Pengiriman_Sampel_Biologis.docx (formulir JD-CGV-F04)",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Satu wadah satu lokasi; label ditulis dulu sebelum sampel diambil",
+   "Label dibacakan di depan orang kedua, keduanya paraf",
+   "Simpan suhu ruang, jangan masuk kulkas; hasil belum datang di tanggal perkiraan → tagih lab"
+  ],
+  "teks_wa": "Pengingat sampel biologis 🧪\nTanya dokter sebelum tindakan: berapa sampel, lokasi, pemeriksaan, medium.\nSatu wadah satu lokasi, label ditulis dulu. Bacakan label di depan orang kedua, paraf berdua.\nSuhu ruang — jangan masuk kulkas. Label ragu/sampel hilang → hentikan, lapor dokter.",
+  "urutan": 19
+ },
+ {
+  "kode": "PHR-02",
+  "judul": "Peminjaman Produk dan Bahan",
+  "jenis": "alur",
+  "sasaran": [
+   "Semua staf"
+  ],
+  "cabang": "keduanya",
+  "kelas": "C",
+  "rujukan": "Alur_Staf_Peminjaman_Produk_dan_Bahan.docx (formulir JD-PHR-F03)",
+  "catatan": "",
+  "aktif": true,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Satu permintaan satu lembar formulir JD-PHR-F03",
+   "Izin belum ada → barang tidak diserahkan; tidak ada 'pakai dulu, izin menyusul'",
+   "Setiap pengeluaran bernota dan dicatat saat itu juga"
+  ],
+  "teks_wa": "Pengingat peminjaman barang 📋\nIsi formulir JD-PHR-F03, minta izin ke yang berwenang dulu. Belum ada izin → barang tidak diserahkan.\nSetiap barang keluar bernota dan dicatat saat itu juga.",
+  "urutan": 20
+ },
+ {
+  "kode": "EST-01",
+  "judul": "Tindakan Estetik Bayar di Akhir",
+  "jenis": "alur",
+  "sasaran": [
+   "Kasir",
+   "Perawat",
+   "Dokter"
+  ],
+  "cabang": "keduanya",
+  "kelas": "C",
+  "rujukan": "Bacaan_Staf_Alur_Tindakan_Estetik_Bayar_di_Akhir.docx (Memo 006)",
+  "catatan": "Ditunda oleh DO (13 Oktober 2026). Jangan dijadwalkan sampai DO mengaktifkannya.",
+  "aktif": false,
+  "tanggal_sosialisasi": null,
+  "poin": [
+   "Kasir membuat rincian sementara tindakan selagi pasien menunggu",
+   "Perawat menunjukkan rincian dan harga setelah cleansing, sebelum tindakan dilanjutkan",
+   "Form asistensi dibawa ke kasir; upselling ditulis di kolom catatan"
+  ],
+  "teks_wa": "Pengingat tindakan estetik 💆\nRincian dan harga ditunjukkan ke pasien setelah cleansing, sebelum tindakan dilanjutkan. Yang ditolak dicoret.\nForm asistensi dibawa ke kasir bersama pasien; upselling di kolom catatan.",
+  "urutan": 21
+ },
+ {
+  "kode": "AR-12",
+  "judul": "Pasien Asuransi",
+  "jenis": "alur",
+  "sasaran": [
+   "Meja depan",
+   "Perawat",
+   "Kasir"
+  ],
+  "cabang": "keduanya",
+  "kelas": "B",
+  "rujukan": "Alur_Ringkas_Pasien_Asuransi.docx; DRAF_Lembar_Resume_Medis_Asuransi.docx",
+  "catatan": "Disetujui 13 Oktober 2026. Materi baru: mendapat ulangan hari ke-1, 3, 7, 14, 30 sejak tanggal sosialisasi, lalu giliran normal kelas B.",
+  "aktif": true,
+  "tanggal_sosialisasi": "2026-10-13",
+  "poin": [
+   "Cara bayar ditanyakan sejak pendaftaran",
+   "Dokumen klaim ditandatangani dokter saat konsultasi",
+   "Di kasir: nota rinci, kwitansi dengan diagnosis, dan dokumen klaim diserahkan sekaligus"
+  ],
+  "teks_wa": "Pengingat pasien asuransi 🏥\nTanyakan cara bayar sejak pendaftaran. Bila asuransi: lampirkan formulir asuransi pasien atau Lembar Resume Medis di berkas RM, tandai \"ASURANSI\".\nDokter tanda tangan saat konsultasi. Kasir menyerahkan nota rinci, kwitansi dengan diagnosis, dan dokumen klaim sekaligus.\nJangan menjanjikan klaim pasti diganti.",
+  "urutan": 22
+ }
+]

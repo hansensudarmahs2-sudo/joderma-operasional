@@ -657,3 +657,30 @@ a.news-card:hover { border-color: var(--teal); }
   .news-note { font-size: .72rem; }
 }
 @media print { .dash-nav, .dash-dialog { display: none; } }
+
+/* Pengingat Harian DO (14 Okt 2026): kartu di Ringkasan Direktur. */
+.pengingat { border-left: 5px solid var(--teal); }
+.pengingat-butir { border-top: 1px solid var(--line); padding: .7rem 0 .4rem; }
+.pengingat-butir:first-of-type { border-top: 0; }
+.pengingat-head { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; justify-content: space-between; }
+.pengingat-poin { margin: .3rem 0; padding-left: 1.2rem; }
+.pengingat-wa { background: var(--row-alt); border: 1px solid var(--line); border-radius: 8px; padding: .6rem .7rem; margin: .4rem 0; }
+.pengingat-teks { white-space: pre-wrap; word-break: break-word; font-family: inherit; font-size: .92rem; margin: 0 0 .5rem; }
+.pengingat-salin { width: 100%; min-height: 44px; }
+.pengingat-pilih { border: 0; padding: 0; margin: .2rem 0; display: flex; flex-wrap: wrap; gap: .3rem 1rem; }
+.pengingat-pilih legend { font-size: .82rem; font-weight: 600; padding: 0; margin-bottom: .2rem; }
+.pengingat-pilih label { display: inline-flex; align-items: center; gap: .35rem; margin: 0; font-weight: 400; font-size: .92rem; }
+.pengingat-pilih input { width: auto; min-height: 0; margin: 0; }
+.pengingat-selesai { list-style: none; padding: 0; margin: .6rem 0 0; border-top: 1px solid var(--line); }
+.pengingat-selesai li { padding: .3rem 0; }
+.pengingat-pratinjau { margin-top: .6rem; }
+.pengingat-pratinjau ul { list-style: none; padding: 0; margin: .3rem 0 0; font-size: .9rem; }
+.pengingat-pratinjau li { padding: .2rem 0; }
+@media (min-width: 640px) { .pengingat-salin { width: auto; } }
+.pengingat-angka { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .5rem .8rem; }
+.pengingat-angka label { margin: 0; }
+.pengingat-centang { display: flex; align-items: center; gap: .4rem; align-self: end; }
+.pengingat-centang input { width: auto; min-height: 0; }
+.pengingat-kebijakan { border-left: 3px solid var(--line); padding-left: .6rem; margin: .3rem 0; font-size: .92rem; }
+.pengingat-form [hidden] { display: none; }
+.pengingat-form textarea { font-family: inherit; }

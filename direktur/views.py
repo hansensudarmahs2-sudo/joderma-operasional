@@ -25,6 +25,7 @@ from core.models import (
     local_today,
 )
 from core.permissions import is_aom, is_owner, is_owner_only, require, user_clinic_queryset
+from pengingat.services import kartu_context
 from projects.services import leads_item_project
 
 from . import dashboard, services
@@ -116,6 +117,7 @@ def overview(request):
             "matrix": dashboard.eisenhower(user, limit=1),
             "counts": dashboard.headline_counts(user),
             "agenda": dashboard.meeting_agenda(user),
+            "pengingat": kartu_context(user),
             "is_director": is_aom(user),
             "today": local_today(),
         },

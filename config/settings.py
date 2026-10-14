@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "projects",
     "jejak",
     "absensi",
+    "pengingat",
 ]
 
 MIDDLEWARE = [

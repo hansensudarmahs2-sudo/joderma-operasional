@@ -31,7 +31,7 @@ antrian tidak masuk checklist ini karena pencatatannya sudah dipegang Finance.
 Menu atas sengaja pendek (5 Okt 2026): **Ringkasan**, **Inbox**, **Dari staf**, **Tim**, lalu tiga menu
 kelompok lagi —
 **Task** (Daftar Task, Kanban, Prioritas, Jadwal Task), **Evaluasi staf** (KPI, Jejak), dan
-**Kebijakan** (Kebijakan, Keputusan, Bahan Rapat). Membuka menu kelompok membawa Anda ke halaman
+**Kebijakan** (Kebijakan, Keputusan, Bahan Rapat, Pengingat, Riwayat pengingat). Membuka menu kelompok membawa Anda ke halaman
 pertamanya; halaman lain dalam kelompok dipilih lewat **baris tab di atas halaman**. Detail task,
 detail keputusan, dan rincian KPI per staf juga menampilkan tab kelompoknya.
 
@@ -258,6 +258,39 @@ Di halaman detail ada **Percakapan** dua arah: Anda dan Owner dapat menulis, dan
 memberi notifikasi ke pihak lain. Selama usulan belum dijawab (atau laporan belum dibaca) Anda
 dapat memakai **Batalkan usulan** dengan alasan; semua Owner diberi tahu. Daftar usulan
 menampilkan "Perlu tindakan" (bawaan) atau "Semua".
+
+## Pengingat harian
+
+Di paling atas **Ringkasan** ada kartu **Pengingat hari ini**: materi alur, SOP, standar, atau
+kebijakan yang hari ini perlu diingatkan ke tim. Materi bergilir otomatis menurut kelasnya (A
+mingguan, B dua mingguan, C bulanan), sehingga semua materi terus muncul kembali. Aplikasi **tidak**
+mengirim apa pun ke staf; Anda yang mengirim (grup WA, briefing, atau langsung).
+
+- Kartu dibentuk saat Ringkasan pertama kali dibuka pada hari kerja, lalu tetap sepanjang hari
+  (semua akun Direktur Operasional melihat kartu yang sama). Hari libur tidak ada kartu.
+- Setiap butir: kode dan judul, sasaran, cabang, tiga poin kunci, teks WA dengan tombol **Salin
+  teks WA** (`{cabang}` sudah diganti), rujukan, dan kapan terakhir diingatkan di tiap cabang.
+- **Sudah diingatkan**: pilih cabang dan saluran, catatan opsional. Masuk Riwayat.
+- **Tunda ke besok**: muncul lagi hari kerja berikutnya, di luar kuota; tidak dihitung diingatkan.
+- **Lewati** (alasan wajib, mis. materi sedang direvisi): jadwalnya mundur satu interval; tidak masuk
+  Riwayat.
+- Butir yang tidak disentuh tetap jatuh tempo dan muncul lagi besok.
+- Di bawah kartu ada **7 hari ke depan (perkiraan)**.
+
+Butir paksa (Tunda, **Ingatkan besok**, dan ulangan materi baru) selalu masuk di luar kuota harian,
+jadi kartu bisa berisi lebih dari dua butir.
+
+**Kebijakan ▸ Pengingat** (katalog): tambah, ubah, nonaktifkan materi, dan **Ingatkan besok** bila
+Anda menemukan pelanggaran di lapangan. Materi baru memakai tanggal sosialisasi hari itu dan
+mendapat ulangan hari ke-1, 3, 7, 14, dan 30 sebelum masuk giliran normal; kosongkan tanggalnya
+bila tidak perlu. Materi berjenis kebijakan dapat merujuk kebijakan yang berlaku; isinya
+ditampilkan dari record aslinya. Di bawah katalog ada **Pengaturan** (hari kerja, butir per hari,
+interval A/B/C). Bila kebutuhan mingguan materi aktif melebihi kapasitas, katalog menampilkan
+peringatan.
+
+**Kebijakan ▸ Riwayat pengingat**: semua yang sudah diingatkan, disaring per materi, cabang, dan
+bulan, dengan **Unduh CSV** sebagai bukti sosialisasi (akreditasi). Direktur Utama dan Owner dapat
+membaca riwayat ini, tetapi tidak melihat kartu maupun katalog.
 
 ## Survei
 
