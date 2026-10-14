@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from django.urls import reverse
 
 from accounts.models import Capability, Role
+from accounts.booking import BOOKING_PATH
 from accounts.survei import SURVEY_PATH
 
 DIREKTUR = "DIREKTUR"
@@ -56,6 +57,7 @@ COMMON = {
     "accounts:logout",
     "accounts:change_password",
     "accounts:survey_session",  # aplikasi Survei menanyakan pemilik sesi (13 Okt 2026)
+    "accounts:booking_session",  # aplikasi CS Booking menanyakan pemilik sesi (14 Okt 2026)
     "notifications:*",
 }
 
@@ -387,6 +389,7 @@ def _flags(user) -> dict:
         is_nurse,
         is_supervisor,
     )
+    from accounts.booking import booking_role
     from accounts.survei import survey_role
     from projects.services import user_has_projects
 
@@ -403,6 +406,7 @@ def _flags(user) -> dict:
         "stok": can_edit_stok(user),
         "projects": user_has_projects(user),
         "survei": survey_role(user) is not None,
+        "booking": booking_role(user) is not None,
     }
 
 
@@ -418,6 +422,8 @@ def nav_sections(user) -> list[NavSection]:
         main.add("Projects", "projects:list")
         if flags["survei"]:
             main.add_link("Survei", SURVEY_PATH)
+        if flags["booking"]:
+            main.add_link("Booking", BOOKING_PATH)
         main.add_group(user, "task")
         main.add_group(user, "evaluasi")
         main.add_group(user, "kebijakan")
@@ -450,6 +456,8 @@ def nav_sections(user) -> list[NavSection]:
         overview.add("Projects", "projects:list")
         if flags["survei"]:
             overview.add_link("Survei", SURVEY_PATH)
+        if flags["booking"]:
+            overview.add_link("Booking", BOOKING_PATH)
         overview.add_group(user, "task")
         overview.add_group(user, "evaluasi")
         overview.add_group(user, "kebijakan")
@@ -509,6 +517,8 @@ def nav_sections(user) -> list[NavSection]:
         work.add("Projects", "projects:list")
     if flags["survei"]:
         work.add_link("Survei", SURVEY_PATH)
+    if flags["booking"]:
+        work.add_link("Booking", BOOKING_PATH)
     work.add("Kebijakan", "reports:policies")
     sections = [work, team, _report_section(user, flags)]
     if who == PIC:
@@ -578,6 +588,8 @@ def _staff_sections(user, flags) -> list[NavSection]:
         work.add("Projects", "projects:list")
     if flags["survei"]:
         work.add_link("Survei", SURVEY_PATH)
+    if flags["booking"]:
+        work.add_link("Booking", BOOKING_PATH)
     # Dibuka per orang lewat kapabilitas tambahan (13 Okt 2026), bukan lewat peran;
     # lihat STAF_DIBUKA_KAPABILITAS.
     kapabilitas = caps(user)

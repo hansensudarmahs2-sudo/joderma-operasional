@@ -9,6 +9,7 @@ import re
 import pytest
 from django.urls import URLPattern, URLResolver, get_resolver, reverse
 
+from accounts.booking import BOOKING_PATH
 from accounts.survei import SURVEY_PATH
 from accounts.models import PicAssignment, PicFunction, Role, User, UserRole
 from core import peran
@@ -99,8 +100,8 @@ def test_owner_menu_is_short(client, clinic):
     client.force_login(_user(clinic, "yohanes", Role.OWNER))
     body = client.get(reverse("owner:dashboard")).content.decode()
     menu = _nav(body)
-    assert menu[:10] == ["Dashboard", "Inbox", "Usulan Direktur", "Projects", "Survei", "Task", "Evaluasi staf",
-                         "Kebijakan", "Summary Harian", "Jadwal"]
+    assert menu[:11] == ["Dashboard", "Inbox", "Usulan Direktur", "Projects", "Survei", "Booking", "Task",
+                         "Evaluasi staf", "Kebijakan", "Summary Harian", "Jadwal"]
     for label in OWNER_FORBIDDEN_MENU:
         assert label not in menu
     assert "Owner / Direktur Utama" in body
@@ -109,8 +110,8 @@ def test_owner_menu_is_short(client, clinic):
 def test_director_menu_keeps_everything(client, clinic):
     client.force_login(_user(clinic, "hansen1", Role.AOM))
     menu = _nav(client.get(reverse("direktur:overview")).content.decode())
-    assert menu[:9] == ["Ringkasan", "Inbox", "Dari staf", "Tim", "Projects", "Survei", "Task", "Evaluasi staf",
-                        "Kebijakan"]
+    assert menu[:10] == ["Ringkasan", "Inbox", "Dari staf", "Tim", "Projects", "Survei", "Booking", "Task",
+                         "Evaluasi staf", "Kebijakan"]
     for label in ("Komplain", "Kerusakan", "Laporan staf", "Masukan privat staf"):
         assert label not in menu  # tab di halaman Dari staf
     for label in ("Checklist Direktur",
@@ -162,8 +163,8 @@ def test_every_menu_link_opens(client, clinic, roles):
     client.force_login(user)
     for section in peran.nav_sections(user):
         for label, url, _also in section.items:
-            if url == SURVEY_PATH:
-                continue  # aplikasi Survei terpisah di hostname yang sama (diarahkan Cloudflare), bukan rute Django
+            if url in (SURVEY_PATH, BOOKING_PATH):
+                continue  # aplikasi Survei/Booking terpisah di hostname yang sama (diarahkan Cloudflare), bukan rute Django
             # Reset peran mengalihkan kembali ke Pengguna bila cabang standar belum ada.
             assert client.get(url, follow=True).status_code == 200, (roles, label, url)
 

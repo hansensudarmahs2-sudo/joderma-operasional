@@ -46,6 +46,29 @@ def survey_session(request):
     return response
 
 
+@require_GET
+def booking_session(request):
+    """Siapa pemilik sesi ini, untuk aplikasi CS Booking di /booking (14 Okt 2026).
+
+    Sama dengan ``survey_session``: dipanggil aplikasi booking lewat 127.0.0.1 dengan kuki sesi yang
+    dikirim peramban, hanya menjelaskan pengguna sesi itu sendiri, dan belum login dijawab 401 (bukan
+    dialihkan) supaya aplikasi booking yang mengarahkan ke login ops dengan ``next=/booking/``."""
+    from django.http import JsonResponse
+    from django.urls import reverse
+
+    from .booking import BOOKING_PATH, booking_role
+
+    if not request.user.is_authenticated:
+        response = JsonResponse({"masuk": f"{reverse('accounts:login')}?next={BOOKING_PATH}"}, status=401)
+    else:
+        peran = booking_role(request.user)
+        body = {"username": request.user.username, "nama": str(request.user),
+                "peran": peran}
+        response = JsonResponse(body, status=200 if peran else 403)
+    response["Cache-Control"] = "no-store"
+    return response
+
+
 def _is_locked_out(username: str) -> bool:
     window = timezone.now() - timedelta(seconds=settings.LOGIN_LOCKOUT_SECONDS)
     failures = LoginAttempt.objects.filter(
