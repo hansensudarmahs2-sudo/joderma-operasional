@@ -20,6 +20,7 @@ urlpatterns = [
     path("checklist/<int:item_id>/catat/", views.record, name="record"),
     path("summary/kirim/", views.summary_send, name="summary_send"),
     path("temuan/<int:pk>/selesai/", views.finding_close, name="finding_close"),
+    path("hutang/", views.hutang_page, name="hutang"),
     path("catatan/", views.notes, name="notes"),
     path("catatan/<int:pk>/arsip/", views.note_archive, name="note_archive"),
     path("catatan/<int:pk>/jadikan-task/", views.note_convert, name="note_convert"),

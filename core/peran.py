@@ -462,6 +462,7 @@ def nav_sections(user) -> list[NavSection]:
         overview.add_group(user, "evaluasi")
         overview.add_group(user, "kebijakan")
         mine = NavSection("Direktur")
+        mine.add("Hutang DO", "direktur:hutang")  # 15 Okt 2026: semua yang menunggu Direktur, urut tenggat
         mine.add("Checklist Direktur", "direktur:checklist")
         mine.add("Summary Harian", "owner:summary")
         mine.add("Usulan ke Owner", "owner:usulan_list")

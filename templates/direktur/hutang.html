@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Hutang DO{% endblock %}
+{% block content %}
+<div class="checklist-heading">
+  <div>
+    <h1>Hutang DO</h1>
+    <p class="sub">Semua yang masih menunggu Direktur Operasional · {{ today|date:"l, d/m/Y" }}</p>
+  </div>
+  {% if total %}<span class="tag warn">{{ total }} butir</span>{% else %}<span class="tag ok">Tidak ada hutang</span>{% endif %}
+</div>
+
+<form method="post" class="card" id="catat-cepat">
+  {% csrf_token %}
+  <label for="judul">Catat cepat — langsung jadi task untuk saya sendiri</label>
+  <input id="judul" name="judul" required maxlength="200" placeholder="Mis. Pasang Telegram di HP klinik Jemur">
+  <div class="inline">
+    <div><label for="batas">Tenggat <span class="meta">(opsional)</span></label>
+      <input id="batas" type="date" name="batas" min="{{ today|date:'Y-m-d' }}"></div>
+    <div><label for="cabang">Cabang</label>
+      <select id="cabang" name="cabang">{% for c in clinics %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
+    <button class="btn" type="submit">Catat</button>
+  </div>
+</form>
+
+<section class="card" id="tugas-saya" aria-labelledby="h-tugas-saya">
+  <div class="checklist-heading" style="margin:0">
+    <h2 id="h-tugas-saya" style="margin:0">1. Task saya</h2>
+    <span class="meta">{{ mine|length }} terbuka{% if mine_overdue %} · <span class="tag warn">{{ mine_overdue }} lewat tenggat</span>{% endif %}</span>
+  </div>
+  {% if mine %}
+  <ul class="request-list">
+    {% for t in mine %}
+    <li class="request-row{% if t.waiting %} is-waiting{% endif %}">
+      <span class="request-main">
+        <strong><a href="{% url 'direktur:task_detail' t.item.pk %}">{{ t.item.title }}</a></strong>
+        <span class="meta">
+          {% if t.item.due_at %}{% if t.overdue %}<span class="tag warn">lewat {{ t.item.due_at|date:"d/m" }}</span>{% elif t.due_today %}<span class="tag info">hari ini</span>{% else %}tenggat {{ t.item.due_at|date:"d/m" }}{% endif %}{% else %}tanpa tenggat{% endif %}
+          · {{ t.item.clinic.name }}{% if t.item.source_label %} · {{ t.item.source_label }}{% endif %}{% if t.waiting %} · menunggu konfirmasi{% endif %}
+        </span>
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="meta">Tidak ada task terbuka atas nama Anda.</p>{% endif %}
+</section>
+
+<section class="card" id="tugas-dari-saya" aria-labelledby="h-dari-saya">
+  <div class="checklist-heading" style="margin:0">
+    <h2 id="h-dari-saya" style="margin:0">2. Task yang saya berikan, belum selesai</h2>
+    <span class="meta">{{ delegated|length }}</span>
+  </div>
+  {% if delegated %}
+  <ul class="request-list">
+    {% for item in delegated %}
+    <li class="request-row">
+      <span class="request-main">
+        <strong><a href="{% url 'direktur:task_detail' item.pk %}">{{ item.title }}</a></strong>
+        <span class="meta">{{ item.owner|default:"belum ada pemilik" }} · {% if item.due_at %}{% if item.is_overdue %}<span class="tag warn">lewat {{ item.due_at|date:"d/m" }}</span>{% else %}tenggat {{ item.due_at|date:"d/m" }}{% endif %}{% else %}tanpa tenggat{% endif %} · {{ item.get_status_display }}{% if item.source_label %} · {{ item.source_label }}{% endif %}</span>
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="meta">Semua task yang Anda berikan sudah selesai.</p>{% endif %}
+</section>
+
+<section class="card" id="permintaan-owner" aria-labelledby="h-owner">
+  <div class="checklist-heading" style="margin:0">
+    <h2 id="h-owner" style="margin:0">3. Permintaan Owner yang tinggal ditutup</h2>
+    <span class="meta">{{ owner_tutup|length }} tinggal ditutup · {{ owner_berjalan|length }} masih berjalan</span>
+  </div>
+  <p class="meta">Task-nya sudah selesai semua (atau tidak punya task), tetapi permintaannya belum ditandai selesai, jadi Owner masih melihatnya terbuka. Buka, tempel catatan balasan, tandai selesai.</p>
+  {% if owner_tutup %}
+  <ul class="request-list">
+    {% for r in owner_tutup %}
+    <li class="request-row">
+      <span class="request-main">
+        <strong><a href="{% url 'owner:request_detail' r.req.pk %}">P-{{ r.req.pk }} · {{ r.req.title }}</a></strong>
+        <span class="meta">{{ r.req.get_kind_display }} · {{ r.req.created_at|date:"d/m" }}{% if r.target %} · target {{ r.target|date:"d/m" }}{% endif %} · {% if r.tasks_total %}{{ r.tasks_total }} task selesai{% else %}tanpa task{% endif %}{% if r.overdue %} · <span class="tag warn">lewat target</span>{% endif %}</span>
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="meta">Tidak ada yang tertahan di tangan Anda.</p>{% endif %}
+  {% if owner_berjalan %}
+  <details><summary class="meta">Masih berjalan ({{ owner_berjalan|length }})</summary>
+  <ul class="request-list">
+    {% for r in owner_berjalan %}
+    <li class="request-row"><span class="request-main">
+      <strong><a href="{% url 'owner:request_detail' r.req.pk %}">P-{{ r.req.pk }} · {{ r.req.title }}</a></strong>
+      <span class="meta">{{ r.tasks_open|length }} task terbuka{% for t in r.tasks_open %} · {{ t.owner|default:"?" }}{% if t.due_at %} {{ t.due_at|date:"d/m" }}{% endif %}{% endfor %}{% if r.overdue %} · <span class="tag warn">lewat target</span>{% endif %}</span>
+    </span></li>
+    {% endfor %}
+  </ul></details>
+  {% endif %}
+</section>
+
+<section class="card" id="keputusan-menunggu" aria-labelledby="h-keputusan">
+  <div class="checklist-heading" style="margin:0">
+    <h2 id="h-keputusan" style="margin:0">4. Keputusan yang menunggu Owner</h2>
+    <span class="meta">{{ decisions|length }}{% if decisions_no_date %} · {{ decisions_no_date }} tanpa tanggal "perlu sebelum"{% endif %}</span>
+  </div>
+  <p class="meta">Bukan hutang Anda, tetapi menahan pekerjaan Anda. Isi tanggal "perlu sebelum" supaya Owner melihat tenggatnya.</p>
+  {% if decisions %}
+  <ul class="request-list">
+    {% for d in decisions %}
+    <li class="request-row"><span class="request-main">
+      <strong><a href="{% url 'direktur:decision_detail' d.pk %}">D-{{ d.pk }} · {{ d.title }}</a></strong>
+      <span class="meta">{{ d.get_decider_display }}{% if d.needed_by %} · perlu sebelum {{ d.needed_by|date:"d/m" }}{% else %} · <span class="tag info">tanpa tanggal</span>{% endif %}{% if d.reference %} · {{ d.reference }}{% endif %}</span>
+    </span></li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="meta">Tidak ada keputusan yang menunggu.</p>{% endif %}
+</section>
+
+<section class="card" id="pengingat-hari-ini" aria-labelledby="h-pengingat">
+  <div class="checklist-heading" style="margin:0">
+    <h2 id="h-pengingat" style="margin:0">5. Pengingat hari ini</h2>
+    <span class="meta">{% if pengingat %}{% if pengingat.libur %}hari libur{% else %}{{ pengingat_terbuka }} belum diingatkan dari {{ pengingat.butir|length }}{% endif %}{% endif %}</span>
+  </div>
+  {% if pengingat and pengingat.butir %}
+  <ul class="request-list">
+    {% for b in pengingat.butir %}
+    <li class="request-row"><span class="request-main"><strong>{{ b.materi.kode }} · {{ b.materi.judul }}</strong><span class="meta">{{ b.get_status_display }}</span></span></li>
+    {% endfor %}
+  </ul>
+  <p><a class="btn small secondary" href="{% url 'direktur:overview' %}#pengingat">Tandai di Ringkasan</a></p>
+  {% else %}<p class="meta">Tidak ada kartu pengingat untuk hari ini.</p>{% endif %}
+</section>
+{% endblock %}

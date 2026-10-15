@@ -28,7 +28,7 @@ from core.permissions import is_aom, is_owner, is_owner_only, require, user_clin
 from pengingat.services import kartu_context
 from projects.services import leads_item_project
 
-from . import dashboard, services
+from . import dashboard, hutang, services
 from . import summary as daily_summary
 from .models import (
     AuditItem,
@@ -987,3 +987,25 @@ def branch_targets(post, clinics) -> list[tuple]:
     if clinic is None:
         raise ValidationError("Cabang tidak valid.")
     return [(clinic, post.get("penerima", ""))]
+
+
+@login_required
+@require(is_aom)
+def hutang_page(request):
+    """Hutang DO (15 Okt 2026): semua yang masih menunggu Direktur, satu halaman, urut tenggat."""
+    if request.method == "POST":
+        clinic, _ = _clinic_from(request, request.POST.get("cabang"))
+        try:
+            if clinic is None:
+                raise ValidationError("Pilih cabang untuk task ini.")
+            hutang.catat_cepat(
+                user=request.user,
+                title=request.POST.get("judul", ""),
+                due=request.POST.get("batas", ""),
+                clinic=clinic,
+            )
+            messages.success(request, "Dicatat sebagai task untuk Anda sendiri.")
+        except ValidationError as exc:
+            _errors(request, exc)
+        return redirect("direktur:hutang")
+    return render(request, "direktur/hutang.html", hutang.context(request.user))
